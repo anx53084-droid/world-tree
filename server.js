@@ -13,10 +13,10 @@ const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用
 // 审核服务 ed25519 签名密钥（演示：本地生成并保存；生产应放 KMS/HSM，并升级为多节点门限签名）
 const DATA_DIR = path.join(__dirname, 'data'); fs.mkdirSync(DATA_DIR, { recursive: true });
 const MODKEY_F = path.join(DATA_DIR, 'moderator.json');
-function parseSecret(v) { v = v.trim(); if (/^[0-9a-fA-F]{128}$/.test(v)) return Buffer.from(v, 'hex'); try { const b = require('bs58').decode(v); if (b.length === 64) return Buffer.from(b); } catch {} const b = Buffer.from(v, 'base64'); if (b.length === 64) return b; throw new Error('MODERATOR_SECRET must be a 64-byte ed25519 secret key (hex/base58/base64)'); }
+function parseSecret(v) { v = String(v).replace(/^\s*MODERATOR_SECRET\s*=\s*/,'').replace(/[\s`'"]/g,''); if (/^[0-9a-fA-F]{128}$/.test(v)) return Buffer.from(v, 'hex'); try { const b = require('bs58').decode(v); if (b.length === 64) return Buffer.from(b); } catch {} const b = Buffer.from(v, 'base64'); if (b.length === 64) return b; throw new Error('MODERATOR_SECRET must be a 64-byte ed25519 secret key (hex/base58/base64)'); }
 let MODKEY;
-if (process.env.MODERATOR_SECRET) { MODKEY = nacl.sign.keyPair.fromSecretKey(parseSecret(process.env.MODERATOR_SECRET)); console.log('moderator key: from MODERATOR_SECRET env'); }
-else { try { MODKEY = nacl.sign.keyPair.fromSecretKey(Buffer.from(JSON.parse(fs.readFileSync(MODKEY_F)).secret, 'base64')); console.log('moderator key: from data/moderator.json'); }
+if (process.env.MODERATOR_SECRET) { try { MODKEY = nacl.sign.keyPair.fromSecretKey(parseSecret(process.env.MODERATOR_SECRET)); console.log('moderator key: from MODERATOR_SECRET env'); } catch (e) { console.warn('WARNING: invalid MODERATOR_SECRET (' + e.message + '), falling back'); } }
+if (!MODKEY) { try { MODKEY = nacl.sign.keyPair.fromSecretKey(Buffer.from(JSON.parse(fs.readFileSync(MODKEY_F)).secret, 'base64')); console.log('moderator key: from data/moderator.json'); }
   catch { MODKEY = nacl.sign.keyPair(); fs.writeFileSync(MODKEY_F, JSON.stringify({ secret: Buffer.from(MODKEY.secretKey).toString('base64') }), { mode: 0o600 });
     console.warn('⚠️  WARNING: no MODERATOR_SECRET env and no data/moderator.json — generated an EPHEMERAL moderator key. Previously signed wishes will fail verification after restart/redeploy. Set MODERATOR_SECRET.'); } }
 const MOD_PUB = Buffer.from(MODKEY.publicKey).toString('hex');
