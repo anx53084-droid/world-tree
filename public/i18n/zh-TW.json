@@ -197,5 +197,11 @@
 "scene.root": "根",
 "scene.up": "上一級",
 "scene.stats": "共 {n} 張 · 當前區域 {c} 張 · 層級 {d}/{D}",
-"scene.confirming": "確認中"
+"scene.confirming": "確認中",
+"cat.material": "物質類",
+"wish.shipping": "收貨 / 聯絡備註（選填，僅伺服器保存，不上鏈）",
+"wish.shippingPh": "例如：收件人、電話、地址，或其他聯絡方式（可選）",
+"wish.shippingHint": "此備註僅用於星願大使驚喜還願，不會寫入區塊鏈，也不會公開展示。",
+"fulfill.badge": "星願大使已還願",
+"fulfill.toast": "星願大使為你實現了這個願望 ✨"
 }

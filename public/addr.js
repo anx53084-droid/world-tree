@@ -13,10 +13,10 @@
   // 确定性伪随机（支持 i 到 2^53）
   const hash = (i, salt = 0) => { let h = (i % 4294967296) ^ Math.imul(salt + 0x9e3779b9, 0x85ebca6b), l = Math.floor(i / 4294967296);
     h = Math.imul(h ^ (h >>> 16), 0x7feb352d); h ^= Math.imul(l + 0x27d4eb2f, 0x165667b1); h = Math.imul(h ^ (h >>> 15), 0x846ca68b); return ((h ^ (h >>> 16)) >>> 0); };
-  const CATS = ['经典', '风景', '人物', '动物', '卡通'];
+  const CATS = ['经典', '风景', '人物', '动物', '卡通', '物质类'];
   const A = ['愿', '希望', '祝', '盼', '但愿'], Bw = ['家人', '自己', '朋友们', '小猫', '爸妈', '世界', '你', '大家', '宝宝', '我们'],
     C = ['平安喜乐', '健康长寿', '考试顺利', '早日暴富', '心想事成', '永远开心', '前程似锦', '万事胜意', '岁岁平安', '梦想成真', '一路花开', '星河长明'];
-  const synth = i => { const h = hash(i), h2 = hash(i, 7); return { id: i, sig: 'SYN' + i, cat: CATS[h % 5], text: A[h2 % 5] + Bw[(h2 >>> 4) % 10] + C[(h2 >>> 9) % 12],
+  const synth = i => { const h = hash(i), h2 = hash(i, 7); return { id: i, sig: 'SYN' + i, cat: CATS[h % CATS.length], text: A[h2 % 5] + Bw[(h2 >>> 4) % 10] + C[(h2 >>> 9) % 12],
     likes: h % 97 < 70 ? h % 7 : (h >>> 8) % 300, blessN: (h >>> 20) % 6, author: 'Syn' + (h2 >>> 0).toString(36).padEnd(8, 'x'), time: 1790000000 + (i % 31536000), synthetic: true }; };
   return { B, DEPTH, SLOTS, HANG, CAPACITY, HEX, pathOf, prefixVal, valid, count, cardsIn, synth, hash };
 });

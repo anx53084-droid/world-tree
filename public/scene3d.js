@@ -16,7 +16,7 @@ const MOBILE = matchMedia('(pointer:coarse)').matches || innerWidth < 700, QS = 
 const tr = (k, v) => window.I18N ? I18N.t(k, v) : k; // 国际化（见 i18n.js）
 export const SEASONS = { green: { get name() { return tr('season.green'); }, v: 0 }, bloom: { get name() { return tr('season.bloom'); }, v: 1 }, fall: { get name() { return tr('season.fall'); }, v: 2 } };
 
-const A = window.WTAddr, HUES = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28 };
+const A = window.WTAddr, HUES = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270 };
 const MID_CAP = MOBILE ? 3000 : 5000, NEAR_CAP = MOBILE ? 120 : 200, TILE_LRU = 800, COUNT_LRU = 300;
 let cfg = { stress: false, total: 0 }, real = [], N = 0, focus = '', view = null, viewSeq = 0, inst, nearPool = [], clusters, labels = [], navEl, hlId = null, lastNav = 0, fly = null, dirty = true, loadTimer = 0;
 const tiles = new Map(), countsCache = new Map(), inflight = new Set(), frameT = [];

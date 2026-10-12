@@ -7,6 +7,7 @@ const RPC = process.env.SOLANA_RPC || process.env.RPC_URL || 'https://api.devnet
 const TREE = new web3.PublicKey('pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb');
 const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z');
 const { moderate, RULES } = require('./moderation');
+const Fulfill = require('./fulfillment');
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
@@ -82,6 +83,33 @@ async function api(req, res, url) {
   }
   if (url === '/api/config') { const p = await solPrice(); return send(res, 200, { developer: DEV.toBase58(), treasury: TREASURY.toBase58(), split: [20, 80], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, minLamports: minLamports(p.usd), moderator: MOD_PUB }); }
   if (url === '/api/rules') return send(res, 200, { categories: Object.keys(RULES), words: RULES }); // 供前端展示过滤
+  // —— 星愿大使 / 还愿（公开只读徽章；履约联系方式仅存链下）——
+  if (url.startsWith('/api/fulfillments/') && req.method === 'GET') {
+    const sig = decodeURIComponent(url.slice('/api/fulfillments/'.length).split('/')[0] || '');
+    const v = Fulfill.publicView(sig); return v ? send(res, 200, v) : send(res, 404, { error: 'not found', code: 'nf' });
+  }
+  if (url === '/api/wish-paid' && req.method === 'POST') { // 付款成功后登记记账 +（物质类）可选收货/联系备注（永不入链）
+    const b = await body(req);
+    const r = Fulfill.registerWish({ wishSig: b.sig || b.wishSig, cat: b.cat, text: b.text, author: b.author, lamports: b.lamports, shippingNote: b.shippingNote, source: b.source || 'client' });
+    if (r.error) return send(res, 400, r);
+    return send(res, 200, { ok: true, material: !!r.material, status: r.status || null, fundBps: Fulfill.FULFILL_FUND_BPS });
+  }
+  if (url === '/api/admin/fulfillments' || url.startsWith('/api/admin/fulfillments')) {
+    if (!Fulfill.ADMIN_KEY) return send(res, 403, { error: 'admin disabled (ADMIN_KEY unset)', code: 'admin' });
+    if (!Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' });
+    if (url === '/api/admin/fulfillments' && req.method === 'GET') {
+      const q = new URL(req.url, 'http://x').searchParams;
+      const status = q.get('status') || 'pending';
+      return send(res, 200, { fundBps: Fulfill.FULFILL_FUND_BPS, items: status === 'all' ? Fulfill.listAll() : status === 'pending' ? Fulfill.listPending() : Fulfill.listAll(status) });
+    }
+    if (url === '/api/admin/fulfillments/fulfill' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.wishSig || typeof b.wishSig !== 'string') return send(res, 400, { error: 'wishSig required', code: 'param' });
+      const r = await Fulfill.markFulfilled({ wishSig: b.wishSig, note: b.note || '', tipLamports: b.tipLamports || 0, tipTo: b.tipTo, modKey: MODKEY, conn });
+      return send(res, r.ok ? 200 : 400, r);
+    }
+    return send(res, 404, { error: 'not found' });
+  }
   if (url === '/api/login' && req.method === 'POST') { // 演示：仅邮箱，无密码/验证码
     const { email } = await body(req);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '')) return send(res, 400, { error: '邮箱格式不正确', code: 'email' });
@@ -103,7 +131,9 @@ async function api(req, res, url) {
     if (/^WTREE1\|[WB]\|/.test(memo)) { if (!verifyWishMemo(memo)) return send(res, 400, { error: '缺少或无效的审核证明（attestation）', code: 'att' }); }
     else if (!/^WTREE1\|L\|[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(memo)) return send(res, 400, { error: 'memo 格式无效', code: 'memo' });
     if (memo.startsWith('WTREE1|W|') && !(Number.isInteger(lamports) && lamports >= minLamports((await solPrice()).usd))) return send(res, 400, { error: '金额低于最低 1 美元等值 SOL', code: 'amount' });
-    try { const sig = await web3.sendAndConfirmTransaction(conn, buildMemoTx(kp.publicKey, memo, memo.startsWith('WTREE1|W|') ? lamports : 0), [kp], { commitment: 'confirmed' }); return send(res, 200, { signature: sig }); }
+    try { const wishLam = memo.startsWith('WTREE1|W|') ? lamports : 0; const sig = await web3.sendAndConfirmTransaction(conn, buildMemoTx(kp.publicKey, memo, wishLam), [kp], { commitment: 'confirmed' });
+      if (wishLam > 0) { const parts = memo.split('|'); Fulfill.registerWish({ wishSig: sig, cat: parts[5], text: parts[6], author: kp.publicKey.toBase58(), lamports: wishLam, source: 'host' }); }
+      return send(res, 200, { signature: sig }); }
     catch (e) { return send(res, 200, { error: '上链失败: ' + e.message, code: 'chain', detail: e.message }); }
   }
   if (url === '/api/logout' && req.method === 'POST') { for (const [t, e] of Object.entries(db.sessions)) if (e === a.email) delete db.sessions[t]; save(db); return send(res, 200, { ok: true }); }

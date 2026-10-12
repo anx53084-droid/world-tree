@@ -34,7 +34,7 @@ main > * { animation: slideIn .45s ease-out both }
 .scene-ui .on { --btn: #6a3cff } .scene-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 12px; color: var(--muted); pointer-events: none }
 #tip { position: fixed; z-index: 9; max-width: 280px; background: #0b1030ee; border: 1px solid var(--cat); padding: 10px; border-radius: 10px; font-size: 14px; pointer-events: none; animation: fade .15s }
 /* 分类色（作用域覆盖 --cat） */
-[data-cat="经典"] { --cat: #ffd36b } [data-cat="风景"] { --cat: #6ec8ff } [data-cat="人物"] { --cat: #ffb3cf } [data-cat="动物"] { --cat: #3ddc97 } [data-cat="卡通"] { --cat: #ff9f43 }
+[data-cat="经典"] { --cat: #ffd36b } [data-cat="风景"] { --cat: #6ec8ff } [data-cat="人物"] { --cat: #ffb3cf } [data-cat="动物"] { --cat: #3ddc97 } [data-cat="卡通"] { --cat: #ff9f43 } [data-cat="物质类"] { --cat: #c9a0ff }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 8px; background: color-mix(in srgb, var(--cat) 25%, transparent); color: var(--cat); border: 1px solid var(--cat); font-size: 12px }
 .card { --glow-intensity: .15; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--cat, var(--line)); border-radius: var(--radius); padding: 14px; margin: 10px 0;
   box-shadow: 0 0 calc(var(--glow-intensity) * 30px) color-mix(in srgb, var(--cat) 60%, transparent); transition: transform .25s var(--ease-pop), --glow-intensity .3s }
@@ -83,3 +83,6 @@ body.home #banner { pointer-events: none; padding: 2px 6px }
 @media (max-width: 700px) { #lang { position: absolute; top: 10px; inset-inline-end: 12px } .logo { padding-inline-end: 56px } .lang-cur { display: none } #langbtn { padding: 6px 8px } #langmenu li { padding: 10px 14px } }
 .prevail { font-size: 13px }
 [dir=rtl] #toasts { right: auto; left: 16px } [dir=rtl] code { direction: ltr; unicode-bidi: embed }
+
+.fulfill-badge { --cat: #ffd36b; background: linear-gradient(135deg, #7a4cff55, #ffd36b44); border-color: #ffd36b; color: #ffe9a8; margin-inline-start: 6px; animation: breathe 2.8s ease-in-out infinite }
+.toast.celebrate { border: 1px solid #ffd36b; background: linear-gradient(135deg, #2a1a5acc, #5a3a10cc); box-shadow: 0 0 28px #ffd36b66; font-size: 16px }

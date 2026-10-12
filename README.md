@@ -9,7 +9,7 @@ Solana **devnet** 上的许愿树：每个愿望是一张挂在 3D 世界树上�
 ```bash
 cd /workspace/world-tree
 npm install            # 已安装可跳过
-node server.js         # 默认 http://localhost:8080 ；可用 PORT=xxxx RPC_URL=... SOL_USD=... 覆盖
+node server.js         # 默认 http://localhost:8080 ；可用 PORT / RPC_URL / SOL_USD / ADMIN_KEY / FULFILL_FUND_BPS / FULFILL_HOT_WALLET 覆盖
 node verify.js         # 可选：Playwright 无头验证（桌面+移动端），生成截图
 ```
 
@@ -43,6 +43,12 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 金额自由填写，最低 1 美元等值 SOL（价格优先取 CoinGecko，失败用常量 `SOL_USD`，默认 150）。20%/80% 拆分在同一笔交易中完成。**不实现**任何 LP 收益、分红、循环返利。
 收款地址为本机生成的 devnet 密钥（`data/payees.json`）。
 
+
+### 星愿大使 · 物质类还愿（惊喜）
+物质类愿望可在购买时填写**可选**收货/联系备注，仅存服务器 `data/fulfillments.json`，**永不入链、不公开展示**。管理员通过 `X-Admin-Key`（`ADMIN_KEY`）调用 `/api/admin/fulfillments` 查看待还愿列表并标记已还愿；可选 `FULFILL_HOT_WALLET` 在 devnet 发送微量 SOL tip + 链上 memo `WTREE1|F|…`。用户侧仅在愿望被还愿后看到徽章「星愿大使已还愿」与庆祝提示，规则页**不**描述内部基金或 LP。
+
+> **内部运维（不对用户展示）**：付款拆分仍为 20% 开发者 / 80% 金库。服务器在 `data/fund-ledger.json` 对金库份额做纯会计记账「还愿基金」，比例由 `FULFILL_FUND_BPS`（默认 2500 = 金库的 25%）配置。无质押、无收益、无 LP、无分润展示。
+
 ### 世界树光谱（灵魂绑定记录）
 每次许愿的交易本身就是与作者地址绑定、不可转让的记录；前端由交易哈希确定性生成唯一 SVG 光谱。（真正的 NFT 可后续改用 Token-2022 NonTransferable 扩展铸造。）
 
@@ -51,7 +57,7 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 - 分层：树核 → 螺旋银河环（ShaderMaterial 闪烁、缓慢旋转、亮度/密度随卡片数）→ 深空星点与星云。
 - 月度树态（北京时间）：1–10 上旬·生机蓬勃（绿）、11–20 中旬·樱花盛开（粉）、21–月末 下旬·樱花飘落（花瓣粒子）；场景左上角可切换预览。
 - 移动端：单指旋转、双指捏合缩放+平移，像素比上限 1.25，粒子数减半。
-- 分类色：经典 暖金 / 风景 天蓝 / 人物 柔粉 / 动物 翡翠绿 / 卡通 暖橙。
+- 分类色：经典 暖金 / 风景 天蓝 / 人物 柔粉 / 动物 翡翠绿 / 卡通 暖橙 / 物质类 紫晶。
 - 页面（hash 路由）：首页、愿望列表（关键词/分类/时间/热度筛选 + 排序）、详情（祝福、光谱、分享图、浏览器链接）、许愿（购买）、我的世界树、规则与说明、用户协议/购买须知。
 - CSS：变量 + 作用域覆盖，`@property` 注册 `--glow-intensity` / `--hue-shift` 平滑过渡；面板滑入、按钮浮入、悬停上浮发光、按下缩放、呼吸提示、弹窗淡入 + 弹性弹出。
 - 背景：`public/starfield-worklet.js` CSS Paint Worklet（上限 180 星、密度≤2.5、按元素尺寸播种、count≤0 直接返回），不支持时回退 canvas。
@@ -124,4 +130,4 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 - Anchor 程序化 + Token-2022 不可转让光谱 NFT。
 
 ## 文件
-server.js · moderation.js · verify.js · verify-scale.js（千亿压力验证） · shots/（截图+perf.json） · public/{index.html, app.js, addr.js（地址空间）, scene3d.js, style.css, starfield-worklet.js, config.js(自动生成), vendor/} · data/（users.json、moderator.json、payees.json、review-queue.jsonl —— 演示密钥，勿提交）
+server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账） · verify.js · verify-scale.js · verify-fulfill.js · shots/ · public/{index.html, app.js, addr.js, scene3d.js, style.css, i18n/, starfield-worklet.js, config.js(自动生成), vendor/} · data/（users.json、moderator.json、payees.json、fulfillments.json、fund-ledger.json、review-queue.jsonl —— 演示/运营数据，勿提交）
