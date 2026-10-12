@@ -1,0 +1,76 @@
+/* 平滑过渡的发光参数（@property 注册后可被 transition 插值） */
+@property --glow-intensity { syntax: '<number>'; inherits: true; initial-value: 0.4; }
+@property --hue-shift { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+:root { --bg: #03040d; --fg: #e8ecff; --muted: #8f9ad0; --accent: #ffd36b; --panel: #0b1030d9; --line: #2a3570;
+  --btn: #2b3a8a; --btn-h: #3a4cb0; --radius: 12px; --ease-pop: cubic-bezier(.34, 1.56, .64, 1); --cat: var(--c-经典, #ffd36b); }
+* { box-sizing: border-box }
+body { margin: 0; min-height: 100vh; color: var(--fg); font-family: system-ui, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  background: radial-gradient(ellipse at 50% 100%, #1b2a5a 0%, #0a0f2a 50%, var(--bg) 100%) }
+#sky, #sky-fallback { position: fixed; inset: 0; z-index: -1; pointer-events: none; width: 100%; height: 100% }
+#sky { --star-density: 1.6 } .paint #sky { background-image: paint(starfield) } .paint #sky-fallback { display: none }
+header { display: flex; gap: 14px; align-items: center; padding: 10px 18px; background: #0009; backdrop-filter: blur(6px); flex-wrap: wrap; position: sticky; top: 0; z-index: 5 }
+.logo { font-size: 20px; font-weight: 700; color: var(--accent); text-decoration: none; text-shadow: 0 0 calc(var(--glow-intensity, .4) * 20px) #ffd36b88 }
+nav a { color: #b9c4ff; margin-right: 10px; text-decoration: none; transition: color .2s } nav a:hover { color: #fff }
+#mode { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: 13px; flex-wrap: wrap }
+.badge { padding: 3px 8px; border-radius: 10px; background: #333a; border: 1px solid #556 } .b-self { border-color: #9b7bff; color: #cbb8ff } .b-host { border-color: #ffb347; color: #ffd08a }
+/* 按钮：浮入、悬停上浮发光、按下缩放 */
+button, .btn { --glow-intensity: .25; font: inherit; border-radius: 10px; border: 1px solid #4a5590; background: var(--btn); color: var(--fg); padding: 7px 14px; cursor: pointer;
+  box-shadow: 0 0 calc(var(--glow-intensity) * 24px) hsl(calc(220deg + var(--hue-shift, 0deg)) 90% 70% / .6);
+  transition: transform .18s var(--ease-pop), --glow-intensity .3s, --hue-shift .6s, background .2s; animation: floatUp .5s var(--ease-pop) both; text-decoration: none; display: inline-block }
+button:hover:not(:disabled), .btn:hover { --glow-intensity: .9; --hue-shift: 40deg; transform: translateY(-2px); background: var(--btn-h) }
+button:active:not(:disabled) { transform: scale(.94) } button:disabled { opacity: .45; cursor: not-allowed; animation: none }
+.primary { --btn: #8a5a10; --btn-h: #b07818; border-color: var(--accent) }
+.breathe { animation: breathe 2.4s ease-in-out infinite }
+@keyframes floatUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+@keyframes breathe { 0%, 100% { --glow-intensity: .2; opacity: .75 } 50% { --glow-intensity: 1; opacity: 1 } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-24px) } to { opacity: 1; transform: none } }
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } } @keyframes pop { from { opacity: 0; transform: scale(.7) } to { opacity: 1; transform: none } }
+input, select, textarea { font: inherit; border-radius: 8px; border: 1px solid #4a5590; background: #141a3a; color: var(--fg); padding: 6px 10px }
+main { max-width: 1100px; margin: 0 auto; padding: 16px } #banner { text-align: center; font-size: 13px; color: #ffd08a }
+main > * { animation: slideIn .45s ease-out both }
+.scene { position: relative; width: 100%; height: min(72vh, 680px); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--bg) }
+.scene canvas { display: block; width: 100%; height: 100% }
+.scene-ui { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2 } .scene-ui button { padding: 4px 10px; font-size: 13px }
+.scene-ui .on { --btn: #6a3cff } .scene-hint { position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 12px; color: var(--muted); pointer-events: none }
+#tip { position: fixed; z-index: 9; max-width: 280px; background: #0b1030ee; border: 1px solid var(--cat); padding: 10px; border-radius: 10px; font-size: 14px; pointer-events: none; animation: fade .15s }
+/* 分类色（作用域覆盖 --cat） */
+[data-cat="经典"] { --cat: #ffd36b } [data-cat="风景"] { --cat: #6ec8ff } [data-cat="人物"] { --cat: #ffb3cf } [data-cat="动物"] { --cat: #3ddc97 } [data-cat="卡通"] { --cat: #ff9f43 }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 8px; background: color-mix(in srgb, var(--cat) 25%, transparent); color: var(--cat); border: 1px solid var(--cat); font-size: 12px }
+.card { --glow-intensity: .15; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--cat, var(--line)); border-radius: var(--radius); padding: 14px; margin: 10px 0;
+  box-shadow: 0 0 calc(var(--glow-intensity) * 30px) color-mix(in srgb, var(--cat) 60%, transparent); transition: transform .25s var(--ease-pop), --glow-intensity .3s }
+.card.hover:hover { --glow-intensity: .8; transform: translateY(-3px) } .muted { color: var(--muted); font-size: 13px }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center } textarea { width: 100%; min-height: 90px } a { color: #9fc0ff }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px }
+.notice { border: 1px solid #ffb347; background: #3a2a0a99; padding: 10px; border-radius: 10px; font-size: 14px } .agree { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0; font-size: 14px }
+.modal { position: fixed; inset: 0; background: #000a; display: grid; place-items: center; z-index: 20; animation: fade .25s ease }
+.modal-box { background: #0d1336; border: 1px solid var(--cat, var(--line)); border-radius: 16px; padding: 20px; width: min(92vw, 440px); animation: pop .45s var(--ease-pop) both }
+#toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 30 }
+.toast { background: #141a3a; border-left: 4px solid #9bf; padding: 10px 14px; border-radius: 8px; max-width: 360px; font-size: 14px; animation: slideIn .3s } .toast.ok { border-color: #6f6 } .toast.err { border-color: #f66 }
+footer { text-align: center; color: #6c76a8; font-size: 12px; padding: 20px } h2 { color: var(--accent) } .spectrum { width: 96px; height: 96px; border-radius: 50% }
+.stage { font-size: 13px; color: var(--accent) } .reject { color: #ff8a8a }
+@media (max-width: 700px) { nav a { margin-right: 6px; font-size: 14px } .scene { height: 62vh } }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important } }
+[hidden] { display: none !important }
+/* 千亿级导航 */
+.scene-nav { position: absolute; right: 10px; top: 10px; z-index: 2; text-align: right; font-size: 12px; max-width: 60% }
+.scene-nav .crumbs { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; align-items: center } .scene-nav button { padding: 3px 8px; font-size: 12px }
+.scene-tools { margin: 8px 0; align-items: center } .scene-tools input { padding: 6px 8px }
+@media (max-width: 700px) { .scene-nav { top: auto; bottom: 46px; right: 6px; max-width: 94% } .scene-hint { font-size: 10px; bottom: 4px; padding: 0 6px; box-sizing: border-box } }
+/* 全屏 3D 首页背景：场景固定铺满视口，UI 叠加其上 */
+body.home main { max-width: none; padding: 0 12px; pointer-events: none; position: relative; z-index: 1 }
+body.home main > *:not(.scene) { pointer-events: auto; max-width: 1100px; margin-left: auto; margin-right: auto }
+body.home main > .home-spacer { pointer-events: none; height: calc(100dvh - 230px) }
+body.home footer { position: relative; z-index: 1; background: #02030bcc }
+body.home header { background: #02030b66 } body.home #banner { position: relative; z-index: 2 }
+.scene { position: fixed; inset: 0; width: 100vw; height: 100dvh; border: 0; border-radius: 0; z-index: 0; animation: none !important; background: #02030b }
+.scene .scene-ui { top: 64px } .scene .scene-nav { top: 64px }
+.home-dock { background: #0b0a24b3; backdrop-filter: blur(8px); border: 1px solid #e8b85a55; border-radius: 14px; padding: 6px 12px; box-shadow: 0 0 30px #ffb34722 }
+.home-dock .scene-tools { margin: 4px 0 } .home-dock .scene-hint { position: static; padding-bottom: 2px }
+.glass { background: #0b0a24c0; backdrop-filter: blur(8px); border: 1px solid #ffffff18; border-radius: 14px; padding: 4px 14px; margin-top: 18px }
+@media (max-width: 700px) { .scene .scene-ui { top: 96px; left: 6px } .scene .scene-ui button { font-size: 11px; padding: 3px 7px }
+  .scene .scene-nav { top: auto; bottom: auto; top: 128px; right: 6px } body.home main > .home-spacer { height: calc(100dvh - 300px) } .home-dock .scene-hint { font-size: 10px } }
+.home-dock .scene-hint { pointer-events: auto }
+body.home main > .scene { pointer-events: auto }
+.scene .scene-ui, .scene .scene-nav { top: calc(var(--hdr, 56px) + 8px) }
+@media (max-width: 700px) { .scene .scene-nav { top: calc(var(--hdr, 90px) + 40px) } }
+body.home #banner { pointer-events: none; padding: 2px 6px }

@@ -1,0 +1,24 @@
+{
+  "name": "world-tree",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@solana/web3.js": "^1.99.0",
+    "bs58": "^5.0.0",
+    "three": "^0.186.1",
+    "tweetnacl": "^1.0.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.0"
+  }
+}

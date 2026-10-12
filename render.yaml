@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: world-tree
+    env: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    envVars:
+      - key: MODERATOR_SECRET
+        sync: false
+      - key: DEV_PUBKEY
+        value: Bo7ZRCgtfoi7ozLTG7wSjvdGjNeFiG6tMoBpukKuTTia
+      - key: TREASURY_PUBKEY
+        value: HGhjetz9MFSQBeCoSdPpuVqF7nhaJij7BGDyyigk7YRK
+      - key: SOLANA_RPC
+        value: https://api.devnet.solana.com
