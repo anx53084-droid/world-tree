@@ -13,7 +13,8 @@ let hovered = null, targetScale = 1, onPick = null, slot = null, cards = new Map
 let composer, bloom, useBloom = false, seasonV = 1; const BU = { uTime: { value: 0 }, uPR: { value: 1 }, uSeason: { value: 1 } }; // 花冠/花瓣共享 uniform
 const rng = seed => () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
 const MOBILE = matchMedia('(pointer:coarse)').matches || innerWidth < 700, QS = new URLSearchParams(location.search);
-export const SEASONS = { green: { name: '上旬·生机蓬勃', v: 0 }, bloom: { name: '中旬·樱花盛开', v: 1 }, fall: { name: '下旬·樱花飘落', v: 2 } };
+const tr = (k, v) => window.I18N ? I18N.t(k, v) : k; // 国际化（见 i18n.js）
+export const SEASONS = { green: { get name() { return tr('season.green'); }, v: 0 }, bloom: { get name() { return tr('season.bloom'); }, v: 1 }, fall: { get name() { return tr('season.fall'); }, v: 2 } };
 
 const A = window.WTAddr, HUES = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28 };
 const MID_CAP = MOBILE ? 3000 : 5000, NEAR_CAP = MOBILE ? 120 : 200, TILE_LRU = 800, COUNT_LRU = 300;
@@ -21,7 +22,7 @@ let cfg = { stress: false, total: 0 }, real = [], N = 0, focus = '', view = null
 const tiles = new Map(), countsCache = new Map(), inflight = new Set(), frameT = [];
 const lruGet = (m, k) => { const v = m.get(k); if (v !== undefined) { m.delete(k); m.set(k, v); } return v; };
 const lruSet = (m, k, v, cap) => { m.set(k, v); while (m.size > cap) m.delete(m.keys().next().value); };
-const fmtN = n => n >= 1e8 ? (n / 1e8).toFixed(n >= 1e10 ? 0 : 2) + '亿' : n >= 1e4 ? (n / 1e4).toFixed(1) + '万' : String(n);
+const fmtN = n => { try { return new Intl.NumberFormat(window.I18N?.lang || 'zh-CN', { notation: 'compact', maximumFractionDigits: n >= 1e10 ? 0 : 2 }).format(n); } catch { return String(n); } };
 const strHash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h / 4294967296; };
 const camDist = () => { const a = camera.aspect || 1.6; return a < 1 ? Math.min(62, 25 / a) : 27; }; // 竖屏拉远以容纳整个花冠
 const HOME_DIR = () => new THREE.Vector3(0, .17, 1).normalize();
@@ -299,7 +300,7 @@ function updateNear(force) { const now = performance.now(); if (!force && now - 
   for (; k < nearPool.length; k++) { nearPool[k].visible = false; nearPool[k].userData.wish = null; }
 }
 function cardTexture(w) { // 金色灯笼签：顶帽 + 吊环 + 渐变内发光 + 双描边与角花 + 文字
-  const key = w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0); if (texCache.has(key)) return lruGet(texCache, key);
+  const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
   x.fillStyle = '#c98a2c'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#ffe3a0'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
   const g = x.createRadialGradient(96, 150, 10, 96, 150, 150), hue = w.pending ? 220 : w.hue;
@@ -310,7 +311,7 @@ function cardTexture(w) { // 金色灯笼签：顶帽 + 吊环 + 渐变内发光
   x.fillStyle = `hsl(${hue},80%,45%)`; x.fillRect(X0 + 40, Y0 + 16, W - 80, 4);
   x.fillStyle = '#3a1a06'; x.font = 'bold 19px "Noto Sans CJK SC",sans-serif'; let line = '', y = Y0 + 48;
   for (const ch of w.text) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 190) { line = '…'; break; } } line += ch; }
-  x.fillText(line, X0 + 18, y); x.font = '14px sans-serif'; x.fillText(w.pending ? '⏳ 确认中' : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.id != null) x.fillText('#' + w.id, X0 + 18, Y0 + H - 16);
+  x.fillText(line, X0 + 18, y); x.font = '14px sans-serif'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.id != null) x.fillText('#' + w.id, X0 + 18, Y0 + H - 16);
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex);
   if (texCache.size > NEAR_CAP * 2) { const used = new Set(nearPool.map(s => s.material.map)); for (const [k, v] of texCache) { if (texCache.size <= NEAR_CAP * 2) break; if (!used.has(v)) { v.dispose(); texCache.delete(k); } } } // GPU 纹理 LRU 释放
   return tex;
@@ -323,10 +324,10 @@ function checkNav() { if (!view || fly || performance.now() - lastNav < 900) ret
   if (dist > 72 * s && focus.length) return setFocus(focus.slice(0, -1));
   const cand = []; view.counts.children.forEach((c, j) => { if (c > A.HANG) cand.push([childEnd(focus, j).p.multiplyScalar(s).distanceTo(camera.position), j]); }); cand.sort((a, b) => a[0] - b[0]);
   if (cand[0] && (cand[0][0] < 4.5 * s || dist < 4.2)) setFocus(focus + A.HEX[cand[0][1]]); }
-function renderNav() { if (!navEl) return; const parts = ['<button data-nav="">🌳 根</button>'];
+function renderNav() { if (!navEl) return; const parts = [`<button data-nav="">🌳 ${tr('scene.root')}</button>`];
   for (let i = 1; i <= focus.length; i++) parts.push(`<button data-nav="${focus.slice(0, i)}">${focus[i - 1]}</button>`);
-  navEl.innerHTML = `<div class=crumbs>${parts.join('›')}${focus ? '<button data-nav="up">⬆ 上一级</button>' : ''}</div>
-    <div class=muted>${cfg.stress ? '⚡压力模式 · ' : ''}共 ${fmtN(N)} 张 · 当前区域 ${fmtN(view?.counts.count ?? 0)} 张 · 层级 ${focus.length}/${A.DEPTH}</div>`; }
+  navEl.innerHTML = `<div class=crumbs>${parts.join('›')}${focus ? `<button data-nav="up">⬆ ${tr('scene.up')}</button>` : ''}</div>
+    <div class=muted>${cfg.stress ? tr('home.stress') + ' · ' : ''}${tr('scene.stats', { n: fmtN(N), c: fmtN(view?.counts.count ?? 0), d: focus.length, D: A.DEPTH })}</div>`; }
 function onNavClick(e) { const b = e.target.closest('[data-nav]'); if (!b) return; const v = b.dataset.nav; setFocus(v === 'up' ? focus.slice(0, -1) : v); }
 export async function jumpTo(id) { // 按卡片序号跳转：O(深度) 计算路径，无需加载其它卡片
   id = Math.floor(+id); if (!(id >= 0 && id < N)) return false; const path = A.pathOf(id).region; let h = 1; while (h < A.DEPTH && A.count(path.slice(0, h), N) > A.HANG) h++;
@@ -395,4 +396,5 @@ export function camTo(dist) { const d = camera.position.clone().sub(controls.tar
 export const camInfo = () => ({ cam: camera.position.toArray().map(v => +v.toFixed(2)), target: controls.target.toArray().map(v => +v.toFixed(2)), fly: !!fly, scale: treeGroup.scale.x });
 export const resetStats = () => { frameT.length = 0; };
 export const descend = r => setFocus(r);
-window.WT3D = { cardScreenPos, update, attach, setSeason, stage, SEASONS, jumpTo, cardById, stats, camInfo, resetStats, camTo, descend, addr: A, _dbg: () => ({ scene, camera, treeGroup, renderer }) }; window.dispatchEvent(new Event('wt3d-ready'));
+function relabel() { renderNav(); }
+window.WT3D = { relabel, cardScreenPos, update, attach, setSeason, stage, SEASONS, jumpTo, cardById, stats, camInfo, resetStats, camTo, descend, addr: A, _dbg: () => ({ scene, camera, treeGroup, renderer }) }; window.dispatchEvent(new Event('wt3d-ready'));

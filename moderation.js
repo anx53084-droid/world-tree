@@ -1,14 +1,14 @@
 // 内容审核（上链前）。MVP：关键词过滤 + AI 语义审核桩 + 人工复核队列。
-// 词表仅为示例，生产需使用专业词库/第三方审核服务。
+// 词表仅为示例（含 zh/en/ja/ko/es/fr/de/pt/ru 基础词），生产需使用专业词库/第三方审核服务。
 const fs = require('fs'), path = require('path');
 const RULES = {
-  '违法': ['毒品', '冰毒', '大麻', '枪支', '赌博', '博彩', '洗钱', '诈骗', '代开发票', '办证', 'drugs', 'cocaine', 'heroin', 'gun sale', 'gambling', 'casino', 'money laundering', 'scam'],
+  '违法': ['毒品', '冰毒', '大麻', '枪支', '赌博', '博彩', '洗钱', '诈骗', '代开发票', '办证', 'drugs', 'cocaine', 'heroin', 'gun sale', 'gambling', 'casino', 'money laundering', 'scam', 'drogas','cocaína','heroína','apuestas','estafa','blanqueo de dinero','drogue','cocaïne','héroïne','arnaque','blanchiment','drogen','kokain','betrug','geldwäsche','glücksspiel','lavagem de dinheiro','наркотики','кокаин','героин','мошенничество','отмывание денег','казино','麻薬','覚醒剤','コカイン','詐欺','マネーロンダリング','마약','필로폰','코카인','도박','사기꾼','돈세탁'],
   '侵权': ['盗版', '破解版', '高仿', '人肉', '泄露身份证', 'pirated', 'cracked', 'counterfeit', 'doxx'],
-  '色情': ['色情', '黄片', '裸聊', '约炮', '成人视频', 'porn', 'nude', 'sex video', 'xxx', 'escort'],
-  '暴力': ['杀了', '砍死', '炸弹', '恐怖袭击', '血洗', 'kill you', 'bomb', 'terror attack', 'murder'],
-  '歧视': ['支那', '黑鬼', '残废', '劣等民族', 'nigger', 'retard', 'inferior race'],
-  '违法宣传': ['加微信', '加群', '代币空投', '稳赚', '保本高收益', '传销', 'airdrop claim', 'guaranteed profit', 'pump', '翻倍币'],
-  '负面消极': ['去死', '想死', '自杀', '诅咒', '恨死', '倒霉死', 'kill myself', 'suicide', 'curse you', 'go die'],
+  '色情': ['色情', '黄片', '裸聊', '约炮', '成人视频', 'porn', 'nude', 'sex video', 'xxx', 'escort', 'porno','pornographie','pornografia','порно','секс видео','ポルノ','アダルト動画','エロ動画','포르노','야동','성인영상'],
+  '暴力': ['杀了', '砍死', '炸弹', '恐怖袭击', '血洗', 'kill you', 'bomb', 'terror attack', 'murder', 'te mataré','atentado terrorista','je vais te tuer','attentat','ich bringe dich um','terroranschlag','vou te matar','убью тебя','бомба','теракт','殺してやる','爆弾','テロ攻撃','죽여버','폭탄','테러'],
+  '歧视': ['支那', '黑鬼', '残废', '劣等民族', 'nigger', 'retard', 'inferior race', 'sudaca','bougnoule','kanake','черномазый','ガイジ','짱깨','쪽바리'],
+  '违法宣传': ['加微信', '加群', '代币空投', '稳赚', '保本高收益', '传销', 'airdrop claim', 'guaranteed profit', 'pump', '翻倍币', 'ganancia garantizada','profit garanti','garantierter gewinn','lucro garantido','гарантированный доход','確実に儲かる','원금보장'],
+  '负面消极': ['去死', '想死', '自杀', '诅咒', '恨死', '倒霉死', 'kill myself', 'suicide', 'curse you', 'go die', 'suicidio','muérete','selbstmord','suicídio','самоубийство','сдохни','自殺','死ね','자살','죽어라'],
 };
 const norm = s => String(s).toLowerCase().normalize('NFKC').replace(/[\s\u200b-\u200f·.*_\-|]/g, '');
 function keywordCheck(text) {

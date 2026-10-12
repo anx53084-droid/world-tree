@@ -2,11 +2,11 @@
 <title>世界树许愿树 · World Tree</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css">
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/"}}</script></head>
 <body><canvas id="sky-fallback"></canvas><div id="sky"></div>
-<header><a href="#/" class="logo">🌳 世界树许愿树</a>
-<nav><a href="#/">首页</a><a href="#/list">愿望列表</a><a href="#/wish">许愿</a><a href="#/me">我的世界树</a><a href="#/help">规则与说明</a><a href="#/terms">用户协议</a></nav>
-<div id="mode"></div></header>
+<header><a href="#/" class="logo">🌳 <span data-i18n="brand">世界树许愿树</span></a>
+<nav><a href="#/" data-i18n="nav.home">首页</a><a href="#/list" data-i18n="nav.list">愿望列表</a><a href="#/wish" data-i18n="nav.wish">许愿</a><a href="#/me" data-i18n="nav.me">我的世界树</a><a href="#/help" data-i18n="nav.help">规则与说明</a><a href="#/terms" data-i18n="nav.terms">用户协议</a></nav>
+<div id="mode"></div><div id="lang"></div></header>
 <div id="banner"></div><main id="view"></main><div id="toasts"></div><div id="tip" hidden></div>
 <div id="modal" class="modal" hidden><div class="modal-box" id="modal-box"></div></div>
-<footer>Solana devnet · 链上数据为唯一事实来源 · 资金由你的钱包直接转给收款地址，本站不托管资金 · MVP 演示</footer>
+<footer data-i18n="footer">Solana devnet · 链上数据为唯一事实来源 · 资金由你的钱包直接转给收款地址，本站不托管资金 · MVP 演示</footer>
 <script src="config.js"></script><script src="vendor/nacl-fast.min.js"></script><script src="vendor/web3.iife.min.js"></script>
-<script src="addr.js"></script><script type="module" src="scene3d.js"></script><script src="app.js"></script></body></html>
+<script src="i18n.js"></script><script src="addr.js"></script><script type="module" src="scene3d.js"></script><script src="app.js"></script></body></html>

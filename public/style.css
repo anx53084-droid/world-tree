@@ -10,8 +10,8 @@ body { margin: 0; min-height: 100vh; color: var(--fg); font-family: system-ui, "
 #sky { --star-density: 1.6 } .paint #sky { background-image: paint(starfield) } .paint #sky-fallback { display: none }
 header { display: flex; gap: 14px; align-items: center; padding: 10px 18px; background: #0009; backdrop-filter: blur(6px); flex-wrap: wrap; position: sticky; top: 0; z-index: 5 }
 .logo { font-size: 20px; font-weight: 700; color: var(--accent); text-decoration: none; text-shadow: 0 0 calc(var(--glow-intensity, .4) * 20px) #ffd36b88 }
-nav a { color: #b9c4ff; margin-right: 10px; text-decoration: none; transition: color .2s } nav a:hover { color: #fff }
-#mode { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: 13px; flex-wrap: wrap }
+nav a { color: #b9c4ff; margin-inline-end: 10px; text-decoration: none; transition: color .2s } nav a:hover { color: #fff }
+#mode { margin-inline-start: auto; display: flex; gap: 8px; align-items: center; font-size: 13px; flex-wrap: wrap }
 .badge { padding: 3px 8px; border-radius: 10px; background: #333a; border: 1px solid #556 } .b-self { border-color: #9b7bff; color: #cbb8ff } .b-host { border-color: #ffb347; color: #ffd08a }
 /* 按钮：浮入、悬停上浮发光、按下缩放 */
 button, .btn { --glow-intensity: .25; font: inherit; border-radius: 10px; border: 1px solid #4a5590; background: var(--btn); color: var(--fg); padding: 7px 14px; cursor: pointer;
@@ -48,7 +48,7 @@ main > * { animation: slideIn .45s ease-out both }
 .toast { background: #141a3a; border-left: 4px solid #9bf; padding: 10px 14px; border-radius: 8px; max-width: 360px; font-size: 14px; animation: slideIn .3s } .toast.ok { border-color: #6f6 } .toast.err { border-color: #f66 }
 footer { text-align: center; color: #6c76a8; font-size: 12px; padding: 20px } h2 { color: var(--accent) } .spectrum { width: 96px; height: 96px; border-radius: 50% }
 .stage { font-size: 13px; color: var(--accent) } .reject { color: #ff8a8a }
-@media (max-width: 700px) { nav a { margin-right: 6px; font-size: 14px } .scene { height: 62vh } }
+@media (max-width: 700px) { nav a { margin-inline-end: 6px; font-size: 14px } .scene { height: 62vh } }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important } }
 [hidden] { display: none !important }
 /* 千亿级导航 */
@@ -74,3 +74,12 @@ body.home main > .scene { pointer-events: auto }
 .scene .scene-ui, .scene .scene-nav { top: calc(var(--hdr, 56px) + 8px) }
 @media (max-width: 700px) { .scene .scene-nav { top: calc(var(--hdr, 90px) + 40px) } }
 body.home #banner { pointer-events: none; padding: 2px 6px }
+/* 语言切换（地球图标下拉） */
+#lang { position: relative; font-size: 13px }
+#langbtn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px } #langbtn svg { flex: none }
+#langmenu { position: absolute; inset-inline-end: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; background: #0b1030f2; border: 1px solid var(--line); border-radius: 10px; z-index: 40; max-height: 70vh; overflow-y: auto; min-width: 170px; box-shadow: 0 8px 30px #0008 }
+#langmenu li { padding: 8px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; text-align: start } #langmenu li:hover, #langmenu li:focus { background: var(--btn-h); outline: none }
+#langmenu li[aria-selected=true] { color: var(--accent); font-weight: 700 }
+@media (max-width: 700px) { #lang { position: absolute; top: 10px; inset-inline-end: 12px } .logo { padding-inline-end: 56px } .lang-cur { display: none } #langbtn { padding: 6px 8px } #langmenu li { padding: 10px 14px } }
+.prevail { font-size: 13px }
+[dir=rtl] #toasts { right: auto; left: 16px } [dir=rtl] code { direction: ltr; unicode-bidi: embed }

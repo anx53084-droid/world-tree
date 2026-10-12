@@ -42,7 +42,7 @@ const DB = path.join(__dirname, 'data', 'users.json');
 const conn = new web3.Connection(RPC, 'confirmed');
 const load = () => { try { return JSON.parse(fs.readFileSync(DB)); } catch { return { users: {}, sessions: {} }; } };
 const save = d => { fs.mkdirSync(path.dirname(DB), { recursive: true }); fs.writeFileSync(DB, JSON.stringify(d, null, 2), { mode: 0o600 }); };
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8' };
 const send = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); };
 const body = req => new Promise(r => { let b = ''; req.on('data', c => b += c); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch { r({}); } }); });
 
@@ -66,9 +66,9 @@ async function api(req, res, url) {
   }
   if (url === '/api/moderate' && req.method === 'POST') { // 上链前审核（两种模式都必须先通过）
     const { text, prefix } = await body(req); // prefix = 分类（愿望）或 愿望签名（祝福）
-    if (typeof text !== 'string' || !text.trim() || [...text].length > 140 || text.includes('|')) return send(res, 400, { pass: false, message: '内容需为 1–140 字，且不含字符 |' });
-    if (typeof prefix !== 'string' || !/^[^|]{1,90}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效' });
-    const r = await moderate(text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + text) } : { pass: false, category: r.category, message: REJECT });
+    if (typeof text !== 'string' || !text.trim() || [...text].length > 140 || text.includes('|')) return send(res, 400, { pass: false, message: '内容需为 1–140 字，且不含字符 |', code: 'len' });
+    if (typeof prefix !== 'string' || !/^[^|]{1,90}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
+    const r = await moderate(text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + text) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
   if (url === '/api/tiles' || url.startsWith('/api/tiles/')) { // 【模拟索引器】区域瓦片：确定性合成任意总量的卡片（真实后端见 README「扩展到千亿」）
     const q = new URL(req.url, 'http://x').searchParams, N = Math.min(WTA.CAPACITY, Math.max(0, Math.floor(+q.get('total') || 1e11))), level = q.get('level') || 'count';
@@ -84,27 +84,27 @@ async function api(req, res, url) {
   if (url === '/api/rules') return send(res, 200, { categories: Object.keys(RULES), words: RULES }); // 供前端展示过滤
   if (url === '/api/login' && req.method === 'POST') { // 演示：仅邮箱，无密码/验证码
     const { email } = await body(req);
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '')) return send(res, 400, { error: '邮箱格式不正确' });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '')) return send(res, 400, { error: '邮箱格式不正确', code: 'email' });
     if (!db.users[email]) { const kp = web3.Keypair.generate(); db.users[email] = { pubkey: kp.publicKey.toBase58(), secret: Buffer.from(kp.secretKey).toString('base64'), created: Date.now() }; }
     const token = crypto.randomBytes(24).toString('hex'); db.sessions[token] = email; save(db);
     return send(res, 200, { token, email, pubkey: db.users[email].pubkey });
   }
   const a = auth(req, db);
-  if (url === '/api/me') return a ? send(res, 200, { email: a.email, pubkey: a.user.pubkey }) : send(res, 401, { error: '未登录' });
-  if (!a) return send(res, 401, { error: '未登录' });
+  if (url === '/api/me') return a ? send(res, 200, { email: a.email, pubkey: a.user.pubkey }) : send(res, 401, { error: '未登录', code: 'auth' });
+  if (!a) return send(res, 401, { error: '未登录', code: 'auth' });
   const kp = web3.Keypair.fromSecretKey(Buffer.from(a.user.secret, 'base64'));
   if (url === '/api/airdrop' && req.method === 'POST') {
     try { const sig = await conn.requestAirdrop(kp.publicKey, 0.1 * web3.LAMPORTS_PER_SOL); return send(res, 200, { signature: sig }); }
-    catch (e) { return send(res, 200, { error: '空投失败: ' + e.message }); }
+    catch (e) { return send(res, 200, { error: '空投失败: ' + e.message, code: 'airdrop', detail: e.message }); }
   }
   if (url === '/api/memo' && req.method === 'POST') { // 托管签名：后端用该用户的 devnet 密钥签名
     const { memo, lamports = 0 } = await body(req);
-    if (typeof memo !== 'string') return send(res, 400, { error: 'memo 无效' });
-    if (/^WTREE1\|[WB]\|/.test(memo)) { if (!verifyWishMemo(memo)) return send(res, 400, { error: '缺少或无效的审核证明（attestation）' }); }
-    else if (!/^WTREE1\|L\|[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(memo)) return send(res, 400, { error: 'memo 格式无效' });
-    if (memo.startsWith('WTREE1|W|') && !(Number.isInteger(lamports) && lamports >= minLamports((await solPrice()).usd))) return send(res, 400, { error: '金额低于最低 1 美元等值 SOL' });
+    if (typeof memo !== 'string') return send(res, 400, { error: 'memo 无效', code: 'memo' });
+    if (/^WTREE1\|[WB]\|/.test(memo)) { if (!verifyWishMemo(memo)) return send(res, 400, { error: '缺少或无效的审核证明（attestation）', code: 'att' }); }
+    else if (!/^WTREE1\|L\|[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(memo)) return send(res, 400, { error: 'memo 格式无效', code: 'memo' });
+    if (memo.startsWith('WTREE1|W|') && !(Number.isInteger(lamports) && lamports >= minLamports((await solPrice()).usd))) return send(res, 400, { error: '金额低于最低 1 美元等值 SOL', code: 'amount' });
     try { const sig = await web3.sendAndConfirmTransaction(conn, buildMemoTx(kp.publicKey, memo, memo.startsWith('WTREE1|W|') ? lamports : 0), [kp], { commitment: 'confirmed' }); return send(res, 200, { signature: sig }); }
-    catch (e) { return send(res, 200, { error: '上链失败: ' + e.message }); }
+    catch (e) { return send(res, 200, { error: '上链失败: ' + e.message, code: 'chain', detail: e.message }); }
   }
   if (url === '/api/logout' && req.method === 'POST') { for (const [t, e] of Object.entries(db.sessions)) if (e === a.email) delete db.sessions[t]; save(db); return send(res, 200, { ok: true }); }
   send(res, 404, { error: 'not found' });
