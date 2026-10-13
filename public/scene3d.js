@@ -423,7 +423,7 @@ function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私
   x.fillStyle = `hsl(${hue},55%,48%)`; x.fillRect(X0 + 50, Y0 + 30, W - 100, 3);
   x.fillStyle = '#4a2a08'; x.font = 'bold 19px "Noto Sans CJK SC",sans-serif'; let line = '', y = Y0 + 56;
   for (const ch of w.text) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 170) { line = '…'; break; } } line += ch; }
-  x.fillText(line, X0 + 18, y); x.font = '14px sans-serif'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.id != null) x.fillText('#' + w.id, X0 + 18, Y0 + H - 16);
+  x.fillText(line, X0 + 18, y); x.font = '14px sans-serif'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.time && window.WTfmtT) x.fillText(window.WTfmtT(w.time), X0 + 18, Y0 + H - 16);
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex);
   if (texCache.size > NEAR_CAP * 2) { const used = new Set(nearPool.map(s => s.material.map)); for (const [k, v] of texCache) { if (texCache.size <= NEAR_CAP * 2) break; if (!used.has(v)) { v.dispose(); texCache.delete(k); } } } // GPU 纹理 LRU 释放
   return tex;

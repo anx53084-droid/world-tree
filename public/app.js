@@ -18,7 +18,9 @@ const stat = s => ({ 已确认: 'ok', 失败: 'fail' }[s] ? t('tx.status_' + { �
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const short = a => a ? a.slice(0, 4) + '…' + a.slice(-4) : '';
-const fmtT = t => t ? new Date(t * 1000).toLocaleString(I18N.locale(), { hour12: false, timeZone: 'Asia/Shanghai' }) : t('time.pending');
+const fmtT = x => x ? new Date(x * 1000).toLocaleString(I18N.locale(), { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : t('time.pending'); // 链上确认时间（blockTime），按用户语言与本地时区显示
+const ymd = x => { const d = new Date(x * 1000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+window.WTfmtT = fmtT;
 const sol = l => (l / 1e9).toFixed(4) + ' SOL';
 const hex2b = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
 // 卡片选项编码在分类字段后（向后兼容：旧客户端把未知分类当「经典」显示正文）：分类~F<封面2位36进制>[P]   F=折页卡  P=私密（正文为 E1: 密文）
@@ -107,7 +109,7 @@ async function parseTx(sig, tx) {
   return { sig, author, memo, time: tx.blockTime, paid, devPaid, verified: memo.startsWith(TAG + 'L|') || await verifyAtt(memo) };
 }
 async function loadWishes(force) {
-  if (!force && S.loadedAt && Date.now() - S.loadedAt < 30000) return;
+  if (!force && S.loadedAt) return; // 只在打开页面时读取一次，不轮询
   try {
     if (QS.get('sample') === '1') throw new Error('sample=1');
     const sigs = await rpc('getSignaturesForAddress', [TREE, { limit: 500 }]);
@@ -177,10 +179,29 @@ async function submit(memo, lk, lamports = 0) { const label = t('label.' + lk);
     } else { tt.update(esc(t('tx.hostSigning', { label }))); sig = (await api('/api/memo', { memo, lamports })).signature; addPending(sig, memo, lamports); }
     tt.update(`✅ ${esc(t('tx.confirmed', { label }))} <a target=_blank href="${EXPLORER(sig)}">${esc(t('tx.viewTx'))}</a>`, 'ok');
     S.history.unshift({ sig, memo, label: lk, lamports, mode: S.mode, who: S.pubkey, at: Date.now(), status: 'ok' }); saveHist();
-    S.pending = S.pending.map(p => p.sig === sig ? { ...p, pending: false } : p); await loadWishes(true); route(); return sig;
+    await addConfirmed(sig); return sig;
   } catch (e) { tt.update(`❌ ${esc(t('tx.failed', { label }))}${e.html ? e.message : esc(e.message || e)}`, 'err'); S.history.unshift({ memo, label: lk, mode: S.mode, who: S.pubkey, at: Date.now(), status: 'fail' }); saveHist(); }
 }
-function addPending(sig, memo, paid) { S.pending.push({ sig, memo, author: S.pubkey, time: null, paid, pending: true, verified: true }); aggregate(); route(); }
+function addPending(sig, memo, paid) { S.pending.push({ sig, memo, author: S.pubkey, time: null, paid, pending: true, verified: true }); aggregate(); softRefresh(); }
+async function fetchTxs(list) { // 只取缺失的交易，写入缓存
+  for (let i = 0; i < list.length; i += 10) { const part = list.slice(i, i + 10), res = await Promise.all(part.map(s => rpc('getTransaction', [s, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0, commitment: 'confirmed' }]).catch(() => undefined)));
+    for (let k = 0; k < res.length; k++) if (res[k]) txCache[part[k]] = await parseTx(part[k], res[k]); }
+  try { localStorage.wt_txcache = JSON.stringify(txCache); } catch {} }
+function mergeTxs(sigs) { const have = new Set(S.txs.map(x => x.sig)); let add = 0; for (const g of sigs) if (txCache[g] && !have.has(g)) { S.txs.push(txCache[g]); have.add(g); add++; }
+  if (add) { S.hadReal = true; S.offline = false; try { const L = JSON.parse(localStorage.wt_sigs || '[]'); localStorage.wt_sigs = JSON.stringify([...sigs.filter(g => txCache[g] && !L.includes(g)), ...L]); } catch {} } return add; }
+async function addConfirmed(sig) { // 自己的交易确认后：只取这一笔，原地加入世界树与「已有心愿」，不重新加载、不重绘页面
+  try { for (let k = 0; k < 4 && !txCache[sig]?.time; k++) { if (k) await new Promise(r => setTimeout(r, 1500)); await fetchTxs([sig]); } } catch {}
+  mergeTxs([sig]); S.pending = S.pending.filter(p => !(p.sig === sig && txCache[sig])).map(p => p.sig === sig ? { ...p, pending: false } : p); aggregate(); softRefresh(); }
+let mineFor = null;
+async function loadMine() { // 我的星愿：按钱包地址查询自己的全部卡片（打开页面时一次）
+  if (!S.pubkey || mineFor === S.pubkey) return; mineFor = S.pubkey;
+  try { const sigs = (await rpc('getSignaturesForAddress', [S.pubkey, { limit: 1000 }])).filter(x => !x.err).map(x => x.signature);
+    await fetchTxs(sigs.filter(g => !(g in txCache))); if (mergeTxs(sigs)) { aggregate(); softRefresh(); } } catch { mineFor = null; } }
+function bindMine() { document.querySelectorAll('.mw').forEach(b => b.onclick = () => { const w = S.wishes.find(x => x.sig === b.dataset.sig); if (w) openCardPopup(w); }); }
+function softRefresh() { // 原地更新：首页只更新 3D 实例；列表/我的星愿只替换数据区块；不调用 route()
+  if ($('#scene') && window.WT3D) { WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); const bn = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; if ($('#banner').innerHTML !== bn) $('#banner').innerHTML = bn; return; }
+  const wl = $('#wl'); if (wl) { const h = list(new URLSearchParams(location.hash.split('?')[1] || ''), true); if (wl._h !== h) { wl._h = h; wl.innerHTML = h; } }
+  const mm = $('#mine'); if (mm) { const h = mineBlock(); if (mm._h === undefined) mm._h = mm.innerHTML && h; if (mm._h !== h) { mm._h = h; mm.innerHTML = h; bindMine(); } } }
 async function api(url, data) {
   const r = await fetch(url, { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') }, body: data ? JSON.stringify(data) : undefined });
   const j = await r.json(); if (!r.ok || j.error) throw new Error(tErr(j.code, j.detail) || j.error || r.status); return j;
@@ -259,7 +280,7 @@ window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 290) + 'px'; tip.style.top = e.clientY + 14 + 'px'; };
 const isMine = w => S.pubkey && w.author === S.pubkey;
 function openCardPopup(w) { if (w.folded) return openFolded(w); maybeFulfillToast(w); modal(`<div class=row>${spectrum(w.sig, 72)}<div><span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p style="font-size:18px;margin:.4em 0" dir=auto>${esc(w.text)}</p>
-  <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div></div></div>
+  <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · ${fmtT(w.time)} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div></div></div>
   <div class=row style="margin-top:14px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`, w.cat); }
 
 // ---------- 月度树态（Asia/Shanghai 日期自动选择） ----------
@@ -277,22 +298,23 @@ function home() {
   <button id=qbtn class=qbtn type=button title="${E('search.open')}" aria-label="${E('search.open')}"><svg viewBox="0 0 24 24" width=22 height=22 fill=none stroke=currentColor stroke-width=2 stroke-linecap=round><circle cx=10.5 cy=10.5 r=6.5 /><path d="M15.5 15.5 21 21"/></svg></button>
   <div class=home-spacer></div>
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
-  <input id=sid placeholder="${E('home.jumpPh')}" style="flex:1;min-width:160px"><button>${E('home.locate')}</button></form>
+</form>
   <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.stage', { stage: stageName(stageOf(S.stress ? S.total : S.wishes.length)) })}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
   <div class=scene-hint>${E('home.hint')} <span class=debug-only>· <a href="#lists" onclick="document.getElementById('lists').scrollIntoView({behavior:'smooth'});return false">⌄ ${E('home.rank')}</a></span></div></div>
   <div class="cols home-lists debug-only" id=lists><div class=glass><h2>🔥 ${E('home.hot')}</h2>${hot.map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div><div class=glass><h2>🆕 ${E('home.new')}</h2>${S.wishes.slice(0, 5).map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div></div>`;
 }
-function list(q) {
+function list(q, only) {
   const kw = q.get('q') || '', sort = q.get('sort') || 'new', cat = q.get('cat') || '', days = +q.get('days') || 0, minHeat = +q.get('heat') || 0, now = Date.now() / 1000;
-  let ws = S.wishes.filter(w => (!kw || w.text.includes(kw) || w.author.startsWith(kw)) && (!cat || w.cat === cat) && (!days || (w.time || now) > now - days * 86400) && w.heat >= minHeat);
+  let ws = S.wishes.filter(w => (!kw || (!w.priv && w.text.includes(kw)) || w.author.startsWith(kw) || (w.time && (ymd(w.time).startsWith(kw) || fmtT(w.time).includes(kw)))) && (!cat || w.cat === cat) && (!days || (w.time || now) > now - days * 86400) && w.heat >= minHeat);
   if (sort === 'hot') ws = [...ws].sort((a, b) => b.heat - a.heat); if (sort === 'old') ws = [...ws].reverse();
+  const body = () => `<p class=muted>${E('list.count', { n: num(ws.length) })}</p>${ws.map(wishCard).join('')}`; if (only) return body();
   const opt = (arr, v) => arr.map(([k, l]) => `<option value="${k}" ${String(k) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('');
   return `<h2>${E('list.title')}</h2><form class=row id=lf><input name=q placeholder="${E('list.kwPh')}" value="${esc(kw)}">
   <select name=cat>${opt([['', t('list.allCats')], ...Object.keys(CATS).map(c => [c, catName(c)])], cat)}</select>
   <select name=days>${opt([[0, t('list.allTime')], [1, t('list.h24')], [7, t('list.d7')], [30, t('list.d30')]], days)}</select>
   <select name=heat>${opt([[0, t('list.heatAny')], [2, t('list.heatMin', { n: 2 })], [10, t('list.heatMin', { n: 10 })]], minHeat)}</select>
   <select name=sort>${opt([['new', t('home.new')], ['hot', t('home.hot')], ['old', t('list.sortOld')]], sort)}</select><button>${E('list.filter')}</button><button type=button id=rf>${E('list.refresh')}</button></form>
-  <p class=muted>${E('list.count', { n: num(ws.length) })}</p>${ws.map(wishCard).join('')}`;
+  <div id=wl>${body()}</div>`;
 }
 function detail(sig) {
   const w = S.wishes.find(x => x.sig === sig) || (/^SYN\d+$/.test(sig) && window.WT3D?.cardById(sig.slice(3))); if (!w) return `<p>${E('detail.notFound')}</p>`;
@@ -347,10 +369,12 @@ function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1
 function origin() { const lang = I18N.lang; fetch(`origin.${lang}.md`).then(r => r.ok ? r.text() : fetch('origin.md').then(r => r.text())).then(md => { const el = $('#origin'); if (el && el.lang === lang) el.innerHTML = mdRender(md); });
   return `<article id=origin class=origin lang="${lang}" dir="${document.documentElement.dir}"></article>`; }
 const MK = () => /^#\/wish\/make/.test(location.hash); // 制作页有独立路由，任何重渲染都保持打开
-function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
-  const mine = S.mode === 'guest' ? [] : S.wishes.filter(isMine);
+function mineBlock() { const mine = S.mode === 'guest' ? [] : S.wishes.filter(isMine);
   const thumb = w => `<button type=button class=mw data-sig="${esc(w.sig)}"><img alt="" src="${w.cimg ? IMG(w.cimg) : w.folded ? WTCovers.url(w.cover, 120, 160) : WTCovers.url(WTCovers.forCat(w.cat)[0], 120, 160)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover ?? 0, 120, 160)}'">${w.priv ? '<i>🔒</i>' : ''}<span dir=auto>${esc(w.priv && !w.plain ? t('card.privateShort') : (w.plain || w.text))}</span></button>`;
-  return `<h2>${E('nav.wish')}</h2><section class=card><h3>${E('mine.have')}</h3>${S.mode === 'guest' ? `<p class=muted>${t('mine.guest')}</p>` : mine.length ? `<div class=mw-grid>${mine.map(thumb).join('')}</div>` : `<p class=muted>${E('mine.empty')}</p>`}</section>
+  return S.mode === 'guest' ? `<p class=muted>${t('mine.guest')}</p>` : mine.length ? `<div class=mw-grid>${mine.map(thumb).join('')}</div>` : `<p class=muted>${E('mine.empty')}</p>`; }
+function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
+  loadMine();
+  return `<h2>${E('nav.wish')}</h2><section class=card><h3>${E('mine.have')}</h3><div id=mine>${mineBlock()}</div></section>
   <section class=card><h3>${E('mine.make')}</h3><button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}</div></section>`; }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}</div>`;
@@ -411,18 +435,17 @@ async function route() {
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
   document.body.classList.toggle('home', !!$('#scene')); document.querySelectorAll('#menu nav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
-  $('#rf')?.addEventListener('click', async () => { await loadWishes(true); route(); });
+  $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });
   $('#stress')?.addEventListener('change', e => { S.stress = e.target.checked; localStorage.wt_stress = S.stress ? '1' : ''; route(); });
   $('#stotal')?.addEventListener('change', e => { S.total = Math.max(1, Math.min(2.75e11, Math.floor(+e.target.value) || 1e11)); localStorage.wt_total = S.total; if (S.stress) route(); });
-  $('#sf')?.addEventListener('submit', async e => { e.preventDefault(); const v = $('#sid').value.trim().replace(/^#|^SYN/, ''), n = S.stress ? S.total : S.wishes.length;
-    if (!/^\d+$/.test(v) || +v >= n) return toast(E('jump.range', { max: num(n - 1) }), 'err');
-    const r = await WT3D.jumpTo(+v); if (!r) return toast(E('jump.fail'), 'err'); toast(E('jump.ok', { id: v, region: r.region, slot: r.slot }), 'ok'); setTimeout(() => openCardPopup(r.wish), 1000); });
+  $('#sf')?.addEventListener('submit', e => e.preventDefault());
   $('#agreeTerms')?.addEventListener('click', () => { localStorage.wt_terms = '1'; toast(E('terms.agreedToast'), 'ok'); route(); });
   const w = p.startsWith('/w/') && S.wishes.find(x => x.sig === decodeURIComponent(p.slice(3))); $('#share')?.addEventListener('click', () => sharePng(w));
   $('#bs')?.addEventListener('click', async e => { const txt = $('#bt').value.trim(); if (!txt) return; e.target.disabled = true;
     try { await submit(await moderateThenMemo('B', e.target.dataset.sig, txt), 'bless'); } catch (er) { toast(er.html ? er.message : esc(er.message), 'err'); } e.target.disabled = false; });
-  document.querySelectorAll('.mw').forEach(b => b.onclick = () => { const w = S.wishes.find(x => x.sig === b.dataset.sig); if (w) openCardPopup(w); });
+  bindMine();
+  0 && document.querySelectorAll('.mw').forEach(b => b.onclick = () => { const w = S.wishes.find(x => x.sig === b.dataset.sig); if (w) openCardPopup(w); });
   $('#mkbtn')?.addEventListener('click', () => { location.hash = '#/wish/make'; });
   const ta = $('#wt'); if (ta) {
     const catSel = $('#wc2');
@@ -481,17 +504,17 @@ function openSearch() { const pi = window.WT3D?.pageInfo?.() || { page: 0, pages
   const go = p => { WT3D.setPage(p); closeModal(); };
   $('#pgp').onclick = () => go(pi.page - 1); $('#pgn').onclick = () => go(pi.page + 1); $('#pgf').onsubmit = e => { e.preventDefault(); go((+$('#pgi').value || 1) - 1); };
   const open = async id => { closeModal(); const r = await WT3D.jumpTo(id); if (r) setTimeout(() => openCardPopup(r.wish), 1000); else toast(E('jump.fail'), 'err'); };
-  $('#qf').onsubmit = e => { e.preventDefault(); const q = $('#qi').value.trim().replace(/^#/, ''), out = $('#qr'); if (!q) return;
-    const res = []; if (/^\d+$/.test(q) && +q < pi.total) res.push({ id: +q, text: '#' + q, sub: '' });
-    for (const w of S.wishes) { if (res.length >= 30) break; if ((!w.priv && w.text.includes(q)) || (q.length >= 3 && w.author.startsWith(q))) res.push({ id: idOfSig(w.sig), text: w.text, sub: short(w.author) + ' · ' + catName(w.cat) }); }
-    out.innerHTML = res.length ? res.map(r => `<button type=button class=qhit data-id=${r.id}><bdi>${esc(r.text)}</bdi> <span class=muted>${esc(r.sub)} · #${r.id}</span></button>`).join('') : `<p class=muted>${E('search.none')} <a href="#/wish/make" id=qmake>✨ ${E('search.make')}</a></p>`; $('#qmake')?.addEventListener('click', () => closeModal());
+  $('#qf').onsubmit = e => { e.preventDefault(); const q = $('#qi').value.trim(), out = $('#qr'); if (!q) return; const dq = q.replace(/[/.年月]/g, '-').replace(/日$/, '');
+    const res = [];
+    for (const w of S.wishes) { if (res.length >= 30) break; if ((!w.priv && w.text.includes(q)) || (q.length >= 3 && w.author.startsWith(q)) || (w.time && /^\d{4}-\d{1,2}/.test(dq) && ymd(w.time).startsWith(dq.replace(/-(\d)(?=-|$)/g, '-0$1'))) || (w.time && fmtT(w.time).includes(q))) res.push({ id: idOfSig(w.sig), text: w.text, sub: short(w.author) + ' · ' + fmtT(w.time) }); }
+    out.innerHTML = res.length ? res.map(r => `<button type=button class=qhit data-id=${r.id}><bdi>${esc(r.text)}</bdi> <span class=muted>${esc(r.sub)}</span></button>`).join('') : `<p class=muted>${E('search.none')} <a href="#/wish/make" id=qmake>✨ ${E('search.make')}</a></p>`; $('#qmake')?.addEventListener('click', () => closeModal());
     out.querySelectorAll('[data-id]').forEach(b => b.onclick = () => open(+b.dataset.id)); };
   setTimeout(() => $('#qi')?.focus(), 50); }
 document.addEventListener('click', e => { if (e.target.closest('#qbtn')) openSearch(); });
 function syncChip(on) { let c = $('#sync'); if (!c) { c = document.createElement('div'); c.id = 'sync'; document.body.append(c); } c.textContent = '⏳ ' + t('route.loading'); c.hidden = !on; }
 function refreshView() { // 后台数据到达：首页只更新 3D 数据，其他页面在用户未编辑时重渲染
   if ($('#scene') && window.WT3D) { WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); const bn = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; if ($('#banner').innerHTML !== bn) $('#banner').innerHTML = bn; return; }
-  if (!document.querySelector('textarea:focus,input:focus,select:focus') && $('#modal').hidden && !($('#wt') && $('#maker') && !$('#maker').hidden)) route(); }
+  softRefresh(); }
 function mount3d() { if (!window.WT3D) { if (!ready3d) { ready3d = true; addEventListener('wt3d-ready', () => $('#scene') && mount3d()); } return; }
   WT3D.attach($('#scene')); WT3D.setSeason(S.season || autoSeason()); WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); }
 addEventListener('hashchange', () => { closeModal(); $('#tip').hidden = true; route(); });
@@ -505,5 +528,4 @@ if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.host
   // 首屏立即渲染：先用上次缓存的链上数据（localStorage）画出世界树，链上读取在后台进行，完成后无感刷新
   try { if (localStorage.wt_sigs != null) { const sigs = JSON.parse(localStorage.wt_sigs); S.txs = sigs.map(x => txCache[x]).filter(Boolean); S.hadReal = true; } } catch {} aggregate(); route(); syncChip(true);
   (async () => { await loadWishes(); syncChip(false); await hydrateFulfillments(); refreshView(); })();
-  setInterval(async () => { await loadWishes(true); refreshView(); }, 30000); // 正在填写心愿卡时不重渲染
 })();
