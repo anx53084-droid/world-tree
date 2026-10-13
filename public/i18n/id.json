@@ -222,5 +222,8 @@
 "card.privateOther": "Penulis menjadikan kartu ini privat. Hanya penulis yang dapat melihat isinya.",
 "card.unlock": "Buka dengan dompet",
 "card.unlockFail": "Gagal membuka (perlu tanda tangan dompet penulis)",
-"card.tapOpen": "Ketuk untuk membuka"
+"card.tapOpen": "Ketuk untuk membuka",
+"nav.gq": "Guangqi",
+"nav.gqHome": "Tempat cahaya bersemayam",
+"nav.gqOrigin": "Asal-usul Guangqi"
 }

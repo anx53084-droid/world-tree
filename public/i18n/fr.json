@@ -222,5 +222,8 @@
 "card.privateOther": "L'auteur a rendu cette carte privée. Seul l'auteur peut en voir le contenu.",
 "card.unlock": "Déverrouiller avec le portefeuille",
 "card.unlockFail": "Échec du déverrouillage (signature du portefeuille de l'auteur requise)",
-"card.tapOpen": "Toucher pour ouvrir"
+"card.tapOpen": "Toucher pour ouvrir",
+"nav.gq": "Guangqi",
+"nav.gqHome": "Où la lumière se pose",
+"nav.gqOrigin": "Origine de Guangqi"
 }

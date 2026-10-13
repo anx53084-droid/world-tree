@@ -222,5 +222,8 @@
 "card.privateOther": "Tác giả đã đặt thẻ này ở chế độ riêng tư. Chỉ tác giả xem được nội dung.",
 "card.unlock": "Mở khóa bằng ví",
 "card.unlockFail": "Mở khóa thất bại (cần chữ ký ví của tác giả)",
-"card.tapOpen": "Chạm để mở"
+"card.tapOpen": "Chạm để mở",
+"nav.gq": "Quang Thê",
+"nav.gqHome": "Nơi ánh sáng trú ngụ",
+"nav.gqOrigin": "Khởi nguồn Quang Thê"
 }

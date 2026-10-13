@@ -216,6 +216,7 @@ function setMenu(open) { const m = $('#menu'), bd = $('#menu-bd'), b = $('#burge
   if (open) setTimeout(() => $('#menu-x').focus(), 50); else if (document.activeElement && m.contains(document.activeElement)) b.focus(); }
 $('#burger').addEventListener('click', () => setMenu(true)); $('#menu-x').addEventListener('click', () => setMenu(false)); $('#menu-bd').addEventListener('click', () => setMenu(false));
 ['pointerdown', 'wheel', 'touchmove'].forEach(ev => $('#menu-bd').addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }, { passive: false }));
+$('#gq').addEventListener('click', () => { const sub = $('#gqsub'), o = sub.hidden; sub.hidden = !o; $('#gq').setAttribute('aria-expanded', o); });
 $('#menu').addEventListener('click', e => { if (e.target.closest('nav a, #mode button')) setMenu(false); });
 addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('menu-open')) { const lm = $('#langmenu'); if (lm && !lm.hidden) return; setMenu(false); } });
 // ---------- UI 工具 ----------
@@ -314,6 +315,17 @@ function openFolded(w) { // 折页卡：封面 → 3D 翻开动画 → 内页；
   if (!locked) setTimeout(open, 450); else if (mine) setTimeout(open, 450);
   $('#unlock')?.addEventListener('click', async () => { try { const k = await WTPriv.key(); w.plain = await WTPriv.dec(w.cipher, k); $('#foldPage').innerHTML = foldInner(w, w.plain); f.classList.remove('locked'); }
     catch (e) { toast(esc(t('card.unlockFail')), 'err'); } }); }
+// 光栖起源：原文（中文，所有语言均不翻译），极简 Markdown 渲染：**粗体**、### 小节、- 列表、行尾两空格换行
+function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); let html = '', list = false, para = [];
+  const flush = () => { if (para.length) { html += `<p>${para.map(inl).join('<br>')}</p>`; para = []; } };
+  for (const raw of md.split('\n')) { const l = raw.replace(/\s+$/, '');
+    if (/^\s*$/.test(l)) { flush(); continue; }
+    if (l.startsWith('### ')) { flush(); if (list) { html += '</ul>'; list = false; } html += `<h3>${inl(l.slice(4))}</h3>`; continue; }
+    if (/^- /.test(l)) { flush(); if (!list) { html += '<ul>'; list = true; } html += `<li>${inl(l.slice(2))}`; continue; }
+    if (list && /^\s+/.test(raw)) { html += '<br>' + inl(l.trim()); continue; }
+    if (list) { html += '</ul>'; list = false; } para.push(l); }
+  flush(); if (list) html += '</ul>'; return html.replace(/^<p><b>(《光栖》成立说明)<\/b><\/p>/, '<h1>$1</h1>'); }
+function origin() { fetch('origin.md').then(r => r.text()).then(md => { const el = $('#origin'); if (el) el.innerHTML = mdRender(md); }); return `<article id=origin class=origin lang=zh-CN></article>`; }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
@@ -364,7 +376,7 @@ let ready3d = false;
 async function route() {
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': wishPanel, '/me': me, '/help': help, '/terms': terms };
+  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': wishPanel, '/me': me, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
   document.body.classList.toggle('home', !!$('#scene')); document.querySelectorAll('#menu nav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });

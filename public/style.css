@@ -151,3 +151,15 @@ body.debug footer.debug-only { display: block !important }
 .fold.locked .fold-page { display: grid; place-items: center; text-align: center }
 .fold.shake .fold-cover { animation: fshake .45s }
 @keyframes fshake { 25% { transform: rotateY(-8deg) } 75% { transform: rotateY(-3deg) } }
+
+/* 菜单：光栖手风琴 */
+#menu nav .gq { all: unset; cursor: pointer; color: #e6e6e6; text-transform: uppercase; font-size: 14px; padding: 18px 0; font-family: inherit }
+#menu nav .gq::after { content: " +"; color: #777 } #menu nav .gq[aria-expanded=true]::after { content: " −" } #menu nav .gq:hover { color: #fff }
+#menu .gqsub { display: flex; flex-direction: column; padding-inline-start: 18px; border-inline-start: 1px solid #ffffff22; margin-bottom: 6px } #menu .gqsub[hidden] { display: none }
+#menu .gqsub a { padding: 12px 0 !important; font-size: 13px !important; color: #bbb } #menu .gqsub a::before { content: "└ "; color: #555 }
+/* 光栖起源 */
+.origin { max-width: 680px; margin: 24px auto 60px; padding: 34px 26px; background: linear-gradient(180deg, #0b0a24e6, #070616f0); border: 1px solid #e8b85a33; border-radius: 16px;
+  color: #e9e3d4; font-family: "Noto Serif CJK SC", "Songti SC", serif; line-height: 2; letter-spacing: .04em; box-shadow: 0 0 60px #6a3cff22 }
+.origin h1 { text-align: center; font-size: 24px; color: #f3d48a; letter-spacing: .2em; margin: 0 0 1.4em; font-weight: 600 }
+.origin h3 { color: #f3d48a; font-size: 17px; margin: 1.8em 0 .5em; padding-bottom: .3em; border-bottom: 1px solid #e8b85a33; letter-spacing: .15em }
+.origin p { margin: .7em 0 } .origin b { color: #ffe2a8 } .origin ul { padding-inline-start: 1.2em; margin: .4em 0 } .origin li { margin: .7em 0 } .origin li::marker { color: #e8b85a }

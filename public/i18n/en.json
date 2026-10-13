@@ -222,5 +222,8 @@
 "card.privateOther": "The author made this card private. Only the author can view its content.",
 "card.unlock": "Unlock with wallet",
 "card.unlockFail": "Unlock failed (needs the author's wallet signature)",
-"card.tapOpen": "Tap to open"
+"card.tapOpen": "Tap to open",
+"nav.gq": "Guangqi",
+"nav.gqHome": "Where Light Rests",
+"nav.gqOrigin": "Origin of Guangqi"
 }

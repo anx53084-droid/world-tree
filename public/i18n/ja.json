@@ -222,5 +222,8 @@
 "card.privateOther": "作者がこのカードを非公開にしています。内容は作者本人のみ閲覧できます。",
 "card.unlock": "ウォレットで解錠",
 "card.unlockFail": "解錠に失敗しました（作者のウォレット署名が必要）",
-"card.tapOpen": "タップして開く"
+"card.tapOpen": "タップして開く",
+"nav.gq": "光栖（コウセイ）",
+"nav.gqHome": "光栖の在処",
+"nav.gqOrigin": "光栖の起源"
 }

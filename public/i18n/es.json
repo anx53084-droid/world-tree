@@ -222,5 +222,8 @@
 "card.privateOther": "El autor ha hecho privada esta tarjeta. Solo el autor puede ver su contenido.",
 "card.unlock": "Desbloquear con billetera",
 "card.unlockFail": "Error al desbloquear (requiere la firma de la billetera del autor)",
-"card.tapOpen": "Toca para abrir"
+"card.tapOpen": "Toca para abrir",
+"nav.gq": "Guangqi",
+"nav.gqHome": "Donde la luz reposa",
+"nav.gqOrigin": "Origen de Guangqi"
 }

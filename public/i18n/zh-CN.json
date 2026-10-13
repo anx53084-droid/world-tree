@@ -222,5 +222,8 @@
 "card.privateOther": "这张卡被作者设为私密，只有作者本人能查看内容。",
 "card.unlock": "用钱包解锁",
 "card.unlockFail": "解锁失败（需要作者钱包签名）",
-"card.tapOpen": "点开查看"
+"card.tapOpen": "点开查看",
+"nav.gq": "光栖",
+"nav.gqHome": "光栖之处",
+"nav.gqOrigin": "光栖起源"
 }

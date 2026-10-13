@@ -222,5 +222,8 @@
 "card.privateOther": "Der Autor hat diese Karte privat gemacht. Nur der Autor kann den Inhalt sehen.",
 "card.unlock": "Mit Wallet entsperren",
 "card.unlockFail": "Entsperren fehlgeschlagen (Wallet-Signatur des Autors nötig)",
-"card.tapOpen": "Zum Öffnen tippen"
+"card.tapOpen": "Zum Öffnen tippen",
+"nav.gq": "Guangqi",
+"nav.gqHome": "Wo das Licht ruht",
+"nav.gqOrigin": "Ursprung von Guangqi"
 }
