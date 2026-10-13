@@ -1,8 +1,8 @@
 {
 "meta.title": "世界樹許願樹 · World Tree",
 "brand": "世界樹許願樹",
-"nav.home": "首頁",
-"nav.list": "願望列表",
+"nav.home": "世界樹",
+"nav.list": "許願牆",
 "nav.wish": "許願",
 "nav.me": "我的世界樹",
 "nav.help": "規則與說明",
@@ -203,5 +203,9 @@
 "wish.shippingPh": "例如：收件人、電話、地址，或其他聯絡方式（可選）",
 "wish.shippingHint": "此備註僅用於星願大使驚喜還願，不會寫入區塊鏈，也不會公開展示。",
 "fulfill.badge": "星願大使已還願",
-"fulfill.toast": "星願大使為你實現了這個願望 ✨"
+"fulfill.toast": "星願大使為你實現了這個願望 ✨",
+"nav.menu": "選單",
+"nav.close": "關閉選單",
+"nav.language": "語言",
+"nav.account": "帳戶"
 }

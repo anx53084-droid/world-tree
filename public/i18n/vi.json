@@ -203,5 +203,9 @@
 "wish.shippingPh": "vd: người nhận, điện thoại, địa chỉ hoặc liên hệ khác (tùy chọn)",
 "wish.shippingHint": "Ghi chú này chỉ dùng cho bất ngờ thực hiện ước nguyện của Đại sứ Sao-Ước. Không ghi lên chuỗi và không công khai.",
 "fulfill.badge": "Đại sứ Sao-Ước đã thực hiện",
-"fulfill.toast": "Đại sứ Sao-Ước đã thực hiện ước nguyện này ✨"
+"fulfill.toast": "Đại sứ Sao-Ước đã thực hiện ước nguyện này ✨",
+"nav.menu": "Menu",
+"nav.close": "Đóng menu",
+"nav.language": "Ngôn ngữ",
+"nav.account": "Tài khoản"
 }

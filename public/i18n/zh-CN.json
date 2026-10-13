@@ -1,8 +1,8 @@
 {
 "meta.title": "世界树许愿树 · World Tree",
 "brand": "世界树许愿树",
-"nav.home": "首页",
-"nav.list": "愿望列表",
+"nav.home": "世界树",
+"nav.list": "许愿墙",
 "nav.wish": "许愿",
 "nav.me": "我的世界树",
 "nav.help": "规则与说明",
@@ -203,5 +203,9 @@
 "wish.shippingPh": "例如：收件人、电话、地址，或其它联系方式（可选）",
 "wish.shippingHint": "此备注仅用于星愿大使惊喜还愿，不会写入区块链，也不会公开展示。",
 "fulfill.badge": "星愿大使已还愿",
-"fulfill.toast": "星愿大使为你实现了这个愿望 ✨"
+"fulfill.toast": "星愿大使为你实现了这个愿望 ✨",
+"nav.menu": "菜单",
+"nav.close": "关闭菜单",
+"nav.language": "语言",
+"nav.account": "账户"
 }

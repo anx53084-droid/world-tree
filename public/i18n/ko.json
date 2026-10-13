@@ -203,5 +203,9 @@
 "wish.shippingPh": "예: 수령인, 전화, 주소 또는 기타 연락처（선택）",
 "wish.shippingHint": "이 메모는 성원 대사의 깜짝 소원 실현에만 사용되며, 체인에 기록되거나 공개되지 않습니다.",
 "fulfill.badge": "성원 대사가 소원을 이룸",
-"fulfill.toast": "성원 대사가 이 소원을 이루어 주었어요 ✨"
+"fulfill.toast": "성원 대사가 이 소원을 이루어 주었어요 ✨",
+"nav.menu": "메뉴",
+"nav.close": "메뉴 닫기",
+"nav.language": "언어",
+"nav.account": "계정"
 }

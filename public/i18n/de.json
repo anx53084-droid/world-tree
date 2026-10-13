@@ -203,5 +203,9 @@
 "wish.shippingPh": "z. B. Empfänger, Telefon, Adresse oder anderer Kontakt (optional)",
 "wish.shippingHint": "Diese Notiz dient nur einer Überraschungs-Erfüllung durch den Sternwunsch-Botschafter. Sie wird nie on-chain geschrieben und nie öffentlich gezeigt.",
 "fulfill.badge": "Vom Sternwunsch-Botschafter erfüllt",
-"fulfill.toast": "Ein Sternwunsch-Botschafter hat diesen Wunsch erfüllt ✨"
+"fulfill.toast": "Ein Sternwunsch-Botschafter hat diesen Wunsch erfüllt ✨",
+"nav.menu": "Menü",
+"nav.close": "Menü schließen",
+"nav.language": "Sprache",
+"nav.account": "Konto"
 }

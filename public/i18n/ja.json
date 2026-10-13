@@ -203,5 +203,9 @@
 "wish.shippingPh": "例：受取人・電話・住所など（任意）",
 "wish.shippingHint": "このメモは星願大使のサプライズ実現専用です。チェーンには書かれず、公開もされません。",
 "fulfill.badge": "星願大使が願いを叶えました",
-"fulfill.toast": "星願大使がこの願いを叶えてくれました ✨"
+"fulfill.toast": "星願大使がこの願いを叶えてくれました ✨",
+"nav.menu": "メニュー",
+"nav.close": "メニューを閉じる",
+"nav.language": "言語",
+"nav.account": "アカウント"
 }

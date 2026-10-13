@@ -156,7 +156,7 @@ async function logout() { if (S.mode === 'host') await api('/api/logout', {}).ca
 async function airdrop() { const tt = toast(esc(t('airdrop.req'))); try { const r = await api('/api/airdrop', {}); tt.update(esc(t('airdrop.ok', { sig: short(r.signature) })), 'ok'); } catch (e) { tt.update(esc(e.message), 'err'); } }
 function renderMode() {
   const m = { guest: `<span class="badge">${esc(t('mode.guest'))}</span>`, self: `<span class="badge b-self">${esc(t('mode.self', { addr: short(S.pubkey) }))}</span>`, host: `<span class="badge b-host">${esc(t('mode.host', { email: S.email, addr: short(S.pubkey) }))}</span>` }[S.mode];
-  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class="primary breathe">${esc(t('btn.phantom'))}</button><button id=be>${esc(t('btn.email'))}</button>` : (S.mode === 'host' ? `<button id=ba>${esc(t('btn.airdrop'))}</button>` : '') + `<button id=bo>${esc(t('btn.logout'))}</button>`);
+  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.phantom'))}</button><button id=be class=mlink>${esc(t('btn.email'))}</button>` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + `<button id=bo class=mlink>${esc(t('btn.logout'))}</button>`);
   $('#bp')?.addEventListener('click', connectPhantom); $('#be')?.addEventListener('click', emailLogin); $('#bo')?.addEventListener('click', logout); $('#ba')?.addEventListener('click', airdrop);
 }
 
@@ -181,6 +181,15 @@ function maybeFulfillToast(w) {
   S.fulfillToast[w.sig] = 1; try { localStorage.wt_ful_toast = JSON.stringify(S.fulfillToast); } catch {}
   toast(`✨ ${esc(t('fulfill.toast'))}`, 'ok celebrate');
 }
+// ---------- 滑出菜单 ----------
+function setMenu(open) { const m = $('#menu'), bd = $('#menu-bd'), b = $('#burger'); if (!m) return;
+  document.body.classList.toggle('menu-open', open); bd.hidden = !open; m.inert = !open; m.setAttribute('aria-hidden', !open); b.setAttribute('aria-expanded', open);
+  ['#view', 'footer'].forEach(s => { const e = $(s); if (e) e.inert = open; }); window.WT_hover?.(null);
+  if (open) setTimeout(() => $('#menu-x').focus(), 50); else if (document.activeElement && m.contains(document.activeElement)) b.focus(); }
+$('#burger').addEventListener('click', () => setMenu(true)); $('#menu-x').addEventListener('click', () => setMenu(false)); $('#menu-bd').addEventListener('click', () => setMenu(false));
+['pointerdown', 'wheel', 'touchmove'].forEach(ev => $('#menu-bd').addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }, { passive: false }));
+$('#menu').addEventListener('click', e => { if (e.target.closest('nav a, #mode button')) setMenu(false); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('menu-open')) { const lm = $('#langmenu'); if (lm && !lm.hidden) return; setMenu(false); } });
 // ---------- UI 工具 ----------
 function toast(html, cls = '') { const d = document.createElement('div'); d.className = 'toast ' + cls; d.innerHTML = html; $('#toasts').append(d);
   const kill = () => setTimeout(() => d.remove(), 9000); if (cls) kill(); d.update = (h, c = '') => { d.innerHTML = h; d.className = 'toast ' + c; if (c) kill(); }; return d; }
@@ -312,7 +321,7 @@ async function route() {
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
   const pages = { '/': home, '': home, '/list': () => list(q), '/wish': wishPanel, '/me': me, '/help': help, '/terms': terms };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
-  document.body.classList.toggle('home', !!$('#scene')); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d();
+  document.body.classList.toggle('home', !!$('#scene')); document.querySelectorAll('#menu nav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); route(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });

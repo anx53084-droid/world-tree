@@ -203,5 +203,9 @@
 "wish.shippingPh": "ex.: destinatário, telefone, morada ou outro contacto (opcional)",
 "wish.shippingHint": "Esta nota serve apenas para uma realização surpresa do Embaixador Estrela-Desejo. Nunca é escrita on-chain nem mostrada publicamente.",
 "fulfill.badge": "Realizado pelo Embaixador Estrela-Desejo",
-"fulfill.toast": "Um Embaixador Estrela-Desejo realizou este desejo ✨"
+"fulfill.toast": "Um Embaixador Estrela-Desejo realizou este desejo ✨",
+"nav.menu": "Menu",
+"nav.close": "Fechar menu",
+"nav.language": "Idioma",
+"nav.account": "Conta"
 }

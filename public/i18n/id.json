@@ -203,5 +203,9 @@
 "wish.shippingPh": "mis. penerima, telepon, alamat, atau kontak lain (opsional)",
 "wish.shippingHint": "Catatan ini hanya untuk pemenuhan kejutan Duta Bintang-Harapan. Tidak pernah ditulis on-chain dan tidak ditampilkan publik.",
 "fulfill.badge": "Dipenuhi Duta Bintang-Harapan",
-"fulfill.toast": "Duta Bintang-Harapan mewujudkan harapan ini ✨"
+"fulfill.toast": "Duta Bintang-Harapan mewujudkan harapan ini ✨",
+"nav.menu": "Menu",
+"nav.close": "Tutup menu",
+"nav.language": "Bahasa",
+"nav.account": "Akun"
 }

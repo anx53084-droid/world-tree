@@ -203,5 +203,9 @@
 "wish.shippingPh": "ex. destinataire, téléphone, adresse ou autre contact (facultatif)",
 "wish.shippingHint": "Cette note sert uniquement à une réalisation surprise par l’Ambassadeur Étoile-Vœu. Elle n’est jamais écrite on-chain ni affichée publiquement.",
 "fulfill.badge": "Réalisé par l’Ambassadeur Étoile-Vœu",
-"fulfill.toast": "Un Ambassadeur Étoile-Vœu a réalisé ce vœu ✨"
+"fulfill.toast": "Un Ambassadeur Étoile-Vœu a réalisé ce vœu ✨",
+"nav.menu": "Menu",
+"nav.close": "Fermer le menu",
+"nav.language": "Langue",
+"nav.account": "Compte"
 }
