@@ -236,12 +236,13 @@ function ramify(L, curve, r, len, seed, depth, out) { // 递归：每根枝在 3
   for (let i = 0; i < n; i++) { const sd = seed + ':' + i, h = strHash(sd), u = .38 + (i + h * .6) / n * .52, a = curve.getPointAt(u), tan = curve.getTangentAt(u);
     const side = (i % 2 ? 1 : -1) * (.55 + h * .55), b = sprout(a, tan, side, .18 + h * .3, len, sd);
     const c = limb(L, a, b, r * .62, r * .2, sd, depth > 1 ? 7 : 5); if (depth > 1) ramify(L, c, r * .55, len * .62, sd, depth - 1, out); else out.push({ curve: c, r: r * .4 }); } }
-function hangSlots(t, segs) { // 卡片沿枝条按弧长均匀分布，带少量抖动；每张卡 = 枝上挂点 + 细绳 + 卡片中心
-  const lens = segs.map(o => o.curve.getLength() * .7), tot = lens.reduce((a, b) => a + b, 0), n = Math.max(1, t.count), step = tot / n, out = []; let acc = step * .5, si = 0, base = 0;
-  for (let s = 0; s < n; s++) { const h = strHash(t.region + '#' + s); let x = acc + (h - .5) * step * .5; while (si < segs.length - 1 && x > base + lens[si]) { base += lens[si]; si++; }
-    const u = Math.min(.95, .25 + Math.max(0, x - base) / lens[si] * .7 / .7 * .7), a = segs[si].curve.getPointAt(u); a.y -= segs[si].r * .8;
-    const str = t.sz * (.28 + .5 * strHash(t.region + '@' + s)), p = a.clone(); p.y -= str + CH * 1.2 * t.sz * .5;
-    out.push({ a, p, str, ph: strHash(t.region + '~' + s) }); acc += step; }
+function hangSlots(t, segs) { // 卡片沿枝条按最小间距分布（不重叠）；位置不够时第二排用更长吊绳错位挂在下方
+  const minSp = CW * 1.2 * t.sz * 1.25, cand = []; segs.forEach((o, si) => { const L = o.curve.getLength() * .7, k = Math.max(1, Math.floor(L / minSp)); for (let i = 0; i < k; i++) cand.push({ si, u: .25 + (i + .5) / k * .7, du: .35 / k }); });
+  cand.sort((a, b) => (a.u - b.u) || (a.si - b.si)); const n = Math.max(1, t.count), rows = Math.ceil(n / cand.length), out = [], H = CH * 1.2 * t.sz;
+  for (let s = 0; s < n; s++) { const row = Math.floor(s / cand.length), c = cand[row ? s % cand.length : Math.floor(s * cand.length / Math.min(n, cand.length)) % cand.length], h = strHash(t.region + '#' + s);
+    const a = segs[c.si].curve.getPointAt(Math.min(.97, c.u + (row % 2 ? c.du : 0) + (h - .5) * c.du * .3)); a.y -= segs[c.si].r * .8;
+    const str = t.sz * (.25 + .25 * strHash(t.region + '@' + s)) + row * H * 1.12, p = a.clone(); p.y -= str + H * .5;
+    out.push({ a, p, str, ph: strHash(t.region + '~' + s) }); }
   return out; }
 // ---------- 分页视图（非调试模式）：每页最多 200 张卡（最新在第 1 页），自然分散挂在固定的程序化枝条上 ----------
 const PAGE_N = 200; let PAGE = 0;
@@ -251,7 +252,7 @@ const pageIds = p => { const out = []; for (let k = 0, i = N - 1 - p * PAGE_N; k
 function clearBranches() { treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); });
   labels.forEach(l => { treeGroup.remove(l); l.material.map.dispose(); l.material.dispose(); }); labels = []; }
 function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal() - 1)); clearBranches(); focus = '';
-  const ids = pageIds(PAGE), L = [], hang = [], leafPts = [], thick = .4, NB = 16, sz = ids.length <= 48 ? 1 : .62;
+  const ids = pageIds(PAGE), L = [], hang = [], leafPts = [], thick = .4, NB = 16, sz = ids.length <= 48 ? 1.05 : .85;
   for (let j = 0; j < NB; j++) { const { p: ce, th } = childEnd('', j), r1 = 'pg' + j, h = strHash(r1), st = V(Math.cos(th) * .5, 5.3 + h * 1.2, Math.sin(th) * .5), mid = bend(st, ce, h, .9);
     L.push({ pts: [st, mid, ce], rf: t => thick * (1 - t * .62), seg: 16, knot: j }); const pc = new THREE.CatmullRomCurve3([st, mid, ce]), segs = []; ramify(L, pc, thick * .5, 3.4, r1, 2, segs);
     segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce);
@@ -304,7 +305,7 @@ function buildClusters(clus, hang) { // 远景：每个聚合区域 = 一团金�
       gl_FragColor=vec4(vC*a + vec3(1.25,.95,.45)*lan*vA, 1.); }` }));
   clusters.userData.branch = true; clusters.frustumCulled = false; clusters.renderOrder = 4; treeGroup.add(clusters);
   const ap = []; hang.forEach(o => o.slots.forEach(sl => ap.push(sl.p.x, sl.p.y, sl.p.z))); const ag = new THREE.BufferGeometry(); ag.setAttribute('position', new THREE.Float32BufferAttribute(ap, 3)); // 远景：枝上挂卡处的暖色小点（不发光）
-  const am = new THREE.Points(ag, new THREE.PointsMaterial({ color: new THREE.Color(.62, .5, .32), size: .22, sizeAttenuation: true, transparent: true, opacity: .8, depthWrite: false })); am.userData.branch = true; am.renderOrder = 2; treeGroup.add(am);
+  const am = new THREE.Points(ag, new THREE.PointsMaterial({ color: new THREE.Color(.92, .78, .5), size: .26, sizeAttenuation: true, transparent: true, opacity: .8, depthWrite: false })); am.userData.branch = true; am.renderOrder = 2; treeGroup.add(am);
 }
 function makeLabel(text, P, region) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d'); x.fillStyle = 'rgba(20,10,30,.75)'; x.strokeStyle = '#e8b85a'; x.lineWidth = 2; x.beginPath(); x.roundRect(3, 9, 250, 46, 23); x.fill(); x.stroke();
@@ -320,12 +321,12 @@ const GLINT = `float gh(vec2 p){return fract(sin(dot(p,vec2(41.3,289.1)))*15731.
 function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { map: { value: null }, uTime: BU.uTime, uHl: { value: 0 }, uSolid: { value: 0 }, uSeed: { value: (i * .618) % 1 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
   fragmentShader: `uniform sampler2D map; uniform float uTime,uHl,uSolid,uSeed; varying vec2 vUv; ${GLINT}
-    void main(){ vec4 tx=texture2D(map,vUv); if(tx.a<.04) discard; vec3 ice=mix(vec3(.42,.55,.78),vec3(.78,.86,1.),vUv.y);
-      vec3 c=mix(tx.rgb, mix(tx.rgb,ice,.3)*.94+ice*.05, 1.-uSolid); // 单卡：玻璃化；折页卡：封面保持清晰
-      float e=min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y)); c+=vec3(.42,.5,.66)*smoothstep(.05,0.,e)*(1.-uSolid*.5);
-      float band=exp(-pow((vUv.x*.8+vUv.y*.6-fract(uTime*.05+uSeed)*2.6+.5)*6.,2.)); c+=vec3(.55,.62,.8)*band*.16;
-      c=min(c*(.84+.1*uHl),vec3(.8)); float gl=glint(vUv,uSeed,uTime)*tx.a; c+=vec3(.95,.97,1.)*gl;
-      gl_FragColor=vec4(c, tx.a*mix(.88,.97,uSolid)+gl*.3); }` }); }
+    void main(){ vec4 tx=texture2D(map,vUv); if(tx.a<.04) discard; vec2 q=vUv-vec2(.5,.47); float inner=exp(-dot(q*vec2(2.2,1.5),q*vec2(2.2,1.5))*3.); // 纸灯内透光
+      vec3 c=tx.rgb*(.86+.2*inner*(1.-uSolid*.6)) + vec3(.1,.07,.02)*inner*(1.-uSolid);
+      float e=min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y)); c+=vec3(.32,.24,.1)*smoothstep(.045,0.,e); // 暖金水晶边缘
+      float band=exp(-pow((vUv.x*.8+vUv.y*.6-fract(uTime*.05+uSeed)*2.6+.5)*6.,2.)); c+=vec3(.5,.42,.25)*band*.14; // 缓慢扫过的光泽
+      c=min(c*(.94+.06*uHl),vec3(.93,.88,.76)); float gl=glint(vUv,uSeed,uTime)*tx.a; c+=vec3(1.,.96,.85)*gl*.85;
+      gl_FragColor=vec4(c, tx.a*.97); }` }); }
 // ---------- 中景：InstancedMesh 金色灯笼卡（1 次 draw call，着色器 billboard + 程序化纹样）+ 细吊绳 ----------
 const CW = .8, CH = 1.25; // 卡片宽高（相对 sz）
 function makeInst() {
@@ -342,8 +343,9 @@ function makeInst() {
       float lat=step(.9,abs(sin((p.x+p.y)*55.))*abs(sin((p.x-p.y)*55.)))*step(.09,e); c=mix(c,vec3(.55,.28,.08),lat*.35); // 菱格纹
       float ln=step(.5,fract(p.y*9.))*step(abs(p.x),.24)*step(abs(p.y+.04),.24); c=mix(c,vec3(.35,.16,.05),ln*.28); // 文字行示意
       c=mix(c, vC*.7, .22); if(cap>.5) c=vec3(.5,.32,.14); if(ring>.5) c=vec3(.6,.5,.3);
-      vec3 ice=mix(vec3(.4,.52,.75),vec3(.75,.84,1.),vUv.y); c=mix(c,ice,.45)+vec3(.3,.38,.5)*step(e,.03); float gl=glint(vUv,vF,uTime);
-      gl_FragColor=vec4(min(c,vec3(.78))+gl*.9,.72+gl*.3); }` }), MID_CAP);
+      float inner=clamp(1.-length(p*vec2(1.9,1.25))*1.25,0.,1.); vec3 champ=mix(vec3(.74,.55,.27),vec3(.95,.86,.62),inner); // 香槟金内透光
+      c=bd>.5?vec3(.52,.36,.14):champ; if(cap>.5) c=vec3(.55,.38,.16); if(ring>.5) c=vec3(.8,.65,.38); float gl=glint(vUv,vF,uTime);
+      gl_FragColor=vec4(min(c,vec3(.93,.88,.76))+gl*.8,.96); }` }), MID_CAP);
   ['iPos', 'iCol', 'iAnc'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP * 3), 3).setUsage(THREE.DynamicDrawUsage)));
   ['iSize', 'iPh'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1).setUsage(THREE.DynamicDrawUsage)));
   inst.count = 0; inst.frustumCulled = false; inst.userData.cards = []; inst.renderOrder = 3; treeGroup.add(inst);
@@ -351,7 +353,7 @@ function makeInst() {
   sg.setAttribute('ph', new THREE.BufferAttribute(new Float32Array(MID_CAP * 2), 1).setUsage(THREE.DynamicDrawUsage)); sg.setDrawRange(0, 0);
   strings = new THREE.LineSegments(sg, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime },
     vertexShader: `attribute vec3 anc; attribute float ph; uniform float uTime; ${WIND} void main(){ gl_Position=projectionMatrix*modelViewMatrix*vec4(swing(anc,position,ph,uTime),1.); }`,
-    fragmentShader: `void main(){ gl_FragColor=vec4(1.,.8,.45,.6); }` })); strings.frustumCulled = false; strings.renderOrder = 2; treeGroup.add(strings);
+    fragmentShader: `void main(){ gl_FragColor=vec4(.85,.68,.38,.55); }` })); strings.frustumCulled = false; strings.renderOrder = 2; treeGroup.add(strings);
   const pg = new THREE.PlaneGeometry(1, 1);
   for (let i = 0; i < NEAR_CAP; i++) { const s = new THREE.Mesh(pg, crystalMat(i)); s.visible = false; s.renderOrder = 3; nearPool.push(s); cardGroup.add(s); }
 }
@@ -375,25 +377,31 @@ function updateNear(force) { const now = performance.now(); if (!force && now - 
     s.position.copy(c.p); s.userData.c = c; s.userData.sz = c.sz; s.visible = true; const hl = c.w.id === hlId; s.renderOrder = hl ? 6 : 3; s.material.depthTest = !hl; }
   for (; k < nearPool.length; k++) { nearPool[k].visible = false; nearPool[k].userData.wish = null; }
 }
+function ornament(x, x0, y, w) { // 顶/底部金色纹饰带：细线 + 菱形与小圆点交替
+  x.save(); x.strokeStyle = '#a57630'; x.fillStyle = '#a57630'; x.lineWidth = 1; x.beginPath(); x.moveTo(x0, y); x.lineTo(x0 + w, y); x.moveTo(x0, y + 9); x.lineTo(x0 + w, y + 9); x.stroke();
+  for (let i = 0, n = 9; i < n; i++) { const cx = x0 + (i + .5) * w / n, cy = y + 4.5; if (i % 2) { x.beginPath(); x.arc(cx, cy, 1.6, 0, 7); x.fill(); } else { x.beginPath(); x.moveTo(cx, cy - 3.5); x.lineTo(cx + 3.5, cy); x.lineTo(cx, cy + 3.5); x.lineTo(cx - 3.5, cy); x.closePath(); x.fill(); } }
+  x.restore(); }
 function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私密卡加锁）；哑光无发光
   const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : ''); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
-  if (w.folded && window.WTCovers) { x.fillStyle = '#8a6a3a'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#d8c39a'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
+  if (w.folded && window.WTCovers) { x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
     x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); x.translate(X0, Y0); WTCovers.draw(x, w.cover, W, H); x.restore();
     const sp = x.createLinearGradient(X0, 0, X0 + 18, 0); sp.addColorStop(0, '#0007'); sp.addColorStop(1, '#0000'); x.fillStyle = sp; x.fillRect(X0, Y0, 18, H); // 书脊阴影
-    x.fillStyle = '#fff3'; x.fillRect(X0 + W - 6, Y0 + 4, 3, H - 8); x.strokeStyle = w.id === hlId ? '#ffffff' : '#e9d9b4'; x.lineWidth = w.id === hlId ? 6 : 3; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke();
+    x.fillStyle = '#fff3'; x.fillRect(X0 + W - 6, Y0 + 4, 3, H - 8); x.strokeStyle = w.id === hlId ? '#ffffff' : '#c9a052'; x.lineWidth = w.id === hlId ? 7 : 6; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke(); x.strokeStyle = '#8a5f1e'; x.lineWidth = 1.5; x.beginPath(); x.roundRect(X0 + 4, Y0 + 4, W - 8, H - 8, 6); x.stroke();
+    x.fillStyle = '#f3dc9fdd'; x.fillRect(X0 + 6, Y0 + 6, W - 12, 14); ornament(x, X0 + 10, Y0 + 8, W - 20);
     x.fillStyle = '#000a'; x.fillRect(X0, Y0 + H - 34, W, 34); x.fillStyle = '#fff'; x.font = 'bold 15px sans-serif'; x.fillText(w.priv ? '🔒 ' + tr('card.privateShort') : '📖 ' + tr('card.tapOpen'), X0 + 10, Y0 + H - 12);
     if (w.priv) { x.fillStyle = '#000a'; x.beginPath(); x.arc(X0 + W - 24, Y0 + 24, 17, 0, 7); x.fill(); x.font = '20px sans-serif'; x.fillText('🔒', X0 + W - 35, Y0 + 31); }
     const tex = new THREE.CanvasTexture(c); texCache.set(key, tex); return tex; }
-  x.fillStyle = '#8a6a3a'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#d8c39a'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
-  const g = x.createRadialGradient(96, 150, 10, 96, 150, 150), hue = w.pending ? 220 : w.hue;
-  g.addColorStop(0, w.pending ? '#d5ddef' : '#f6ecd6'); g.addColorStop(.6, w.pending ? '#b3c0dc' : '#e8d7b2'); g.addColorStop(1, w.pending ? '#8996b8' : '#c9ad7c');
+  x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
+  const g = x.createRadialGradient(96, 150, 8, 96, 150, 160), hue = w.pending ? 220 : w.hue; // 香槟金纸灯：中心暖白透光，边缘渐深
+  g.addColorStop(0, w.pending ? '#e3e9f7' : '#fff6dc'); g.addColorStop(.5, w.pending ? '#bccbe8' : '#f5dfa4'); g.addColorStop(1, w.pending ? '#8f9fc4' : '#d9b166');
   x.fillStyle = g; x.beginPath(); x.roundRect(X0, Y0, W, H, 10); x.fill();
-  x.strokeStyle = w.id === hlId ? '#ffffff' : '#a9875a'; x.lineWidth = w.id === hlId ? 6 : 3; x.stroke(); x.strokeStyle = '#8a4e12'; x.lineWidth = 1.5; x.strokeRect(X0 + 9, Y0 + 9, W - 18, H - 18);
+  x.strokeStyle = w.id === hlId ? '#ffffff' : '#9a6c26'; x.lineWidth = w.id === hlId ? 6 : 4; x.stroke(); x.strokeStyle = '#b8873a'; x.lineWidth = 1.2; x.strokeRect(X0 + 8, Y0 + 8, W - 16, H - 16);
+  ornament(x, X0 + 14, Y0 + 14, W - 28); ornament(x, X0 + 14, Y0 + H - 58, W - 28);
   x.fillStyle = '#8a4e12'; [[X0 + 9, Y0 + 9], [X0 + W - 9, Y0 + 9], [X0 + 9, Y0 + H - 9], [X0 + W - 9, Y0 + H - 9]].forEach(([a, b]) => { x.beginPath(); x.moveTo(a, b - 7); x.lineTo(a + 7, b); x.lineTo(a, b + 7); x.lineTo(a - 7, b); x.fill(); });
-  x.fillStyle = `hsl(${hue},80%,45%)`; x.fillRect(X0 + 40, Y0 + 16, W - 80, 4);
-  x.fillStyle = '#3a1a06'; x.font = 'bold 19px "Noto Sans CJK SC",sans-serif'; let line = '', y = Y0 + 48;
-  for (const ch of w.text) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 190) { line = '…'; break; } } line += ch; }
+  x.fillStyle = `hsl(${hue},55%,48%)`; x.fillRect(X0 + 50, Y0 + 30, W - 100, 3);
+  x.fillStyle = '#4a2a08'; x.font = 'bold 19px "Noto Sans CJK SC",sans-serif'; let line = '', y = Y0 + 56;
+  for (const ch of w.text) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 170) { line = '…'; break; } } line += ch; }
   x.fillText(line, X0 + 18, y); x.font = '14px sans-serif'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.id != null) x.fillText('#' + w.id, X0 + 18, Y0 + H - 16);
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex);
   if (texCache.size > NEAR_CAP * 2) { const used = new Set(nearPool.map(s => s.material.map)); for (const [k, v] of texCache) { if (texCache.size <= NEAR_CAP * 2) break; if (!used.has(v)) { v.dispose(); texCache.delete(k); } } } // GPU 纹理 LRU 释放
