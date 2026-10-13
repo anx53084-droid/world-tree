@@ -227,5 +227,16 @@
 "nav.gqHome": "Işığın konakladığı yer",
 "nav.gqOrigin": "Guangqi'nin kökeni",
 "err.admin": "Yönetici izni gerekli",
-"err.nf": "Bulunamadı"
+"err.nf": "Bulunamadı",
+"search.open": "Arama ve sayfalar",
+"search.title": "Dilek ara",
+"search.ph": "Metin, #numara veya cüzdan adresi",
+"search.go": "Ara",
+"search.none": "Eşleşen dilek yok",
+"page.prev": "Önceki",
+"page.next": "Sonraki",
+"page.label": "Sayfa {p} / {n}",
+"page.goto": "Sayfaya git",
+"page.go": "Git",
+"page.per": "Sayfa başına {n} · toplam {total}"
 }

@@ -227,5 +227,16 @@
 "nav.gqHome": "Donde la luz reposa",
 "nav.gqOrigin": "Origen de Guangqi",
 "err.admin": "Se requiere permiso de administrador",
-"err.nf": "No encontrado"
+"err.nf": "No encontrado",
+"search.open": "Buscar y páginas",
+"search.title": "Buscar deseos",
+"search.ph": "Texto, #número o dirección de billetera",
+"search.go": "Buscar",
+"search.none": "No hay deseos que coincidan",
+"page.prev": "Anterior",
+"page.next": "Siguiente",
+"page.label": "Página {p} / {n}",
+"page.goto": "Ir a la página",
+"page.go": "Ir",
+"page.per": "{n} por página · {total} en total"
 }

@@ -227,5 +227,16 @@
 "nav.gqHome": "光栖の在処",
 "nav.gqOrigin": "光栖の起源",
 "err.admin": "管理者権限が必要です",
-"err.nf": "見つかりません"
+"err.nf": "見つかりません",
+"search.open": "検索とページ",
+"search.title": "願いを検索",
+"search.ph": "文字、#番号、ウォレットアドレス",
+"search.go": "検索",
+"search.none": "一致する願いはありません",
+"page.prev": "前へ",
+"page.next": "次へ",
+"page.label": "{p} / {n} ページ",
+"page.goto": "ページへ移動",
+"page.go": "移動",
+"page.per": "1ページ {n} 枚 · 全 {total} 枚"
 }

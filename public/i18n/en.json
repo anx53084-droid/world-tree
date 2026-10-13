@@ -227,5 +227,16 @@
 "nav.gqHome": "Where Light Rests",
 "nav.gqOrigin": "Origin of Guangqi",
 "err.admin": "Admin permission required",
-"err.nf": "Not found"
+"err.nf": "Not found",
+"search.open": "Search & pages",
+"search.title": "Search wishes",
+"search.ph": "Text, #number or wallet address",
+"search.go": "Search",
+"search.none": "No matching wishes",
+"page.prev": "Prev",
+"page.next": "Next",
+"page.label": "Page {p} / {n}",
+"page.goto": "Go to page",
+"page.go": "Go",
+"page.per": "{n} per page · {total} total"
 }

@@ -227,5 +227,16 @@
 "nav.gqHome": "Onde a luz repousa",
 "nav.gqOrigin": "Origem de Guangqi",
 "err.admin": "Permissão de administrador necessária",
-"err.nf": "Não encontrado"
+"err.nf": "Não encontrado",
+"search.open": "Pesquisa e páginas",
+"search.title": "Pesquisar desejos",
+"search.ph": "Texto, #número ou endereço da carteira",
+"search.go": "Pesquisar",
+"search.none": "Nenhum desejo encontrado",
+"page.prev": "Anterior",
+"page.next": "Próxima",
+"page.label": "Página {p} / {n}",
+"page.goto": "Ir para a página",
+"page.go": "Ir",
+"page.per": "{n} por página · {total} no total"
 }

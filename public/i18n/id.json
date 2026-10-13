@@ -227,5 +227,16 @@
 "nav.gqHome": "Tempat cahaya bersemayam",
 "nav.gqOrigin": "Asal-usul Guangqi",
 "err.admin": "Memerlukan izin admin",
-"err.nf": "Tidak ditemukan"
+"err.nf": "Tidak ditemukan",
+"search.open": "Cari & halaman",
+"search.title": "Cari harapan",
+"search.ph": "Teks, #nomor, atau alamat dompet",
+"search.go": "Cari",
+"search.none": "Tidak ada harapan yang cocok",
+"page.prev": "Sebelumnya",
+"page.next": "Berikutnya",
+"page.label": "Halaman {p} / {n}",
+"page.goto": "Ke halaman",
+"page.go": "Buka",
+"page.per": "{n} per halaman · total {total}"
 }

@@ -227,5 +227,16 @@
 "nav.gqHome": "Wo das Licht ruht",
 "nav.gqOrigin": "Ursprung von Guangqi",
 "err.admin": "Administratorrechte erforderlich",
-"err.nf": "Nicht gefunden"
+"err.nf": "Nicht gefunden",
+"search.open": "Suche & Seiten",
+"search.title": "Wünsche suchen",
+"search.ph": "Text, #Nummer oder Wallet-Adresse",
+"search.go": "Suchen",
+"search.none": "Keine passenden Wünsche",
+"page.prev": "Zurück",
+"page.next": "Weiter",
+"page.label": "Seite {p} / {n}",
+"page.goto": "Gehe zu Seite",
+"page.go": "Los",
+"page.per": "{n} pro Seite · {total} insgesamt"
 }

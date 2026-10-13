@@ -227,5 +227,16 @@
 "nav.gqHome": "光棲之處",
 "nav.gqOrigin": "光棲起源",
 "err.admin": "需要管理員權限",
-"err.nf": "找不到"
+"err.nf": "找不到",
+"search.open": "搜尋與翻頁",
+"search.title": "搜尋願望",
+"search.ph": "輸入文字、#序號或錢包地址",
+"search.go": "搜尋",
+"search.none": "沒有找到相符的願望",
+"page.prev": "上一頁",
+"page.next": "下一頁",
+"page.label": "第 {p} / {n} 頁",
+"page.goto": "跳到第",
+"page.go": "前往",
+"page.per": "每頁 {n} 張 · 共 {total} 張"
 }

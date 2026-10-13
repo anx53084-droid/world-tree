@@ -227,5 +227,16 @@
 "nav.gqHome": "光栖之处",
 "nav.gqOrigin": "光栖起源",
 "err.admin": "需要管理员权限",
-"err.nf": "未找到"
+"err.nf": "未找到",
+"search.open": "搜索与翻页",
+"search.title": "搜索愿望",
+"search.ph": "输入文字、#序号或钱包地址",
+"search.go": "搜索",
+"search.none": "没有找到匹配的愿望",
+"page.prev": "上一页",
+"page.next": "下一页",
+"page.label": "第 {p} / {n} 页",
+"page.goto": "跳到第",
+"page.go": "前往",
+"page.per": "每页 {n} 张 · 共 {total} 张"
 }

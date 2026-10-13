@@ -227,5 +227,16 @@
 "nav.gqHome": "광서의 자리",
 "nav.gqOrigin": "광서의 기원",
 "err.admin": "관리자 권한이 필요합니다",
-"err.nf": "찾을 수 없습니다"
+"err.nf": "찾을 수 없습니다",
+"search.open": "검색 및 페이지",
+"search.title": "소원 검색",
+"search.ph": "텍스트, #번호 또는 지갑 주소",
+"search.go": "검색",
+"search.none": "일치하는 소원이 없습니다",
+"page.prev": "이전",
+"page.next": "다음",
+"page.label": "{p} / {n} 페이지",
+"page.goto": "페이지로 이동",
+"page.go": "이동",
+"page.per": "페이지당 {n}장 · 총 {total}장"
 }

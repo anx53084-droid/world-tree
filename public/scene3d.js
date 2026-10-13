@@ -214,7 +214,7 @@ async function fetchTiles(regs) { // 批量拉取卡片瓦片；本地模式直�
   catch (e) { console.warn('tile load failed', e.message); } finally { regs.forEach(r => inflight.delete(key(r))); } }
 function scheduleLoad() { clearTimeout(loadTimer); loadTimer = setTimeout(loadVisible, 150); } // 相机变化去抖
 async function loadVisible() { // 只加载当前区域内、视锥中离相机最近的瓦片，直到中景卡片预算
-  if (!view) return; const seq = viewSeq, fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+  if (!view || view.page) return; const seq = viewSeq, fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
   const cam = camera.position, sc = treeGroup.scale.x, sph = new THREE.Sphere(), ts = view.hang.map(t => ({ t, w: t.P.clone().add(V(0, -t.sz, 0)).applyMatrix4(treeGroup.matrixWorld) })) // 以整串流苏的包围球做视锥剔除
     .filter(o => fr.intersectsSphere(sph.set(o.w, o.t.sz * sc * 9)) || o.t.hl).sort((a, b) => a.w.distanceTo(cam) - b.w.distanceTo(cam));
   let budget = MID_CAP; const want = [];
@@ -243,6 +243,29 @@ function hangSlots(t, segs) { // 卡片沿枝条按弧长均匀分布，带少�
     const str = t.sz * (.28 + .5 * strHash(t.region + '@' + s)), p = a.clone(); p.y -= str + CH * 1.2 * t.sz * .5;
     out.push({ a, p, str, ph: strHash(t.region + '~' + s) }); acc += step; }
   return out; }
+// ---------- 分页视图（非调试模式）：每页最多 200 张卡（最新在第 1 页），自然分散挂在固定的程序化枝条上 ----------
+const PAGE_N = 200; let PAGE = 0;
+const pageMode = () => !document.body.classList.contains('debug');
+const pagesTotal = () => Math.max(1, Math.ceil(N / PAGE_N));
+const pageIds = p => { const out = []; for (let k = 0, i = N - 1 - p * PAGE_N; k < PAGE_N && i >= 0; k++, i--) out.push(i); return out; };
+function clearBranches() { treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); });
+  labels.forEach(l => { treeGroup.remove(l); l.material.map.dispose(); l.material.dispose(); }); labels = []; }
+function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal() - 1)); clearBranches(); focus = '';
+  const ids = pageIds(PAGE), L = [], hang = [], leafPts = [], thick = .4, NB = 16, sz = ids.length <= 48 ? 1 : .62;
+  for (let j = 0; j < NB; j++) { const { p: ce, th } = childEnd('', j), r1 = 'pg' + j, h = strHash(r1), st = V(Math.cos(th) * .5, 5.3 + h * 1.2, Math.sin(th) * .5), mid = bend(st, ce, h, .9);
+    L.push({ pts: [st, mid, ce], rf: t => thick * (1 - t * .62), seg: 16, knot: j }); const pc = new THREE.CatmullRomCurve3([st, mid, ce]), segs = []; ramify(L, pc, thick * .5, 3.4, r1, 2, segs);
+    segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce);
+    const mine = ids.filter((_, k) => k % NB === j); if (!mine.length) continue;
+    const region = `P${PAGE}:${j}`, t = { region, P: ce, sz, count: mine.length }; t.slots = hangSlots(t, segs.slice(1)); hang.push(t);
+    lruSet(tiles, key(region), mine.map(i => i < real.length ? toUI(null, i) : toUI(A.synth(i), i)), TILE_LRU); }
+  const mesh = new THREE.Mesh(tubes(L, 7), bark()); mesh.userData.branch = true; treeGroup.add(mesh);
+  const r = rng(7), bp = []; leafPts.forEach(t => { for (let k = 0; k < 40; k++) bp.push(t.x + (r() - .5) * 2.2, t.y + (r() - .3) * 1.4, t.z + (r() - .5) * 2.2, r(), .22 + r() * .25); });
+  const lb = blossomPoints(bp); for (let i = 0; i < lb.geometry.attributes.bs.count; i++) lb.geometry.attributes.bs.setW(i, .45 + r() * .5); lb.userData.branch = true; treeGroup.add(lb);
+  buildClusters([], hang); view = { reg: '', page: true, counts: { count: N, children: [], grand: [] }, hang, clus: [], active: new Set(hang.map(t => t.region)) }; nearPool.forEach(s => s.visible = false); dirty = true; renderNav();
+  window.dispatchEvent(new CustomEvent('wt3d-page', { detail: pageInfo() })); }
+export const pageInfo = () => ({ page: PAGE, pages: pagesTotal(), total: N, per: PAGE_N });
+export function setPage(p) { PAGE = Math.max(0, Math.min(+p || 0, pagesTotal() - 1)); hlId = null; buildPage(); return pageInfo(); }
+const show = reg => pageMode() ? buildPage() : buildView(reg);
 async function buildView(reg) {
   const seq = ++viewSeq, c = await getCounts(reg); if (seq !== viewSeq) return;
   treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); });
@@ -290,6 +313,19 @@ function makeLabel(text, P, region) {
   s.position.copy(P).add(V(0, 1.4, 0)); s.scale.set(2.4, .6, 1); s.renderOrder = 5; s.userData.region = region; treeGroup.add(s); return s;
 }
 
+// ---------- 水晶卡材质（移动端友好的伪折射）：半透明冰蓝玻璃 + 边缘菲涅尔高光 + 缓慢扫过的光泽 + 星点闪烁反光；主体亮度低于 bloom 阈值，仅星点微微闪 ----------
+const GLINT = `float gh(vec2 p){return fract(sin(dot(p,vec2(41.3,289.1)))*15731.7);}
+  float glint(vec2 uv,float seed,float t){ vec2 q=uv*vec2(10.,15.), g=floor(q), f=fract(q)-.5; float h=gh(g+seed*17.); if(h<.9) return 0.;
+    float tw=pow(max(0.,sin(t*(1.1+h*2.6)+h*61.)),18.); float d=length(f); return tw*(smoothstep(.16,0.,d)+.6*smoothstep(.035,0.,abs(f.x))*smoothstep(.45,0.,abs(f.y))+.6*smoothstep(.035,0.,abs(f.y))*smoothstep(.45,0.,abs(f.x))); }`;
+function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { map: { value: null }, uTime: BU.uTime, uHl: { value: 0 }, uSolid: { value: 0 }, uSeed: { value: (i * .618) % 1 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform sampler2D map; uniform float uTime,uHl,uSolid,uSeed; varying vec2 vUv; ${GLINT}
+    void main(){ vec4 tx=texture2D(map,vUv); if(tx.a<.04) discard; vec3 ice=mix(vec3(.42,.55,.78),vec3(.78,.86,1.),vUv.y);
+      vec3 c=mix(tx.rgb, mix(tx.rgb,ice,.38)*.92+ice*.06, 1.-uSolid); // 单卡：玻璃化；折页卡：封面保持清晰
+      float e=min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y)); c+=vec3(.42,.5,.66)*smoothstep(.05,0.,e)*(1.-uSolid*.5);
+      float band=exp(-pow((vUv.x*.8+vUv.y*.6-fract(uTime*.05+uSeed)*2.6+.5)*6.,2.)); c+=vec3(.55,.62,.8)*band*.16;
+      c=min(c*(.84+.1*uHl),vec3(.8)); float gl=glint(vUv,uSeed,uTime)*tx.a; c+=vec3(.95,.97,1.)*gl;
+      gl_FragColor=vec4(c, tx.a*mix(.74,.97,uSolid)+gl*.3); }` }); }
 // ---------- 中景：InstancedMesh 金色灯笼卡（1 次 draw call，着色器 billboard + 程序化纹样）+ 细吊绳 ----------
 const CW = .8, CH = 1.25; // 卡片宽高（相对 sz）
 function makeInst() {
@@ -297,7 +333,7 @@ function makeInst() {
     vertexShader: `attribute vec3 iPos,iCol,iAnc; attribute float iSize,iPh; uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF; ${WIND}
       void main(){ vUv=uv; vC=iCol; vF=fract(iPos.x*7.13+iPos.z*3.7); vec3 pp=swing(iAnc,iPos,iPh,uTime); vec3 r=pp-iAnc; float g=atan(length(r.xz),-r.y)*sign(r.x+r.z);
         vec4 mv=modelViewMatrix*vec4(pp,1.); vec2 q=position.xy*vec2(${CW},${CH})*iSize; float cg=cos(g*.6),sg=sin(g*.6); mv.xy+=mat2(cg,sg,-sg,cg)*q; gl_Position=projectionMatrix*mv; if(iSize<=0.) gl_Position=vec4(2.,2.,2.,1.); }`,
-    fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF; void main(){ vec2 p=vUv-.5;
+    fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF; ${GLINT} void main(){ vec2 p=vUv-.5;
       float body=step(abs(p.x),.42)*step(-.44,p.y)*step(p.y,.36), cap=step(abs(p.x),.26)*step(.36,p.y)*step(p.y,.46), ring=step(abs(length(p-vec2(0.,.48))-.03),.012);
       if(body+cap+ring<.5) discard; float e=min(.42-abs(p.x),min(p.y+.44,.36-p.y)); // 到边距离
       float sh=.82+.18*(p.y+.5)-.12*abs(p.x); // 柔和受光：上亮下暗，纸质哑光（无自发光，亮度低于 bloom 阈值）
@@ -306,7 +342,8 @@ function makeInst() {
       float lat=step(.9,abs(sin((p.x+p.y)*55.))*abs(sin((p.x-p.y)*55.)))*step(.09,e); c=mix(c,vec3(.55,.28,.08),lat*.35); // 菱格纹
       float ln=step(.5,fract(p.y*9.))*step(abs(p.x),.24)*step(abs(p.y+.04),.24); c=mix(c,vec3(.35,.16,.05),ln*.28); // 文字行示意
       c=mix(c, vC*.7, .22); if(cap>.5) c=vec3(.5,.32,.14); if(ring>.5) c=vec3(.6,.5,.3);
-      gl_FragColor=vec4(min(c,vec3(.78)),.97); }` }), MID_CAP);
+      vec3 ice=mix(vec3(.4,.52,.75),vec3(.75,.84,1.),vUv.y); c=mix(c,ice,.45)+vec3(.3,.38,.5)*step(e,.03); float gl=glint(vUv,vF,uTime);
+      gl_FragColor=vec4(min(c,vec3(.78))+gl*.9,.72+gl*.3); }` }), MID_CAP);
   ['iPos', 'iCol', 'iAnc'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP * 3), 3).setUsage(THREE.DynamicDrawUsage)));
   ['iSize', 'iPh'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1).setUsage(THREE.DynamicDrawUsage)));
   inst.count = 0; inst.frustumCulled = false; inst.userData.cards = []; inst.renderOrder = 3; treeGroup.add(inst);
@@ -315,7 +352,8 @@ function makeInst() {
   strings = new THREE.LineSegments(sg, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime },
     vertexShader: `attribute vec3 anc; attribute float ph; uniform float uTime; ${WIND} void main(){ gl_Position=projectionMatrix*modelViewMatrix*vec4(swing(anc,position,ph,uTime),1.); }`,
     fragmentShader: `void main(){ gl_FragColor=vec4(1.,.8,.45,.6); }` })); strings.frustumCulled = false; strings.renderOrder = 2; treeGroup.add(strings);
-  for (let i = 0; i < NEAR_CAP; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false })); s.visible = false; s.renderOrder = 3; nearPool.push(s); cardGroup.add(s); }
+  const pg = new THREE.PlaneGeometry(1, 1);
+  for (let i = 0; i < NEAR_CAP; i++) { const s = new THREE.Mesh(pg, crystalMat(i)); s.visible = false; s.renderOrder = 3; nearPool.push(s); cardGroup.add(s); }
 }
 function rebuildInst() { // 把已加载、处于当前区域的瓦片写入实例缓冲（上限 MID_CAP），同时生成吊绳
   dirty = false; if (!view) return; const g = inst.geometry, P = g.attributes.iPos.array, C = g.attributes.iCol.array, S = g.attributes.iSize.array, AN = g.attributes.iAnc.array, PH = g.attributes.iPh.array, sa = strings.geometry.attributes, SP = sa.position.array, SA = sa.anc.array, SH = sa.ph.array, list = []; const col = new THREE.Color();
@@ -333,7 +371,7 @@ function updateNear(force) { const now = performance.now(); if (!force && now - 
   for (let i = 0; i < cards.length; i++) { wp.copy(cards[i].p).multiplyScalar(sc); const d = wp.distanceTo(cam) / (cards[i].sz * sc); if (d < 26 || cards.length <= NEAR_CAP) cand.push([d, i]); } // 卡片总数很少时全部以近景文字卡展示
   cand.sort((a, b) => a[0] - b[0]); const S = inst.geometry.attributes.iSize.array, keep = new Set(cand.slice(0, NEAR_CAP).map(c => c[1]));
   cards.forEach((c, i) => { const want = keep.has(i) ? 0 : c.sz * (c.w.id === hlId ? 1.5 : 1); if (S[i] !== want) { S[i] = want; inst.geometry.attributes.iSize.needsUpdate = true; } });
-  let k = 0; for (const i of keep) { const s = nearPool[k++], c = cards[i]; if (s.userData.wish !== c.w) { s.material.map = cardTexture(c.w); s.material.needsUpdate = true; s.userData.wish = c.w; s.userData.grow = s.userData.grow || 0; }
+  let k = 0; for (const i of keep) { const s = nearPool[k++], c = cards[i]; if (s.userData.wish !== c.w) { s.material.uniforms.map.value = cardTexture(c.w); s.material.uniforms.uSolid.value = c.w.folded ? 1 : 0; s.userData.wish = c.w; s.userData.grow = s.userData.grow || 0; }
     s.position.copy(c.p); s.userData.c = c; s.userData.sz = c.sz; s.visible = true; const hl = c.w.id === hlId; s.renderOrder = hl ? 6 : 3; s.material.depthTest = !hl; }
   for (; k < nearPool.length; k++) { nearPool[k].visible = false; nearPool[k].userData.wish = null; }
 }
@@ -363,9 +401,9 @@ function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私
 }
 
 // ---------- 导航：缩放进入子区 / 拉远返回上级 / 面包屑 / 搜索跳转 ----------
-function setFocus(reg, camDir) { focus = reg; const s = treeGroup.scale.x; lastNav = performance.now();
+function setFocus(reg, camDir) { if (pageMode()) return; focus = reg; const s = treeGroup.scale.x; lastNav = performance.now();
   const d = (camDir || camera.position.clone().sub(controls.target).normalize()).multiplyScalar(camDist() * s); controls.target.set(0, (camera.aspect < 1 ? 5.2 : 6.6) * s, 0); camera.position.copy(controls.target).add(d); buildView(reg); }
-function checkNav() { if (!view || fly || performance.now() - lastNav < 900) return; const s = treeGroup.scale.x, dist = camera.position.distanceTo(controls.target);
+function checkNav() { if (!view || view.page || fly || performance.now() - lastNav < 900) return; const s = treeGroup.scale.x, dist = camera.position.distanceTo(controls.target);
   if (dist > 72 * s && focus.length) return setFocus(focus.slice(0, -1));
   const cand = []; view.counts.children.forEach((c, j) => { if (c > A.HANG) cand.push([childEnd(focus, j).p.multiplyScalar(s).distanceTo(camera.position), j]); }); cand.sort((a, b) => a[0] - b[0]);
   if (cand[0] && (cand[0][0] < 4.5 * s || dist < 4.2)) setFocus(focus + A.HEX[cand[0][1]]); }
@@ -375,7 +413,13 @@ function renderNav() { if (!navEl) return; const parts = [`<button data-nav="">�
     <div class=muted>${cfg.stress ? tr('home.stress') + ' · ' : ''}${tr('scene.stats', { n: fmtN(N), c: fmtN(view?.counts.count ?? 0), d: focus.length, D: A.DEPTH })}</div>`; }
 function onNavClick(e) { const b = e.target.closest('[data-nav]'); if (!b) return; const v = b.dataset.nav; setFocus(v === 'up' ? focus.slice(0, -1) : v); }
 export async function jumpTo(id) { // 按卡片序号跳转：O(深度) 计算路径，无需加载其它卡片
-  id = Math.floor(+id); if (!(id >= 0 && id < N)) return false; const path = A.pathOf(id).region; let h = 1; while (h < A.DEPTH && A.count(path.slice(0, h), N) > A.HANG) h++;
+  id = Math.floor(+id); if (!(id >= 0 && id < N)) return false;
+  if (pageMode()) { const pg = Math.floor((N - 1 - id) / PAGE_N); hlId = id; if (pg !== PAGE || !view?.page) { PAGE = pg; buildPage(); } else dirty = true;
+    const k = N - 1 - pg * PAGE_N - id, j = k % 16, s = Math.floor(k / 16), t = view.hang.find(x => x.region === `P${pg}:${j}`); if (!t) return false;
+    const p = slotOf(t, s).p, tgt = p.clone(), dir = V(p.x, 0, p.z).normalize(); if (!dir.lengthSq()) dir.set(0, 0, 1); const s0 = treeGroup.scale.x;
+    fly = { t0: performance.now(), dur: 900, fT: controls.target.clone().divideScalar(s0), fP: camera.position.clone().divideScalar(s0), tT: tgt, tP: tgt.clone().addScaledVector(dir, 4.2 * t.sz + .4).add(V(0, .5 * t.sz, 0)) };
+    const w = tiles.get(key(t.region))?.[s]; return w ? { id, region: t.region, slot: s, wish: w, page: pg } : false; }
+  const path = A.pathOf(id).region; let h = 1; while (h < A.DEPTH && A.count(path.slice(0, h), N) > A.HANG) h++;
   const reg = path.slice(0, h - 1), hangReg = path.slice(0, h), M = A.B ** h, s = Math.round((id - A.prefixVal(hangReg)) / M);
   hlId = id; if (reg !== focus || !view) { focus = reg; await buildView(reg); }
   const t = view.hang.find(t => t.region === hangReg) || view.hang.find(t => hangReg.startsWith(t.region)); if (!t) return false;
@@ -395,7 +439,7 @@ export function update(wishes, pickCb, opts = {}) { // wishes：真实愿望（�
   real = r2; cfg = nc; N = nc.total;
   targetScale = Math.min(2, 0.8 + Math.log2(N + 2) * 0.035); // 树的视觉尺寸随总数对数增长
   galaxyBright = Math.min(1.1, .45 + Math.log2(N + 1) * .03); galaxy.material.uniforms.uDensity.value = Math.min(1, .3 + Math.log10(N + 1) / 11 * .7);
-  if (changed) { tiles.clear(); countsCache.clear(); if (A.count(focus, N) <= A.HANG) focus = ''; buildView(focus); } else renderNav();
+  if (changed) { tiles.clear(); countsCache.clear(); if (A.count(focus, N) <= A.HANG) focus = ''; show(focus); } else renderNav();
 }
 export function attach(el) { slot = el; if (!renderer) init(); el.appendChild(renderer.domElement);
   if (!navEl) { navEl = document.createElement('div'); navEl.className = 'scene-nav debug-only'; navEl.addEventListener('click', onNavClick); } else navEl.classList.add('debug-only'); el.appendChild(navEl); renderNav(); resize(); }
@@ -431,8 +475,8 @@ function loop() {
   if (fly) { const k = Math.min(1, (now - fly.t0) / fly.dur), e = k * k * (3 - 2 * k); controls.target.lerpVectors(fly.fT, fly.tT, e).multiplyScalar(s); camera.position.lerpVectors(fly.fP, fly.tP, e).multiplyScalar(s); if (k >= 1) { fly = null; scheduleLoad(); } }
   if (dirty) rebuildInst(); else updateNear(false);
   nearPool.forEach(c => { if (!c.visible) return; c.userData.grow = Math.min(1, c.userData.grow + 0.05); const hv = c.userData.wish?.sig === hovered; c.userData.hl = (c.userData.hl || 0) + ((hv ? 1 : 0) - (c.userData.hl || 0)) * .2; // 悬停高亮
-    c.material.color.setScalar(.8 + c.userData.hl * .08); // 低于 bloom 阈值：卡片不发光 const g = c.userData.grow * (1 + c.userData.hl * .25) * c.userData.sz * (c.userData.wish?.id === hlId ? 1.5 : 1); c.scale.set(CW * 1.2 * g, CH * 1.2 * g, 1);
-    const cc = c.userData.c; if (cc) { const sw = swingJS(cc.a, cc.p, cc.ph, t, c.position), rx = c.position.x - cc.a.x + c.position.z - cc.a.z; c.material.rotation = -Math.abs(sw) * Math.sign(rx) * .6; } });
+    c.material.uniforms.uHl.value = c.userData.hl; const g = c.userData.grow * (1 + c.userData.hl * .25) * c.userData.sz * (c.userData.wish?.id === hlId ? 1.5 : 1); c.scale.set(CW * 1.2 * g, CH * 1.2 * g, 1);
+    const cc = c.userData.c; if (cc) { const sw = swingJS(cc.a, cc.p, cc.ph, t, c.position), rx = c.position.x - cc.a.x + c.position.z - cc.a.z; c.quaternion.copy(camera.quaternion); c.rotateZ(-Math.abs(sw) * Math.sign(rx) * .6); } });
   if (now - pickT > 200) { pickT = now; checkNav(); const dbg = document.body.classList.contains('debug'); if (clusters) clusters.visible = dbg; labels.forEach(l => l.visible = dbg); } // 🏮 计数标签/光簇：仅调试可见
   controls.update(); if (useBloom) composer.render(); else renderer.render(scene, camera);
 }
@@ -448,4 +492,4 @@ export const camInfo = () => ({ cam: camera.position.toArray().map(v => +v.toFix
 export const resetStats = () => { frameT.length = 0; };
 export const descend = r => setFocus(r);
 function relabel() { renderNav(); }
-window.WT3D = { relabel, cardScreenPos, update, attach, setSeason, stage, SEASONS, jumpTo, cardById, stats, camInfo, resetStats, camTo, descend, addr: A, _dbg: () => ({ scene, camera, treeGroup, renderer }) }; window.dispatchEvent(new Event('wt3d-ready'));
+window.WT3D = { setPage, pageInfo, relabel, cardScreenPos, update, attach, setSeason, stage, SEASONS, jumpTo, cardById, stats, camInfo, resetStats, camTo, descend, addr: A, _dbg: () => ({ scene, camera, treeGroup, renderer }) }; window.dispatchEvent(new Event('wt3d-ready'));

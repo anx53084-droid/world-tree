@@ -163,3 +163,10 @@ body.debug footer.debug-only { display: block !important }
 .origin h1 { text-align: center; font-size: 24px; color: #f3d48a; letter-spacing: .2em; margin: 0 0 1.4em; font-weight: 600 }
 .origin h3 { color: #f3d48a; font-size: 17px; margin: 1.8em 0 .5em; padding-bottom: .3em; border-bottom: 1px solid #e8b85a33; letter-spacing: .15em }
 .origin p { margin: .7em 0 } .origin b { color: #ffe2a8 } .origin ul { padding-inline-start: 1.2em; margin: .4em 0 } .origin li { margin: .7em 0 } .origin li::marker { color: #e8b85a }
+
+/* 首页放大镜搜索 */
+.qbtn { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 5; width: 50px; height: 50px; border-radius: 50%; padding: 0; display: grid; place-items: center;
+  background: #0b0a24cc; color: #f3e2b8; border: 1px solid #e8b85a66; backdrop-filter: blur(8px); box-shadow: 0 4px 18px #0008 } [dir=rtl] .qbtn { right: auto; left: 16px }
+body:not(.home) .qbtn { display: none }
+.qres { max-height: 40vh; overflow: auto; margin: 8px 0; display: flex; flex-direction: column; gap: 4px } .qhit { text-align: start; white-space: normal }
+.pager { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px } .pager #pgl { flex: 1; text-align: center }

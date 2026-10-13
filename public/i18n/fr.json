@@ -227,5 +227,16 @@
 "nav.gqHome": "Où la lumière se pose",
 "nav.gqOrigin": "Origine de Guangqi",
 "err.admin": "Autorisation d'administrateur requise",
-"err.nf": "Introuvable"
+"err.nf": "Introuvable",
+"search.open": "Recherche et pages",
+"search.title": "Rechercher des vœux",
+"search.ph": "Texte, #numéro ou adresse de portefeuille",
+"search.go": "Rechercher",
+"search.none": "Aucun vœu correspondant",
+"page.prev": "Précédent",
+"page.next": "Suivant",
+"page.label": "Page {p} / {n}",
+"page.goto": "Aller à la page",
+"page.go": "Aller",
+"page.per": "{n} par page · {total} au total"
 }

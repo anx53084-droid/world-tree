@@ -227,5 +227,16 @@
 "nav.gqHome": "Nơi ánh sáng trú ngụ",
 "nav.gqOrigin": "Khởi nguồn Quang Thê",
 "err.admin": "Cần quyền quản trị viên",
-"err.nf": "Không tìm thấy"
+"err.nf": "Không tìm thấy",
+"search.open": "Tìm kiếm & trang",
+"search.title": "Tìm điều ước",
+"search.ph": "Văn bản, #số hoặc địa chỉ ví",
+"search.go": "Tìm",
+"search.none": "Không có điều ước phù hợp",
+"page.prev": "Trước",
+"page.next": "Sau",
+"page.label": "Trang {p} / {n}",
+"page.goto": "Đến trang",
+"page.go": "Đi",
+"page.per": "{n} mỗi trang · tổng {total}"
 }

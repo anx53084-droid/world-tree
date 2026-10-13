@@ -257,6 +257,7 @@ const prevail = () => I18N.isZh() ? '' : `<p class="notice prevail">⚖️ ${E('
 function home() {
   const hot = [...S.wishes].sort((a, b) => b.heat - a.heat).slice(0, 5), cur = S.season || autoSeason();
   return `<div class=scene id=scene><div class="scene-ui debug-only">${SEASON_KEYS.map(k => `<button data-season=${k} class="${k === cur ? 'on' : ''}">${E('season.' + k)}${k === autoSeason() ? E('season.current') : ''}</button>`).join('')}</div></div>
+  <button id=qbtn class=qbtn type=button title="${E('search.open')}" aria-label="${E('search.open')}"><svg viewBox="0 0 24 24" width=22 height=22 fill=none stroke=currentColor stroke-width=2 stroke-linecap=round><circle cx=10.5 cy=10.5 r=6.5 /><path d="M15.5 15.5 21 21"/></svg></button>
   <div class=home-spacer></div>
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
   <input id=sid placeholder="${E('home.jumpPh')}" style="flex:1;min-width:160px"><button>${E('home.locate')}</button></form>
@@ -425,6 +426,23 @@ async function route() {
     });
   }
 }
+// ---------- 首页放大镜：搜索（正文 / #序号 / 地址）+ 分页（每页 200 张） ----------
+const idOfSig = sig => [...S.wishes].reverse().findIndex(w => w.sig === sig);
+function openSearch() { const pi = window.WT3D?.pageInfo?.() || { page: 0, pages: 1, total: 0, per: 200 };
+  modal(`<h3 style="margin-top:0">🔍 ${E('search.title')}</h3><form id=qf class=row style="flex-wrap:nowrap"><input id=qi style="flex:1;min-width:0" dir=auto placeholder="${E('search.ph')}" autocomplete=off><button class=primary>${E('search.go')}</button></form>
+    <div id=qr class=qres></div><div class=pager><button id=pgp ${pi.page <= 0 ? 'disabled' : ''}>‹ ${E('page.prev')}</button><span id=pgl>${E('page.label', { p: num(pi.page + 1), n: num(pi.pages) })}</span><button id=pgn ${pi.page >= pi.pages - 1 ? 'disabled' : ''}>${E('page.next')} ›</button></div>
+    <form id=pgf class="row pager"><label>${E('page.goto')} <input id=pgi type=number min=1 max=${pi.pages} value=${pi.page + 1} style="width:110px"></label><button>${E('page.go')}</button><span class=muted>${E('page.per', { n: pi.per, total: num(pi.total) })}</span></form>
+    <div class=row style="justify-content:flex-end;margin-top:8px"><button data-close>${E('common.close')}</button></div>`);
+  const go = p => { WT3D.setPage(p); closeModal(); };
+  $('#pgp').onclick = () => go(pi.page - 1); $('#pgn').onclick = () => go(pi.page + 1); $('#pgf').onsubmit = e => { e.preventDefault(); go((+$('#pgi').value || 1) - 1); };
+  const open = async id => { closeModal(); const r = await WT3D.jumpTo(id); if (r) setTimeout(() => openCardPopup(r.wish), 1000); else toast(E('jump.fail'), 'err'); };
+  $('#qf').onsubmit = e => { e.preventDefault(); const q = $('#qi').value.trim().replace(/^#/, ''), out = $('#qr'); if (!q) return;
+    const res = []; if (/^\d+$/.test(q) && +q < pi.total) res.push({ id: +q, text: '#' + q, sub: '' });
+    for (const w of S.wishes) { if (res.length >= 30) break; if ((!w.priv && w.text.includes(q)) || (q.length >= 3 && w.author.startsWith(q))) res.push({ id: idOfSig(w.sig), text: w.text, sub: short(w.author) + ' · ' + catName(w.cat) }); }
+    out.innerHTML = res.length ? res.map(r => `<button type=button class=qhit data-id=${r.id}><bdi>${esc(r.text)}</bdi> <span class=muted>${esc(r.sub)} · #${r.id}</span></button>`).join('') : `<p class=muted>${E('search.none')}</p>`;
+    out.querySelectorAll('[data-id]').forEach(b => b.onclick = () => open(+b.dataset.id)); };
+  setTimeout(() => $('#qi')?.focus(), 50); }
+document.addEventListener('click', e => { if (e.target.closest('#qbtn')) openSearch(); });
 function mount3d() { if (!window.WT3D) { if (!ready3d) { ready3d = true; addEventListener('wt3d-ready', () => $('#scene') && mount3d()); } return; }
   WT3D.attach($('#scene')); WT3D.setSeason(S.season || autoSeason()); WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); }
 addEventListener('hashchange', () => { closeModal(); $('#tip').hidden = true; route(); });
