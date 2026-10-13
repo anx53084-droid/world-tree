@@ -134,7 +134,7 @@ server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账
 
 ## 自定义模板图片（我的星愿 → 制作我的心愿卡）
 - 浏览器内压缩为 ≤800px、≤300KB 的 webp/jpeg，`POST /api/img` 上传，`GET /api/img/<hash>` 读取；memo 只记录 `~C<封面哈希>` / `~N<内页哈希>`（32 hex，旧客户端忽略，显示内置封面）。
-- 上传即自动审核：MIME 白名单、文件头校验、大小、尺寸（16–1024px）；NSFW 检测默认使用服务器内置的开源分类器 nsfwjs（MobileNetV2，纯 JS tfjs + sharp 解码，首次上传时懒加载约 6–8s，常驻内存约 +150MB）：Porn≥.5 / Hentai≥.5 / Sexy≥.7 / 三者和≥.85 拒绝（`NSFW_T_PORN`/`NSFW_T_HENTAI`/`NSFW_T_SEXY` 可调）；分类器出错则拒绝（fail closed）。可选 `NSFW_URL` 覆盖为外部服务（返回 `{nsfw:0..1}`，阈值 `NSFW_MAX`）。 `/api/moderate` 会拒绝引用未上传图片的卡片。
+- 上传即自动审核：MIME 白名单、文件头校验、大小、尺寸（16–1024px）；NSFW 检测默认使用服务器内置的开源分类器 nsfwjs（MobileNetV2，纯 JS tfjs + sharp 解码，在 worker 线程中于首次上传时懒加载（本地约 3s，Render 0.1 CPU 上更慢），进程常驻内存约 200MB；自检失败或出错均拒绝）：Porn≥.5 / Hentai≥.5 / Sexy≥.7 / 三者和≥.85 拒绝（`NSFW_T_PORN`/`NSFW_T_HENTAI`/`NSFW_T_SEXY` 可调）；分类器出错则拒绝（fail closed）。可选 `NSFW_URL` 覆盖为外部服务（返回 `{nsfw:0..1}`，阈值 `NSFW_MAX`）。 `/api/moderate` 会拒绝引用未上传图片的卡片。
 - 私密卡内页图：浏览器内用同一 AES-GCM 密钥加密，服务器审核明文但只保存密文（与文字一致，服务器无法验证密文与明文对应）。封面图公开。
 - ⚠️ 持久化：Render 免费实例磁盘是临时的，重启/重新部署后 `data/img` 丢失（卡片回退到内置封面 / 内页无图）。免费可选：Cloudflare R2 免费额度、Backblaze B2 免费 10GB，或 IPFS 固定服务免费档（如 Pinata/web3.storage）；付费可选 Render Disk。
 
