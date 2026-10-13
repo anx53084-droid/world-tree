@@ -253,7 +253,7 @@ const pageIds = p => { const out = []; for (let k = 0, i = N - 1 - p * PAGE_N; k
 function clearBranches() { treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); });
   labels.forEach(l => { treeGroup.remove(l); l.material.map.dispose(); l.material.dispose(); }); labels = []; }
 function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal() - 1)); clearBranches(); focus = '';
-  const ids = pageIds(PAGE), L = [], hang = [], leafPts = [], thick = .4, NB = 16, sz = ids.length <= 48 ? 1.05 : .85;
+  const ids = pageIds(PAGE), L = [], hang = [], leafPts = [], thick = .4, NB = 16, sz = ids.length <= 48 ? .5 : .4; // 小吊签
   for (let j = 0; j < NB; j++) { const { p: ce, th } = childEnd('', j), r1 = 'pg' + j, h = strHash(r1), st = V(Math.cos(th) * .5, 5.3 + h * 1.2, Math.sin(th) * .5), mid = bend(st, ce, h, .9);
     L.push({ pts: [st, mid, ce], rf: t => thick * (1 - t * .62), seg: 16, knot: j }); const pc = new THREE.CatmullRomCurve3([st, mid, ce]), segs = []; ramify(L, pc, thick * .5, 4.5, r1, 2, segs);
     segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce);
@@ -319,23 +319,24 @@ function makeLabel(text, P, region) {
 const GLINT = `float gh(vec2 p){return fract(sin(dot(p,vec2(41.3,289.1)))*15731.7);}
   float glint(vec2 uv,float seed,float t){ vec2 q=uv*vec2(10.,15.), g=floor(q), f=fract(q)-.5; float h=gh(g+seed*17.); if(h<.9) return 0.;
     float tw=pow(max(0.,sin(t*(1.1+h*2.6)+h*61.)),18.); float d=length(f); return tw*(smoothstep(.16,0.,d)+.6*smoothstep(.035,0.,abs(f.x))*smoothstep(.45,0.,abs(f.y))+.6*smoothstep(.035,0.,abs(f.y))*smoothstep(.45,0.,abs(f.x))); }`;
-function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { map: { value: null }, uTime: BU.uTime, uHl: { value: 0 }, uSolid: { value: 0 }, uSeed: { value: (i * .618) % 1 } },
+function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { map: { value: null }, uTime: BU.uTime, uHl: { value: 0 }, uSolid: { value: 0 }, uSeed: { value: (i * .618) % 1 }, uAlpha: { value: 1 }, uDetail: { value: 1 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-  fragmentShader: `uniform sampler2D map; uniform float uTime,uHl,uSolid,uSeed; varying vec2 vUv; ${GLINT}
+  fragmentShader: `uniform sampler2D map; uniform float uTime,uHl,uSolid,uSeed,uAlpha,uDetail; varying vec2 vUv; ${GLINT}
     void main(){ vec4 tx=texture2D(map,vUv); if(tx.a<.04) discard; vec2 q=vUv-vec2(.5,.47); float inner=exp(-dot(q*vec2(2.2,1.5),q*vec2(2.2,1.5))*3.); // 纸灯内透光
       vec3 c=tx.rgb*(.86+.2*inner*(1.-uSolid*.6)) + vec3(.1,.07,.02)*inner*(1.-uSolid);
       float e=min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y)); c+=vec3(.32,.24,.1)*smoothstep(.045,0.,e); // 暖金水晶边缘
       float band=exp(-pow((vUv.x*.8+vUv.y*.6-fract(uTime*.05+uSeed)*2.6+.5)*6.,2.)); c+=vec3(.5,.42,.25)*band*.14; // 缓慢扫过的光泽
       c=min(c*(.8+.06*uHl),vec3(.78,.67,.47)); float gl=glint(vUv,uSeed,uTime)*tx.a; c+=vec3(.5,.46,.38)*gl; // 亮度上限低于 bloom 阈值：近看不过曝
-      gl_FragColor=vec4(c, tx.a*.97); }` }); }
+      vec3 plain=mix(vec3(.5,.39,.2),vec3(.76,.65,.44),inner)+vec3(.16,.12,.05)*smoothstep(.06,0.,e); c=mix(plain,c,uDetail); // 远：素水晶签；近：逐渐显出文字/封面
+      gl_FragColor=vec4(c, tx.a*.97*uAlpha); if(gl_FragColor.a<.01) discard; }` }); }
 // ---------- 中景：InstancedMesh 金色灯笼卡（1 次 draw call，着色器 billboard + 程序化纹样）+ 细吊绳 ----------
 const CW = .8, CH = 1.25; // 卡片宽高（相对 sz）
 function makeInst() {
   const g = new THREE.PlaneGeometry(1, 1); inst = new THREE.InstancedMesh(g, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime },
-    vertexShader: `attribute vec3 iPos,iCol,iAnc; attribute float iSize,iPh; uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF; ${WIND}
+    vertexShader: `attribute vec3 iPos,iCol,iAnc; attribute float iSize,iPh,iAlpha; uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF,vA; ${WIND}
       void main(){ vUv=uv; vC=iCol; vF=fract(iPos.x*7.13+iPos.z*3.7); vec3 pp=swing(iAnc,iPos,iPh,uTime); vec3 r=pp-iAnc; float g=atan(length(r.xz),-r.y)*sign(r.x+r.z);
-        vec4 mv=modelViewMatrix*vec4(pp,1.); vec2 q=position.xy*vec2(${CW},${CH})*iSize; float cg=cos(g*.6),sg=sin(g*.6); mv.xy+=mat2(cg,sg,-sg,cg)*q; gl_Position=projectionMatrix*mv; if(iSize<=0.) gl_Position=vec4(2.,2.,2.,1.); }`,
-    fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF; ${GLINT} void main(){ vec2 p=vUv-.5;
+        vec4 mv=modelViewMatrix*vec4(pp,1.); vec2 q=position.xy*vec2(${CW},${CH})*max(iSize,.014*-mv.z); float cg=cos(g*.6),sg=sin(g*.6); mv.xy+=mat2(cg,sg,-sg,cg)*q; gl_Position=projectionMatrix*mv; vA=iAlpha; if(iSize<=0.||iAlpha<.005) gl_Position=vec4(2.,2.,2.,1.); }`,
+    fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF,vA; ${GLINT} void main(){ vec2 p=vUv-.5;
       float body=step(abs(p.x),.42)*step(-.44,p.y)*step(p.y,.36), cap=step(abs(p.x),.26)*step(.36,p.y)*step(p.y,.46), ring=step(abs(length(p-vec2(0.,.48))-.03),.012);
       if(body+cap+ring<.5) discard; float e=min(.42-abs(p.x),min(p.y+.44,.36-p.y)); // 到边距离
       float sh=.82+.18*(p.y+.5)-.12*abs(p.x); // 柔和受光：上亮下暗，纸质哑光（无自发光，亮度低于 bloom 阈值）
@@ -346,22 +347,22 @@ function makeInst() {
       c=mix(c, vC*.7, .22); if(cap>.5) c=vec3(.5,.32,.14); if(ring>.5) c=vec3(.6,.5,.3);
       float inner=clamp(1.-length(p*vec2(1.9,1.25))*1.25,0.,1.); vec3 champ=mix(vec3(.74,.55,.27),vec3(.95,.86,.62),inner); // 香槟金内透光
       c=bd>.5?vec3(.52,.36,.14):champ; if(cap>.5) c=vec3(.55,.38,.16); if(ring>.5) c=vec3(.8,.65,.38); float gl=glint(vUv,vF,uTime);
-      gl_FragColor=vec4(min(c*.8,vec3(.72,.62,.44))+gl*.4,.96); }` }), MID_CAP);
+      gl_FragColor=vec4(min(c*.8+vec3(.1,.08,.04)*inner,vec3(.76,.66,.47))+gl*.4,.8*vA); }` }), MID_CAP);
   ['iPos', 'iCol', 'iAnc'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP * 3), 3).setUsage(THREE.DynamicDrawUsage)));
-  ['iSize', 'iPh'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1).setUsage(THREE.DynamicDrawUsage)));
+  ['iSize', 'iPh', 'iAlpha'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1).setUsage(THREE.DynamicDrawUsage)));
   inst.count = 0; inst.frustumCulled = false; inst.userData.cards = []; inst.renderOrder = 3; treeGroup.add(inst);
   const sg = new THREE.BufferGeometry(); ['position', 'anc'].forEach(n => sg.setAttribute(n, new THREE.BufferAttribute(new Float32Array(MID_CAP * 6), 3).setUsage(THREE.DynamicDrawUsage)));
-  sg.setAttribute('ph', new THREE.BufferAttribute(new Float32Array(MID_CAP * 2), 1).setUsage(THREE.DynamicDrawUsage)); sg.setDrawRange(0, 0);
+  ['ph', 'al'].forEach(n => sg.setAttribute(n, new THREE.BufferAttribute(new Float32Array(MID_CAP * 2), 1).setUsage(THREE.DynamicDrawUsage))); sg.setDrawRange(0, 0);
   strings = new THREE.LineSegments(sg, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime },
-    vertexShader: `attribute vec3 anc; attribute float ph; uniform float uTime; ${WIND} void main(){ gl_Position=projectionMatrix*modelViewMatrix*vec4(swing(anc,position,ph,uTime),1.); }`,
-    fragmentShader: `void main(){ gl_FragColor=vec4(.85,.68,.38,.55); }` })); strings.frustumCulled = false; strings.renderOrder = 2; treeGroup.add(strings);
+    vertexShader: `attribute vec3 anc; attribute float ph,al; uniform float uTime; varying float vA; ${WIND} void main(){ vA=al; gl_Position=projectionMatrix*modelViewMatrix*vec4(swing(anc,position,ph,uTime),1.); }`,
+    fragmentShader: `varying float vA; void main(){ if(vA<.01) discard; gl_FragColor=vec4(.85,.68,.38,.5*vA); }` })); strings.frustumCulled = false; strings.renderOrder = 2; treeGroup.add(strings);
   const pg = new THREE.PlaneGeometry(1, 1);
   for (let i = 0; i < NEAR_CAP; i++) { const s = new THREE.Mesh(pg, crystalMat(i)); s.visible = false; s.renderOrder = 3; nearPool.push(s); cardGroup.add(s); }
 }
 function rebuildInst() { // 把已加载、处于当前区域的瓦片写入实例缓冲（上限 MID_CAP），同时生成吊绳
   dirty = false; if (!view) return; const g = inst.geometry, P = g.attributes.iPos.array, C = g.attributes.iCol.array, S = g.attributes.iSize.array, AN = g.attributes.iAnc.array, PH = g.attributes.iPh.array, sa = strings.geometry.attributes, SP = sa.position.array, SA = sa.anc.array, SH = sa.ph.array, list = []; const col = new THREE.Color();
   for (const t of view.hang) { if (!view.active.has(t.region) && view.active.size) continue; const cs = tiles.get(key(t.region)); if (!cs) continue;
-    for (let s = 0; s < cs.length && list.length < MID_CAP; s++) { const w = cs[s], sl = slotOf(t, s), p = sl.p, a = sl.a, n = list.length; list.push({ w, p, a, ph: sl.ph, sz: t.sz });
+    for (let s = 0; s < cs.length && list.length < MID_CAP; s++) { const w = cs[s], sl = slotOf(t, s), p = sl.p, a = sl.a, n = list.length; list.push({ w, p, a, ph: sl.ph, sz: t.sz, rank: view.page ? N - 1 - w.id - PAGE * PAGE_N : n, al: 0, tgt: 0 });
       SP.set([a.x, a.y, a.z, a.x, a.y - sl.str, a.z], n * 6); SA.set([a.x, a.y, a.z, a.x, a.y, a.z], n * 6); SH[n * 2] = SH[n * 2 + 1] = sl.ph; AN.set([a.x, a.y, a.z], n * 3); PH[n] = sl.ph;
       P.set([p.x, p.y, p.z], n * 3); col.setHSL(((w.hue ?? 200) % 360) / 360, .85, w.id === hlId ? .85 : .68); C.set([col.r, col.g, col.b], n * 3); S[n] = t.sz * (w.id === hlId ? 1.5 : 1); } }
   inst.count = list.length; inst.userData.cards = list; ['iPos', 'iCol', 'iSize', 'iAnc', 'iPh'].forEach(a => g.attributes[a].needsUpdate = true);
@@ -369,6 +370,19 @@ function rebuildInst() { // 把已加载、处于当前区域的瓦片写入实�
 }
 // ---------- 近景：离相机最近的 ≤200 张卡升级为带文字的可交互灯笼卡 ----------
 let nearAt = 0; const wp = new THREE.Vector3();
+// ---------- 距离分级可见性（仅分页视图）：最远不显示 → ~50 张若隐若现 → 66~100 张（只显示朝向相机一侧）→ 更近显示全部并逐步显出内容；按优先级（最新）稳定选取 + 平滑淡入淡出 ----------
+let visAt = 0, visCount = 0; const kOf = d => d >= 80 ? 0 : d >= 60 ? (80 - d) / 20 * 50 : d >= 30 ? 50 + (60 - d) / 30 * 40 : Math.min(PAGE_N, 90 + (30 - d) / 15 * 110);
+function updateVis(dt) { if (!inst?.userData.cards) return; const cards = inst.userData.cards, now = performance.now(), sc = treeGroup.scale.x;
+  if (now - visAt > 120) { visAt = now; if (!view?.page) cards.forEach(c => c.tgt = 1); else {
+    const d = camera.position.distanceTo(controls.target) / sc, K = kOf(d), cx = camera.position.x / sc, cz = camera.position.z / sc, cl = Math.hypot(cx, cz) || 1, front = [];
+    for (const c of cards) { const r = Math.hypot(c.p.x, c.p.z) || 1, dot = (c.p.x * cx + c.p.z * cz) / (r * cl); c.side = Math.min(1, Math.max(0, (dot + .15) / .45)); if (c.side > 0) front.push(c); else c.tgt = 0; } // 背面卡片淡出
+    front.sort((a, b) => a.rank - b.rank); front.forEach((c, i) => c.tgt = c.side * Math.min(1, Math.max(0, (K - i) / 8)) * (c.w.id === hlId ? 2 : 1)); } }
+  const k = 1 - Math.exp(-dt / 260), g = inst.geometry, A = g.attributes.iAlpha.array, SL = strings.geometry.attributes.al.array; visCount = 0;
+  cards.forEach((c, i) => { c.al += (Math.min(1, c.tgt) - c.al) * k; A[i] = c.al; SL[i * 2] = SL[i * 2 + 1] = c.al; if (c.al > .3) visCount++; });
+  g.attributes.iAlpha.needsUpdate = true; strings.geometry.attributes.al.needsUpdate = true;
+  const r = renderer.domElement.getBoundingClientRect(), f = r.height / (2 * Math.tan(camera.fov * Math.PI / 360));
+  nearPool.forEach(sp => { if (!sp.visible || !sp.userData.c) return; const c = sp.userData.c, u = sp.material.uniforms; u.uAlpha.value = c.al; sp.getWorldPosition(wp);
+    const px = CH * 1.2 * c.sz * sc * f / wp.distanceTo(camera.position); u.uDetail.value = Math.min(1, Math.max(0, (px - 34) / 70)); }); }
 function updateNear(force) { const now = performance.now(); if (!force && now - nearAt < 250) return; nearAt = now;
   const cards = inst.userData.cards, cam = camera.position, sc = treeGroup.scale.x, cand = [];
   for (let i = 0; i < cards.length; i++) { wp.copy(cards[i].p).multiplyScalar(sc); const d = wp.distanceTo(cam) / (cards[i].sz * sc); if (d < 26 || cards.length <= NEAR_CAP) cand.push([d, i]); } // 卡片总数很少时全部以近景文字卡展示
@@ -460,13 +474,13 @@ function pick(e, click) {
   const r = renderer.domElement.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   const dbg = document.body.classList.contains('debug'); raycaster.setFromCamera(ptr, camera);
   let hit = null, hz = 1e9; const tol = e.pointerType === 'touch' ? 10 : 4; // 屏幕空间矩形命中（随摆动的当前位置 + 触屏容差），取离相机最近者
-  for (const sp of nearPool) { if (!sp.visible) continue; sp.getWorldPosition(wp); const v = wp.clone().project(camera); if (v.z > 1) continue;
+  for (const sp of nearPool) { if (!sp.visible || (sp.userData.c?.al ?? 1) < .3) continue; sp.getWorldPosition(wp); const v = wp.clone().project(camera); if (v.z > 1) continue;
     const cx = r.left + (v.x + 1) / 2 * r.width, cy = r.top + (1 - v.y) / 2 * r.height, dz = wp.distanceTo(camera.position), k = r.height / (2 * Math.tan(camera.fov * Math.PI / 360) * dz) * treeGroup.scale.x;
     if (Math.abs(e.clientX - cx) < sp.scale.x * k / 2 + tol && Math.abs(e.clientY - cy) < sp.scale.y * k / 2 + tol && dz < hz) { hz = dz; hit = sp; } }
   if (!hit && dbg) hit = raycaster.intersectObjects(labels)[0]?.object;
   let w = hit?.userData.wish, reg = hit?.userData.region;
   if (!hit) { let best = 1e9, bc = null; const cards = inst.userData.cards; // 中景卡：屏幕空间最近
-    for (let i = 0; i < cards.length; i++) { const s = scr(cards[i].p, r); if (!s) continue; const d = Math.hypot(s[0] - e.clientX, s[1] - e.clientY); if (d < best) { best = d; bc = cards[i]; } }
+    for (let i = 0; i < cards.length; i++) { if (cards[i].al < .3) continue; const s = scr(cards[i].p, r); if (!s) continue; const d = Math.hypot(s[0] - e.clientX, s[1] - e.clientY); if (d < best) { best = d; bc = cards[i]; } }
     if (bc && best < (e.pointerType === 'touch' ? 22 : 14)) w = bc.w;
     else if (click && view && dbg) { best = 1e9; for (const c of view.clus) { const s = scr(c.P, r); if (!s) continue; const d = Math.hypot(s[0] - e.clientX, s[1] - e.clientY); if (d < best) { best = d; reg = c.region; } } if (best > 36) reg = null; } }
   renderer.domElement.style.cursor = w || reg ? 'pointer' : 'grab'; if (!click) hovered = w ? w.sig : null;
@@ -482,7 +496,7 @@ function loop() {
   if (!fly && Math.abs(s - s0) > 1e-5) { controls.target.multiplyScalar(s / s0); camera.position.multiplyScalar(s / s0); }
   BU.uTime.value = t; BU.uSeason.value += (seasonV - BU.uSeason.value) * (1 - Math.exp(-Math.min(dt, 1000) / 350)); const u = galaxy.material.uniforms; u.uBright.value += (galaxyBright - u.uBright.value) * .03; galaxy.scale.setScalar(s);
   if (fly) { const k = Math.min(1, (now - fly.t0) / fly.dur), e = k * k * (3 - 2 * k); controls.target.lerpVectors(fly.fT, fly.tT, e).multiplyScalar(s); camera.position.lerpVectors(fly.fP, fly.tP, e).multiplyScalar(s); if (k >= 1) { fly = null; scheduleLoad(); } }
-  if (dirty) rebuildInst(); else updateNear(false);
+  if (dirty) rebuildInst(); else updateNear(false); updateVis(dt);
   nearPool.forEach(c => { if (!c.visible) return; c.userData.grow = Math.min(1, c.userData.grow + 0.05); const hv = c.userData.wish?.sig === hovered; c.userData.hl = (c.userData.hl || 0) + ((hv ? 1 : 0) - (c.userData.hl || 0)) * .2; // 悬停高亮
     c.material.uniforms.uHl.value = c.userData.hl; const g = c.userData.grow * (1 + c.userData.hl * .25) * c.userData.sz * (c.userData.wish?.id === hlId ? 1.5 : 1); c.scale.set(CW * 1.2 * g, CH * 1.2 * g, 1);
     const cc = c.userData.c; if (cc) { const sw = swingJS(cc.a, cc.p, cc.ph, t, c.position), rx = c.position.x - cc.a.x + c.position.z - cc.a.z; c.quaternion.copy(camera.quaternion); c.rotateZ(-Math.abs(sw) * Math.sign(rx) * .6); } });
@@ -494,7 +508,7 @@ export function cardScreenPos(i = 0) { // 测试辅助：返回第 i 张近景�
   return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }
 export function stats() { if (!renderer) return {}; const bl = useBloom; const ft = [...frameT].sort((a, b) => a - b), avg = ft.reduce((a, b) => a + b, 0) / (ft.length || 1);
   return { N, focus, depth: focus.length, fps: +(1000 / avg).toFixed(1), frameAvgMs: +avg.toFixed(2), frameP95Ms: +(ft[Math.floor(ft.length * .95)] || 0).toFixed(2), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
-    clusters: view?.clus.length || 0, hangTiles: view?.hang.length || 0, midCards: inst.count, nearCards: nearPool.filter(s => s.visible).length, tilesCached: tiles.size, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries,
+    clusters: view?.clus.length || 0, hangTiles: view?.hang.length || 0, midCards: inst.count, visCards: visCount, nearCards: nearPool.filter(s => s.visible).length, tilesCached: tiles.size, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries,
     bloom: bl, season, heapMB: performance.memory ? +(performance.memory.usedJSHeapSize / 1048576).toFixed(1) : null }; }
 export function camTo(dist) { const d = camera.position.clone().sub(controls.target).setLength(dist * treeGroup.scale.x); camera.position.copy(controls.target).add(d); lastNav = performance.now() + 1e5; scheduleLoad(); } // 测试辅助
 export const camInfo = () => ({ cam: camera.position.toArray().map(v => +v.toFixed(2)), target: controls.target.toArray().map(v => +v.toFixed(2)), fly: !!fly, scale: treeGroup.scale.x });
