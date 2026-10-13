@@ -131,3 +131,9 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 
 ## 文件
 server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账） · verify.js · verify-scale.js · verify-fulfill.js · shots/ · public/{index.html, app.js, addr.js, scene3d.js, style.css, i18n/, starfield-worklet.js, config.js(自动生成), vendor/} · data/（users.json、moderator.json、payees.json、fulfillments.json、fund-ledger.json、review-queue.jsonl —— 演示/运营数据，勿提交）
+
+## 自定义模板图片（我的星愿 → 制作我的心愿卡）
+- 浏览器内压缩为 ≤800px、≤300KB 的 webp/jpeg，`POST /api/img` 上传，`GET /api/img/<hash>` 读取；memo 只记录 `~C<封面哈希>` / `~N<内页哈希>`（32 hex，旧客户端忽略，显示内置封面）。
+- 上传即自动审核：MIME 白名单、文件头校验、大小、尺寸（16–1024px）；NSFW 检测为可插拔：设置 `NSFW_URL`（POST 图片字节，返回 `{nsfw:0..1}`，阈值 `NSFW_MAX`，默认 .6，服务不可用则拒绝）。**未配置时不做内容识别。** `/api/moderate` 会拒绝引用未上传图片的卡片。
+- 私密卡内页图：浏览器内用同一 AES-GCM 密钥加密，服务器审核明文但只保存密文（与文字一致，服务器无法验证密文与明文对应）。封面图公开。
+- ⚠️ 持久化：Render 免费实例磁盘是临时的，重启/重新部署后 `data/img` 丢失（卡片回退到内置封面 / 内页无图）。免费可选：Cloudflare R2 免费额度、Backblaze B2 免费 10GB，或 IPFS 固定服务免费档（如 Pinata/web3.storage）；付费可选 Render Disk。

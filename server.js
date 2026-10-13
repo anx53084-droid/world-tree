@@ -45,7 +45,32 @@ const load = () => { try { return JSON.parse(fs.readFileSync(DB)); } catch { ret
 const save = d => { fs.mkdirSync(path.dirname(DB), { recursive: true }); fs.writeFileSync(DB, JSON.stringify(d, null, 2), { mode: 0o600 }); };
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8' };
 const send = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); };
-const body = req => new Promise(r => { let b = ''; req.on('data', c => b += c); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch { r({}); } }); });
+const body = (req, max = 64000) => new Promise(r => { let b = ''; req.on('data', c => { b += c; if (b.length > max) { r({ tooBig: true }); req.destroy(); } }); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch { r({}); } }); });
+
+// ---- 自定义图片（封面/内页模板）----
+// ⚠️ Render 免费实例磁盘是临时的：重新部署/重启后 data/img 会丢失（卡片回退到内置封面）。持久化方案：Render Disk（付费）或对象存储 / IPFS（见 README）。
+const IMG_DIR = path.join(DATA_DIR, 'img'); fs.mkdirSync(IMG_DIR, { recursive: true });
+const IMG_MAX = 300 * 1024, IMG_DIM = 1024;
+function imgDims(b, mime) { // 解析图片头部得到宽高（不完整解码）
+  if (mime === 'image/jpeg') { let i = 2; while (i + 9 < b.length) { if (b[i] !== 0xFF) return null; const m = b[i + 1], L = b.readUInt16BE(i + 2); if (m >= 0xC0 && m <= 0xCF && ![0xC4, 0xC8, 0xCC].includes(m)) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)]; i += 2 + L; } return null; }
+  const c = b.toString('ascii', 12, 16); if (c === 'VP8 ') return [b.readUInt16LE(26) & 0x3fff, b.readUInt16LE(28) & 0x3fff];
+  if (c === 'VP8L') { const n = b.readUInt32LE(21); return [(n & 0x3fff) + 1, ((n >> 14) & 0x3fff) + 1]; } if (c === 'VP8X') return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3)]; return null; }
+// 可插拔 NSFW 检测：设置 NSFW_URL 后，把图片 POST 过去（期望返回 {nsfw: 0..1}），≥ NSFW_MAX(默认 .6) 拒绝；未配置时仅做基础检查（如实披露）
+async function nsfwCheck(buf, mime) { if (!process.env.NSFW_URL) return { pass: true, provider: 'none' };
+  try { const j = await (await fetch(process.env.NSFW_URL, { method: 'POST', headers: { 'content-type': mime }, body: buf, signal: AbortSignal.timeout(15000) })).json(); const sc = +j.nsfw || +j.score || 0; return { pass: sc < (+process.env.NSFW_MAX || .6), score: sc, provider: 'remote' }; }
+  catch (e) { return { pass: false, error: 'nsfw service unavailable' }; } } // 失败即拒绝（fail closed）
+async function imgUpload(b) {
+  if (b.tooBig) return { error: '图片过大', code: 'imgSize' };
+  const mime = b.mime, raw = typeof b.data === 'string' ? Buffer.from(b.data, 'base64') : null; if (!raw || !['image/webp', 'image/jpeg'].includes(mime)) return { error: '仅支持 webp/jpeg', code: 'imgType' };
+  if (raw.length > IMG_MAX) return { error: '图片过大', code: 'imgSize' };
+  const isJ = raw[0] === 0xFF && raw[1] === 0xD8, isW = raw.toString('ascii', 0, 4) === 'RIFF' && raw.toString('ascii', 8, 12) === 'WEBP'; if (!(mime === 'image/jpeg' ? isJ : isW)) return { error: '文件内容与类型不符', code: 'imgType' };
+  const d = imgDims(raw, mime); if (!d || d[0] < 16 || d[1] < 16 || d[0] > IMG_DIM || d[1] > IMG_DIM) return { error: '图片尺寸无效（需 16–1024px）', code: 'imgDim' };
+  const ns = await nsfwCheck(raw, mime); if (!ns.pass) return { error: ns.error || '图片未通过审核', code: ns.error ? 'imgSvc' : 'imgReject' };
+  // 私密卡内页：审核明文，只存客户端 AES-GCM 加密后的密文（服务器不保存明文）
+  let store = raw, smime = mime; if (b.cipher != null) { const c = typeof b.cipher === 'string' ? Buffer.from(b.cipher, 'base64') : null; if (!c || c.length < 28 || c.length > IMG_MAX + 64) return { error: '参数无效', code: 'param' }; store = c; smime = 'application/octet-stream'; }
+  const h = crypto.createHash('sha256').update(store).digest('hex').slice(0, 32);
+  fs.writeFileSync(path.join(IMG_DIR, h), store); fs.writeFileSync(path.join(IMG_DIR, h + '.json'), JSON.stringify({ mime: smime, w: d[0], h: d[1], enc: b.cipher != null, nsfw: ns.provider, at: Date.now() }));
+  return { hash: h, w: d[0], h: d[1], checks: ['type', 'magic', 'size', 'dims', 'nsfw:' + ns.provider] }; }
 
 function buildMemoTx(payer, memo, lamports) {
   const tx = new web3.Transaction();
@@ -67,12 +92,18 @@ async function api(req, res, url) {
   }
   if (url === '/api/moderate' && req.method === 'POST') { // 上链前审核（两种模式都必须先通过）
     const { text, prefix, cipher } = await body(req); // prefix = 分类[~F封面[P]]（愿望）或 愿望签名（祝福）；私密卡附 cipher（E1: AES-GCM 密文），审核明文、证明绑定密文
-    const priv = typeof prefix === 'string' && /~F[0-9a-z]{2}P$/.test(prefix);
+    const priv = typeof prefix === 'string' && /~F[0-9a-z]{2}P(~|$)/.test(prefix);
+    for (const h of (typeof prefix === 'string' ? prefix.match(/~[CN]([0-9a-f]{32})/g) || [] : [])) if (!fs.existsSync(path.join(IMG_DIR, h.slice(2)))) return send(res, 400, { pass: false, message: '图片未上传或未通过审核', code: 'img' }); // 引用的图片必须已通过上传审核
     if (priv && (typeof cipher !== 'string' || !/^E1:[A-Za-z0-9+/=]{24,560}$/.test(cipher) || [...(text || '')].length > 100)) return send(res, 400, { pass: false, message: '私密卡参数无效', code: 'param' });
     if (typeof text !== 'string' || !text.trim() || [...text].length > 140 || text.includes('|')) return send(res, 400, { pass: false, message: '内容需为 1–140 字，且不含字符 |', code: 'len' });
     if (typeof prefix !== 'string' || !/^[^|]{1,90}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
     const r = await moderate(text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
+  if (url === '/api/img' && req.method === 'POST') { // 用户自定义模板图片：链下存储（memo 仅存内容哈希），上传即自动审核
+    const r = await imgUpload(await body(req, 700000)); return send(res, r.error ? 400 : 200, r); }
+  if (url.startsWith('/api/img/') && req.method === 'GET') { const h = url.slice(9); if (!/^[0-9a-f]{32}$/.test(h)) return send(res, 400, { error: 'bad hash' });
+    try { const d = fs.readFileSync(path.join(IMG_DIR, h)), m = JSON.parse(fs.readFileSync(path.join(IMG_DIR, h + '.json'))); res.writeHead(200, { 'content-type': m.mime, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' }); return res.end(d); }
+    catch { return send(res, 404, { error: 'not found', code: 'gone' }); } }
   if (url === '/api/tiles' || url.startsWith('/api/tiles/')) { // 【模拟索引器】区域瓦片：确定性合成任意总量的卡片（真实后端见 README「扩展到千亿」）
     const q = new URL(req.url, 'http://x').searchParams, N = Math.min(WTA.CAPACITY, Math.max(0, Math.floor(+q.get('total') || 1e11))), level = q.get('level') || 'count';
     const regs = url === '/api/tiles' ? (q.get('regions') || '').split(',').slice(0, 64) : [decodeURIComponent(url.slice(11))];
@@ -135,7 +166,7 @@ async function api(req, res, url) {
     else if (!/^WTREE1\|L\|[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(memo)) return send(res, 400, { error: 'memo 格式无效', code: 'memo' });
     if (memo.startsWith('WTREE1|W|') && !(Number.isInteger(lamports) && lamports >= minLamports((await solPrice()).usd))) return send(res, 400, { error: '金额低于最低 1 美元等值 SOL', code: 'amount' });
     try { const wishLam = memo.startsWith('WTREE1|W|') ? lamports : 0; const sig = await web3.sendAndConfirmTransaction(conn, buildMemoTx(kp.publicKey, memo, wishLam), [kp], { commitment: 'confirmed' });
-      if (wishLam > 0) { const parts = memo.split('|'); Fulfill.registerWish({ wishSig: sig, cat: parts[5].split('~')[0], text: /~F..P$/.test(parts[5]) ? '🔒' : parts[6], author: kp.publicKey.toBase58(), lamports: wishLam, source: 'host' }); }
+      if (wishLam > 0) { const parts = memo.split('|'); Fulfill.registerWish({ wishSig: sig, cat: parts[5].split('~')[0], text: /~F..P(~|$)/.test(parts[5]) ? '🔒' : parts[6], author: kp.publicKey.toBase58(), lamports: wishLam, source: 'host' }); }
       return send(res, 200, { signature: sig }); }
     catch (e) { return send(res, 200, { error: '上链失败: ' + e.message, code: 'chain', detail: e.message }); }
   }

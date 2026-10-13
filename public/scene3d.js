@@ -396,11 +396,12 @@ function ornament(x, x0, y, w) { // 顶/底部金色纹饰带：细线 + 菱形�
   x.save(); x.strokeStyle = '#a57630'; x.fillStyle = '#a57630'; x.lineWidth = 1; x.beginPath(); x.moveTo(x0, y); x.lineTo(x0 + w, y); x.moveTo(x0, y + 9); x.lineTo(x0 + w, y + 9); x.stroke();
   for (let i = 0, n = 9; i < n; i++) { const cx = x0 + (i + .5) * w / n, cy = y + 4.5; if (i % 2) { x.beginPath(); x.arc(cx, cy, 1.6, 0, 7); x.fill(); } else { x.beginPath(); x.moveTo(cx, cy - 3.5); x.lineTo(cx + 3.5, cy); x.lineTo(cx, cy + 3.5); x.lineTo(cx - 3.5, cy); x.closePath(); x.fill(); } }
   x.restore(); }
+const UIMG = new Map(); function uimg(h) { if (!h) return null; if (!UIMG.has(h)) { const im = new Image(); im.onload = () => { im.ok = 1; dirty = true; }; im.src = '/api/img/' + h; UIMG.set(h, im); } const im = UIMG.get(h); return im.ok ? im : null; } // 用户自定义封面
 function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私密卡加锁）；哑光无发光
-  const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : ''); if (texCache.has(key)) return lruGet(texCache, key);
+  const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : '') + (uimg(w.cimg) ? 'U' : ''); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
   if (w.folded && window.WTCovers) { x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
-    x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); x.translate(X0, Y0); WTCovers.draw(x, w.cover, W, H); x.restore();
+    x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); x.translate(X0, Y0); const ui = uimg(w.cimg); if (ui) { const k = Math.max(W / ui.width, H / ui.height); x.drawImage(ui, (W - ui.width * k) / 2, (H - ui.height * k) / 2, ui.width * k, ui.height * k); } else WTCovers.draw(x, w.cover, W, H); x.restore();
     const sp = x.createLinearGradient(X0, 0, X0 + 18, 0); sp.addColorStop(0, '#0007'); sp.addColorStop(1, '#0000'); x.fillStyle = sp; x.fillRect(X0, Y0, 18, H); // 书脊阴影
     x.fillStyle = '#fff3'; x.fillRect(X0 + W - 6, Y0 + 4, 3, H - 8); x.strokeStyle = w.id === hlId ? '#ffffff' : '#c9a052'; x.lineWidth = w.id === hlId ? 7 : 6; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke(); x.strokeStyle = '#8a5f1e'; x.lineWidth = 1.5; x.beginPath(); x.roundRect(X0 + 4, Y0 + 4, W - 8, H - 8, 6); x.stroke();
     x.fillStyle = '#f3dc9fdd'; x.fillRect(X0 + 6, Y0 + 6, W - 12, 14); ornament(x, X0 + 10, Y0 + 8, W - 20);

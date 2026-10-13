@@ -21,8 +21,21 @@ const fmtT = t => t ? new Date(t * 1000).toLocaleString(I18N.locale(), { hour12:
 const sol = l => (l / 1e9).toFixed(4) + ' SOL';
 const hex2b = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
 // 卡片选项编码在分类字段后（向后兼容：旧客户端把未知分类当「经典」显示正文）：分类~F<封面2位36进制>[P]   F=折页卡  P=私密（正文为 E1: 密文）
-const parseOpt = raw => { const [c, o = ''] = String(raw).split('~'), m = o.match(/^F([0-9a-z]{2})(P?)$/); return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : null, priv: !!(m && m[2]) }; };
-const encOpt = (cat, folded, cover, priv) => folded ? `${cat}~F${(cover | 0).toString(36).padStart(2, '0')}${priv ? 'P' : ''}` : cat;
+// 自定义图片：~C<封面哈希32hex> ~N<内页哈希32hex>（图片存链下 /api/img/<hash>；旧客户端忽略多余段，显示内置封面）
+const parseOpt = raw => { const [c, o = '', ...ex] = String(raw).split('~'), m = o.match(/^F([0-9a-z]{2})(P?)$/), g = k => (ex.find(x => new RegExp('^' + k + '[0-9a-f]{32}$').test(x)) || '').slice(1) || null;
+  return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : null, priv: !!(m && m[2]), cimg: m ? g('C') : null, nimg: m ? g('N') : null }; };
+const encOpt = (cat, folded, cover, priv, cimg, nimg) => folded ? `${cat}~F${(cover | 0).toString(36).padStart(2, '0')}${priv ? 'P' : ''}${cimg ? '~C' + cimg : ''}${nimg ? '~N' + nimg : ''}` : cat;
+const IMG = h => '/api/img/' + h;
+// 上传前在浏览器内缩放压缩：最长边 ≤800px，webp（不支持则 jpeg），≤300KB
+async function shrinkImg(file) { if (!/^image\//.test(file.type)) throw new Error(t('wish.upType')); const bm = await createImageBitmap(file), k = Math.min(1, 800 / Math.max(bm.width, bm.height)), c = document.createElement('canvas');
+  c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k); c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
+  for (const q of [.82, .7, .55, .4]) for (const ty of ['image/webp', 'image/jpeg']) { const b = await new Promise(r => c.toBlob(r, ty, q)); if (b && b.type === ty && b.size <= 300 * 1024) return b; }
+  throw new Error(t('wish.upSize')); }
+async function uploadImg(blob, encKey) { const u = new Uint8Array(await blob.arrayBuffer()), big = x => { let s = ''; for (let i = 0; i < x.length; i += 8192) s += String.fromCharCode(...x.subarray(i, i + 8192)); return btoa(s); };
+  let cipher; if (encKey) { const iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, encKey, u)), o = new Uint8Array(12 + ct.length); o.set(iv); o.set(ct, 12); cipher = big(o); }
+  const r = await fetch('/api/img', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mime: blob.type, data: big(u), cipher }) }).then(r => r.json());
+  if (!r.hash) throw new Error(tErr(r.code, r.error) || r.error); return r.hash; }
+async function decImg(h, k) { const u = new Uint8Array(await (await fetch(IMG(h))).arrayBuffer()), p = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u.slice(0, 12) }, k, u.slice(12)); return URL.createObjectURL(new Blob([p])); }
 // 私密卡：内容在浏览器内用 AES-GCM 加密后上链（链上只有密文）。密钥 = SHA-256(钱包对固定消息的 ed25519 签名)；托管模式由服务器以该用户密钥派生（服务器可解密）
 const b64 = u => btoa(String.fromCharCode(...u)), unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const WTPriv = window.WTPriv = {
@@ -111,7 +124,7 @@ function aggregate() {
   for (const t of all) { const f = t.memo.split('|');
     if (f[1] === 'W') { if (!t.verified || clientBlocked(f[6])) { hidden++; continue; }
       const o = parseOpt(f[5]), priv = o.priv && /^E1:/.test(f[6]); if (!priv && [...f[6]].length > 140) { hidden++; continue; }
-      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
+      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], cimg: o.cimg, nimg: o.nimg, priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
     else if (f[1] === 'L') likes.push([f[2], t]); else if (f[1] === 'B' && t.verified && !clientBlocked(f[6])) bless.push([f[5], t, f[6]]); }
   for (const [ws, t] of likes) W[ws]?.likers.add(t.author); // 每地址对每愿望只计 1 赞
   for (const [ws, t, text] of bless) W[ws]?.blessings.push({ author: t.author, text, time: t.time, sig: t.sig, pending: t.pending });
@@ -303,18 +316,18 @@ function sharePng(w) { // 生成分享图（本地 canvas → PNG）+ 链接
     <a class="btn primary" download="world-tree-${w.sig.slice(0, 8)}.png" href="${c.toDataURL('image/png')}">${E('share.download')}</a><button id=cp>${E('share.copy')}</button><button data-close>${E('common.close')}</button></div>`, w.cat);
   $('#cp').onclick = () => navigator.clipboard?.writeText(url).then(() => toast(E('share.copied'), 'ok'), () => toast(esc(url)));
 }
-function foldInner(w, text) { return `<span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>
+function foldInner(w, text) { return `${w.nimg && (!w.priv || w.nimgUrl) ? `<img class=fold-inimg alt="" src="${w.priv ? w.nimgUrl : IMG(w.nimg)}" onerror="this.remove()">` : ''}<span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>
   <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
   <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`; }
 function openFolded(w) { // 折页卡：封面 → 3D 翻开动画 → 内页；私密卡仅作者可解锁
   const locked = w.priv && !w.plain, mine = isMine(w);
   modal(`<div class="fold${locked ? ' locked' : ''}" id=fold><div class=fold-page id=foldPage>${locked ? `<div class=fold-lockmsg>🔒 <b>${esc(t('card.privateTitle'))}</b><p class=muted>${esc(t(mine ? 'card.privateMine' : 'card.privateOther'))}</p>
     ${mine ? `<button class=primary id=unlock>🔓 ${esc(t('card.unlock'))}</button>` : ''}<div class=row style="margin-top:10px"><button data-close>${esc(t('common.close'))}</button></div></div>` : foldInner(w, w.plain || w.text)}</div>
-    <div class=fold-cover id=foldCover><div class=fold-front><img alt="" src="${WTCovers.url(w.cover, 300, 400)}">${w.priv ? '<span class=fold-lock>🔒</span>' : ''}<span class=fold-hint>${esc(t(locked && !mine ? 'card.privateShort' : 'card.tapOpen'))}</span></div><div class=fold-back></div></div></div>`, w.cat);
+    <div class=fold-cover id=foldCover><div class=fold-front><img alt="" src="${w.cimg ? IMG(w.cimg) : WTCovers.url(w.cover, 300, 400)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">${w.priv ? '<span class=fold-lock>🔒</span>' : ''}<span class=fold-hint>${esc(t(locked && !mine ? 'card.privateShort' : 'card.tapOpen'))}</span></div><div class=fold-back></div></div></div>`, w.cat);
   const f = $('#fold'), open = () => f.classList.add('open');
   $('#foldCover').addEventListener('click', () => { if (locked && !mine) { f.classList.add('shake'); setTimeout(() => f.classList.remove('shake'), 500); return; } open(); });
   if (!locked) setTimeout(open, 450); else if (mine) setTimeout(open, 450);
-  $('#unlock')?.addEventListener('click', async () => { try { const k = await WTPriv.key(); w.plain = await WTPriv.dec(w.cipher, k); $('#foldPage').innerHTML = foldInner(w, w.plain); f.classList.remove('locked'); }
+  $('#unlock')?.addEventListener('click', async () => { try { const k = await WTPriv.key(); w.plain = await WTPriv.dec(w.cipher, k); if (w.nimg && !w.nimgUrl) w.nimgUrl = await decImg(w.nimg, k).catch(() => null); $('#foldPage').innerHTML = foldInner(w, w.plain); f.classList.remove('locked'); }
     catch (e) { toast(esc(t('card.unlockFail')), 'err'); } }); }
 // 光栖起源：原文（中文，所有语言均不翻译），极简 Markdown 渲染：**粗体**、### 小节、- 列表、行尾两空格换行
 function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); let html = '', list = false, para = [];
@@ -328,6 +341,11 @@ function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1
   flush(); if (list) html += '</ul>'; return html.replace(/^<p><b>([^<]+)<\/b><\/p>/, '<h1>$1</h1>'); }
 function origin() { const lang = I18N.lang; fetch(`origin.${lang}.md`).then(r => r.ok ? r.text() : fetch('origin.md').then(r => r.text())).then(md => { const el = $('#origin'); if (el && el.lang === lang) el.innerHTML = mdRender(md); });
   return `<article id=origin class=origin lang="${lang}" dir="${document.documentElement.dir}"></article>`; }
+function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
+  const mine = S.mode === 'guest' ? [] : S.wishes.filter(isMine);
+  const thumb = w => `<button type=button class=mw data-sig="${esc(w.sig)}"><img alt="" src="${w.cimg ? IMG(w.cimg) : w.folded ? WTCovers.url(w.cover, 120, 160) : WTCovers.url(WTCovers.forCat(w.cat)[0], 120, 160)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover ?? 0, 120, 160)}'">${w.priv ? '<i>🔒</i>' : ''}<span dir=auto>${esc(w.priv && !w.plain ? t('card.privateShort') : (w.plain || w.text))}</span></button>`;
+  return `<h2>${E('nav.wish')}</h2><section class=card><h3>${E('mine.have')}</h3>${S.mode === 'guest' ? `<p class=muted>${t('mine.guest')}</p>` : mine.length ? `<div class=mw-grid>${mine.map(thumb).join('')}</div>` : `<p class=muted>${E('mine.empty')}</p>`}</section>
+  <section class=card><h3>${E('mine.make')}</h3><button id=mkbtn class="primary breathe">✨ ${E('mine.make')}</button><div id=maker hidden>${wishPanel()}</div></section>`; }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
@@ -335,8 +353,10 @@ function wishPanel() {
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
   <div class=row><label>${E('wish.cat')} <select id=wc2>${Object.keys(CATS).map(c => `<option value="${c}">${esc(catName(c))}</option>`).join('')}</select></label></div>
   <div class=row><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
-  <div id=coverWrap hidden><div class=muted>${E('wish.cover')}</div><div class=cover-grid id=covers>${WTCovers.list.map((c, i) => `<button type=button data-cover=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTCovers.url(i)}"></button>`).join('')}</div>
-    <label class=agree><input type=checkbox id=priv> <span>🔒 ${E('wish.private')}</span></label><p class=muted style="margin:4px 0">${E('wish.privateHint')}${S.mode === 'host' ? ' ' + E('wish.privateHostNote') : ''}</p></div>
+  <div id=coverWrap hidden><div class=row><label><input type=radio name=tsrc value=builtin checked> ${E('wish.tplBuiltin')}</label><label><input type=radio name=tsrc value=upload id=tsrcUp> ${E('wish.tplUpload')}</label></div>
+    <div id=upWrap hidden><div class=up-row><label class=up-box><input type=file id=upC accept="image/*" hidden><img id=upCi alt="" hidden><span>🖼️ ${E('wish.upCover')}</span></label><label class=up-box><input type=file id=upN accept="image/*" hidden><img id=upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label></div>
+    <p class=muted style="margin:4px 0">${E('wish.upHint')}</p></div><div id=bWrap><div class=muted>${E('wish.cover')}</div><div class=cover-grid id=covers>${WTCovers.list.map((c, i) => `<button type=button data-cover=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTCovers.url(i)}"></button>`).join('')}</div></div>
+    <label class=agree><input type=checkbox id=priv> <span>🔒 ${E('wish.private')}</span></label><p class=muted style="margin:4px 0">${E('wish.privateHint')}${S.mode === 'host' ? ' ' + E('wish.privateHostNote') : ''} ${E('wish.upPrivNote')}</p></div>
   <div id=shipWrap hidden><label>${E('wish.shipping')}<textarea id=ship maxlength=500 dir=auto placeholder="${E('wish.shippingPh')}" rows=2 style="width:100%;margin-top:4px"></textarea></label>
   <p class=muted style="margin:4px 0">${E('wish.shippingHint')}</p></div>
   <textarea id=wt maxlength=140 dir=auto placeholder="${E('wish.ph')}"></textarea><div class=muted id=wc>0/140</div>
@@ -378,7 +398,7 @@ let ready3d = false;
 async function route() {
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': wishPanel, '/me': me, '/help': help, '/terms': terms, '/origin': origin };
+  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/me': me, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
   document.body.classList.toggle('home', !!$('#scene')); document.querySelectorAll('#menu nav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
@@ -393,11 +413,16 @@ async function route() {
   const w = p.startsWith('/w/') && S.wishes.find(x => x.sig === decodeURIComponent(p.slice(3))); $('#share')?.addEventListener('click', () => sharePng(w));
   $('#bs')?.addEventListener('click', async e => { const txt = $('#bt').value.trim(); if (!txt) return; e.target.disabled = true;
     try { await submit(await moderateThenMemo('B', e.target.dataset.sig, txt), 'bless'); } catch (er) { toast(er.html ? er.message : esc(er.message), 'err'); } e.target.disabled = false; });
+  document.querySelectorAll('.mw').forEach(b => b.onclick = () => { const w = S.wishes.find(x => x.sig === b.dataset.sig); if (w) openCardPopup(w); });
+  $('#mkbtn')?.addEventListener('click', () => { $('#maker').hidden = false; $('#mkbtn').hidden = true; $('#maker').scrollIntoView({ behavior: 'smooth' }); });
   const ta = $('#wt'); if (ta) {
     const catSel = $('#wc2');
     const syncShip = () => { const on = catSel?.value === MATERIAL; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
     const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.cover === i));
     const syncCard = () => { const f = $('#ctype')?.value === 'folded'; if ($('#coverWrap')) $('#coverWrap').hidden = !f; const ta2 = $('#wt'); if (ta2) { ta2.maxLength = f && $('#priv')?.checked ? 100 : 140; $('#wc').textContent = [...ta2.value].length + '/' + ta2.maxLength; } };
+    const up = { C: null, N: null }, syncSrc = () => { const u = !!$('#tsrcUp')?.checked; $('#upWrap').hidden = !u; $('#bWrap').hidden = u; };
+    document.querySelectorAll('[name=tsrc]').forEach(x => x.addEventListener('change', syncSrc));
+    ['C', 'N'].forEach(k => $('#up' + k)?.addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { up[k] = await shrinkImg(f); const im = $('#up' + k + 'i'); im.src = URL.createObjectURL(up[k]); im.hidden = false; } catch (er) { up[k] = null; toast(esc(er.message), 'err'); } }));
     $('#ctype')?.addEventListener('change', syncCard); $('#priv')?.addEventListener('change', syncCard);
     $('#covers')?.addEventListener('click', e => { const b = e.target.closest('[data-cover]'); if (b) pickCover(+b.dataset.cover); });
     catSel?.addEventListener('change', () => { if (!$('#covers .on') || $('#covers').dataset.auto !== '0') pickCover(WTCovers.forCat(catSel.value)[0]); }); $('#covers')?.addEventListener('click', () => $('#covers').dataset.auto = '0');
@@ -412,9 +437,11 @@ async function route() {
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
       if (!(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
-      const folded = $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher;
+      const folded = $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null; const useUp = folded && $('#tsrcUp')?.checked;
+      if (useUp && !up.C && !up.N) { $('#ws').disabled = false; return tt.update(E('wish.upNone'), 'err'); }
+      if (useUp) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (up.N) nimg = await uploadImg(up.N, k); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
       if (priv) { if ([...txt].length > 100) return toast(E('wish.privateLen'), 'err'); try { cipher = await WTPriv.enc(txt, await WTPriv.key()); } catch (e) { return toast(esc(t('card.unlockFail')) + ' ' + esc(e.message || ''), 'err'); } }
-      let memo; try { memo = await moderateThenMemo('W', encOpt(cat, folded, cover, priv), txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }
+      let memo; try { memo = await moderateThenMemo('W', encOpt(cat, folded, cover, priv, cimg, nimg), txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }
       if ($('#ag2')) localStorage.wt_terms = '1';
       const sig = await submit(memo, 'wish', lam);
       if (sig) {

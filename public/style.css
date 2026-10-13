@@ -170,3 +170,13 @@ body.debug footer.debug-only { display: block !important }
 body:not(.home) .qbtn { display: none }
 .qres { max-height: 40vh; overflow: auto; margin: 8px 0; display: flex; flex-direction: column; gap: 4px } .qhit { text-align: start; white-space: normal }
 .pager { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px } .pager #pgl { flex: 1; text-align: center }
+/* 我的星愿 */
+.mw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
+.mw { position: relative; padding: 0; border-radius: 10px; overflow: hidden; background: #1a1430; border: 1px solid #c9a86a55; text-align: left; color: inherit }
+.mw img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block }
+.mw span { display: block; font-size: 12px; padding: 4px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.mw i { position: absolute; top: 4px; right: 4px; font-style: normal }
+.up-row { display: flex; gap: 10px; margin: 6px 0 }
+.up-box { flex: 1; position: relative; aspect-ratio: 3/4; border: 1.5px dashed #c9a86a; border-radius: 10px; display: grid; place-items: center; cursor: pointer; overflow: hidden; text-align: center; font-size: 13px; padding: 6px }
+.up-box img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.fold-inimg { width: 100%; max-height: 45%; object-fit: cover; border-radius: 8px; display: block; margin-bottom: 8px }
