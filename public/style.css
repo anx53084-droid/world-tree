@@ -130,3 +130,4 @@ body.home:not(.debug) main > .home-spacer { height: calc(100dvh - 100px) }
 body.home:not(.debug) main > .home-spacer { display: none }
 html:has(body.home:not(.debug)), body.home:not(.debug) { overflow: hidden; height: 100dvh; overscroll-behavior: none }
 body.home:not(.debug) footer { position: fixed; left: 0; right: 0; bottom: 0; background: transparent }
+body.debug footer.debug-only { display: block !important }
