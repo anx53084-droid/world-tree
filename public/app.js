@@ -92,6 +92,7 @@ async function parseTx(sig, tx) {
 async function loadWishes(force) {
   if (!force && S.loadedAt && Date.now() - S.loadedAt < 30000) return;
   try {
+    if (QS.get('sample') === '1') throw new Error('sample=1');
     const sigs = await rpc('getSignaturesForAddress', [TREE, { limit: 500 }]);
     const need = sigs.filter(s => !(s.signature in txCache) && !s.err).map(s => s.signature);
     for (let i = 0; i < need.length; i += 10) {
@@ -100,7 +101,6 @@ async function loadWishes(force) {
     }
     try { localStorage.wt_txcache = JSON.stringify(txCache); } catch {}
     S.txs = sigs.map(s => txCache[s.signature]).filter(Boolean); S.offline = false;
-    if (QS.get('sample') === '1') throw new Error('sample=1');
   } catch (e) { S.offline = true; S.offlineMsg = e.message; S.txs = SAMPLE; }
   S.loadedAt = Date.now(); aggregate();
 }
@@ -324,8 +324,9 @@ function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1
     if (/^- /.test(l)) { flush(); if (!list) { html += '<ul>'; list = true; } html += `<li>${inl(l.slice(2))}`; continue; }
     if (list && /^\s+/.test(raw)) { html += '<br>' + inl(l.trim()); continue; }
     if (list) { html += '</ul>'; list = false; } para.push(l); }
-  flush(); if (list) html += '</ul>'; return html.replace(/^<p><b>(《光栖》成立说明)<\/b><\/p>/, '<h1>$1</h1>'); }
-function origin() { fetch('origin.md').then(r => r.text()).then(md => { const el = $('#origin'); if (el) el.innerHTML = mdRender(md); }); return `<article id=origin class=origin lang=zh-CN></article>`; }
+  flush(); if (list) html += '</ul>'; return html.replace(/^<p><b>([^<]+)<\/b><\/p>/, '<h1>$1</h1>'); }
+function origin() { const lang = I18N.lang; fetch(`origin.${lang}.md`).then(r => r.ok ? r.text() : fetch('origin.md').then(r => r.text())).then(md => { const el = $('#origin'); if (el && el.lang === lang) el.innerHTML = mdRender(md); });
+  return `<article id=origin class=origin lang="${lang}" dir="${document.documentElement.dir}"></article>`; }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';

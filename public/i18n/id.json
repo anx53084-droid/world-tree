@@ -225,5 +225,7 @@
 "card.tapOpen": "Ketuk untuk membuka",
 "nav.gq": "Guangqi",
 "nav.gqHome": "Tempat cahaya bersemayam",
-"nav.gqOrigin": "Asal-usul Guangqi"
+"nav.gqOrigin": "Asal-usul Guangqi",
+"err.admin": "Memerlukan izin admin",
+"err.nf": "Tidak ditemukan"
 }

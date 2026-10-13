@@ -223,7 +223,9 @@
 "card.unlock": "ウォレットで解錠",
 "card.unlockFail": "解錠に失敗しました（作者のウォレット署名が必要）",
 "card.tapOpen": "タップして開く",
-"nav.gq": "光栖（コウセイ）",
+"nav.gq": "光栖",
 "nav.gqHome": "光栖の在処",
-"nav.gqOrigin": "光栖の起源"
+"nav.gqOrigin": "光栖の起源",
+"err.admin": "管理者権限が必要です",
+"err.nf": "見つかりません"
 }

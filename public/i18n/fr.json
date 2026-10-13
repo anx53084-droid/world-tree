@@ -225,5 +225,7 @@
 "card.tapOpen": "Toucher pour ouvrir",
 "nav.gq": "Guangqi",
 "nav.gqHome": "Où la lumière se pose",
-"nav.gqOrigin": "Origine de Guangqi"
+"nav.gqOrigin": "Origine de Guangqi",
+"err.admin": "Autorisation d'administrateur requise",
+"err.nf": "Introuvable"
 }

@@ -225,5 +225,7 @@
 "card.tapOpen": "Chạm để mở",
 "nav.gq": "Quang Thê",
 "nav.gqHome": "Nơi ánh sáng trú ngụ",
-"nav.gqOrigin": "Khởi nguồn Quang Thê"
+"nav.gqOrigin": "Khởi nguồn Quang Thê",
+"err.admin": "Cần quyền quản trị viên",
+"err.nf": "Không tìm thấy"
 }

@@ -225,5 +225,7 @@
 "card.tapOpen": "Açmak için dokun",
 "nav.gq": "Guangqi",
 "nav.gqHome": "Işığın konakladığı yer",
-"nav.gqOrigin": "Guangqi'nin kökeni"
+"nav.gqOrigin": "Guangqi'nin kökeni",
+"err.admin": "Yönetici izni gerekli",
+"err.nf": "Bulunamadı"
 }

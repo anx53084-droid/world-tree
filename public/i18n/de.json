@@ -225,5 +225,7 @@
 "card.tapOpen": "Zum Öffnen tippen",
 "nav.gq": "Guangqi",
 "nav.gqHome": "Wo das Licht ruht",
-"nav.gqOrigin": "Ursprung von Guangqi"
+"nav.gqOrigin": "Ursprung von Guangqi",
+"err.admin": "Administratorrechte erforderlich",
+"err.nf": "Nicht gefunden"
 }

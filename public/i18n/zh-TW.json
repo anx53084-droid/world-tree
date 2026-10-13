@@ -225,5 +225,7 @@
 "card.tapOpen": "點開查看",
 "nav.gq": "光棲",
 "nav.gqHome": "光棲之處",
-"nav.gqOrigin": "光棲起源"
+"nav.gqOrigin": "光棲起源",
+"err.admin": "需要管理員權限",
+"err.nf": "找不到"
 }

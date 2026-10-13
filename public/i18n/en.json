@@ -225,5 +225,7 @@
 "card.tapOpen": "Tap to open",
 "nav.gq": "Guangqi",
 "nav.gqHome": "Where Light Rests",
-"nav.gqOrigin": "Origin of Guangqi"
+"nav.gqOrigin": "Origin of Guangqi",
+"err.admin": "Admin permission required",
+"err.nf": "Not found"
 }
