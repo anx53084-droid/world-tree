@@ -170,6 +170,9 @@ async function api(req, res, url) {
     }
     return send(res, 404, { error: 'not found' });
   }
+  if (url === '/api/admin/notice' && req.method === 'GET') { if (!Fulfill.ADMIN_KEY || !Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' }); return send(res, 200, { items: db.sys || [] }); }
+  if (url === '/api/admin/notice/delete' && req.method === 'POST') { if (!Fulfill.ADMIN_KEY || !Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' });
+    const { id } = await body(req), n = (db.sys || []).length; db.sys = (db.sys || []).filter(m => m.id !== id); save(db); return send(res, 200, { ok: true, deleted: n - db.sys.length }); }
   if (url === '/api/admin/notice' && req.method === 'POST') { // 系统通知（星愿大使/运营后台）：所有开启「系统通知」的用户可见
     if (!Fulfill.ADMIN_KEY || !Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' });
     const b = await body(req); if (typeof b.title !== 'string' || !b.title.trim()) return send(res, 400, { error: 'title required', code: 'param' });

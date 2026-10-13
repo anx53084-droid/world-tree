@@ -152,4 +152,4 @@ server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账
 - **登录**：EIP-4361 风格消息（一次性 nonce，5 分钟有效，校验域名）。EVM 用 `personal_sign`（服务器 secp256k1 恢复地址），Solana 用 `signMessage`（ed25519）。愿望仍以 Solana devnet 为唯一事实来源：EVM 账户由服务器托管一个 devnet 密钥签 memo（演示）。
 - **EVM 支付**：设置 `EVM_DEV_ADDRESS` 与 `EVM_TREASURY_ADDRESS` 后开启；用户钱包直接发送两笔原生币转账（20% / 80%），服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、比例、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
 - **安全设置** `#/security`：已登录设备列表、单独退出 / 退出其他所有设备；邮箱验证（需 `RESEND_API_KEY` + `MAIL_FROM`）；邮箱账户可选 TOTP（Google Authenticator，RFC 6238）；大额支付确认（默认 ≥ 20 美元，开启 2FA 时需验证码，服务器同样校验）。
-- **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记还愿时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（均需 `x-admin-key`）。
+- **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记还愿时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（`GET /api/admin/notice` 列表、`POST /api/admin/notice/delete {id}` 删除）（均需 `x-admin-key`）。
