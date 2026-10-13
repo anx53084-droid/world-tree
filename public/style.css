@@ -118,3 +118,10 @@ body.menu-open { overflow: hidden }
 .scene .scene-ui, .scene .scene-nav { top: calc(var(--hdr, 52px) + 6px) } body.home #banner { margin-top: 52px }
 @media (max-width: 700px) { #menu { width: 82vw; padding: 76px 26px 32px } .logo { padding-inline-end: 6px } .scene .scene-ui { top: calc(var(--hdr, 52px) + 6px) } .scene .scene-nav { top: calc(var(--hdr, 52px) + 40px) } }
 body.home #banner { margin-top: 52px }
+
+/* 调试控件：默认隐藏；body.debug（?debug=1 / localStorage wt_debug=1）时显示 */
+.debug-only { display: none !important; }
+body.debug .scene-ui.debug-only { display: flex !important; }
+body.debug .scene-nav.debug-only, body.debug .home-dock.debug-only { display: block !important; }
+body.home:not(.debug) main > .home-spacer { height: calc(100dvh - 100px) }
+@media (max-width: 700px) { body.home:not(.debug) main > .home-spacer { height: calc(100dvh - 120px) } }

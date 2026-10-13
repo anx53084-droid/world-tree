@@ -353,7 +353,7 @@ export function update(wishes, pickCb, opts = {}) { // wishes：真实愿望（�
   if (changed) { tiles.clear(); countsCache.clear(); if (A.count(focus, N) <= A.HANG) focus = ''; buildView(focus); } else renderNav();
 }
 export function attach(el) { slot = el; if (!renderer) init(); el.appendChild(renderer.domElement);
-  if (!navEl) { navEl = document.createElement('div'); navEl.className = 'scene-nav'; navEl.addEventListener('click', onNavClick); } el.appendChild(navEl); renderNav(); resize(); }
+  if (!navEl) { navEl = document.createElement('div'); navEl.className = 'scene-nav debug-only'; navEl.addEventListener('click', onNavClick); } else navEl.classList.add('debug-only'); el.appendChild(navEl); renderNav(); resize(); }
 let framed = false;
 function resize() { if (!slot) return; const w = slot.clientWidth || innerWidth, h = slot.clientHeight || innerHeight; renderer.setSize(w, h); composer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
   if (!framed) { framed = true; const s = treeGroup.scale.x; controls.target.set(0, (camera.aspect < 1 ? 5.2 : 6.6) * s, 0); camera.position.copy(controls.target).addScaledVector(HOME_DIR(), camDist() * s); } }

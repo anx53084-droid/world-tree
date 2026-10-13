@@ -26,6 +26,15 @@ const QS = new URLSearchParams(location.search);
 const S = { stress: QS.has('stress') ? QS.get('stress') !== '0' : localStorage.wt_stress === '1', total: Math.min(2.75e11, Math.floor(+QS.get('stress') || +localStorage.wt_total || 1e11)), mode: 'guest', pubkey: null, email: null, token: localStorage.wt_token || null, txs: [], wishes: [], hidden: 0, offline: false, pending: [],
   history: JSON.parse(localStorage.wt_hist || '[]'), cfg: { minLamports: 6666667, solUsd: 150, priceSource: 'fallback', developer: '', treasury: '', moderator: window.WT_CONFIG?.moderatorPubkeyHex }, words: null, season: null, fulfill: {}, fulfillToast: JSON.parse(localStorage.wt_ful_toast || '{}') };
 const saveHist = () => localStorage.wt_hist = JSON.stringify(S.history.slice(0, 100));
+// 调试控件：?debug=1|true 开启并写入 localStorage；?debug=0|false 清除；默认隐藏
+(function applyDebug() {
+  if (QS.has('debug')) {
+    const v = String(QS.get('debug') || '').toLowerCase();
+    if (v === '0' || v === 'false') localStorage.removeItem('wt_debug');
+    else localStorage.wt_debug = '1';
+  }
+  document.body.classList.toggle('debug', localStorage.wt_debug === '1');
+})();
 
 // ---------- 星空背景：CSS Paint Worklet，回退 canvas（同算法：上限 180、密度≤2.5、按尺寸播种、count≤0 直接返回） ----------
 (function sky() {
@@ -226,9 +235,9 @@ const E = (k, v) => esc(t(k, v)); // 转义后的翻译文本
 const prevail = () => I18N.isZh() ? '' : `<p class="notice prevail">⚖️ ${E('legal.prevail')}</p>`;
 function home() {
   const hot = [...S.wishes].sort((a, b) => b.heat - a.heat).slice(0, 5), cur = S.season || autoSeason();
-  return `<div class=scene id=scene><div class=scene-ui>${SEASON_KEYS.map(k => `<button data-season=${k} class="${k === cur ? 'on' : ''}">${E('season.' + k)}${k === autoSeason() ? E('season.current') : ''}</button>`).join('')}</div></div>
+  return `<div class=scene id=scene><div class="scene-ui debug-only">${SEASON_KEYS.map(k => `<button data-season=${k} class="${k === cur ? 'on' : ''}">${E('season.' + k)}${k === autoSeason() ? E('season.current') : ''}</button>`).join('')}</div></div>
   <div class=home-spacer></div>
-  <div class="home-dock"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
+  <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
   <input id=sid placeholder="${E('home.jumpPh')}" style="flex:1;min-width:160px"><button>${E('home.locate')}</button></form>
   <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.stage', { stage: stageName(stageOf(S.stress ? S.total : S.wishes.length)) })}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
   <div class=scene-hint>${E('home.hint')} · <a href="#lists" onclick="document.getElementById('lists').scrollIntoView({behavior:'smooth'});return false">⌄ ${E('home.rank')}</a></div></div>
