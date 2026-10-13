@@ -128,5 +128,5 @@ body.debug .scene-nav.debug-only, body.debug .home-dock.debug-only { display: bl
 body.home:not(.debug) main > .home-spacer { height: calc(100dvh - 100px) }
 @media (max-width: 700px) { body.home:not(.debug) main > .home-spacer { height: calc(100dvh - 120px) } }
 body.home:not(.debug) main > .home-spacer { display: none }
-body.home:not(.debug) { overflow: hidden; height: 100dvh }
+html:has(body.home:not(.debug)), body.home:not(.debug) { overflow: hidden; height: 100dvh; overscroll-behavior: none }
 body.home:not(.debug) footer { position: fixed; left: 0; right: 0; bottom: 0; background: transparent }
