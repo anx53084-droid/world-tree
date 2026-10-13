@@ -146,3 +146,10 @@ server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账
 - 构建脚本生成 `public/config.js`（`apiBase` = `https://world-tree-ijv1.onrender.com`，审核公钥内置）与 `public/_headers`（`x-wt` 供 Service Worker 识别）。可用 Pages 环境变量 `WT_API_BASE` / `WT_MODERATOR_PUBKEY` 覆盖。
 - 服务器 CORS：默认允许 `https://world-tree.pages.dev` 及其预览子域（`<hash>.world-tree.pages.dev`）；前端由 GitHub Actions（.github/workflows/pages.yml）在 push main 时自动部署；自定义域名加到 Render 环境变量 `ALLOWED_ORIGINS`（逗号分隔），或用 `CORS_ORIGIN_RE` 覆盖规则。鉴权使用 Bearer token（localStorage），不依赖 cookie。
 - 冷启动：前端静态资源由 Cloudflare 提供，树立即渲染；`/api` 幂等请求在服务器唤醒期间自动重试（≤90s），显示「正在唤醒服务器」提示；链上读取超时后浏览器直连 devnet。
+
+## 多链钱包 · 安全设置 · 站内信
+- **钱包**（非托管，只请求签名）：Solana — Phantom / Solflare / Backpack / OKX（Wallet Standard 优先，注入式回退）；EVM — MetaMask / OKX / Coinbase / 任意 EIP-6963 钱包，可切换 BSC Testnet、Base Sepolia、Sepolia、Arbitrum Sepolia。移动端未检测到钱包时用各钱包深链接在其内置浏览器打开本站。
+- **登录**：EIP-4361 风格消息（一次性 nonce，5 分钟有效，校验域名）。EVM 用 `personal_sign`（服务器 secp256k1 恢复地址），Solana 用 `signMessage`（ed25519）。愿望仍以 Solana devnet 为唯一事实来源：EVM 账户由服务器托管一个 devnet 密钥签 memo（演示）。
+- **EVM 支付**：设置 `EVM_DEV_ADDRESS` 与 `EVM_TREASURY_ADDRESS` 后开启；用户钱包直接发送两笔原生币转账（20% / 80%），服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、比例、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
+- **安全设置** `#/security`：已登录设备列表、单独退出 / 退出其他所有设备；邮箱验证（需 `RESEND_API_KEY` + `MAIL_FROM`）；邮箱账户可选 TOTP（Google Authenticator，RFC 6238）；大额支付确认（默认 ≥ 20 美元，开启 2FA 时需验证码，服务器同样校验）。
+- **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记还愿时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（均需 `x-admin-key`）。

@@ -188,3 +188,16 @@ button.link { background: none; border: none; color: #c9a86a; text-decoration: u
 #sync[hidden] { display: none }
 #waking { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 40; background: #2a1d0ecc; border: 1px solid #c9a86a88; color: #f3e2b8; font-size: 12px; padding: 5px 14px; border-radius: 14px; pointer-events: none }
 #waking[hidden] { display: none }
+
+/* 钱包 / 站内信 / 安全设置 */
+.hdr-r { display: inline-flex; align-items: center; gap: 2px }
+.bell { position: relative } .bell[hidden] { display: none }
+#bellN { position: absolute; top: 3px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: #ff4d6d; color: #fff; font: 700 10px/16px sans-serif; text-align: center }
+#bellN[hidden] { display: none }
+.tabs { gap: 6px; margin: 4px 0 10px } .tabs button.on { background: #7ee78733; border-color: #7ee787 }
+.wlist { display: grid; gap: 8px; margin: 8px 0 }
+.witem { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; padding: 10px 12px } .witem img, .witem i { width: 24px; height: 24px; border-radius: 6px; font-style: normal; display: grid; place-items: center }
+.witem b { flex: 1 } .witem.off { opacity: .75 }
+.dev { padding: 8px 0; border-bottom: 1px solid #ffffff14; flex-wrap: nowrap }
+.msg { cursor: default } .msg.unread { border-color: #ffd36e88; cursor: pointer } .msg .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff4d6d; margin-inline-end: 6px; vertical-align: middle }
+.totpkey { word-break: break-all; letter-spacing: .5px } .ntf { align-items: flex-start; margin: 10px 0 } .evpay { margin: 8px 0 } .evpay label { display: inline-block; margin: 4px 8px 4px 0 }

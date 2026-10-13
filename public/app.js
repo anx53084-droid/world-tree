@@ -47,7 +47,7 @@ const WTPriv = window.WTPriv = {
   msg: pk => new TextEncoder().encode(`WorldTree private card key v1\n${pk}`),
   async keyFromSig(sigBytes) { return crypto.subtle.importKey('raw', await crypto.subtle.digest('SHA-256', sigBytes), 'AES-GCM', false, ['encrypt', 'decrypt']); },
   async key() { if (S.privKey && S.privKey.pk === S.pubkey) return S.privKey.k; let k;
-    if (S.mode === 'self') { const r = await window.phantom.solana.signMessage(WTPriv.msg(S.pubkey), 'utf8'); k = await WTPriv.keyFromSig(r.signature || r); }
+    if (S.mode === 'self') { const sg = await (await solWallet()).signMessage(WTPriv.msg(S.pubkey)); k = await WTPriv.keyFromSig(sg); }
     else if (S.mode === 'host') { const r = await api('/api/privkey', {}); k = await WTPriv.keyFromSig(hex2b(r.key)); } else throw new Error('login');
     S.privKey = { pk: S.pubkey, k }; return k; },
   async enc(text, k) { const iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(text))); const u = new Uint8Array(12 + ct.length); u.set(iv); u.set(ct, 12); return 'E1:' + b64(u); },
@@ -165,7 +165,7 @@ async function moderateThenMemo(kind, prefix, text, cipher) { // 先审核（上
   if (!r.pass) { const msg = r.category ? `${esc(t('mod.reject'))}<br><span class=reject>${esc(t('mod.hitCategory', { cat: modCat(r.category) }))}</span>` : esc(tErr(r.code, r.message) || t('mod.reject')); throw Object.assign(new Error(msg), { html: true }); }
   const a = r.attestation; return `WTREE1|${kind}|${a.hash}|${a.ts}|${a.sig}|${prefix}|${cipher || text}`;
 }
-async function submit(memo, lk, lamports = 0) { const label = t('label.' + lk);
+async function submit(memo, lk, lamports = 0, extra = {}) { const label = t('label.' + lk);
   if (S.mode === 'guest') { toast(esc(t('tx.needLogin')), 'err'); return; }
   const tt = toast(esc(t('tx.waitSign', { label })));
   try {
@@ -173,10 +173,10 @@ async function submit(memo, lk, lamports = 0) { const label = t('label.' + lk);
     if (S.mode === 'self') { await needW3(); // 自托管：Phantom 签名并发送，私钥永不离开钱包
       const conn = new W3.Connection(RPC_WRITE, 'confirmed'), tx = memoTx(S.pubkey, memo, lamports);
       const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(); tx.recentBlockhash = blockhash; tx.feePayer = new W3.PublicKey(S.pubkey);
-      ({ signature: sig } = await window.phantom.solana.signAndSendTransaction(tx));
+      const sr = await (await solWallet()).signAndSend(tx); sig = sr?.raw ? await conn.sendRawTransaction(sr.raw) : sr;
       addPending(sig, memo, lamports); tt.update(`${esc(t('tx.submitted', { label }))} <a target=_blank href="${EXPLORER(sig)}">${short(sig)}</a>`);
       await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
-    } else { tt.update(esc(t('tx.hostSigning', { label }))); sig = (await api('/api/memo', { memo, lamports })).signature; addPending(sig, memo, lamports); }
+    } else { tt.update(esc(t('tx.hostSigning', { label }))); sig = (await api('/api/memo', { memo, lamports, ...extra })).signature; addPending(sig, memo, lamports); }
     tt.update(`✅ ${esc(t('tx.confirmed', { label }))} <a target=_blank href="${EXPLORER(sig)}">${esc(t('tx.viewTx'))}</a>`, 'ok');
     S.history.unshift({ sig, memo, label: lk, lamports, mode: S.mode, who: S.pubkey, at: Date.now(), status: 'ok' }); saveHist();
     await addConfirmed(sig); return sig;
@@ -204,29 +204,116 @@ function softRefresh() { // 原地更新：首页只更新 3D 实例；列表/�
   const mm = $('#mine'); if (mm) { const h = mineBlock(); if (mm._h === undefined) mm._h = mm.innerHTML && h; if (mm._h !== h) { mm._h = h; mm.innerHTML = h; bindMine(); } } }
 async function api(url, data) {
   const r = await fetch(url, { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') }, body: data ? JSON.stringify(data) : undefined });
-  const j = await r.json(); if (!r.ok || j.error) throw new Error(tErr(j.code, j.detail) || j.error || r.status); return j;
+  const j = await r.json(); if (!r.ok || j.error) throw Object.assign(new Error(tErr(j.code, j.detail) || j.error || r.status), { code: j.code, status: r.status, data: j }); return j;
 }
 
-// ---------- 登录 ----------
-async function connectPhantom() {
-  const p = window.phantom?.solana; if (!p?.isPhantom) { window.open('https://phantom.app/', '_blank'); return toast(esc(t('login.noPhantom')), 'err'); }
-  const r = await p.connect(); S.mode = 'self'; S.pubkey = r.publicKey.toString(); S.email = null; renderMode(); route();
+// ---------- 登录：多链钱包（非托管）+ 邮箱 ----------
+// Solana：Phantom / Solflare / Backpack / OKX（Wallet Standard 优先）；EVM：MetaMask / OKX / Coinbase / EIP-6963 注入钱包（BSC、Base、Ethereum、Arbitrum 测试网）
+const EVM_KEYS = { 97: 'bsc', 84532: 'base', 11155111: 'eth', 421614: 'arb' };
+const evmChains = () => S.cfg.evm?.chains || { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB' }, 84532: { key: 'base', name: 'Base Sepolia', sym: 'ETH' }, 11155111: { key: 'eth', name: 'Sepolia', sym: 'ETH' }, 421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH' } };
+function siweMsg(kind, addr, nonce, chainId) { return `${location.host} wants you to sign in with your ${kind} account:\n${addr}\n\nSign in to World Tree. This request will not trigger a transaction or cost any fees.\n\nURI: ${location.origin}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`; }
+function setSession(r) { S.token = localStorage.wt_token = r.token; S.kind = r.kind; S.email = r.email; S.evmAddr = r.evm; S.totp = r.totp; S.verified = r.verified; S.largeUsd = r.largeUsd || S.largeUsd; }
+async function solWallet() { if (S.wallet) return S.wallet; const id = localStorage.wt_wallet, w = WTW.solWallets().find(x => x.id === id && x.installed);
+  if (!w) throw new Error(t('wal.reconnect')); const a = w.adapter(); const pk = await a.connect(false); if (pk !== S.pubkey) throw new Error(t('wal.reconnect')); S.wallet = a; return a; }
+async function siws() { // Sign-In-With-Solana：签名消息换取会话（用于站内信、安全设置）
+  const w = await solWallet(), { nonce } = await api('/api/nonce'), m = siweMsg('Solana', S.pubkey, nonce, 'devnet');
+  const sg = await w.signMessage(new TextEncoder().encode(m)); const r = await api('/api/login/wallet', { message: m, signature: WTW.b58(sg) }); setSession(r); renderMode(); loadBell(); return r; }
+function walletItem(w, kind) { return `<button type=button class="witem${w.installed ? '' : ' off'}" data-k=${kind} data-w="${esc(w.id)}">${w.icon ? `<img src="${esc(w.icon)}" alt="" width=24 height=24>` : '<i>◎</i>'}<b>${esc(w.name)}</b><span class=muted>${w.installed ? '' : WTW.mobile() ? E('wal.open') : E('wal.install')}</span></button>`; }
+function connectWallet(tab) {
+  tab = tab || localStorage.wt_wtab || 'sol'; const ch = localStorage.wt_chain || '84532', C = evmChains();
+  modal(`<h3 style="margin-top:0">${E('wal.title')}</h3><div class="row tabs"><button type=button data-tab=sol class="${tab === 'sol' ? 'on' : ''}">◎ Solana</button><button type=button data-tab=evm class="${tab === 'evm' ? 'on' : ''}">⬡ ${E('wal.evm')}</button></div>
+    ${tab === 'sol' ? `<p class=muted>${E('wal.solHint')}</p><div class=wlist>${WTW.solWallets().map(w => walletItem(w, 'sol')).join('')}</div>`
+    : `<label>${E('wal.chain')} <select id=wch>${Object.entries(C).map(([id, c]) => `<option value=${id} ${id === ch ? 'selected' : ''}>${esc(t('chain.' + (c.key || EVM_KEYS[id])))} · ${esc(c.name)}</option>`).join('')}</select></label>
+      <p class=muted>${E('wal.evmHint')} ${S.cfg.evm?.pay ? '' : E('wal.evmPayOff')}</p><div class=wlist>${WTW.evmWallets().map(w => walletItem(w, 'evm')).join('')}</div>`}
+    <p class=muted style="font-size:12px">🔐 ${E('wal.nonCustody')}</p><div class=row style="justify-content:flex-end"><button data-close>${E('common.cancel')}</button></div>`);
+  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { localStorage.wt_wtab = b.dataset.tab; connectWallet(b.dataset.tab); });
+  $('#wch')?.addEventListener('change', e => localStorage.wt_chain = e.target.value);
+  document.querySelectorAll('.witem').forEach(b => b.onclick = () => (b.dataset.k === 'sol' ? connectSol : connectEvm)(b.dataset.w));
 }
-function emailLogin() {
-  modal(`<h3>${esc(t('login.emailTitle'))}</h3><p class="notice">⚠️ ${esc(t('login.emailWarn'))}</p>
-    <input id=em type=email placeholder="you@example.com" style="width:100%" dir=ltr><div class=row style="margin-top:12px"><button class=primary id=emok>${esc(t('login.btn'))}</button><button data-close>${esc(t('common.cancel'))}</button></div>`);
-  $('#emok').onclick = async () => { try { const r = await api('/api/login', { email: $('#em').value.trim() }); S.token = localStorage.wt_token = r.token; S.mode = 'host'; S.email = r.email; S.pubkey = r.pubkey; closeModal(); renderMode(); route(); toast(esc(t('login.ok', { addr: short(r.pubkey) })), 'ok'); }
-    catch (e) { toast(esc(t('login.fail', { msg: e.message })), 'err'); } };
+const connectPhantom = () => connectWallet('sol');
+async function connectSol(id) { const w = WTW.solWallets().find(x => x.id === id); if (!w) return;
+  if (!w.installed) { if (WTW.mobile()) location.href = w.deep(); else window.open(w.site, '_blank'); return; }
+  try { const a = w.adapter(), pk = await a.connect(false); closeModal();
+    if (S.mode === 'host' && S.token) await logout(true);
+    S.mode = 'self'; S.kind = 'sol'; S.pubkey = pk; S.email = null; S.wallet = a; localStorage.wt_wallet = id; renderMode(); route(); toast(esc(t('wal.ok', { addr: short(pk) })), 'ok');
+    try { toast(esc(t('wal.signing'))); await siws(); } catch { toast(esc(t('wal.signLater')), ''); } }
+  catch (e) { toast(esc(t('wal.fail', { msg: e.message || e })), 'err'); } }
+async function evmProvider() { if (S.evmProv) return S.evmProv; const w = WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed) || WTW.evmWallets().find(x => x.installed); if (!w) throw new Error(t('wish.evmNoWallet'));
+  const [a] = await w.provider.request({ method: 'eth_requestAccounts' }); if ((a || '').toLowerCase() !== S.evmAddr) throw new Error(t('wish.evmNoWallet')); return S.evmProv = w.provider; }
+async function connectEvm(id) { const w = WTW.evmWallets().find(x => x.id === id); if (!w) return;
+  if (!w.installed) { if (WTW.mobile()) location.href = w.deep(); else window.open(w.site, '_blank'); return; }
+  const chain = $('#wch')?.value || localStorage.wt_chain || '84532', p = w.provider;
+  try { const [addr] = await p.request({ method: 'eth_requestAccounts' }); closeModal(); const tt = toast(esc(t('wal.signing')));
+    try { await WTW.switchChain(p, chain, evmChains()[chain]); } catch {} // 切换网络失败不影响登录
+    const { nonce } = await api('/api/nonce'), m = siweMsg('Ethereum', addr, nonce, chain);
+    const sg = await p.request({ method: 'personal_sign', params: [WTW.hexOf(m), addr] });
+    const r = await api('/api/login/wallet', { message: m, signature: sg }); S.wallet = null; setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.evmProv = p; localStorage.wt_evm = id; localStorage.wt_chain = chain; localStorage.removeItem('wt_wallet');
+    renderMode(); route(); loadBell(); tt.update(esc(t('wal.ok', { addr: short(addr) })), 'ok'); }
+  catch (e) { toast(esc(t('wal.fail', { msg: e.message || e })), 'err'); } }
+function emailLogin(needTotp, em0) {
+  modal(`<h3>${esc(t(needTotp ? 'login.totpTitle' : 'login.emailTitle'))}</h3>${needTotp ? '' : `<p class="notice">⚠️ ${esc(t('login.emailWarn'))}</p>`}
+    <input id=em type=email placeholder="you@example.com" style="width:100%" dir=ltr value="${esc(em0 || '')}" ${needTotp ? 'hidden' : ''}>${needTotp ? `<input id=emt inputmode=numeric autocomplete=one-time-code maxlength=6 placeholder="${E('login.totpPh')}" style="width:100%">` : ''}
+    <div class=row style="margin-top:12px"><button class=primary id=emok>${esc(t('login.btn'))}</button><button data-close>${esc(t('common.cancel'))}</button></div>`);
+  $('#emok').onclick = async () => { const email = $('#em').value.trim(); try { const r = await api('/api/login', { email, totp: $('#emt')?.value.trim() || undefined }); setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.wallet = null; closeModal(); renderMode(); route(); loadBell(); toast(esc(t('login.ok', { addr: short(r.pubkey) })), 'ok'); }
+    catch (e) { if (e.code === 'totp') return emailLogin(true, email); toast(esc(t('login.fail', { msg: e.message })), 'err'); } };
 }
-async function logout() { if (S.mode === 'host') await api('/api/logout', {}).catch(() => {}); if (S.mode === 'self') window.phantom?.solana?.disconnect?.(); S.mode = 'guest'; S.pubkey = S.email = S.token = null; localStorage.removeItem('wt_token'); renderMode(); route(); }
+async function logout(quiet) { if (S.token) await api('/api/logout', {}).catch(() => {}); if (S.wallet) S.wallet.disconnect?.(); S.wallet = S.evmProv = null; localStorage.removeItem('wt_wallet');
+  S.token = null; localStorage.removeItem('wt_token'); S.kind = S.evmAddr = null; S.bell = 0; if (quiet === true) return; S.mode = 'guest'; S.pubkey = S.email = null; renderMode(); route(); paintBell(); }
+// 大额支付确认：金额 ≥ 阈值时弹窗确认；开启两步验证的邮箱账户需输入验证码（服务器同样校验）
+function confirmLarge(usd, amt) { const lim = S.largeUsd || S.cfg.largeUsdDefault || 20; if (!(usd >= lim)) return Promise.resolve({});
+  return new Promise(res => { modal(`<h3 style="margin-top:0">⚠️ ${E('large.title')}</h3><p>${E('large.body', { usd: usd.toFixed(2), amt })}</p>${S.totp && S.mode === 'host' ? `<input id=lgt inputmode=numeric maxlength=6 autocomplete=one-time-code placeholder="${E('large.totp')}" style="width:100%">` : ''}
+    <div class=row style="margin-top:12px"><button class=primary id=lgok>${E('large.ok')}</button><button id=lgno>${E('common.cancel')}</button></div>`);
+    $('#lgok').onclick = () => { const c = $('#lgt')?.value.trim(); closeModal(); res({ confirmLarge: true, totp: c }); }; $('#lgno').onclick = () => { closeModal(); res(null); }; }); }
+// ---------- 站内信铃铛（打开页面与打开菜单时获取；不轮询）----------
+function paintBell() { const b = $('#bell'); if (!b) return; b.hidden = !S.token; const n = S.bell || 0, c = $('#bellN'); c.textContent = n > 99 ? '99+' : n; c.hidden = !n; b.title = t('inbox.bell', { n }); b.setAttribute('aria-label', b.title); }
+async function loadBell() { if (!S.token) return paintBell(); try { const r = await api('/api/inbox'); S.inbox = r.items; S.bell = r.unread; } catch {} paintBell(); }
 async function airdrop() { const tt = toast(esc(t('airdrop.req'))); try { const r = await api('/api/airdrop', {}); tt.update(esc(t('airdrop.ok', { sig: short(r.signature) })), 'ok'); } catch (e) { tt.update(esc(e.message), 'err'); } }
 function renderMode() {
-  const m = { guest: `<span class="badge">${esc(t('mode.guest'))}</span>`, self: `<span class="badge b-self">${esc(t('mode.self', { addr: short(S.pubkey) }))}</span>`, host: `<span class="badge b-host">${esc(t('mode.host', { email: S.email, addr: short(S.pubkey) }))}</span>` }[S.mode];
-  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.phantom'))}</button><button id=be class=mlink>${esc(t('btn.email'))}</button>` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + `<button id=bo class=mlink>${esc(t('btn.logout'))}</button>`);
-  $('#bp')?.addEventListener('click', connectPhantom); $('#be')?.addEventListener('click', emailLogin); $('#bo')?.addEventListener('click', logout); $('#ba')?.addEventListener('click', airdrop);
+  const m = { guest: `<span class="badge">${esc(t('mode.guest'))}</span>`, self: `<span class="badge b-self">${esc(t('mode.self', { wallet: S.wallet?.name || (WTW.solWallets().find(w => w.id === localStorage.wt_wallet)?.name) || 'Solana', addr: short(S.pubkey) }))}</span>`, host: `<span class="badge b-host">${esc(S.kind === 'evm' ? t('mode.evm', { addr: short(S.evmAddr || ''), sol: short(S.pubkey) }) : t('mode.host', { email: S.email, addr: short(S.pubkey) }))}</span>` }[S.mode];
+  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.wallet'))}</button><button id=be class=mlink>${esc(t('btn.email'))}</button>` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + `<button id=bo class=mlink>${esc(t('btn.logout'))}</button>`);
+  $('#bp')?.addEventListener('click', () => connectWallet()); $('#be')?.addEventListener('click', () => emailLogin()); $('#bo')?.addEventListener('click', logout); $('#ba')?.addEventListener('click', airdrop);
 }
 
 
+// ---------- 安全设置 / 站内信 / 消息设置（打开页面时获取一次）----------
+const devName = ua => { if (!ua) return t('sec.unknownDevice'); const b = /Edg\//.test(ua) ? 'Edge' : /OPR\/|Opera/.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : /node|curl/i.test(ua) ? 'API' : '';
+  const o = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : ''; return [b, o].filter(Boolean).join(' · ') || t('sec.unknownDevice'); };
+const fmtMs = ms => ms ? new Date(ms).toLocaleString(I18N.locale(), { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+const needSession = title => S.mode === 'guest' ? `<h2>${title}</h2><div class=card>${E('sec.needLogin')}</div>` : !S.token ? `<h2>${title}</h2><div class=card><p>${E('sec.needSign')}</p><button id=siws class=primary>${E('wal.siws')}</button></div>` : '';
+function bindSiws() { $('#siws')?.addEventListener('click', async () => { try { await siws(); route(); } catch (e) { toast(esc(t('wal.fail', { msg: e.message || e })), 'err'); } }); }
+const security = () => needSession(E('sec.title')) || `<h2>${E('sec.title')}</h2><div id=secbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
+async function loadSec() { const box = $('#secbox'); if (!box) return bindSiws(); let d; try { d = await api('/api/security'); } catch (e) { box.innerHTML = `<p class=muted>${esc(e.message)}</p>`; return; }
+  S.totp = d.totp; S.verified = d.verified; S.largeUsd = d.largeUsd; const email = d.kind === 'email';
+  box.innerHTML = `<section class=card><h3>📱 ${E('sec.devices')}</h3>${d.sessions.map(x => `<div class="row dev"><div style="flex:1;min-width:0"><b>${esc(devName(x.ua))}</b> ${x.current ? `<span class=tag>${E('sec.current')}</span>` : ''}<div class=muted style="font-size:12px">${E('sec.lastActive', { t: fmtMs(x.last || x.at) })}</div></div>${x.current ? '' : `<button data-rv="${esc(x.id)}">${E('sec.signOut')}</button>`}</div>`).join('')}
+    ${d.sessions.length > 1 ? `<button id=rvall class=primary style="margin-top:8px">${E('sec.signOutOthers')}</button>` : ''}</section>
+  ${email ? `<section class=card><h3>✉️ ${E('sec.email')}</h3><p>${esc(d.email)} · ${d.verified ? `<span class=tag>✅ ${E('sec.verified')}</span>` : `<span class=tag>${E('sec.unverified')}</span>`}</p>
+    ${d.verified ? '' : d.mail ? `<div class=row><button id=evs>${E('sec.sendCode')}</button><input id=evc inputmode=numeric maxlength=6 autocomplete=one-time-code placeholder="${E('sec.codePh')}" style="width:130px"><button id=evv class=primary>${E('sec.verify')}</button></div>` : `<p class=muted>${E('sec.mailOff')}</p>`}</section>` : ''}
+  <section class=card><h3>🔑 ${E('sec.totp')}</h3>${email ? `<p>${d.totp ? `<span class=tag>✅ ${E('sec.totpOn')}</span>` : `<span class=tag>${E('sec.totpOff')}</span>`}</p><div id=totpbox>${d.totp
+      ? `<div class=row><input id=tdc inputmode=numeric maxlength=6 placeholder="${E('sec.codePh')}" style="width:130px"><button id=tdis>${E('sec.totpDisable')}</button></div>` : `<button id=tset class=primary>${E('sec.totpEnable')}</button>`}</div>` : `<p class=muted>${E('sec.totpEmailOnly')}</p>`}</section>
+  <section class=card><h3>💳 ${E('sec.large')}</h3><p class=muted>${E('sec.largeHint', { usd: d.largeUsd, totp: d.totp ? E('sec.largeTotp') : '' })}</p><div class=row><label>USD <input id=lgu type=number min=1 max=100000 value=${d.largeUsd} style="width:110px"></label><button id=lgs>${E('sec.save')}</button></div></section>`;
+  box.querySelectorAll('[data-rv]').forEach(b => b.onclick = async () => { await api('/api/sessions/revoke', { id: b.dataset.rv }).catch(e => toast(esc(e.message), 'err')); loadSec(); });
+  $('#rvall')?.addEventListener('click', async () => { try { const r = await api('/api/sessions/revoke', { others: true }); toast(esc(t('sec.revoked', { n: r.revoked })), 'ok'); } catch (e) { toast(esc(e.message), 'err'); } loadSec(); });
+  $('#evs')?.addEventListener('click', async () => { try { const r = await api('/api/email/send', {}); toast(esc(t('sec.codeSent', { email: d.email })), 'ok'); if (r.devCode) $('#evc').value = r.devCode; } catch (e) { toast(esc(e.message), 'err'); } });
+  $('#evv')?.addEventListener('click', async () => { try { await api('/api/email/verify', { code: $('#evc').value.trim() }); toast('✅ ' + E('sec.verified'), 'ok'); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } });
+  $('#tset')?.addEventListener('click', async () => { try { const r = await api('/api/2fa/setup', {});
+    $('#totpbox').innerHTML = `<p class=muted>${E('sec.totpStep')}</p><p><a class=btn href="${esc(r.uri)}">${E('sec.totpOpen')}</a></p><p>${E('sec.totpKey')} <code class=totpkey>${esc(r.secret.replace(/(.{4})/g, '$1 ').trim())}</code></p>
+      <div class=row><input id=tec inputmode=numeric maxlength=6 autocomplete=one-time-code placeholder="${E('sec.codePh')}" style="width:130px"><button id=ten class=primary>${E('sec.verify')}</button></div>`;
+    $('#ten').onclick = async () => { try { await api('/api/2fa/enable', { code: $('#tec').value.trim() }); toast('✅ ' + E('sec.totpOn'), 'ok'); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } }; } catch (e) { toast(esc(e.message), 'err'); } });
+  $('#tdis')?.addEventListener('click', async () => { try { await api('/api/2fa/disable', { code: $('#tdc').value.trim() }); toast(E('sec.totpOff'), 'ok'); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } });
+  $('#lgs')?.addEventListener('click', async () => { try { const r = await api('/api/security/large', { usd: +$('#lgu').value }); S.largeUsd = r.largeUsd; toast(E('sec.saved'), 'ok'); } catch (e) { toast(esc(e.message), 'err'); } }); }
+const inboxPage = () => needSession(E('inbox.title')) || `<h2>🔔 ${E('inbox.title')}</h2><div class=row style="justify-content:space-between"><a href="#/notify">⚙️ ${E('ntf.title')}</a><button id=rdall>${E('inbox.readAll')}</button></div><div id=inbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
+function msgHtml(m) { const k = m.kind, T = k === 'fulfil' ? t('inbox.fulfilT') : k === 'login' ? t('inbox.loginT') : k === 'totpOn' ? t('inbox.totpOnT') : k === 'totpOff' ? t('inbox.totpOffT') : m.title || '';
+  const B = k === 'fulfil' ? t('inbox.fulfilB', { text: m.text || '…', note: m.note ? ' · ' + m.note : '' }) : k === 'login' ? t('inbox.loginB', { ua: devName(m.ua) }) : k === 'system' ? m.body || '' : '';
+  return `<div class="card msg${m.read ? '' : ' unread'}" data-mid="${esc(m.id)}"><div class=row style="justify-content:space-between"><b dir=auto>${m.read ? '' : '<i class=dot></i>'}${esc(T)}</b><span class=muted style="font-size:12px">${k === 'system' ? `<span class=tag>${E('inbox.sysTag')}</span> ` : ''}${fmtMs(m.at)}</span></div>${B ? `<p dir=auto style="margin:.4em 0;white-space:pre-wrap">${esc(B)}</p>` : ''}${k === 'fulfil' && m.sig ? `<a href="#/w/${encodeURIComponent(m.sig)}">${E('inbox.view')} →</a>` : ''}</div>`; }
+function paintInbox() { const box = $('#inbox'); if (!box) return; box.innerHTML = (S.inbox || []).length ? S.inbox.map(msgHtml).join('') : `<p class=muted>${E('inbox.empty')}</p>`;
+  box.querySelectorAll('.msg.unread').forEach(el => el.onclick = async () => { const r = await api('/api/inbox/read', { ids: [el.dataset.mid] }).catch(() => null); if (r) { S.inbox = r.items; S.bell = r.unread; paintInbox(); paintBell(); } }); }
+async function loadInbox() { if (!$('#inbox')) return bindSiws(); await loadBell(); paintInbox();
+  $('#rdall')?.addEventListener('click', async () => { const r = await api('/api/inbox/read', { all: true }).catch(() => null); if (r) { S.inbox = r.items; S.bell = r.unread; paintInbox(); paintBell(); } }); }
+const notifyPage = () => needSession(E('ntf.title')) || `<h2>⚙️ ${E('ntf.title')}</h2><div id=ntfbox class=card><p class=muted>⏳ ${E('route.loading')}</p></div><p class=muted>${E('ntf.note')}</p>`;
+async function loadNotify() { const box = $('#ntfbox'); if (!box) return bindSiws(); let p; try { p = await api('/api/notify'); } catch (e) { box.innerHTML = esc(e.message); return; }
+  const row = (k, h) => `<label class="agree ntf"><input type=checkbox data-n=${k} ${p[k] ? 'checked' : ''}> <span><b>${E('ntf.' + k)}</b><br><span class=muted>${E('ntf.' + k + 'Hint')}</span></span></label>`;
+  box.innerHTML = row('fulfil') + row('system');
+  box.querySelectorAll('[data-n]').forEach(c => c.onchange = async () => { const b = {}; box.querySelectorAll('[data-n]').forEach(x => b[x.dataset.n] = x.checked); try { await api('/api/notify', b); toast(E('sec.saved'), 'ok'); } catch (e) { toast(esc(e.message), 'err'); } }); }
 // ---------- 星愿大使还愿徽章（公开；收货信息永不进入前端展示逻辑之外的公开文案） ----------
 async function loadFulfillment(sig) {
   if (!sig || /^SAMPLE|^SYN|^SL|^SB/.test(sig)) return null;
@@ -251,7 +338,7 @@ function maybeFulfillToast(w) {
 function setMenu(open) { const m = $('#menu'), bd = $('#menu-bd'), b = $('#burger'); if (!m) return;
   document.body.classList.toggle('menu-open', open); bd.hidden = !open; m.inert = !open; m.setAttribute('aria-hidden', !open); b.setAttribute('aria-expanded', open);
   ['#view', 'footer'].forEach(s => { const e = $(s); if (e) e.inert = open; }); window.WT_hover?.(null);
-  if (open) setTimeout(() => $('#menu-x').focus(), 50); else if (document.activeElement && m.contains(document.activeElement)) b.focus(); }
+  if (open) { loadBell(); setTimeout(() => $('#menu-x').focus(), 50); } else if (document.activeElement && m.contains(document.activeElement)) b.focus(); }
 $('#burger').addEventListener('click', () => setMenu(true)); $('#menu-x').addEventListener('click', () => setMenu(false)); $('#menu-bd').addEventListener('click', () => setMenu(false));
 ['pointerdown', 'wheel', 'touchmove'].forEach(ev => $('#menu-bd').addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }, { passive: false }));
 $('#gq').addEventListener('click', () => { const sub = $('#gqsub'), o = sub.hidden; sub.hidden = !o; $('#gq').setAttribute('aria-expanded', o); });
@@ -376,6 +463,17 @@ function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
   loadMine();
   return `<h2>${E('nav.wish')}</h2><section class=card><h3>${E('mine.have')}</h3><div id=mine>${mineBlock()}</div></section>
   <section class=card><h3>${E('mine.make')}</h3><button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}</div></section>`; }
+const evmMin = id => { const c = evmChains()[id], p = S.cfg.evm?.usd?.[c?.coin] || 0; return p ? Math.ceil((S.cfg.minUsd || 1) / p * 1.02 * 1e5) / 1e5 : 0; };
+function evmPayHtml() { if (S.kind !== 'evm' || !S.cfg.evm?.pay) return ''; const ch = localStorage.wt_chain || '84532', C = evmChains(); // 未配置 EVM 收款地址时隐藏（仅登录）
+  return `<div class="card evpay"><label>${E('wish.payVia')} <select id=pv><option value=evm>⬡ ${E('wish.payEvm')}</option><option value=sol>◎ ${E('wish.paySol')}</option></select></label>
+  <div id=evbox class=row><label>${E('wish.evmChain')} <select id=evc>${Object.entries(C).map(([id, c]) => `<option value=${id} ${id === ch ? 'selected' : ''}>${esc(t('chain.' + c.key))} · ${esc(c.name)}</option>`).join('')}</select></label>
+  <label><span id=evaL>${E('wish.evmAmt', { sym: C[ch].sym })}</span> <input id=eva type=number step=0.00001 min=0 value="${evmMin(ch)}" style="width:120px"></label><span class="muted" id=evmin>${E('wish.evmMin', { min: evmMin(ch), sym: C[ch].sym })}</span></div></div>`; }
+async function evmPay(chainId, amount) { // EVM 测试网原生币转账：20% 开发者 / 80% 金库，各一笔；用户钱包直接签名发送（非托管）
+  const p = await evmProvider(), c = evmChains()[chainId], wei = WTW.toWei(amount), dev = wei / 5n, tre = wei - dev, from = S.evmAddr, txs = [];
+  await WTW.switchChain(p, chainId, c);
+  for (const [to, v] of [[S.cfg.evm.dev, dev], [S.cfg.evm.treasury, tre]]) { toast(esc(t('wish.evmSending', { i: txs.length + 1 })));
+    txs.push(await p.request({ method: 'eth_sendTransaction', params: [{ from, to, value: '0x' + v.toString(16) }] })); }
+  toast(esc(t('wish.evmWaiting'))); for (const h of txs) await WTW.waitReceipt(p, h); return { chainId: +chainId, txs }; }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
@@ -394,7 +492,8 @@ function wishPanel() {
   <p class=muted style="margin:4px 0">${E('wish.shippingHint')}</p></div>
   <textarea id=wt maxlength=140 dir=auto placeholder="${E('wish.ph')}"></textarea><div class=muted id=wc>0/140</div>
   <div class=row style="margin:8px 0"><label>${E('wish.amount')} <input id=amt type=number step=0.0001 min="${min / 1e9}" value="${(min / 1e9).toFixed(4)}"></label>
-  <span class=muted>${E('wish.min', { min: sol(min), usd: S.cfg.solUsd, src: t(S.cfg.priceSource === 'fallback' ? 'wish.srcFallback' : 'wish.srcLive') })}</span></div>
+  ${evmPayHtml()}
+  <span class=muted id=solmin>${E('wish.min', { min: sol(min), usd: S.cfg.solUsd, src: t(S.cfg.priceSource === 'fallback' ? 'wish.srcFallback' : 'wish.srcLive') })}</span></div>
   <p class=muted id=split></p>
   <div class=notice>${E('mod.notice')}</div>
   ${agreedTerms ? '' : `<label class=agree><input type=checkbox id=ag2> <span>${E('wish.agreeTerms', { doc: '\u0001' }).replace('\u0001', `<a href="#/terms" target=_blank>${E('terms.title')}</a>`)}</span></label>`}
@@ -431,9 +530,9 @@ let ready3d = false;
 async function route() {
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/help': help, '/terms': terms, '/origin': origin };
+  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
-  document.body.classList.toggle('home', !!$('#scene')); document.querySelectorAll('#menu nav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d();
+  document.body.classList.toggle('home', !!$('#scene')); document.querySelectorAll('#menu nav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });
@@ -474,17 +573,25 @@ async function route() {
       const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { dev: sol(Math.floor(l * .2)), tre: sol(l - Math.floor(l * .2)) }); };
     fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); const a = $('#amt'); if (a) { a.min = c.minLamports / 1e9; if (+a.value * 1e9 < c.minLamports) a.value = (Math.ceil(c.minLamports / 1e5) / 1e4).toFixed(4); upd(); } }).catch(() => {});
     ta.addEventListener('input', () => $('#wc').textContent = [...ta.value].length + '/' + ta.maxLength); ['#ag', '#ag2', '#amt'].forEach(s => $(s)?.addEventListener('input', upd)); upd();
+    $('#evc')?.addEventListener('change', e => { const id = e.target.value, c = evmChains()[id]; localStorage.wt_chain = id; $('#eva').value = evmMin(id); $('#evaL').textContent = t('wish.evmAmt', { sym: c.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMin(id), sym: c.sym }); });
+    const pvSync = () => { const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
     $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = $('#wc2').value;
       const shippingNote = cat === MATERIAL ? ($('#ship')?.value || '').trim() : '';
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
-      if (!(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
+      if (!($('#pv')?.value === 'evm') && !(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
       const folded = $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null;
       if (folded && (up.C || up.N)) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (up.N) nimg = await uploadImg(up.N, k); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
       if (priv) { if ([...txt].length > 100) return toast(E('wish.privateLen'), 'err'); try { cipher = await WTPriv.enc(txt, await WTPriv.key()); } catch (e) { return toast(esc(t('card.unlockFail')) + ' ' + esc(e.message || ''), 'err'); } }
       let memo; try { memo = await moderateThenMemo('W', encOpt(cat, folded, cover, priv, cimg, nimg, nimg ? null : inside), txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }
       if ($('#ag2')) localStorage.wt_terms = '1';
-      const sig = await submit(memo, 'wish', lam);
+      const viaEvm = $('#pv')?.value === 'evm', C = evmChains(), ch = $('#evc')?.value, ea = $('#eva')?.value;
+      let extra = {}, sig;
+      if (viaEvm) { const usd = +ea * (S.cfg.evm.usd[C[ch].coin] || 0); if (!(+ea >= evmMin(ch) / 1.02)) { $('#ws').disabled = false; return toast(esc(t('wish.evmMin', { min: evmMin(ch), sym: C[ch].sym })), 'err'); }
+        const ok = await confirmLarge(usd, ea + ' ' + C[ch].sym); if (!ok) { $('#ws').disabled = false; return; }
+        try { extra.evm = await evmPay(ch, ea); } catch (e) { $('#ws').disabled = false; return toast('❌ ' + esc(e.message || e), 'err'); }
+        sig = await submit(memo, 'wish', 0, extra); }
+      else { const ok = await confirmLarge(lam / 1e9 * (S.cfg.solUsd || 0), sol(lam)); if (!ok) { $('#ws').disabled = false; return; } sig = await submit(memo, 'wish', lam, ok); }
       if (sig) {
         // 链下登记：记账 +（物质类）收货/联系备注；备注永不入链
         fetch('/api/wish-paid', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') },
@@ -523,8 +630,11 @@ if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.host
 (async () => {
   await I18N.ready; renderMode();
   fetch('/api/config').then(r => r.json()).then(c => Object.assign(S.cfg, c)).catch(() => {}).then(() => fetch('/api/rules')).then(r => r.json()).then(r => S.words = r.words).catch(() => {});
-  if (S.token) api('/api/me').then(r => { S.mode = 'host'; S.email = r.email; S.pubkey = r.pubkey; renderMode(); route(); }).catch(() => localStorage.removeItem('wt_token'));
-  window.phantom?.solana?.connect?.({ onlyIfTrusted: true }).then(r => { if (S.mode === 'guest') { S.mode = 'self'; S.pubkey = r.publicKey.toString(); renderMode(); route(); } }).catch(() => {});
+  const silentSol = async () => { const w = WTW.solWallets().find(x => x.id === localStorage.wt_wallet && x.installed); if (!w) return null; try { const a = w.adapter(), pk = await a.connect(true); return { a, pk }; } catch { return null; } };
+  if (S.token) api('/api/me').then(async r => { setSession({ ...r, token: S.token }); S.pubkey = r.pubkey;
+    if (r.kind === 'sol') { S.mode = 'self'; const c = await silentSol(); if (c && c.pk === r.pubkey) S.wallet = c.a; } else S.mode = 'host'; renderMode(); route(); loadBell(); })
+    .catch(e => { if (e.status === 401) { localStorage.removeItem('wt_token'); S.token = null; } });
+  else if (localStorage.wt_wallet) setTimeout(async () => { const c = await silentSol(); if (c && S.mode === 'guest') { S.mode = 'self'; S.kind = 'sol'; S.pubkey = c.pk; S.wallet = c.a; renderMode(); route(); } }, 300); // Wallet Standard 钱包注册稍晚
   // 首屏立即渲染：先用上次缓存的链上数据（localStorage）画出世界树，链上读取在后台进行，完成后无感刷新
   try { if (localStorage.wt_sigs != null) { const sigs = JSON.parse(localStorage.wt_sigs); S.txs = sigs.map(x => txCache[x]).filter(Boolean); S.hadReal = true; } } catch {} aggregate(); route(); syncChip(true);
   (async () => { await loadWishes(); syncChip(false); await hydrateFulfillments(); refreshView(); })();
