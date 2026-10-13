@@ -16,4 +16,5 @@ module.exports = {
     fs.writeFileSync(path.join(DIR, h), buf); fs.writeFileSync(path.join(DIR, h + '.json'), JSON.stringify(meta)); },
   async get(h) { if (R2) { const r = await s3('GET', h); if (!r) return null; return { data: Buffer.from(await r.arrayBuffer()), mime: r.headers.get('content-type') || 'application/octet-stream' }; }
     try { return { data: fs.readFileSync(path.join(DIR, h)), mime: JSON.parse(fs.readFileSync(path.join(DIR, h + '.json'))).mime }; } catch { return null; } },
+  async del(h) { if (R2) { await s3('DELETE', h); await s3('DELETE', h + '.json'); return; } for (const f of [h, h + '.json']) fs.rmSync(path.join(DIR, f), { force: true }); },
   async has(h) { if (R2) return !!(await s3('HEAD', h)); return fs.existsSync(path.join(DIR, h)); } };
