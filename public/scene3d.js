@@ -24,7 +24,7 @@ const lruGet = (m, k) => { const v = m.get(k); if (v !== undefined) { m.delete(k
 const lruSet = (m, k, v, cap) => { m.set(k, v); while (m.size > cap) m.delete(m.keys().next().value); };
 const fmtN = n => { try { return new Intl.NumberFormat(window.I18N?.lang || 'zh-CN', { notation: 'compact', maximumFractionDigits: n >= 1e10 ? 0 : 2 }).format(n); } catch { return String(n); } };
 const strHash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h / 4294967296; };
-const camDist = () => { const a = camera.aspect || 1.6; return a < 1 ? Math.min(62, 25 / a) : 27; }; // 竖屏拉远以容纳整个花冠
+const camDist = () => { const a = camera.aspect || 1.6; return a < 1 ? Math.min(72, 28 / a) : 32; }; // 竖屏拉远以容纳整个花冠
 const HOME_DIR = () => new THREE.Vector3(0, .17, 1).normalize();
 function init() {
   renderer = new THREE.WebGLRenderer({ antialias: !MOBILE, powerPreference: 'high-performance' });
@@ -167,7 +167,7 @@ function blossomPoints(pts) { const n = pts.length / 5, pos = new Float32Array(n
   for (let i = 0; i < n; i++) { pos.set(pts.slice(i * 5, i * 5 + 3), i * 3); bs.set([pts[i * 5 + 3], (i * 0.618) % 1, pts[i * 5 + 4], .6], i * 4); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('bs', new THREE.BufferAttribute(bs, 4));
   const p = new THREE.Points(g, blossom()); p.renderOrder = 1; return p; }
-function makeCanopy() { const r = rng(21), C = V(0, 11.2, 0), RX = 10.8, RY = 6.2, nC = 260, cl = [], out = [], n = MOBILE ? 15000 : 46000, gs = () => (r() + r() + r() - 1.5) / 1.5;
+function makeCanopy() { const r = rng(21), C = V(0, 11.2, 0), RX = 14.4, RY = 7, nC = 260, cl = [], out = [], n = MOBILE ? 19000 : 58000, gs = () => (r() + r() + r() - 1.5) / 1.5;
   for (let i = 0; i < nC; i++) { const u = r(), ph = Math.acos(1 - u * 1.25), th = r() * Math.PI * 2, s = .72 + .3 * r();
     cl.push([C.x + Math.sin(ph) * Math.cos(th) * RX * s, C.y + Math.cos(ph) * RY * s - (ph > 1.3 ? (ph - 1.3) * 3 : 0), C.z + Math.sin(ph) * Math.sin(th) * RX * s, 1.3 + r() * 1.3]); }
   for (let i = 0; i < n; i++) { const c = cl[i % nC], ox = gs() * c[3] * .8, oy = gs() * c[3] * .62, oz = gs() * c[3] * .8, y = c[1] + oy;
@@ -179,7 +179,7 @@ function makeCanopy() { const r = rng(21), C = V(0, 11.2, 0), RX = 10.8, RY = 6.
 const tmpSh = [];
 function makePetals() { // 飘落花瓣（着色器内下落 + 漂移），数量随季节：盛放少量、下旬大量
   const n = MOBILE ? 900 : 2600, pos = new Float32Array(n * 3), r = rng(5);
-  for (let i = 0; i < n; i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 13; pos.set([Math.cos(a) * d, r(), Math.sin(a) * d], i * 3); }
+  for (let i = 0; i < n; i++) { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 17; pos.set([Math.cos(a) * d, r(), Math.sin(a) * d], i * 3); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('seed', new THREE.BufferAttribute(Float32Array.from({ length: n }, () => r()), 1)); g.boundingSphere = new THREE.Sphere(V(0, 8, 0), 20);
   petals = new THREE.Points(g, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: BU,
     vertexShader: `attribute float seed; uniform float uTime,uPR,uSeason; varying float vA,vS;
@@ -193,7 +193,7 @@ export function setSeason(s) { if (!SEASONS[s]) return; season = s; seasonV = SE
 // ---------- 几何：节点位置只由相对路径决定（以当前焦点为根重建坐标，避免千亿级深度的浮点精度问题） ----------
 const V = (x, y, z) => new THREE.Vector3(x, y, z), TRUNK = V(0, 6, 0);
 function dirOf(theta, el) { return V(Math.cos(el) * Math.cos(theta), Math.sin(el), Math.cos(el) * Math.sin(theta)); }
-function childEnd(reg, j) { const h = strHash(reg + A.HEX[j]), th = j / 16 * Math.PI * 2 + (h - .5) * .35; return { th, p: TRUNK.clone().addScaledVector(dirOf(th, .5 + h * .45), 6) }; }
+function childEnd(reg, j) { const h = strHash(reg + A.HEX[j]), th = j / 16 * Math.PI * 2 + (h - .5) * .35; return { th, p: TRUNK.clone().addScaledVector(dirOf(th, .42 + h * .4), 8) }; } // 主枝长度 ×1.33，略放平向外舒展
 function grandEnd(reg, j, g) { const c = childEnd(reg, j), h = strHash(reg + A.HEX[j] + A.HEX[g]), th = c.th + (g / 15 - .5) * 2.4; return c.p.clone().addScaledVector(dirOf(th, .15 + h * .7), 3.2); }
 function slotOf(t, s) { return t.slots[Math.min(s, t.slots.length - 1)]; }
 function slotPos(P, sz, s) { const k = s >> 2, a = (s & 3) * Math.PI / 2 + k * .45, r = sz * 1.15; return V(P.x + Math.cos(a) * r, P.y - sz * (1.1 + k * 1.2), P.z + Math.sin(a) * r); } // 4 股流苏垂挂，每股 ≤16 张
@@ -238,7 +238,8 @@ function ramify(L, curve, r, len, seed, depth, out) { // 递归：每根枝在 3
     const c = limb(L, a, b, r * .62, r * .2, sd, depth > 1 ? 7 : 5); if (depth > 1) ramify(L, c, r * .55, len * .62, sd, depth - 1, out); else out.push({ curve: c, r: r * .4 }); } }
 function hangSlots(t, segs) { // 卡片沿枝条按最小间距分布（不重叠）；位置不够时第二排用更长吊绳错位挂在下方
   const minSp = CW * 1.2 * t.sz * 1.25, cand = []; segs.forEach((o, si) => { const L = o.curve.getLength() * .7, k = Math.max(1, Math.floor(L / minSp)); for (let i = 0; i < k; i++) cand.push({ si, u: .25 + (i + .5) / k * .7, du: .35 / k }); });
-  cand.sort((a, b) => (a.u - b.u) || (a.si - b.si)); const n = Math.max(1, t.count), rows = Math.ceil(n / cand.length), out = [], H = CH * 1.2 * t.sz;
+  cand.forEach(c => { const q = segs[c.si].curve.getPointAt(c.u); c.score = Math.hypot(q.x, q.z) - q.y * .45; }); // 优先外侧、较低的枝条位置
+  cand.sort((a, b) => b.score - a.score); cand.splice(Math.max(t.count, Math.ceil(cand.length * .6))); const n = Math.max(1, t.count), rows = Math.ceil(n / cand.length), out = [], H = CH * 1.2 * t.sz;
   for (let s = 0; s < n; s++) { const row = Math.floor(s / cand.length), c = cand[row ? s % cand.length : Math.floor(s * cand.length / Math.min(n, cand.length)) % cand.length], h = strHash(t.region + '#' + s);
     const a = segs[c.si].curve.getPointAt(Math.min(.97, c.u + (row % 2 ? c.du : 0) + (h - .5) * c.du * .3)); a.y -= segs[c.si].r * .8;
     const str = t.sz * (.25 + .25 * strHash(t.region + '@' + s)) + row * H * 1.12, p = a.clone(); p.y -= str + H * .5;
@@ -254,7 +255,7 @@ function clearBranches() { treeGroup.children.filter(o => o.userData.branch).for
 function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal() - 1)); clearBranches(); focus = '';
   const ids = pageIds(PAGE), L = [], hang = [], leafPts = [], thick = .4, NB = 16, sz = ids.length <= 48 ? 1.05 : .85;
   for (let j = 0; j < NB; j++) { const { p: ce, th } = childEnd('', j), r1 = 'pg' + j, h = strHash(r1), st = V(Math.cos(th) * .5, 5.3 + h * 1.2, Math.sin(th) * .5), mid = bend(st, ce, h, .9);
-    L.push({ pts: [st, mid, ce], rf: t => thick * (1 - t * .62), seg: 16, knot: j }); const pc = new THREE.CatmullRomCurve3([st, mid, ce]), segs = []; ramify(L, pc, thick * .5, 3.4, r1, 2, segs);
+    L.push({ pts: [st, mid, ce], rf: t => thick * (1 - t * .62), seg: 16, knot: j }); const pc = new THREE.CatmullRomCurve3([st, mid, ce]), segs = []; ramify(L, pc, thick * .5, 4.5, r1, 2, segs);
     segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce);
     const mine = ids.filter((_, k) => k % NB === j); if (!mine.length) continue;
     const region = `P${PAGE}:${j}`, t = { region, P: ce, sz, count: mine.length }; t.slots = hangSlots(t, segs.slice(1)); hang.push(t);
@@ -274,7 +275,7 @@ async function buildView(reg) {
   const L = [], hang = [], clus = [], leafPts = [], thick = .34 + Math.log10(N + 10) * .025;
   c.children.forEach((cn, j) => { if (!cn) return; const { p: ce, th } = childEnd(reg, j), r1 = reg + A.HEX[j], h = strHash(r1), st = V(Math.cos(th) * .5, 5.3 + h * 1.2, Math.sin(th) * .5);
     L.push({ pts: [st, bend(st, ce, h, .9), ce], rf: t => thick * (1 - t * .62), seg: 16, knot: j }); leafPts.push(ce);
-    if (cn <= A.HANG) { const pc = new THREE.CatmullRomCurve3([st, bend(st, ce, h, .9), ce]), segs = [], sz = N <= 256 ? 1.1 : .6; ramify(L, pc, thick * .5, 3.4, r1, 2, segs);
+    if (cn <= A.HANG) { const pc = new THREE.CatmullRomCurve3([st, bend(st, ce, h, .9), ce]), segs = [], sz = N <= 256 ? 1.1 : .6; ramify(L, pc, thick * .5, 4.5, r1, 2, segs);
       segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); const t = { region: r1, P: ce, sz, count: cn }; t.slots = hangSlots(t, segs.filter((o, i) => i > 0)); hang.push(t); return; }
     labels.push(makeLabel(`${A.HEX[j]} · ${fmtN(cn)}`, ce, r1));
     for (let g = 0; g < 16; g++) { const gn = c.grand[j * 16 + g]; if (!gn) continue; const ge = grandEnd(reg, j, g), r2 = r1 + A.HEX[g];
@@ -305,7 +306,7 @@ function buildClusters(clus, hang) { // 远景：每个聚合区域 = 一团金�
       gl_FragColor=vec4(vC*a + vec3(1.25,.95,.45)*lan*vA, 1.); }` }));
   clusters.userData.branch = true; clusters.frustumCulled = false; clusters.renderOrder = 4; treeGroup.add(clusters);
   const ap = []; hang.forEach(o => o.slots.forEach(sl => ap.push(sl.p.x, sl.p.y, sl.p.z))); const ag = new THREE.BufferGeometry(); ag.setAttribute('position', new THREE.Float32BufferAttribute(ap, 3)); // 远景：枝上挂卡处的暖色小点（不发光）
-  const am = new THREE.Points(ag, new THREE.PointsMaterial({ color: new THREE.Color(.92, .78, .5), size: .26, sizeAttenuation: true, transparent: true, opacity: .8, depthWrite: false })); am.userData.branch = true; am.renderOrder = 2; treeGroup.add(am);
+  const am = new THREE.Points(ag, new THREE.PointsMaterial({ color: new THREE.Color(.72, .6, .38), size: .26, sizeAttenuation: true, transparent: true, opacity: .8, depthWrite: false })); am.userData.branch = true; am.renderOrder = 2; treeGroup.add(am);
 }
 function makeLabel(text, P, region) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d'); x.fillStyle = 'rgba(20,10,30,.75)'; x.strokeStyle = '#e8b85a'; x.lineWidth = 2; x.beginPath(); x.roundRect(3, 9, 250, 46, 23); x.fill(); x.stroke();
@@ -325,7 +326,7 @@ function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, de
       vec3 c=tx.rgb*(.86+.2*inner*(1.-uSolid*.6)) + vec3(.1,.07,.02)*inner*(1.-uSolid);
       float e=min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y)); c+=vec3(.32,.24,.1)*smoothstep(.045,0.,e); // 暖金水晶边缘
       float band=exp(-pow((vUv.x*.8+vUv.y*.6-fract(uTime*.05+uSeed)*2.6+.5)*6.,2.)); c+=vec3(.5,.42,.25)*band*.14; // 缓慢扫过的光泽
-      c=min(c*(.94+.06*uHl),vec3(.93,.88,.76)); float gl=glint(vUv,uSeed,uTime)*tx.a; c+=vec3(1.,.96,.85)*gl*.85;
+      c=min(c*(.8+.06*uHl),vec3(.78,.67,.47)); float gl=glint(vUv,uSeed,uTime)*tx.a; c+=vec3(.5,.46,.38)*gl; // 亮度上限低于 bloom 阈值：近看不过曝
       gl_FragColor=vec4(c, tx.a*.97); }` }); }
 // ---------- 中景：InstancedMesh 金色灯笼卡（1 次 draw call，着色器 billboard + 程序化纹样）+ 细吊绳 ----------
 const CW = .8, CH = 1.25; // 卡片宽高（相对 sz）
@@ -345,7 +346,7 @@ function makeInst() {
       c=mix(c, vC*.7, .22); if(cap>.5) c=vec3(.5,.32,.14); if(ring>.5) c=vec3(.6,.5,.3);
       float inner=clamp(1.-length(p*vec2(1.9,1.25))*1.25,0.,1.); vec3 champ=mix(vec3(.74,.55,.27),vec3(.95,.86,.62),inner); // 香槟金内透光
       c=bd>.5?vec3(.52,.36,.14):champ; if(cap>.5) c=vec3(.55,.38,.16); if(ring>.5) c=vec3(.8,.65,.38); float gl=glint(vUv,vF,uTime);
-      gl_FragColor=vec4(min(c,vec3(.93,.88,.76))+gl*.8,.96); }` }), MID_CAP);
+      gl_FragColor=vec4(min(c*.8,vec3(.72,.62,.44))+gl*.4,.96); }` }), MID_CAP);
   ['iPos', 'iCol', 'iAnc'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP * 3), 3).setUsage(THREE.DynamicDrawUsage)));
   ['iSize', 'iPh'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1).setUsage(THREE.DynamicDrawUsage)));
   inst.count = 0; inst.frustumCulled = false; inst.userData.cards = []; inst.renderOrder = 3; treeGroup.add(inst);
