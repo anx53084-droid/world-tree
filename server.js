@@ -182,7 +182,7 @@ async function api(req, res, url) {
   send(res, 404, { error: 'not found' });
 }
 
-const CORS_RE = new RegExp(process.env.CORS_ORIGIN_RE || '^https://([a-z0-9-]+\\.)?world-tree[a-z0-9-]*\\.pages\\.dev$'), ALLOWED = (process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean);
+const CORS_RE = new RegExp(process.env.CORS_ORIGIN_RE || '^https://([a-z0-9]+\\.)?world-tree\\.pages\\.dev$'), ALLOWED = (process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean);
 http.createServer(async (req, res) => {
   const url = req.url.split('?')[0];
   if (url.startsWith('/api/')) { // CORS：允许 Cloudflare Pages 前端（*.pages.dev 的 world-tree 项目及预览）与 ALLOWED_ORIGINS（自定义域名）；鉴权用 Bearer token，不用 cookie
