@@ -321,11 +321,11 @@ function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, de
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
   fragmentShader: `uniform sampler2D map; uniform float uTime,uHl,uSolid,uSeed; varying vec2 vUv; ${GLINT}
     void main(){ vec4 tx=texture2D(map,vUv); if(tx.a<.04) discard; vec3 ice=mix(vec3(.42,.55,.78),vec3(.78,.86,1.),vUv.y);
-      vec3 c=mix(tx.rgb, mix(tx.rgb,ice,.38)*.92+ice*.06, 1.-uSolid); // 单卡：玻璃化；折页卡：封面保持清晰
+      vec3 c=mix(tx.rgb, mix(tx.rgb,ice,.3)*.94+ice*.05, 1.-uSolid); // 单卡：玻璃化；折页卡：封面保持清晰
       float e=min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y)); c+=vec3(.42,.5,.66)*smoothstep(.05,0.,e)*(1.-uSolid*.5);
       float band=exp(-pow((vUv.x*.8+vUv.y*.6-fract(uTime*.05+uSeed)*2.6+.5)*6.,2.)); c+=vec3(.55,.62,.8)*band*.16;
       c=min(c*(.84+.1*uHl),vec3(.8)); float gl=glint(vUv,uSeed,uTime)*tx.a; c+=vec3(.95,.97,1.)*gl;
-      gl_FragColor=vec4(c, tx.a*mix(.74,.97,uSolid)+gl*.3); }` }); }
+      gl_FragColor=vec4(c, tx.a*mix(.88,.97,uSolid)+gl*.3); }` }); }
 // ---------- 中景：InstancedMesh 金色灯笼卡（1 次 draw call，着色器 billboard + 程序化纹样）+ 细吊绳 ----------
 const CW = .8, CH = 1.25; // 卡片宽高（相对 sz）
 function makeInst() {
