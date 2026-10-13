@@ -49,14 +49,15 @@ const body = (req, max = 64000) => new Promise(r => { let b = ''; req.on('data',
 
 // ---- 自定义图片（封面/内页模板）----
 // ⚠️ Render 免费实例磁盘是临时的：重新部署/重启后 data/img 会丢失（卡片回退到内置封面）。持久化方案：Render Disk（付费）或对象存储 / IPFS（见 README）。
-const IMG_DIR = path.join(DATA_DIR, 'img'); fs.mkdirSync(IMG_DIR, { recursive: true });
+const Store = require('./storage'); console.log('image storage:', Store.kind);
 const IMG_MAX = 300 * 1024, IMG_DIM = 1024;
 function imgDims(b, mime) { // 解析图片头部得到宽高（不完整解码）
   if (mime === 'image/jpeg') { let i = 2; while (i + 9 < b.length) { if (b[i] !== 0xFF) return null; const m = b[i + 1], L = b.readUInt16BE(i + 2); if (m >= 0xC0 && m <= 0xCF && ![0xC4, 0xC8, 0xCC].includes(m)) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)]; i += 2 + L; } return null; }
   const c = b.toString('ascii', 12, 16); if (c === 'VP8 ') return [b.readUInt16LE(26) & 0x3fff, b.readUInt16LE(28) & 0x3fff];
   if (c === 'VP8L') { const n = b.readUInt32LE(21); return [(n & 0x3fff) + 1, ((n >> 14) & 0x3fff) + 1]; } if (c === 'VP8X') return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3)]; return null; }
 // 可插拔 NSFW 检测：设置 NSFW_URL 后，把图片 POST 过去（期望返回 {nsfw: 0..1}），≥ NSFW_MAX(默认 .6) 拒绝；未配置时仅做基础检查（如实披露）
-async function nsfwCheck(buf, mime) { if (!process.env.NSFW_URL) return { pass: true, provider: 'none' };
+const NSFW = require('./nsfw'); // 默认：服务器内置开源分类器（nsfwjs）；NSFW_URL 可覆盖为外部服务
+async function nsfwCheck(buf, mime) { if (!process.env.NSFW_URL) { try { return await NSFW.check(buf); } catch (e) { console.warn('nsfw error', e.message); return { pass: false, error: 'nsfw classifier unavailable' }; } }
   try { const j = await (await fetch(process.env.NSFW_URL, { method: 'POST', headers: { 'content-type': mime }, body: buf, signal: AbortSignal.timeout(15000) })).json(); const sc = +j.nsfw || +j.score || 0; return { pass: sc < (+process.env.NSFW_MAX || .6), score: sc, provider: 'remote' }; }
   catch (e) { return { pass: false, error: 'nsfw service unavailable' }; } } // 失败即拒绝（fail closed）
 async function imgUpload(b) {
@@ -69,7 +70,7 @@ async function imgUpload(b) {
   // 私密卡内页：审核明文，只存客户端 AES-GCM 加密后的密文（服务器不保存明文）
   let store = raw, smime = mime; if (b.cipher != null) { const c = typeof b.cipher === 'string' ? Buffer.from(b.cipher, 'base64') : null; if (!c || c.length < 28 || c.length > IMG_MAX + 64) return { error: '参数无效', code: 'param' }; store = c; smime = 'application/octet-stream'; }
   const h = crypto.createHash('sha256').update(store).digest('hex').slice(0, 32);
-  fs.writeFileSync(path.join(IMG_DIR, h), store); fs.writeFileSync(path.join(IMG_DIR, h + '.json'), JSON.stringify({ mime: smime, w: d[0], h: d[1], enc: b.cipher != null, nsfw: ns.provider, at: Date.now() }));
+  try { await Store.put(h, store, { mime: smime, w: d[0], h: d[1], enc: b.cipher != null, nsfw: ns.provider, at: Date.now() }); } catch (e) { return { error: '图片存储失败', code: 'imgStore' }; }
   return { hash: h, w: d[0], h: d[1], checks: ['type', 'magic', 'size', 'dims', 'nsfw:' + ns.provider] }; }
 
 function buildMemoTx(payer, memo, lamports) {
@@ -93,7 +94,7 @@ async function api(req, res, url) {
   if (url === '/api/moderate' && req.method === 'POST') { // 上链前审核（两种模式都必须先通过）
     const { text, prefix, cipher } = await body(req); // prefix = 分类[~F封面[P]]（愿望）或 愿望签名（祝福）；私密卡附 cipher（E1: AES-GCM 密文），审核明文、证明绑定密文
     const priv = typeof prefix === 'string' && /~F[0-9a-z]{2}P(~|$)/.test(prefix);
-    for (const h of (typeof prefix === 'string' ? prefix.match(/~[CN]([0-9a-f]{32})/g) || [] : [])) if (!fs.existsSync(path.join(IMG_DIR, h.slice(2)))) return send(res, 400, { pass: false, message: '图片未上传或未通过审核', code: 'img' }); // 引用的图片必须已通过上传审核
+    for (const h of (typeof prefix === 'string' ? prefix.match(/~[CN]([0-9a-f]{32})/g) || [] : [])) if (!(await Store.has(h.slice(2)).catch(() => false))) return send(res, 400, { pass: false, message: '图片未上传或未通过审核', code: 'img' }); // 引用的图片必须已通过上传审核
     if (priv && (typeof cipher !== 'string' || !/^E1:[A-Za-z0-9+/=]{24,560}$/.test(cipher) || [...(text || '')].length > 100)) return send(res, 400, { pass: false, message: '私密卡参数无效', code: 'param' });
     if (typeof text !== 'string' || !text.trim() || [...text].length > 140 || text.includes('|')) return send(res, 400, { pass: false, message: '内容需为 1–140 字，且不含字符 |', code: 'len' });
     if (typeof prefix !== 'string' || !/^[^|]{1,90}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
@@ -102,7 +103,8 @@ async function api(req, res, url) {
   if (url === '/api/img' && req.method === 'POST') { // 用户自定义模板图片：链下存储（memo 仅存内容哈希），上传即自动审核
     const r = await imgUpload(await body(req, 700000)); return send(res, r.error ? 400 : 200, r); }
   if (url.startsWith('/api/img/') && req.method === 'GET') { const h = url.slice(9); if (!/^[0-9a-f]{32}$/.test(h)) return send(res, 400, { error: 'bad hash' });
-    try { const d = fs.readFileSync(path.join(IMG_DIR, h)), m = JSON.parse(fs.readFileSync(path.join(IMG_DIR, h + '.json'))); res.writeHead(200, { 'content-type': m.mime, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' }); return res.end(d); }
+    if (Store.publicUrl) { res.writeHead(302, { location: Store.publicUrl + '/' + h }); return res.end(); }
+    try { const g = await Store.get(h); if (!g) throw 0; const d = g.data, m = g; res.writeHead(200, { 'content-type': m.mime, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' }); return res.end(d); }
     catch { return send(res, 404, { error: 'not found', code: 'gone' }); } }
   if (url === '/api/tiles' || url.startsWith('/api/tiles/')) { // 【模拟索引器】区域瓦片：确定性合成任意总量的卡片（真实后端见 README「扩展到千亿」）
     const q = new URL(req.url, 'http://x').searchParams, N = Math.min(WTA.CAPACITY, Math.max(0, Math.floor(+q.get('total') || 1e11))), level = q.get('level') || 'count';

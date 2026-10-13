@@ -259,5 +259,6 @@
 "err.imgType": "Seules les images webp/jpeg sont acceptées",
 "err.imgDim": "Dimensions d'image invalides",
 "err.imgReject": "L'image n'a pas passé la modération",
-"err.imgSvc": "Service de modération d'images indisponible"
+"err.imgSvc": "Service de modération d'images indisponible",
+"err.imgStore": "Échec du stockage de l'image"
 }

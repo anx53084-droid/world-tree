@@ -11,7 +11,10 @@
   "license": "ISC",
   "dependencies": {
     "@solana/web3.js": "^1.99.0",
+    "@tensorflow/tfjs": "^4.22.0",
     "bs58": "^5.0.0",
+    "nsfwjs": "^4.4.0",
+    "sharp": "^0.35.5",
     "three": "^0.186.1",
     "tweetnacl": "^1.0.3"
   },

@@ -259,5 +259,6 @@
 "err.imgType": "Apenas imagens webp/jpeg",
 "err.imgDim": "Dimensões de imagem inválidas",
 "err.imgReject": "A imagem não passou na moderação",
-"err.imgSvc": "Serviço de moderação de imagens indisponível"
+"err.imgSvc": "Serviço de moderação de imagens indisponível",
+"err.imgStore": "Falha ao armazenar a imagem"
 }

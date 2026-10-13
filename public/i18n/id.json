@@ -259,5 +259,6 @@
 "err.imgType": "Hanya webp/jpeg yang didukung",
 "err.imgDim": "Dimensi gambar tidak valid",
 "err.imgReject": "Gambar tidak lolos moderasi",
-"err.imgSvc": "Layanan moderasi gambar tidak tersedia"
+"err.imgSvc": "Layanan moderasi gambar tidak tersedia",
+"err.imgStore": "Gagal menyimpan gambar"
 }

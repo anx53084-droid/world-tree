@@ -259,5 +259,6 @@
 "err.imgType": "Chỉ hỗ trợ ảnh webp/jpeg",
 "err.imgDim": "Kích thước ảnh không hợp lệ",
 "err.imgReject": "Ảnh không qua kiểm duyệt",
-"err.imgSvc": "Dịch vụ kiểm duyệt ảnh không khả dụng"
+"err.imgSvc": "Dịch vụ kiểm duyệt ảnh không khả dụng",
+"err.imgStore": "Lưu ảnh thất bại"
 }

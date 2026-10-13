@@ -259,5 +259,6 @@
 "err.imgType": "Nur webp/jpeg werden unterstützt",
 "err.imgDim": "Ungültige Bildabmessungen",
 "err.imgReject": "Bild hat die Prüfung nicht bestanden",
-"err.imgSvc": "Bildprüfdienst nicht verfügbar"
+"err.imgSvc": "Bildprüfdienst nicht verfügbar",
+"err.imgStore": "Bildspeicherung fehlgeschlagen"
 }

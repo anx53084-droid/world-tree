@@ -259,5 +259,6 @@
 "err.imgType": "Yalnızca webp/jpeg desteklenir",
 "err.imgDim": "Geçersiz görsel boyutu",
 "err.imgReject": "Görsel denetimden geçmedi",
-"err.imgSvc": "Görsel denetim hizmeti kullanılamıyor"
+"err.imgSvc": "Görsel denetim hizmeti kullanılamıyor",
+"err.imgStore": "Görsel kaydedilemedi"
 }

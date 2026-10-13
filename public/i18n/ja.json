@@ -259,5 +259,6 @@
 "err.imgType": "webp/jpeg のみ対応",
 "err.imgDim": "画像の寸法が無効です",
 "err.imgReject": "画像が審査を通過しませんでした",
-"err.imgSvc": "画像審査サービスが利用できません"
+"err.imgSvc": "画像審査サービスが利用できません",
+"err.imgStore": "画像の保存に失敗しました"
 }

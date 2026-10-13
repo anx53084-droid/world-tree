@@ -14,3 +14,13 @@ services:
         value: HGhjetz9MFSQBeCoSdPpuVqF7nhaJij7BGDyyigk7YRK
       - key: SOLANA_RPC
         value: https://api.devnet.solana.com
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false

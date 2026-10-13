@@ -259,5 +259,6 @@
 "err.imgType": "webp/jpeg만 지원합니다",
 "err.imgDim": "이미지 크기가 올바르지 않습니다",
 "err.imgReject": "이미지가 심사를 통과하지 못했습니다",
-"err.imgSvc": "이미지 심사 서비스를 사용할 수 없습니다"
+"err.imgSvc": "이미지 심사 서비스를 사용할 수 없습니다",
+"err.imgStore": "이미지 저장 실패"
 }

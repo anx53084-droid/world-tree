@@ -259,5 +259,6 @@
 "err.imgType": "仅支持 webp/jpeg 图片",
 "err.imgDim": "图片尺寸无效",
 "err.imgReject": "图片未通过审核",
-"err.imgSvc": "图片审核服务不可用"
+"err.imgSvc": "图片审核服务不可用",
+"err.imgStore": "图片存储失败"
 }

@@ -259,5 +259,6 @@
 "err.imgType": "Only webp/jpeg images are supported",
 "err.imgDim": "Invalid image dimensions",
 "err.imgReject": "Image did not pass moderation",
-"err.imgSvc": "Image moderation service unavailable"
+"err.imgSvc": "Image moderation service unavailable",
+"err.imgStore": "Image storage failed"
 }
