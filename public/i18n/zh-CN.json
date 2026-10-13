@@ -207,5 +207,20 @@
 "nav.menu": "菜单",
 "nav.close": "关闭菜单",
 "nav.language": "语言",
-"nav.account": "账户"
+"nav.account": "账户",
+"wish.cardType": "卡片样式",
+"wish.typeSingle": "单张卡",
+"wish.typeFolded": "折页卡（封面 + 内页）",
+"wish.cover": "选择封面",
+"wish.private": "私密：仅我（作者钱包）可见内容",
+"wish.privateHint": "私密卡的内容会在你的浏览器内用钱包签名派生的密钥加密，链上只保存密文；其他人只能看到封面和锁。上链审核服务会在提交时看到一次明文。私密内容最多 100 字。",
+"wish.privateHostNote": "（托管模式：密钥由演示服务器派生，服务器可解密。）",
+"wish.privateLen": "私密卡内容最多 100 字",
+"card.privateShort": "私密卡",
+"card.privateTitle": "私密折页卡",
+"card.privateMine": "这是你的私密卡，用钱包签名解锁后可查看内容。",
+"card.privateOther": "这张卡被作者设为私密，只有作者本人能查看内容。",
+"card.unlock": "用钱包解锁",
+"card.unlockFail": "解锁失败（需要作者钱包签名）",
+"card.tapOpen": "点开查看"
 }

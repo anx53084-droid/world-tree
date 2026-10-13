@@ -207,5 +207,20 @@
 "nav.menu": "Menu",
 "nav.close": "Tutup menu",
 "nav.language": "Bahasa",
-"nav.account": "Akun"
+"nav.account": "Akun",
+"wish.cardType": "Gaya kartu",
+"wish.typeSingle": "Kartu tunggal",
+"wish.typeFolded": "Kartu lipat (sampul + isi)",
+"wish.cover": "Pilih sampul",
+"wish.private": "Privat: hanya saya (dompet penulis) yang bisa melihat isinya",
+"wish.privateHint": "Isi kartu privat dienkripsi di browser Anda dengan kunci dari tanda tangan dompet; di on-chain hanya tersimpan ciphertext, orang lain hanya melihat sampul dan gembok. Layanan moderasi melihat teks asli sekali saat dikirim. Maks. 100 karakter.",
+"wish.privateHostNote": "(Mode kustodian: kunci diturunkan oleh server demo, jadi server dapat mendekripsinya.)",
+"wish.privateLen": "Isi kartu privat maksimal 100 karakter",
+"card.privateShort": "Kartu privat",
+"card.privateTitle": "Kartu lipat privat",
+"card.privateMine": "Ini kartu privat Anda. Buka dengan tanda tangan dompet untuk melihat isinya.",
+"card.privateOther": "Penulis menjadikan kartu ini privat. Hanya penulis yang dapat melihat isinya.",
+"card.unlock": "Buka dengan dompet",
+"card.unlockFail": "Gagal membuka (perlu tanda tangan dompet penulis)",
+"card.tapOpen": "Ketuk untuk membuka"
 }

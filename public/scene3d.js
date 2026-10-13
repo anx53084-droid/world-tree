@@ -44,8 +44,9 @@ function init() {
   composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
   bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), MOBILE ? .6 : .8, MOBILE ? .4 : .55, .8); composer.addPass(bloom); composer.addPass(new OutputPass());
   let down = null; const el = renderer.domElement; el.style.touchAction = 'none';
-  el.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
-  el.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 8) pick(e, true); down = null; }); // 轻点 = 射线拾取
+  el.addEventListener('pointerdown', e => { if (e.isPrimary) down = [e.clientX, e.clientY, performance.now()]; else down = null; });
+  el.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < (e.pointerType === 'touch' ? 14 : 8) && performance.now() - down[2] < 700) pick(e, true); down = null; }); // 轻点 = 拾取
+  el.addEventListener('pointercancel', () => down = null);
   let pmT = 0; el.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && performance.now() - pmT > 50) { pmT = performance.now(); pick(e, false); } });
   el.addEventListener('pointerleave', () => window.WT_hover?.(null));
   new ResizeObserver(resize).observe(document.body); addEventListener('resize', resize); loop();
@@ -199,7 +200,7 @@ function slotPos(P, sz, s) { const k = s >> 2, a = (s & 3) * Math.PI / 2 + k * .
 
 // ---------- 数据层：瓦片（区域）加载，LRU + 去抖 + 并发限制 ----------
 const toUI = (raw, i) => { if (i < real.length) return Object.assign(real[i], { id: i });
-  return { ...raw, hue: HUES[raw.cat], likers: new Set(), blessings: Array.from({ length: raw.blessN }, () => ({})), heat: raw.likes * 2 + raw.blessN * 3, sample: true }; };
+  const fh = strHash('f' + i); return { ...raw, folded: fh < .3, cover: Math.floor(fh * 1e4) % 18, hue: HUES[raw.cat], likers: new Set(), blessings: Array.from({ length: raw.blessN }, () => ({})), heat: raw.likes * 2 + raw.blessN * 3, sample: true }; };
 const key = r => (cfg.stress ? 'S' + N : 'L' + N) + '|' + r;
 async function getCounts(r) { const k = key(r), c = lruGet(countsCache, k); if (c) return c;
   let v; if (cfg.stress) { try { v = await (await fetch(`/api/tiles/${r || 'root'}?level=count&total=${N}`)).json(); } catch {} }
@@ -267,7 +268,7 @@ function buildClusters(clus, hang) { // 远景：每个聚合区域 = 一团金�
   clus.forEach(o => { const sz = 9 + Math.log10(o.count) * 3, h = strHash(o.region); pts.push([o.P, sz, h, 1, 1]);
     for (let k = 0; k < 12; k++) pts.push([o.P.clone().add(V((r() - .5) * 1.6, (r() - .5) * 1.2, (r() - .5) * 1.6)), 2 + r() * 3.5, r(), .8, 0]);
     for (let k = 0; k < 3; k++) pts.push([o.P.clone().add(V((r() - .5) * 1.2, -.5 - r() * .9, (r() - .5) * 1.2)), 4 + r() * 2, h, .9, 1]); });
-  hang.forEach(o => o.slots.forEach((sl, i) => pts.push([sl.p, o.sz > .5 ? 4 : 3.2, sl.ph, .55, 1])));
+
   const n = Math.max(1, pts.length), pos = new Float32Array(n * 3), size = new Float32Array(n), col = new Float32Array(n * 3), seed = new Float32Array(n), kind = new Float32Array(n);
   pts.forEach(([p, s, h, a, k], i) => { pos.set([p.x, p.y, p.z], i * 3); size[i] = s * a; seed[i] = h; kind[i] = k;
     col.set(k ? [.95, .66 + h * .12, .3 + h * .15] : [1.0, .55 + h * .2, .78], i * 3); });
@@ -279,6 +280,8 @@ function buildClusters(clus, hang) { // 远景：每个聚合区域 = 一团金�
       float a=pow(1.-d,2.4)*vA, lan=vK*smoothstep(.03,0.,max(abs(q.x)-.07,abs(q.y)-.11)); // 核心：小灯笼形
       gl_FragColor=vec4(vC*a + vec3(1.25,.95,.45)*lan*vA, 1.); }` }));
   clusters.userData.branch = true; clusters.frustumCulled = false; clusters.renderOrder = 4; treeGroup.add(clusters);
+  const ap = []; hang.forEach(o => o.slots.forEach(sl => ap.push(sl.p.x, sl.p.y, sl.p.z))); const ag = new THREE.BufferGeometry(); ag.setAttribute('position', new THREE.Float32BufferAttribute(ap, 3)); // 远景：枝上挂卡处的暖色小点（不发光）
+  const am = new THREE.Points(ag, new THREE.PointsMaterial({ color: new THREE.Color(.62, .5, .32), size: .22, sizeAttenuation: true, transparent: true, opacity: .8, depthWrite: false })); am.userData.branch = true; am.renderOrder = 2; treeGroup.add(am);
 }
 function makeLabel(text, P, region) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d'); x.fillStyle = 'rgba(20,10,30,.75)'; x.strokeStyle = '#e8b85a'; x.lineWidth = 2; x.beginPath(); x.roundRect(3, 9, 250, 46, 23); x.fill(); x.stroke();
@@ -297,13 +300,13 @@ function makeInst() {
     fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF; void main(){ vec2 p=vUv-.5;
       float body=step(abs(p.x),.42)*step(-.44,p.y)*step(p.y,.36), cap=step(abs(p.x),.26)*step(.36,p.y)*step(p.y,.46), ring=step(abs(length(p-vec2(0.,.48))-.03),.012);
       if(body+cap+ring<.5) discard; float e=min(.42-abs(p.x),min(p.y+.44,.36-p.y)); // 到边距离
-      float glow=1.-length(p*vec2(1.6,1.))*1.1, pulse=.88+.12*sin(uTime*2.+vF*40.);
-      vec3 c=mix(vec3(.85,.52,.18),vec3(1.18,.92,.5),clamp(glow,0.,1.))*pulse;
-      float bd=step(e,.035)+step(abs(e-.07),.008); c=mix(c,vec3(1.25,1.0,.6),clamp(bd,0.,1.)*.8); // 双描边
+      float sh=.82+.18*(p.y+.5)-.12*abs(p.x); // 柔和受光：上亮下暗，纸质哑光（无自发光，亮度低于 bloom 阈值）
+      vec3 c=vec3(.74,.64,.46)*sh;
+      float bd=step(e,.035)+step(abs(e-.07),.008); c=mix(c,vec3(.45,.3,.15),clamp(bd,0.,1.)*.7); // 双描边
       float lat=step(.9,abs(sin((p.x+p.y)*55.))*abs(sin((p.x-p.y)*55.)))*step(.09,e); c=mix(c,vec3(.55,.28,.08),lat*.35); // 菱格纹
       float ln=step(.5,fract(p.y*9.))*step(abs(p.x),.24)*step(abs(p.y+.04),.24); c=mix(c,vec3(.35,.16,.05),ln*.28); // 文字行示意
-      c=mix(c, vC, .14); if(cap>.5) c=vec3(.75,.42,.12)*pulse; if(ring>.5) c=vec3(1.4,1.1,.6);
-      gl_FragColor=vec4(c,.97); }` }), MID_CAP);
+      c=mix(c, vC*.7, .22); if(cap>.5) c=vec3(.5,.32,.14); if(ring>.5) c=vec3(.6,.5,.3);
+      gl_FragColor=vec4(min(c,vec3(.78)),.97); }` }), MID_CAP);
   ['iPos', 'iCol', 'iAnc'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP * 3), 3).setUsage(THREE.DynamicDrawUsage)));
   ['iSize', 'iPh'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1).setUsage(THREE.DynamicDrawUsage)));
   inst.count = 0; inst.frustumCulled = false; inst.userData.cards = []; inst.renderOrder = 3; treeGroup.add(inst);
@@ -334,14 +337,21 @@ function updateNear(force) { const now = performance.now(); if (!force && now - 
     s.position.copy(c.p); s.userData.c = c; s.userData.sz = c.sz; s.visible = true; const hl = c.w.id === hlId; s.renderOrder = hl ? 6 : 3; s.material.depthTest = !hl; }
   for (; k < nearPool.length; k++) { nearPool[k].visible = false; nearPool[k].userData.wish = null; }
 }
-function cardTexture(w) { // 金色灯笼签：顶帽 + 吊环 + 渐变内发光 + 双描边与角花 + 文字
-  const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0); if (texCache.has(key)) return lruGet(texCache, key);
+function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私密卡加锁）；哑光无发光
+  const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : ''); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
-  x.fillStyle = '#c98a2c'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#ffe3a0'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
+  if (w.folded && window.WTCovers) { x.fillStyle = '#8a6a3a'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#d8c39a'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
+    x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); x.translate(X0, Y0); WTCovers.draw(x, w.cover, W, H); x.restore();
+    const sp = x.createLinearGradient(X0, 0, X0 + 18, 0); sp.addColorStop(0, '#0007'); sp.addColorStop(1, '#0000'); x.fillStyle = sp; x.fillRect(X0, Y0, 18, H); // 书脊阴影
+    x.fillStyle = '#fff3'; x.fillRect(X0 + W - 6, Y0 + 4, 3, H - 8); x.strokeStyle = w.id === hlId ? '#ffffff' : '#e9d9b4'; x.lineWidth = w.id === hlId ? 6 : 3; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke();
+    x.fillStyle = '#000a'; x.fillRect(X0, Y0 + H - 34, W, 34); x.fillStyle = '#fff'; x.font = 'bold 15px sans-serif'; x.fillText(w.priv ? '🔒 ' + tr('card.privateShort') : '📖 ' + tr('card.tapOpen'), X0 + 10, Y0 + H - 12);
+    if (w.priv) { x.fillStyle = '#000a'; x.beginPath(); x.arc(X0 + W - 24, Y0 + 24, 17, 0, 7); x.fill(); x.font = '20px sans-serif'; x.fillText('🔒', X0 + W - 35, Y0 + 31); }
+    const tex = new THREE.CanvasTexture(c); texCache.set(key, tex); return tex; }
+  x.fillStyle = '#8a6a3a'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#d8c39a'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
   const g = x.createRadialGradient(96, 150, 10, 96, 150, 150), hue = w.pending ? 220 : w.hue;
-  g.addColorStop(0, w.pending ? '#b8ccf5' : '#f7dc96'); g.addColorStop(.55, w.pending ? '#7090e0' : '#e0aa48'); g.addColorStop(1, w.pending ? '#2a3a90' : '#9a5814');
+  g.addColorStop(0, w.pending ? '#d5ddef' : '#f6ecd6'); g.addColorStop(.6, w.pending ? '#b3c0dc' : '#e8d7b2'); g.addColorStop(1, w.pending ? '#8996b8' : '#c9ad7c');
   x.fillStyle = g; x.beginPath(); x.roundRect(X0, Y0, W, H, 10); x.fill();
-  x.strokeStyle = w.id === hlId ? '#ffffff' : '#fff0c0'; x.lineWidth = w.id === hlId ? 6 : 3; x.stroke(); x.strokeStyle = '#8a4e12'; x.lineWidth = 1.5; x.strokeRect(X0 + 9, Y0 + 9, W - 18, H - 18);
+  x.strokeStyle = w.id === hlId ? '#ffffff' : '#a9875a'; x.lineWidth = w.id === hlId ? 6 : 3; x.stroke(); x.strokeStyle = '#8a4e12'; x.lineWidth = 1.5; x.strokeRect(X0 + 9, Y0 + 9, W - 18, H - 18);
   x.fillStyle = '#8a4e12'; [[X0 + 9, Y0 + 9], [X0 + W - 9, Y0 + 9], [X0 + 9, Y0 + H - 9], [X0 + W - 9, Y0 + H - 9]].forEach(([a, b]) => { x.beginPath(); x.moveTo(a, b - 7); x.lineTo(a + 7, b); x.lineTo(a, b + 7); x.lineTo(a - 7, b); x.fill(); });
   x.fillStyle = `hsl(${hue},80%,45%)`; x.fillRect(X0 + 40, Y0 + 16, W - 80, 4);
   x.fillStyle = '#3a1a06'; x.font = 'bold 19px "Noto Sans CJK SC",sans-serif'; let line = '', y = Y0 + 48;
@@ -395,12 +405,17 @@ function resize() { if (!slot) return; const w = slot.clientWidth || innerWidth,
 const scr = (p, r) => { const v = p.clone().applyMatrix4(treeGroup.matrixWorld).project(camera); return v.z > 1 ? null : [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; };
 function pick(e, click) {
   const r = renderer.domElement.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  raycaster.setFromCamera(ptr, camera); const hit = raycaster.intersectObjects([...nearPool.filter(s => s.visible), ...labels])[0]?.object;
+  const dbg = document.body.classList.contains('debug'); raycaster.setFromCamera(ptr, camera);
+  let hit = null, hz = 1e9; const tol = e.pointerType === 'touch' ? 10 : 4; // 屏幕空间矩形命中（随摆动的当前位置 + 触屏容差），取离相机最近者
+  for (const sp of nearPool) { if (!sp.visible) continue; sp.getWorldPosition(wp); const v = wp.clone().project(camera); if (v.z > 1) continue;
+    const cx = r.left + (v.x + 1) / 2 * r.width, cy = r.top + (1 - v.y) / 2 * r.height, dz = wp.distanceTo(camera.position), k = r.height / (2 * Math.tan(camera.fov * Math.PI / 360) * dz) * treeGroup.scale.x;
+    if (Math.abs(e.clientX - cx) < sp.scale.x * k / 2 + tol && Math.abs(e.clientY - cy) < sp.scale.y * k / 2 + tol && dz < hz) { hz = dz; hit = sp; } }
+  if (!hit && dbg) hit = raycaster.intersectObjects(labels)[0]?.object;
   let w = hit?.userData.wish, reg = hit?.userData.region;
   if (!hit) { let best = 1e9, bc = null; const cards = inst.userData.cards; // 中景卡：屏幕空间最近
     for (let i = 0; i < cards.length; i++) { const s = scr(cards[i].p, r); if (!s) continue; const d = Math.hypot(s[0] - e.clientX, s[1] - e.clientY); if (d < best) { best = d; bc = cards[i]; } }
-    if (bc && best < 14) w = bc.w;
-    else if (click && view) { best = 1e9; for (const c of view.clus) { const s = scr(c.P, r); if (!s) continue; const d = Math.hypot(s[0] - e.clientX, s[1] - e.clientY); if (d < best) { best = d; reg = c.region; } } if (best > 36) reg = null; } }
+    if (bc && best < (e.pointerType === 'touch' ? 22 : 14)) w = bc.w;
+    else if (click && view && dbg) { best = 1e9; for (const c of view.clus) { const s = scr(c.P, r); if (!s) continue; const d = Math.hypot(s[0] - e.clientX, s[1] - e.clientY); if (d < best) { best = d; reg = c.region; } } if (best > 36) reg = null; } }
   renderer.domElement.style.cursor = w || reg ? 'pointer' : 'grab'; if (!click) hovered = w ? w.sig : null;
   if (click && reg && !w) { window.WT_hover?.(null); return setFocus(reg); }
   if (click && w) { window.WT_hover?.(null); onPick?.(w); } else window.WT_hover?.(w, e);
@@ -416,9 +431,9 @@ function loop() {
   if (fly) { const k = Math.min(1, (now - fly.t0) / fly.dur), e = k * k * (3 - 2 * k); controls.target.lerpVectors(fly.fT, fly.tT, e).multiplyScalar(s); camera.position.lerpVectors(fly.fP, fly.tP, e).multiplyScalar(s); if (k >= 1) { fly = null; scheduleLoad(); } }
   if (dirty) rebuildInst(); else updateNear(false);
   nearPool.forEach(c => { if (!c.visible) return; c.userData.grow = Math.min(1, c.userData.grow + 0.05); const hv = c.userData.wish?.sig === hovered; c.userData.hl = (c.userData.hl || 0) + ((hv ? 1 : 0) - (c.userData.hl || 0)) * .2; // 悬停高亮
-    c.material.color.setScalar(.96 + c.userData.hl * .45); const g = c.userData.grow * (1 + c.userData.hl * .25) * c.userData.sz * (c.userData.wish?.id === hlId ? 1.5 : 1); c.scale.set(CW * 1.2 * g, CH * 1.2 * g, 1);
+    c.material.color.setScalar(.8 + c.userData.hl * .08); // 低于 bloom 阈值：卡片不发光 const g = c.userData.grow * (1 + c.userData.hl * .25) * c.userData.sz * (c.userData.wish?.id === hlId ? 1.5 : 1); c.scale.set(CW * 1.2 * g, CH * 1.2 * g, 1);
     const cc = c.userData.c; if (cc) { const sw = swingJS(cc.a, cc.p, cc.ph, t, c.position), rx = c.position.x - cc.a.x + c.position.z - cc.a.z; c.material.rotation = -Math.abs(sw) * Math.sign(rx) * .6; } });
-  if (now - pickT > 200) { pickT = now; checkNav(); }
+  if (now - pickT > 200) { pickT = now; checkNav(); const dbg = document.body.classList.contains('debug'); if (clusters) clusters.visible = dbg; labels.forEach(l => l.visible = dbg); } // 🏮 计数标签/光簇：仅调试可见
   controls.update(); if (useBloom) composer.render(); else renderer.render(scene, camera);
 }
 export function cardScreenPos(i = 0) { // 测试辅助：返回第 i 张近景卡在屏幕上的坐标

@@ -207,5 +207,20 @@
 "nav.menu": "Menü",
 "nav.close": "Menüyü kapat",
 "nav.language": "Dil",
-"nav.account": "Hesap"
+"nav.account": "Hesap",
+"wish.cardType": "Kart stili",
+"wish.typeSingle": "Tek kart",
+"wish.typeFolded": "Katlanır kart (kapak + iç sayfa)",
+"wish.cover": "Kapak seç",
+"wish.private": "Gizli: içeriği yalnızca ben (yazarın cüzdanı) görebilirim",
+"wish.privateHint": "Gizli kartın içeriği, cüzdan imzanızdan türetilen bir anahtarla tarayıcınızda şifrelenir; zincire yalnızca şifreli metin yazılır, diğerleri sadece kapağı ve kilidi görür. Denetim hizmeti gönderimde düz metni bir kez görür. En fazla 100 karakter.",
+"wish.privateHostNote": "(Emanet modu: anahtarı demo sunucusu türetir, bu yüzden sunucu şifreyi çözebilir.)",
+"wish.privateLen": "Gizli içerik en fazla 100 karakter olabilir",
+"card.privateShort": "Gizli kart",
+"card.privateTitle": "Gizli katlanır kart",
+"card.privateMine": "Bu senin gizli kartın. İçeriği görmek için cüzdan imzanla kilidi aç.",
+"card.privateOther": "Yazar bu kartı gizli yaptı. İçeriği yalnızca yazar görebilir.",
+"card.unlock": "Cüzdanla kilidi aç",
+"card.unlockFail": "Kilit açılamadı (yazarın cüzdan imzası gerekir)",
+"card.tapOpen": "Açmak için dokun"
 }

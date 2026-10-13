@@ -207,5 +207,20 @@
 "nav.menu": "Menu",
 "nav.close": "Fechar menu",
 "nav.language": "Idioma",
-"nav.account": "Conta"
+"nav.account": "Conta",
+"wish.cardType": "Estilo do cartão",
+"wish.typeSingle": "Cartão simples",
+"wish.typeFolded": "Cartão dobrável (capa + interior)",
+"wish.cover": "Escolha uma capa",
+"wish.private": "Privado: só eu (a carteira do autor) posso ver o conteúdo",
+"wish.privateHint": "O conteúdo de um cartão privado é criptografado no seu navegador com uma chave derivada da assinatura da sua carteira; na blockchain fica só o texto cifrado, e os outros veem apenas a capa e um cadeado. O serviço de moderação vê o texto uma vez no envio. Máx. 100 caracteres.",
+"wish.privateHostNote": "(Modo custodial: a chave é derivada pelo servidor de demonstração, então o servidor pode descriptografar.)",
+"wish.privateLen": "O conteúdo privado é limitado a 100 caracteres",
+"card.privateShort": "Cartão privado",
+"card.privateTitle": "Cartão dobrável privado",
+"card.privateMine": "Este é o seu cartão privado. Desbloqueie com a assinatura da carteira para ver o conteúdo.",
+"card.privateOther": "O autor tornou este cartão privado. Só o autor pode ver o conteúdo.",
+"card.unlock": "Desbloquear com a carteira",
+"card.unlockFail": "Falha ao desbloquear (requer a assinatura da carteira do autor)",
+"card.tapOpen": "Toque para abrir"
 }

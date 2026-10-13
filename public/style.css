@@ -131,3 +131,23 @@ body.home:not(.debug) main > .home-spacer { display: none }
 html:has(body.home:not(.debug)), body.home:not(.debug) { overflow: hidden; height: 100dvh; overscroll-behavior: none }
 body.home:not(.debug) footer { position: fixed; left: 0; right: 0; bottom: 0; background: transparent }
 body.debug footer.debug-only { display: block !important }
+/* 封面选择 */
+.cover-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; margin: 6px 0 }
+.cover-grid button { padding: 0; border: 2px solid transparent; border-radius: 8px; overflow: hidden; background: none; line-height: 0 }
+.cover-grid button.on { border-color: #e8b85a; box-shadow: 0 0 0 2px #e8b85a55 }
+.cover-grid img { width: 100%; aspect-ratio: 3/4; object-fit: cover }
+/* 折页卡：封面绕左侧书脊翻开 */
+.fold { position: relative; width: min(320px, 78vw); aspect-ratio: 3/4; margin: 4px auto; perspective: 1400px }
+.fold-page { position: absolute; inset: 0; border-radius: 10px; padding: 18px 16px; box-sizing: border-box; overflow: auto; color: #3a2410;
+  background: linear-gradient(160deg, #fbf3df, #efdcb4); box-shadow: inset 0 0 0 1px #c9a46a, inset 8px 0 14px -8px #8a5a2088 }
+.fold-page .muted { color: #7a5a3a } .fold-text { font-size: 19px; line-height: 1.5; margin: .5em 0 }
+.fold-cover { position: absolute; inset: 0; transform-origin: left center; transform-style: preserve-3d; transition: transform 1.1s cubic-bezier(.3,.7,.2,1); cursor: pointer; z-index: 2 }
+.fold.open .fold-cover { transform: rotateY(-158deg); pointer-events: none }
+.fold-front, .fold-back { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; backface-visibility: hidden; box-shadow: 0 6px 18px #0006 }
+.fold-front img { width: 100%; height: 100%; object-fit: cover; display: block }
+.fold-back { transform: rotateY(180deg); background: linear-gradient(200deg, #f3e4c4, #d9bd88) }
+.fold-lock { position: absolute; top: 10px; right: 10px; font-size: 26px; background: #0008; border-radius: 50%; width: 44px; height: 44px; display: grid; place-items: center }
+.fold-hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; color: #fff; font-size: 13px; text-shadow: 0 1px 3px #000 }
+.fold.locked .fold-page { display: grid; place-items: center; text-align: center }
+.fold.shake .fold-cover { animation: fshake .45s }
+@keyframes fshake { 25% { transform: rotateY(-8deg) } 75% { transform: rotateY(-3deg) } }

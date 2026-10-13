@@ -207,5 +207,20 @@
 "nav.menu": "메뉴",
 "nav.close": "메뉴 닫기",
 "nav.language": "언어",
-"nav.account": "계정"
+"nav.account": "계정",
+"wish.cardType": "카드 스타일",
+"wish.typeSingle": "단일 카드",
+"wish.typeFolded": "접이식 카드(표지 + 속지)",
+"wish.cover": "표지 선택",
+"wish.private": "비공개: 내용은 나(작성자 지갑)만 볼 수 있음",
+"wish.privateHint": "비공개 카드의 내용은 지갑 서명에서 파생된 키로 브라우저에서 암호화되며, 온체인에는 암호문만 저장됩니다. 다른 사람은 표지와 자물쇠만 봅니다. 심사 서비스는 제출 시 평문을 한 번 확인합니다. 비공개 내용은 최대 100자.",
+"wish.privateHostNote": "(수탁 모드: 키를 데모 서버가 파생하므로 서버가 복호화할 수 있습니다.)",
+"wish.privateLen": "비공개 카드 내용은 최대 100자입니다",
+"card.privateShort": "비공개 카드",
+"card.privateTitle": "비공개 접이식 카드",
+"card.privateMine": "나의 비공개 카드입니다. 지갑 서명으로 잠금을 해제하면 내용을 볼 수 있습니다.",
+"card.privateOther": "작성자가 이 카드를 비공개로 설정했습니다. 작성자만 내용을 볼 수 있습니다.",
+"card.unlock": "지갑으로 잠금 해제",
+"card.unlockFail": "잠금 해제 실패(작성자 지갑 서명 필요)",
+"card.tapOpen": "눌러서 열기"
 }

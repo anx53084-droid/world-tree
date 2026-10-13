@@ -20,6 +20,20 @@ const short = a => a ? a.slice(0, 4) + '…' + a.slice(-4) : '';
 const fmtT = t => t ? new Date(t * 1000).toLocaleString(I18N.locale(), { hour12: false, timeZone: 'Asia/Shanghai' }) : t('time.pending');
 const sol = l => (l / 1e9).toFixed(4) + ' SOL';
 const hex2b = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
+// 卡片选项编码在分类字段后（向后兼容：旧客户端把未知分类当「经典」显示正文）：分类~F<封面2位36进制>[P]   F=折页卡  P=私密（正文为 E1: 密文）
+const parseOpt = raw => { const [c, o = ''] = String(raw).split('~'), m = o.match(/^F([0-9a-z]{2})(P?)$/); return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : null, priv: !!(m && m[2]) }; };
+const encOpt = (cat, folded, cover, priv) => folded ? `${cat}~F${(cover | 0).toString(36).padStart(2, '0')}${priv ? 'P' : ''}` : cat;
+// 私密卡：内容在浏览器内用 AES-GCM 加密后上链（链上只有密文）。密钥 = SHA-256(钱包对固定消息的 ed25519 签名)；托管模式由服务器以该用户密钥派生（服务器可解密）
+const b64 = u => btoa(String.fromCharCode(...u)), unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const WTPriv = window.WTPriv = {
+  msg: pk => new TextEncoder().encode(`WorldTree private card key v1\n${pk}`),
+  async keyFromSig(sigBytes) { return crypto.subtle.importKey('raw', await crypto.subtle.digest('SHA-256', sigBytes), 'AES-GCM', false, ['encrypt', 'decrypt']); },
+  async key() { if (S.privKey && S.privKey.pk === S.pubkey) return S.privKey.k; let k;
+    if (S.mode === 'self') { const r = await window.phantom.solana.signMessage(WTPriv.msg(S.pubkey), 'utf8'); k = await WTPriv.keyFromSig(r.signature || r); }
+    else if (S.mode === 'host') { const r = await api('/api/privkey', {}); k = await WTPriv.keyFromSig(hex2b(r.key)); } else throw new Error('login');
+    S.privKey = { pk: S.pubkey, k }; return k; },
+  async enc(text, k) { const iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(text))); const u = new Uint8Array(12 + ct.length); u.set(iv); u.set(ct, 12); return 'E1:' + b64(u); },
+  async dec(c, k) { const u = unb64(c.slice(3)); return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u.slice(0, 12) }, k, u.slice(12))); } };
 const sha256hex = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
 
 const QS = new URLSearchParams(location.search);
@@ -61,7 +75,7 @@ async function rpc(method, params) {
 }
 let txCache = {}; try { txCache = JSON.parse(localStorage.wt_txcache || '{}'); } catch {}
 async function verifyAtt(memo) { // 校验审核证明：sha256(内容) == hash 且 审核服务 ed25519 签名有效；缺失/无效一律拒绝
-  const m = memo.match(/^WTREE1\|[WB]\|([0-9a-f]{64})\|(\d{10})\|([0-9a-f]{128})\|([^|]{1,90}\|[^|]{1,140})$/u);
+  const m = memo.match(/^WTREE1\|[WB]\|([0-9a-f]{64})\|(\d{10})\|([0-9a-f]{128})\|([^|]{1,90}\|[^|]{1,600})$/u);
   if (!m || !S.cfg.moderator || !window.nacl) return false;
   if (await sha256hex(m[4]) !== m[1]) return false;
   return nacl.sign.detached.verify(new TextEncoder().encode(`WTREE-ATT1|${m[1]}|pass|${m[2]}`), hex2b(m[3]), hex2b(S.cfg.moderator));
@@ -86,6 +100,7 @@ async function loadWishes(force) {
     }
     try { localStorage.wt_txcache = JSON.stringify(txCache); } catch {}
     S.txs = sigs.map(s => txCache[s.signature]).filter(Boolean); S.offline = false;
+    if (QS.get('sample') === '1') throw new Error('sample=1');
   } catch (e) { S.offline = true; S.offlineMsg = e.message; S.txs = SAMPLE; }
   S.loadedAt = Date.now(); aggregate();
 }
@@ -95,7 +110,8 @@ function aggregate() {
   const W = {}, likes = [], bless = []; let hidden = 0;
   for (const t of all) { const f = t.memo.split('|');
     if (f[1] === 'W') { if (!t.verified || clientBlocked(f[6])) { hidden++; continue; }
-      const cat = CATS[f[5]] !== undefined ? f[5] : '经典'; W[t.sig] = { ...t, cat, hue: CATS[cat], text: f[6], likers: new Set(), blessings: [] }; }
+      const o = parseOpt(f[5]), priv = o.priv && /^E1:/.test(f[6]); if (!priv && [...f[6]].length > 140) { hidden++; continue; }
+      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
     else if (f[1] === 'L') likes.push([f[2], t]); else if (f[1] === 'B' && t.verified && !clientBlocked(f[6])) bless.push([f[5], t, f[6]]); }
   for (const [ws, t] of likes) W[ws]?.likers.add(t.author); // 每地址对每愿望只计 1 赞
   for (const [ws, t, text] of bless) W[ws]?.blessings.push({ author: t.author, text, time: t.time, sig: t.sig, pending: t.pending });
@@ -110,6 +126,9 @@ const SAMPLE = (() => { // 仅当 RPC 不可达时展示的离线示例（非链
     ['风景', '和你一起看遍山川湖海'], ['人物', '妈妈生日快乐，永远年轻'], ['卡通', '愿星愿成真'], ['动物', '小狗健康长寿'], ['经典', '愿世界和平'], ['风景', '去看一次富士山的日出'], ['物质类', '想要一本好书陪伴冬天']];
   const out = ws.map(([c, t], i) => ({ sig: 'SAMPLE' + i, author: 'Demo' + String(i).repeat(40).slice(0, 40), time: 1791000000 + i * 3600, paid: 6666667, memo: `WTREE1|W|x|x|x|${c}|${t}`, verified: true, sample: true }));
   [0, 0, 0, 8, 8, 2, 3, 3, 3, 3].forEach((w, i) => out.push({ sig: 'SL' + i, author: 'DemoLiker' + i, time: 1791100000, memo: 'WTREE1|L|SAMPLE' + w, verified: true }));
+  [['风景', 1, '愿和你在海边看一次月亮升起'], ['动物', 6, '希望家里的猫咪一直健康'], ['卡通', 11, '有一天能坐火箭去看看地球'], ['经典', 13, '新的一年万事顺遂']].forEach(([c, cv, tx], i) =>
+    out.push({ sig: 'SAMPLEF' + i, author: 'DemoF' + String(i).repeat(40).slice(0, 40), time: 1791050000 + i * 3600, paid: 6666667, memo: `WTREE1|W|x|x|x|${encOpt(c, 1, cv, 0)}|${tx}`, verified: true, sample: true }));
+  out.push({ sig: 'SAMPLEP0', author: 'DemoP' + '7'.repeat(39), time: 1791090000, paid: 6666667, memo: `WTREE1|W|x|x|x|${encOpt('人物', 1, 3, 1)}|E1:q7m3N0sZ2hX1vR9kTq0bVhJmZ8Yp1cWf4uLx6eSa2dG3oK5n`, verified: true, sample: true });
   out.push({ sig: 'SB0', author: 'DemoBless1', time: 1791200000, memo: 'WTREE1|B|x|x|x|SAMPLE0|一定会的，祝福你们！', verified: true });
   return out; })();
 
@@ -122,10 +141,10 @@ function memoTx(payer, memo, lamports) {
   tx.add(new W3.TransactionInstruction({ programId: new W3.PublicKey(MEMO), keys: [{ pubkey: p, isSigner: true, isWritable: false }], data: new TextEncoder().encode(memo) }));
   return tx;
 }
-async function moderateThenMemo(kind, prefix, text) { // 先审核（上链/付款之前），得到审核证明
-  const r = await fetch('/api/moderate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, prefix }) }).then(r => r.json());
+async function moderateThenMemo(kind, prefix, text, cipher) { // 先审核（上链/付款之前），得到审核证明；私密卡：审核明文，证明绑定上链的密文
+  const r = await fetch('/api/moderate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, prefix, cipher }) }).then(r => r.json());
   if (!r.pass) { const msg = r.category ? `${esc(t('mod.reject'))}<br><span class=reject>${esc(t('mod.hitCategory', { cat: modCat(r.category) }))}</span>` : esc(tErr(r.code, r.message) || t('mod.reject')); throw Object.assign(new Error(msg), { html: true }); }
-  const a = r.attestation; return `WTREE1|${kind}|${a.hash}|${a.ts}|${a.sig}|${prefix}|${text}`;
+  const a = r.attestation; return `WTREE1|${kind}|${a.hash}|${a.ts}|${a.sig}|${prefix}|${cipher || text}`;
 }
 async function submit(memo, lk, lamports = 0) { const label = t('label.' + lk);
   if (S.mode === 'guest') { toast(esc(t('tx.needLogin')), 'err'); return; }
@@ -220,7 +239,8 @@ document.addEventListener('click', e => { const s = e.target.closest('[data-like
 window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true; return; } tip.hidden = false; tip.dataset.cat = w.cat;
   tip.innerHTML = `<span class=tag>${esc(catName(w.cat))}</span> <bdi>${esc(w.text)}</bdi><div class=muted>${short(w.author)} · 💖 ${w.likes} · 🙏 ${w.blessings.length}${w.pending ? ' · ⏳' + esc(t('time.pending')) : ''}</div>`;
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 290) + 'px'; tip.style.top = e.clientY + 14 + 'px'; };
-function openCardPopup(w) { maybeFulfillToast(w); modal(`<div class=row>${spectrum(w.sig, 72)}<div><span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p style="font-size:18px;margin:.4em 0" dir=auto>${esc(w.text)}</p>
+const isMine = w => S.pubkey && w.author === S.pubkey;
+function openCardPopup(w) { if (w.folded) return openFolded(w); maybeFulfillToast(w); modal(`<div class=row>${spectrum(w.sig, 72)}<div><span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p style="font-size:18px;margin:.4em 0" dir=auto>${esc(w.text)}</p>
   <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div></div></div>
   <div class=row style="margin-top:14px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`, w.cat); }
 
@@ -281,12 +301,28 @@ function sharePng(w) { // 生成分享图（本地 canvas → PNG）+ 链接
     <a class="btn primary" download="world-tree-${w.sig.slice(0, 8)}.png" href="${c.toDataURL('image/png')}">${E('share.download')}</a><button id=cp>${E('share.copy')}</button><button data-close>${E('common.close')}</button></div>`, w.cat);
   $('#cp').onclick = () => navigator.clipboard?.writeText(url).then(() => toast(E('share.copied'), 'ok'), () => toast(esc(url)));
 }
+function foldInner(w, text) { return `<span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>
+  <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
+  <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`; }
+function openFolded(w) { // 折页卡：封面 → 3D 翻开动画 → 内页；私密卡仅作者可解锁
+  const locked = w.priv && !w.plain, mine = isMine(w);
+  modal(`<div class="fold${locked ? ' locked' : ''}" id=fold><div class=fold-page id=foldPage>${locked ? `<div class=fold-lockmsg>🔒 <b>${esc(t('card.privateTitle'))}</b><p class=muted>${esc(t(mine ? 'card.privateMine' : 'card.privateOther'))}</p>
+    ${mine ? `<button class=primary id=unlock>🔓 ${esc(t('card.unlock'))}</button>` : ''}<div class=row style="margin-top:10px"><button data-close>${esc(t('common.close'))}</button></div></div>` : foldInner(w, w.plain || w.text)}</div>
+    <div class=fold-cover id=foldCover><div class=fold-front><img alt="" src="${WTCovers.url(w.cover, 300, 400)}">${w.priv ? '<span class=fold-lock>🔒</span>' : ''}<span class=fold-hint>${esc(t(locked && !mine ? 'card.privateShort' : 'card.tapOpen'))}</span></div><div class=fold-back></div></div></div>`, w.cat);
+  const f = $('#fold'), open = () => f.classList.add('open');
+  $('#foldCover').addEventListener('click', () => { if (locked && !mine) { f.classList.add('shake'); setTimeout(() => f.classList.remove('shake'), 500); return; } open(); });
+  if (!locked) setTimeout(open, 450); else if (mine) setTimeout(open, 450);
+  $('#unlock')?.addEventListener('click', async () => { try { const k = await WTPriv.key(); w.plain = await WTPriv.dec(w.cipher, k); $('#foldPage').innerHTML = foldInner(w, w.plain); f.classList.remove('locked'); }
+    catch (e) { toast(esc(t('card.unlockFail')), 'err'); } }); }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
   return `<h2>${E('wish.title')}</h2><div class=card>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
   <div class=row><label>${E('wish.cat')} <select id=wc2>${Object.keys(CATS).map(c => `<option value="${c}">${esc(catName(c))}</option>`).join('')}</select></label></div>
+  <div class=row><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
+  <div id=coverWrap hidden><div class=muted>${E('wish.cover')}</div><div class=cover-grid id=covers>${WTCovers.list.map((c, i) => `<button type=button data-cover=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTCovers.url(i)}"></button>`).join('')}</div>
+    <label class=agree><input type=checkbox id=priv> <span>🔒 ${E('wish.private')}</span></label><p class=muted style="margin:4px 0">${E('wish.privateHint')}${S.mode === 'host' ? ' ' + E('wish.privateHostNote') : ''}</p></div>
   <div id=shipWrap hidden><label>${E('wish.shipping')}<textarea id=ship maxlength=500 dir=auto placeholder="${E('wish.shippingPh')}" rows=2 style="width:100%;margin-top:4px"></textarea></label>
   <p class=muted style="margin:4px 0">${E('wish.shippingHint')}</p></div>
   <textarea id=wt maxlength=140 dir=auto placeholder="${E('wish.ph')}"></textarea><div class=muted id=wc>0/140</div>
@@ -346,23 +382,31 @@ async function route() {
   const ta = $('#wt'); if (ta) {
     const catSel = $('#wc2');
     const syncShip = () => { const on = catSel?.value === MATERIAL; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
+    const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.cover === i));
+    const syncCard = () => { const f = $('#ctype')?.value === 'folded'; if ($('#coverWrap')) $('#coverWrap').hidden = !f; const ta2 = $('#wt'); if (ta2) { ta2.maxLength = f && $('#priv')?.checked ? 100 : 140; $('#wc').textContent = [...ta2.value].length + '/' + ta2.maxLength; } };
+    $('#ctype')?.addEventListener('change', syncCard); $('#priv')?.addEventListener('change', syncCard);
+    $('#covers')?.addEventListener('click', e => { const b = e.target.closest('[data-cover]'); if (b) pickCover(+b.dataset.cover); });
+    catSel?.addEventListener('change', () => { if (!$('#covers .on') || $('#covers').dataset.auto !== '0') pickCover(WTCovers.forCat(catSel.value)[0]); }); $('#covers')?.addEventListener('click', () => $('#covers').dataset.auto = '0');
+    pickCover(WTCovers.forCat(catSel?.value || '经典')[0]); syncCard();
     catSel?.addEventListener('change', syncShip); syncShip();
     const upd = () => { const ok = $('#ag').checked && (!$('#ag2') || $('#ag2').checked); $('#ws').disabled = !ok; $('#ws').classList.toggle('breathe', ok);
       const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { dev: sol(Math.floor(l * .2)), tre: sol(l - Math.floor(l * .2)) }); };
     fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); const a = $('#amt'); if (a) { a.min = c.minLamports / 1e9; if (+a.value * 1e9 < c.minLamports) a.value = (Math.ceil(c.minLamports / 1e5) / 1e4).toFixed(4); upd(); } }).catch(() => {});
-    ta.addEventListener('input', () => $('#wc').textContent = [...ta.value].length + '/140'); ['#ag', '#ag2', '#amt'].forEach(s => $(s)?.addEventListener('input', upd)); upd();
+    ta.addEventListener('input', () => $('#wc').textContent = [...ta.value].length + '/' + ta.maxLength); ['#ag', '#ag2', '#amt'].forEach(s => $(s)?.addEventListener('input', upd)); upd();
     $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = $('#wc2').value;
       const shippingNote = cat === MATERIAL ? ($('#ship')?.value || '').trim() : '';
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
       if (!(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
-      let memo; try { memo = await moderateThenMemo('W', cat, txt); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }
+      const folded = $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher;
+      if (priv) { if ([...txt].length > 100) return toast(E('wish.privateLen'), 'err'); try { cipher = await WTPriv.enc(txt, await WTPriv.key()); } catch (e) { return toast(esc(t('card.unlockFail')) + ' ' + esc(e.message || ''), 'err'); } }
+      let memo; try { memo = await moderateThenMemo('W', encOpt(cat, folded, cover, priv), txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }
       if ($('#ag2')) localStorage.wt_terms = '1';
       const sig = await submit(memo, 'wish', lam);
       if (sig) {
         // 链下登记：记账 +（物质类）收货/联系备注；备注永不入链
         fetch('/api/wish-paid', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') },
-          body: JSON.stringify({ sig, cat, text: txt, author: S.pubkey, lamports: lam, shippingNote, source: S.mode }) }).catch(() => {});
+          body: JSON.stringify({ sig, cat, text: priv ? '🔒' : txt, author: S.pubkey, lamports: lam, shippingNote, source: S.mode }) }).catch(() => {});
         location.hash = '#/';
       } else $('#ws').disabled = false;
     });

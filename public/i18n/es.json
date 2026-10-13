@@ -207,5 +207,20 @@
 "nav.menu": "Menú",
 "nav.close": "Cerrar menú",
 "nav.language": "Idioma",
-"nav.account": "Cuenta"
+"nav.account": "Cuenta",
+"wish.cardType": "Estilo de tarjeta",
+"wish.typeSingle": "Tarjeta simple",
+"wish.typeFolded": "Tarjeta plegada (portada + interior)",
+"wish.cover": "Elige una portada",
+"wish.private": "Privada: solo yo (la billetera del autor) puedo ver el contenido",
+"wish.privateHint": "El contenido de una tarjeta privada se cifra en tu navegador con una clave derivada de la firma de tu billetera; en la cadena solo se guarda el texto cifrado y los demás solo ven la portada y un candado. El servicio de moderación ve el texto una vez al enviarlo. Máximo 100 caracteres.",
+"wish.privateHostNote": "(Modo custodiado: la clave la deriva el servidor de demostración, así que el servidor puede descifrarla.)",
+"wish.privateLen": "El contenido privado admite como máximo 100 caracteres",
+"card.privateShort": "Tarjeta privada",
+"card.privateTitle": "Tarjeta plegada privada",
+"card.privateMine": "Es tu tarjeta privada. Desbloquéala con la firma de tu billetera para ver el contenido.",
+"card.privateOther": "El autor ha hecho privada esta tarjeta. Solo el autor puede ver su contenido.",
+"card.unlock": "Desbloquear con billetera",
+"card.unlockFail": "Error al desbloquear (requiere la firma de la billetera del autor)",
+"card.tapOpen": "Toca para abrir"
 }

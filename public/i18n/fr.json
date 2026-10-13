@@ -207,5 +207,20 @@
 "nav.menu": "Menu",
 "nav.close": "Fermer le menu",
 "nav.language": "Langue",
-"nav.account": "Compte"
+"nav.account": "Compte",
+"wish.cardType": "Style de carte",
+"wish.typeSingle": "Carte simple",
+"wish.typeFolded": "Carte pliée (couverture + intérieur)",
+"wish.cover": "Choisir une couverture",
+"wish.private": "Privée : seul moi (le portefeuille de l'auteur) peux voir le contenu",
+"wish.privateHint": "Le contenu d'une carte privée est chiffré dans votre navigateur avec une clé dérivée de la signature de votre portefeuille ; seul le texte chiffré est enregistré on-chain, les autres ne voient que la couverture et un cadenas. Le service de modération voit le texte en clair une fois lors de l'envoi. 100 caractères max.",
+"wish.privateHostNote": "(Mode dépositaire : la clé est dérivée par le serveur de démo, qui peut donc déchiffrer.)",
+"wish.privateLen": "Le contenu privé est limité à 100 caractères",
+"card.privateShort": "Carte privée",
+"card.privateTitle": "Carte pliée privée",
+"card.privateMine": "C'est votre carte privée. Déverrouillez-la avec la signature de votre portefeuille pour voir le contenu.",
+"card.privateOther": "L'auteur a rendu cette carte privée. Seul l'auteur peut en voir le contenu.",
+"card.unlock": "Déverrouiller avec le portefeuille",
+"card.unlockFail": "Échec du déverrouillage (signature du portefeuille de l'auteur requise)",
+"card.tapOpen": "Toucher pour ouvrir"
 }

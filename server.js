@@ -26,7 +26,7 @@ const sha256hex = t => crypto.createHash('sha256').update(t, 'utf8').digest('hex
 const attMsg = (hash, ts) => Buffer.from(`WTREE-ATT1|${hash}|pass|${ts}`, 'utf8');
 function attest(text) { const hash = sha256hex(text), ts = Math.floor(Date.now() / 1000); return { hash, ts, sig: Buffer.from(nacl.sign.detached(attMsg(hash, ts), MODKEY.secretKey)).toString('hex'), moderator: MOD_PUB }; }
 function verifyWishMemo(memo) { // WTREE1|W|hash|ts|sig|分类|正文  或  WTREE1|B|hash|ts|sig|愿望签名|祝福
-  const m = memo.match(/^WTREE1\|[WB]\|([0-9a-f]{64})\|(\d{10})\|([0-9a-f]{128})\|([^|]{1,90}\|[^|]{1,140})$/u); if (!m) return false;
+  const m = memo.match(/^WTREE1\|[WB]\|([0-9a-f]{64})\|(\d{10})\|([0-9a-f]{128})\|([^|]{1,90}\|[^|]{1,600})$/u); if (!m) return false;
   return sha256hex(m[4]) === m[1] && nacl.sign.detached.verify(attMsg(m[1], m[2]), Buffer.from(m[3], 'hex'), MODKEY.publicKey);
 }
 const PAYEES_F = path.join(DATA_DIR, 'payees.json'); let PAYEES = null; try { PAYEES = JSON.parse(fs.readFileSync(PAYEES_F)); } catch {}
@@ -66,10 +66,12 @@ async function api(req, res, url) {
     catch (e) { return send(res, 200, { jsonrpc: '2.0', id: b.id, error: { code: -1, message: 'RPC 不可达: ' + e.message } }); }
   }
   if (url === '/api/moderate' && req.method === 'POST') { // 上链前审核（两种模式都必须先通过）
-    const { text, prefix } = await body(req); // prefix = 分类（愿望）或 愿望签名（祝福）
+    const { text, prefix, cipher } = await body(req); // prefix = 分类[~F封面[P]]（愿望）或 愿望签名（祝福）；私密卡附 cipher（E1: AES-GCM 密文），审核明文、证明绑定密文
+    const priv = typeof prefix === 'string' && /~F[0-9a-z]{2}P$/.test(prefix);
+    if (priv && (typeof cipher !== 'string' || !/^E1:[A-Za-z0-9+/=]{24,560}$/.test(cipher) || [...(text || '')].length > 100)) return send(res, 400, { pass: false, message: '私密卡参数无效', code: 'param' });
     if (typeof text !== 'string' || !text.trim() || [...text].length > 140 || text.includes('|')) return send(res, 400, { pass: false, message: '内容需为 1–140 字，且不含字符 |', code: 'len' });
     if (typeof prefix !== 'string' || !/^[^|]{1,90}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
-    const r = await moderate(text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + text) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
+    const r = await moderate(text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
   if (url === '/api/tiles' || url.startsWith('/api/tiles/')) { // 【模拟索引器】区域瓦片：确定性合成任意总量的卡片（真实后端见 README「扩展到千亿」）
     const q = new URL(req.url, 'http://x').searchParams, N = Math.min(WTA.CAPACITY, Math.max(0, Math.floor(+q.get('total') || 1e11))), level = q.get('level') || 'count';
@@ -121,6 +123,7 @@ async function api(req, res, url) {
   if (url === '/api/me') return a ? send(res, 200, { email: a.email, pubkey: a.user.pubkey }) : send(res, 401, { error: '未登录', code: 'auth' });
   if (!a) return send(res, 401, { error: '未登录', code: 'auth' });
   const kp = web3.Keypair.fromSecretKey(Buffer.from(a.user.secret, 'base64'));
+  if (url === '/api/privkey' && req.method === 'POST') return send(res, 200, { key: crypto.createHmac('sha256', Buffer.from(kp.secretKey)).update('WTREE-PRIV1').digest('hex') }); // 托管模式私密卡密钥（服务器可派生 → 托管模式下服务器可解密）
   if (url === '/api/airdrop' && req.method === 'POST') {
     try { const sig = await conn.requestAirdrop(kp.publicKey, 0.1 * web3.LAMPORTS_PER_SOL); return send(res, 200, { signature: sig }); }
     catch (e) { return send(res, 200, { error: '空投失败: ' + e.message, code: 'airdrop', detail: e.message }); }
@@ -132,7 +135,7 @@ async function api(req, res, url) {
     else if (!/^WTREE1\|L\|[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(memo)) return send(res, 400, { error: 'memo 格式无效', code: 'memo' });
     if (memo.startsWith('WTREE1|W|') && !(Number.isInteger(lamports) && lamports >= minLamports((await solPrice()).usd))) return send(res, 400, { error: '金额低于最低 1 美元等值 SOL', code: 'amount' });
     try { const wishLam = memo.startsWith('WTREE1|W|') ? lamports : 0; const sig = await web3.sendAndConfirmTransaction(conn, buildMemoTx(kp.publicKey, memo, wishLam), [kp], { commitment: 'confirmed' });
-      if (wishLam > 0) { const parts = memo.split('|'); Fulfill.registerWish({ wishSig: sig, cat: parts[5], text: parts[6], author: kp.publicKey.toBase58(), lamports: wishLam, source: 'host' }); }
+      if (wishLam > 0) { const parts = memo.split('|'); Fulfill.registerWish({ wishSig: sig, cat: parts[5].split('~')[0], text: /~F..P$/.test(parts[5]) ? '🔒' : parts[6], author: kp.publicKey.toBase58(), lamports: wishLam, source: 'host' }); }
       return send(res, 200, { signature: sig }); }
     catch (e) { return send(res, 200, { error: '上链失败: ' + e.message, code: 'chain', detail: e.message }); }
   }

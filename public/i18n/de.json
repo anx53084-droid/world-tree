@@ -207,5 +207,20 @@
 "nav.menu": "Menü",
 "nav.close": "Menü schließen",
 "nav.language": "Sprache",
-"nav.account": "Konto"
+"nav.account": "Konto",
+"wish.cardType": "Kartenstil",
+"wish.typeSingle": "Einzelkarte",
+"wish.typeFolded": "Klappkarte (Cover + Innenseite)",
+"wish.cover": "Cover wählen",
+"wish.private": "Privat: Nur ich (die Wallet des Autors) kann den Inhalt sehen",
+"wish.privateHint": "Der Inhalt einer privaten Karte wird in deinem Browser mit einem aus deiner Wallet-Signatur abgeleiteten Schlüssel verschlüsselt; on-chain wird nur der Geheimtext gespeichert, andere sehen nur Cover und Schloss. Der Moderationsdienst sieht den Klartext einmal beim Absenden. Max. 100 Zeichen.",
+"wish.privateHostNote": "(Verwahrmodus: Der Schlüssel wird vom Demo-Server abgeleitet, der Server kann also entschlüsseln.)",
+"wish.privateLen": "Privater Inhalt ist auf 100 Zeichen begrenzt",
+"card.privateShort": "Private Karte",
+"card.privateTitle": "Private Klappkarte",
+"card.privateMine": "Das ist deine private Karte. Entsperre sie mit deiner Wallet-Signatur, um den Inhalt zu sehen.",
+"card.privateOther": "Der Autor hat diese Karte privat gemacht. Nur der Autor kann den Inhalt sehen.",
+"card.unlock": "Mit Wallet entsperren",
+"card.unlockFail": "Entsperren fehlgeschlagen (Wallet-Signatur des Autors nötig)",
+"card.tapOpen": "Zum Öffnen tippen"
 }

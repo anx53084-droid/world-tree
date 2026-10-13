@@ -207,5 +207,20 @@
 "nav.menu": "Menu",
 "nav.close": "Đóng menu",
 "nav.language": "Ngôn ngữ",
-"nav.account": "Tài khoản"
+"nav.account": "Tài khoản",
+"wish.cardType": "Kiểu thẻ",
+"wish.typeSingle": "Thẻ đơn",
+"wish.typeFolded": "Thẻ gấp (bìa + bên trong)",
+"wish.cover": "Chọn bìa",
+"wish.private": "Riêng tư: chỉ tôi (ví của tác giả) xem được nội dung",
+"wish.privateHint": "Nội dung thẻ riêng tư được mã hóa ngay trong trình duyệt bằng khóa lấy từ chữ ký ví; trên chuỗi chỉ lưu bản mã, người khác chỉ thấy bìa và ổ khóa. Dịch vụ kiểm duyệt thấy văn bản gốc một lần khi gửi. Tối đa 100 ký tự.",
+"wish.privateHostNote": "(Chế độ lưu ký: khóa do máy chủ demo tạo nên máy chủ có thể giải mã.)",
+"wish.privateLen": "Nội dung riêng tư tối đa 100 ký tự",
+"card.privateShort": "Thẻ riêng tư",
+"card.privateTitle": "Thẻ gấp riêng tư",
+"card.privateMine": "Đây là thẻ riêng tư của bạn. Mở khóa bằng chữ ký ví để xem nội dung.",
+"card.privateOther": "Tác giả đã đặt thẻ này ở chế độ riêng tư. Chỉ tác giả xem được nội dung.",
+"card.unlock": "Mở khóa bằng ví",
+"card.unlockFail": "Mở khóa thất bại (cần chữ ký ví của tác giả)",
+"card.tapOpen": "Chạm để mở"
 }

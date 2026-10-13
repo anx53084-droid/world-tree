@@ -207,5 +207,20 @@
 "nav.menu": "メニュー",
 "nav.close": "メニューを閉じる",
 "nav.language": "言語",
-"nav.account": "アカウント"
+"nav.account": "アカウント",
+"wish.cardType": "カードの種類",
+"wish.typeSingle": "シングルカード",
+"wish.typeFolded": "折りたたみカード（表紙＋中面）",
+"wish.cover": "表紙を選ぶ",
+"wish.private": "非公開：内容は私（作者のウォレット）だけが見られる",
+"wish.privateHint": "非公開カードの内容は、ウォレット署名から導出した鍵でブラウザ内で暗号化され、オンチェーンには暗号文のみが保存されます。他の人には表紙と鍵マークだけが見えます。審査サービスは送信時に一度だけ平文を確認します。非公開の内容は最大100文字。",
+"wish.privateHostNote": "（カストディモード：鍵はデモサーバーが導出するため、サーバーは復号できます。）",
+"wish.privateLen": "非公開カードの内容は100文字までです",
+"card.privateShort": "非公開カード",
+"card.privateTitle": "非公開の折りたたみカード",
+"card.privateMine": "これはあなたの非公開カードです。ウォレット署名で解錠すると内容を表示できます。",
+"card.privateOther": "作者がこのカードを非公開にしています。内容は作者本人のみ閲覧できます。",
+"card.unlock": "ウォレットで解錠",
+"card.unlockFail": "解錠に失敗しました（作者のウォレット署名が必要）",
+"card.tapOpen": "タップして開く"
 }

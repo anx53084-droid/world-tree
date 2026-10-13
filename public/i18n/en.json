@@ -207,5 +207,20 @@
 "nav.menu": "Menu",
 "nav.close": "Close menu",
 "nav.language": "Language",
-"nav.account": "Account"
+"nav.account": "Account",
+"wish.cardType": "Card style",
+"wish.typeSingle": "Single card",
+"wish.typeFolded": "Folded card (cover + inside)",
+"wish.cover": "Choose a cover",
+"wish.private": "Private: only I (the author's wallet) can see the content",
+"wish.privateHint": "A private card's content is encrypted in your browser with a key derived from your wallet signature; only the ciphertext goes on-chain, and others see just the cover and a lock. The moderation service sees the plaintext once when you submit. Private content: max 100 characters.",
+"wish.privateHostNote": "(Custodial mode: the key is derived by the demo server, so the server can decrypt it.)",
+"wish.privateLen": "Private card content is limited to 100 characters",
+"card.privateShort": "Private card",
+"card.privateTitle": "Private folded card",
+"card.privateMine": "This is your private card. Unlock it with your wallet signature to view the content.",
+"card.privateOther": "The author made this card private. Only the author can view its content.",
+"card.unlock": "Unlock with wallet",
+"card.unlockFail": "Unlock failed (needs the author's wallet signature)",
+"card.tapOpen": "Tap to open"
 }
