@@ -85,9 +85,9 @@ async function rpcAt(url, method, params) {
   const j = await r.json().catch(() => { throw Object.assign(new Error('bad json'), { net: true }); });
   if (j.error) throw Object.assign(new Error(j.error.message), { net: j.error.code === -1 }); return j.result;
 }
-let relayDown = false; // 中继不可达时回退：浏览器直连 devnet
+let relayDown = 0; // 中继不可达时回退：浏览器直连 devnet；60s 后再试中继
 async function rpc(method, params) {
-  if (!relayDown) { try { return await rpcAt(RPC_READ, method, params); } catch (e) { if (!e.net && !(e instanceof TypeError)) throw e; relayDown = true; } }
+  if (Date.now() - relayDown > 60000) { try { return await rpcAt(RPC_READ, method, params); } catch (e) { if (!e.net && !(e instanceof TypeError) && e.name !== 'TimeoutError') throw e; relayDown = Date.now(); } }
   return rpcAt(RPC_WRITE, method, params);
 }
 let txCache = {}; try { txCache = JSON.parse(localStorage.wt_txcache || '{}'); } catch {}
@@ -117,8 +117,8 @@ async function loadWishes(force) {
       for (let k = 0; k < res.length; k++) if (res[k] !== undefined) txCache[need[i + k]] = await parseTx(need[i + k], res[k]);
     }
     try { localStorage.wt_txcache = JSON.stringify(txCache); localStorage.wt_sigs = JSON.stringify(sigs.filter(s => !s.err).map(s => s.signature)); } catch {}
-    S.txs = sigs.map(s => txCache[s.signature]).filter(Boolean); S.offline = false;
-  } catch (e) { S.offline = true; S.offlineMsg = e.message; if (!S.txs.length || S.txs === SAMPLE || QS.get('sample') === '1') S.txs = SAMPLE; } // 读取失败：保留上次缓存的真实数据，无缓存才用示例
+    S.txs = sigs.map(s => txCache[s.signature]).filter(Boolean); S.offline = false; S.hadReal = true;
+  } catch (e) { S.offlineMsg = e.message; if (QS.get('sample') === '1' || !S.hadReal) { S.offline = true; S.txs = SAMPLE; } } // 读取失败：一旦拿到过真实数据（含缓存/空列表）就保持不变，避免示例↔真实来回切换造成闪烁
   S.loadedAt = Date.now(); aggregate();
 }
 const clientBlocked = t => S.words && Object.values(S.words).flat().some(w => t.toLowerCase().includes(w.toLowerCase())); // 前端二次过滤：链上无法删除，但前端不展示
@@ -490,7 +490,7 @@ function openSearch() { const pi = window.WT3D?.pageInfo?.() || { page: 0, pages
 document.addEventListener('click', e => { if (e.target.closest('#qbtn')) openSearch(); });
 function syncChip(on) { let c = $('#sync'); if (!c) { c = document.createElement('div'); c.id = 'sync'; document.body.append(c); } c.textContent = '⏳ ' + t('route.loading'); c.hidden = !on; }
 function refreshView() { // 后台数据到达：首页只更新 3D 数据，其他页面在用户未编辑时重渲染
-  if ($('#scene') && window.WT3D) { WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; return; }
+  if ($('#scene') && window.WT3D) { WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); const bn = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; if ($('#banner').innerHTML !== bn) $('#banner').innerHTML = bn; return; }
   if (!document.querySelector('textarea:focus,input:focus,select:focus') && $('#modal').hidden && !($('#wt') && $('#maker') && !$('#maker').hidden)) route(); }
 function mount3d() { if (!window.WT3D) { if (!ready3d) { ready3d = true; addEventListener('wt3d-ready', () => $('#scene') && mount3d()); } return; }
   WT3D.attach($('#scene')); WT3D.setSeason(S.season || autoSeason()); WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); }
@@ -503,7 +503,7 @@ if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.host
   if (S.token) api('/api/me').then(r => { S.mode = 'host'; S.email = r.email; S.pubkey = r.pubkey; renderMode(); route(); }).catch(() => localStorage.removeItem('wt_token'));
   window.phantom?.solana?.connect?.({ onlyIfTrusted: true }).then(r => { if (S.mode === 'guest') { S.mode = 'self'; S.pubkey = r.publicKey.toString(); renderMode(); route(); } }).catch(() => {});
   // 首屏立即渲染：先用上次缓存的链上数据（localStorage）画出世界树，链上读取在后台进行，完成后无感刷新
-  try { const sigs = JSON.parse(localStorage.wt_sigs || '[]'); S.txs = sigs.map(x => txCache[x]).filter(Boolean); } catch {} aggregate(); route(); syncChip(true);
+  try { if (localStorage.wt_sigs != null) { const sigs = JSON.parse(localStorage.wt_sigs); S.txs = sigs.map(x => txCache[x]).filter(Boolean); S.hadReal = true; } } catch {} aggregate(); route(); syncChip(true);
   (async () => { await loadWishes(); syncChip(false); await hydrateFulfillments(); refreshView(); })();
   setInterval(async () => { await loadWishes(true); refreshView(); }, 30000); // 正在填写心愿卡时不重渲染
 })();

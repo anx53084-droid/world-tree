@@ -250,19 +250,24 @@ const PAGE_N = 200; let PAGE = 0;
 const pageMode = () => !document.body.classList.contains('debug');
 const pagesTotal = () => Math.max(1, Math.ceil(N / PAGE_N));
 const pageIds = p => { const out = []; for (let k = 0, i = N - 1 - p * PAGE_N; k < PAGE_N && i >= 0; k++, i--) out.push(i); return out; };
-function clearBranches() { treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); });
+function clearBranches() { pageGeo = null; treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); });
   labels.forEach(l => { treeGroup.remove(l); l.material.map.dispose(); l.material.dispose(); }); labels = []; }
-function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal() - 1)); clearBranches(); focus = '';
-  const ids = pageIds(PAGE), L = [], hang = [], leafPts = [], thick = .4, NB = 16, sz = ids.length <= 48 ? .5 : .4; // 小吊签
-  for (let j = 0; j < NB; j++) { const { p: ce, th } = childEnd('', j), r1 = 'pg' + j, h = strHash(r1), st = V(Math.cos(th) * .5, 5.3 + h * 1.2, Math.sin(th) * .5), mid = bend(st, ce, h, .9);
-    L.push({ pts: [st, mid, ce], rf: t => thick * (1 - t * .62), seg: 16, knot: j }); const pc = new THREE.CatmullRomCurve3([st, mid, ce]), segs = []; ramify(L, pc, thick * .5, 4.5, r1, 2, segs);
-    segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce);
-    const mine = ids.filter((_, k) => k % NB === j); if (!mine.length) continue;
+let pageGeo = null; // 分页模式的枝干/花簇几何只建一次（与数据无关）；数据变化只重排吊卡，不重建场景
+function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal() - 1)); focus = '';
+  const ids = pageIds(PAGE), hang = [], NB = 16, sz = ids.length <= 48 ? .5 : .4; // 小吊签
+  if (!pageGeo || !pageGeo.mesh.parent) { clearBranches(); window.__wtGeo = (window.__wtGeo || 0) + 1; const L = [], leafPts = [], thick = .4, segsAll = [];
+    for (let j = 0; j < NB; j++) { const { p: ce, th } = childEnd('', j), r1 = 'pg' + j, h = strHash(r1);
+      // 主枝从树干顶部内侧长出（与树干顶面重叠，避免断层），先向上再外展
+      const st = V(Math.cos(th) * .35, 5.0 + h * .9, Math.sin(th) * .35), up = V(Math.cos(th) * 1.1, st.y + 1.3, Math.sin(th) * 1.1), mid = bend(up, ce, h, .9);
+      L.push({ pts: [st, up, mid, ce], rf: t => thick * (1.25 - t * .87), seg: 20, knot: j }); const pc = new THREE.CatmullRomCurve3([st, up, mid, ce]), segs = []; ramify(L, pc, thick * .5, 4.5, r1, 2, segs);
+      segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce); segsAll.push({ ce, segs }); }
+    const mesh = new THREE.Mesh(tubes(L, 7), bark()); mesh.userData.branch = true; treeGroup.add(mesh);
+    const r = rng(7), bp = []; leafPts.forEach(t => { for (let k = 0; k < 40; k++) bp.push(t.x + (r() - .5) * 2.2, t.y + (r() - .3) * 1.4, t.z + (r() - .5) * 2.2, r(), .22 + r() * .25); });
+    const lb = blossomPoints(bp); for (let i = 0; i < lb.geometry.attributes.bs.count; i++) lb.geometry.attributes.bs.setW(i, .45 + r() * .5); lb.userData.branch = true; treeGroup.add(lb);
+    pageGeo = { mesh, lb, segsAll }; }
+  for (let j = 0; j < NB; j++) { const { ce, segs } = pageGeo.segsAll[j], mine = ids.filter((_, k) => k % NB === j); if (!mine.length) continue;
     const region = `P${PAGE}:${j}`, t = { region, P: ce, sz, count: mine.length }; t.slots = hangSlots(t, segs.slice(1)); hang.push(t);
     lruSet(tiles, key(region), mine.map(i => i < real.length ? toUI(null, i) : toUI(A.synth(i), i)), TILE_LRU); }
-  const mesh = new THREE.Mesh(tubes(L, 7), bark()); mesh.userData.branch = true; treeGroup.add(mesh);
-  const r = rng(7), bp = []; leafPts.forEach(t => { for (let k = 0; k < 40; k++) bp.push(t.x + (r() - .5) * 2.2, t.y + (r() - .3) * 1.4, t.z + (r() - .5) * 2.2, r(), .22 + r() * .25); });
-  const lb = blossomPoints(bp); for (let i = 0; i < lb.geometry.attributes.bs.count; i++) lb.geometry.attributes.bs.setW(i, .45 + r() * .5); lb.userData.branch = true; treeGroup.add(lb);
   buildClusters([], hang); view = { reg: '', page: true, counts: { count: N, children: [], grand: [] }, hang, clus: [], active: new Set(hang.map(t => t.region)) }; nearPool.forEach(s => s.visible = false); dirty = true; renderNav();
   window.dispatchEvent(new CustomEvent('wt3d-page', { detail: pageInfo() })); }
 export const pageInfo = () => ({ page: PAGE, pages: pagesTotal(), total: N, per: PAGE_N });
@@ -270,7 +275,7 @@ export function setPage(p) { PAGE = Math.max(0, Math.min(+p || 0, pagesTotal() -
 const show = reg => pageMode() ? buildPage() : buildView(reg);
 async function buildView(reg) {
   const seq = ++viewSeq, c = await getCounts(reg); if (seq !== viewSeq) return;
-  treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); });
+  treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); }); pageGeo = null;
   labels.forEach(l => { treeGroup.remove(l); l.material.map.dispose(); l.material.dispose(); }); labels = [];
   const L = [], hang = [], clus = [], leafPts = [], thick = .34 + Math.log10(N + 10) * .025;
   c.children.forEach((cn, j) => { if (!cn) return; const { p: ce, th } = childEnd(reg, j), r1 = reg + A.HEX[j], h = strHash(r1), st = V(Math.cos(th) * .5, 5.3 + h * 1.2, Math.sin(th) * .5);
@@ -459,7 +464,7 @@ export function stage(n) { return n < 10 ? 0 : n < 50 ? 1 : n < 200 ? 2 : n < 10
 export function update(wishes, pickCb, opts = {}) { // wishes：真实愿望（新→旧）；序号按时间旧→新，新卡追加不改变旧卡地址
   if (!renderer) init(); onPick = pickCb;
   const r2 = [...wishes].reverse(), nc = { stress: !!opts.stress, total: opts.stress ? Math.min(A.CAPACITY, Math.max(r2.length, Math.floor(+opts.total || 1e11))) : r2.length };
-  const changed = nc.stress !== cfg.stress || nc.total !== N || r2.length !== real.length || r2.some((w, i) => real[i].sig !== w.sig || real[i].likes !== w.likes || real[i].pending !== w.pending);
+  const changed = !view || nc.stress !== cfg.stress || nc.total !== N || r2.length !== real.length || r2.some((w, i) => real[i].sig !== w.sig || real[i].likes !== w.likes || real[i].pending !== w.pending);
   real = r2; cfg = nc; N = nc.total;
   targetScale = Math.min(2, 0.8 + Math.log2(N + 2) * 0.035); // 树的视觉尺寸随总数对数增长
   galaxyBright = Math.min(1.1, .45 + Math.log2(N + 1) * .03); galaxy.material.uniforms.uDensity.value = Math.min(1, .3 + Math.log10(N + 1) / 11 * .7);
