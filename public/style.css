@@ -184,3 +184,5 @@ body:not(.home) .qbtn { display: none }
 button.link { background: none; border: none; color: #c9a86a; text-decoration: underline; cursor: pointer; font-size: 13px; padding: 4px }
 .fold-inbg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .55; border-radius: 10px; pointer-events: none }
 .fold-inbody { position: relative; z-index: 1 }
+#sync { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 30; background: #0b0f2acc; border: 1px solid #c9a86a55; color: #e8d9b5; font-size: 12px; padding: 4px 12px; border-radius: 14px; pointer-events: none }
+#sync[hidden] { display: none }

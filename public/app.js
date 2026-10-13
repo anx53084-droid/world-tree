@@ -1,5 +1,6 @@
 // 世界树许愿树 前端（SPA，hash 路由）。链上为唯一事实来源；本文件只读链 + 发起签名。
-const W3 = window.solanaWeb3;
+let W3 = window.solanaWeb3; // web3.js 仅写链时按需加载（~480KB），不阻塞首屏
+const needW3 = () => W3 ? Promise.resolve(W3) : (needW3.p ||= new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'vendor/web3.iife.min.js'; sc.onload = () => res(W3 = window.solanaWeb3); sc.onerror = rej; document.head.append(sc); }));
 const TREE = 'pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb', MEMO = 'MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z', TAG = 'WTREE1|';
 const RPC_READ = '/api/rpc'; // 读层：同源中继 → devnet RPC。换索引器（Helius/自建 Geyser）时只需改 loadWishes()
 const RPC_WRITE = 'https://api.devnet.solana.com';
@@ -54,6 +55,7 @@ const sha256hex = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-
 const QS = new URLSearchParams(location.search);
 const S = { stress: QS.has('stress') ? QS.get('stress') !== '0' : localStorage.wt_stress === '1', total: Math.min(2.75e11, Math.floor(+QS.get('stress') || +localStorage.wt_total || 1e11)), mode: 'guest', pubkey: null, email: null, token: localStorage.wt_token || null, txs: [], wishes: [], hidden: 0, offline: false, pending: [],
   history: JSON.parse(localStorage.wt_hist || '[]'), cfg: { minLamports: 6666667, solUsd: 150, priceSource: 'fallback', developer: '', treasury: '', moderator: window.WT_CONFIG?.moderatorPubkeyHex }, words: null, season: null, fulfill: {}, fulfillToast: JSON.parse(localStorage.wt_ful_toast || '{}') };
+window.__S = S; // 测试/诊断用
 const saveHist = () => localStorage.wt_hist = JSON.stringify(S.history.slice(0, 100));
 // 调试控件：?debug=1|true 开启并写入 localStorage；?debug=0|false 清除；默认隐藏
 (function applyDebug() {
@@ -78,7 +80,7 @@ const saveHist = () => localStorage.wt_hist = JSON.stringify(S.history.slice(0, 
 // ---------- 读层：RPC + 本地缓存（交易不可变 → 按签名永久缓存） ----------
 let rid = 0;
 async function rpcAt(url, method, params) {
-  const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: ++rid, method, params }) });
+  const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: ++rid, method, params }), signal: AbortSignal.timeout?.(10000) }); // 超时 10s，避免链上读取卡住
   if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { net: true });
   const j = await r.json().catch(() => { throw Object.assign(new Error('bad json'), { net: true }); });
   if (j.error) throw Object.assign(new Error(j.error.message), { net: j.error.code === -1 }); return j.result;
@@ -114,9 +116,9 @@ async function loadWishes(force) {
       const res = await Promise.all(need.slice(i, i + 10).map(s => rpc('getTransaction', [s, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0, commitment: 'confirmed' }]).catch(() => undefined)));
       for (let k = 0; k < res.length; k++) if (res[k] !== undefined) txCache[need[i + k]] = await parseTx(need[i + k], res[k]);
     }
-    try { localStorage.wt_txcache = JSON.stringify(txCache); } catch {}
+    try { localStorage.wt_txcache = JSON.stringify(txCache); localStorage.wt_sigs = JSON.stringify(sigs.filter(s => !s.err).map(s => s.signature)); } catch {}
     S.txs = sigs.map(s => txCache[s.signature]).filter(Boolean); S.offline = false;
-  } catch (e) { S.offline = true; S.offlineMsg = e.message; S.txs = SAMPLE; }
+  } catch (e) { S.offline = true; S.offlineMsg = e.message; if (!S.txs.length || S.txs === SAMPLE || QS.get('sample') === '1') S.txs = SAMPLE; } // 读取失败：保留上次缓存的真实数据，无缓存才用示例
   S.loadedAt = Date.now(); aggregate();
 }
 const clientBlocked = t => S.words && Object.values(S.words).flat().some(w => t.toLowerCase().includes(w.toLowerCase())); // 前端二次过滤：链上无法删除，但前端不展示
@@ -166,7 +168,7 @@ async function submit(memo, lk, lamports = 0) { const label = t('label.' + lk);
   const tt = toast(esc(t('tx.waitSign', { label })));
   try {
     let sig;
-    if (S.mode === 'self') { // 自托管：Phantom 签名并发送，私钥永不离开钱包
+    if (S.mode === 'self') { await needW3(); // 自托管：Phantom 签名并发送，私钥永不离开钱包
       const conn = new W3.Connection(RPC_WRITE, 'confirmed'), tx = memoTx(S.pubkey, memo, lamports);
       const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(); tx.recentBlockhash = blockhash; tx.feePayer = new W3.PublicKey(S.pubkey);
       ({ signature: sig } = await window.phantom.solana.signAndSendTransaction(tx));
@@ -486,17 +488,22 @@ function openSearch() { const pi = window.WT3D?.pageInfo?.() || { page: 0, pages
     out.querySelectorAll('[data-id]').forEach(b => b.onclick = () => open(+b.dataset.id)); };
   setTimeout(() => $('#qi')?.focus(), 50); }
 document.addEventListener('click', e => { if (e.target.closest('#qbtn')) openSearch(); });
+function syncChip(on) { let c = $('#sync'); if (!c) { c = document.createElement('div'); c.id = 'sync'; document.body.append(c); } c.textContent = '⏳ ' + t('route.loading'); c.hidden = !on; }
+function refreshView() { // 后台数据到达：首页只更新 3D 数据，其他页面在用户未编辑时重渲染
+  if ($('#scene') && window.WT3D) { WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; return; }
+  if (!document.querySelector('textarea:focus,input:focus,select:focus') && $('#modal').hidden && !($('#wt') && $('#maker') && !$('#maker').hidden)) route(); }
 function mount3d() { if (!window.WT3D) { if (!ready3d) { ready3d = true; addEventListener('wt3d-ready', () => $('#scene') && mount3d()); } return; }
   WT3D.attach($('#scene')); WT3D.setSeason(S.season || autoSeason()); WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); }
 addEventListener('hashchange', () => { closeModal(); $('#tip').hidden = true; route(); });
 addEventListener('langchange', () => { renderMode(); if (window.WT3D?.relabel) WT3D.relabel(); if (!document.querySelector('textarea:focus') && $('#modal').hidden) route(); });
+if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.hostname) || QS.get('sw') === '1') navigator.serviceWorker?.register('sw.js').catch(() => {});
 (async () => {
   await I18N.ready; renderMode();
   fetch('/api/config').then(r => r.json()).then(c => Object.assign(S.cfg, c)).catch(() => {}).then(() => fetch('/api/rules')).then(r => r.json()).then(r => S.words = r.words).catch(() => {});
   if (S.token) api('/api/me').then(r => { S.mode = 'host'; S.email = r.email; S.pubkey = r.pubkey; renderMode(); route(); }).catch(() => localStorage.removeItem('wt_token'));
   window.phantom?.solana?.connect?.({ onlyIfTrusted: true }).then(r => { if (S.mode === 'guest') { S.mode = 'self'; S.pubkey = r.publicKey.toString(); renderMode(); route(); } }).catch(() => {});
-  $('#view').innerHTML = `<p class="muted breathe">${esc(t('route.loading'))}</p>`;
-  try { Object.assign(S.cfg, await (await fetch('/api/config')).json()); } catch {}
-  await loadWishes(); await hydrateFulfillments(); route();
-  setInterval(async () => { await loadWishes(true); if (!document.querySelector('textarea:focus,input:focus,select:focus') && $('#modal').hidden && !($('#wt') && $('#maker') && !$('#maker').hidden)) route(); }, 30000); // 正在填写心愿卡时不重渲染
+  // 首屏立即渲染：先用上次缓存的链上数据（localStorage）画出世界树，链上读取在后台进行，完成后无感刷新
+  try { const sigs = JSON.parse(localStorage.wt_sigs || '[]'); S.txs = sigs.map(x => txCache[x]).filter(Boolean); } catch {} aggregate(); route(); syncChip(true);
+  (async () => { await loadWishes(); syncChip(false); await hydrateFulfillments(); refreshView(); })();
+  setInterval(async () => { await loadWishes(true); refreshView(); }, 30000); // 正在填写心愿卡时不重渲染
 })();

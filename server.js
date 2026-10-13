@@ -43,7 +43,7 @@ const DB = path.join(__dirname, 'data', 'users.json');
 const conn = new web3.Connection(RPC, 'confirmed');
 const load = () => { try { return JSON.parse(fs.readFileSync(DB)); } catch { return { users: {}, sessions: {} }; } };
 const save = d => { fs.mkdirSync(path.dirname(DB), { recursive: true }); fs.writeFileSync(DB, JSON.stringify(d, null, 2), { mode: 0o600 }); };
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8' };
+const MIME = { '.md': 'text/markdown; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8' };
 const send = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); };
 const body = (req, max = 64000) => new Promise(r => { let b = ''; req.on('data', c => { b += c; if (b.length > max) { r({ tooBig: true }); req.destroy(); } }); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch { r({}); } }); });
 
@@ -84,12 +84,18 @@ function buildMemoTx(payer, memo, lamports) {
 }
 function auth(req, db) { const t = (req.headers.authorization || '').replace('Bearer ', ''); const e = db.sessions[t]; return e && db.users[e] ? { email: e, user: db.users[e] } : null; }
 
+const RPCC = new Map();
 async function api(req, res, url) {
   const db = load();
   if (url === '/api/rpc' && req.method === 'POST') { // 只读 RPC 中继（同源、无 CORS；可换为索引器）
-    const b = await body(req);
-    try { const r = await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b), signal: AbortSignal.timeout(10000) }); return send(res, 200, await r.json()); }
-    catch (e) { return send(res, 200, { jsonrpc: '2.0', id: b.id, error: { code: -1, message: 'RPC 不可达: ' + e.message } }); }
+    const b = await body(req), key = JSON.stringify([b.method, b.params]), hit = RPCC.get(key);
+    // 缓存：已确认交易不可变（永久缓存，LRU 上限）；签名列表 15s 新鲜，RPC 失败时返回旧数据（stale-if-error）
+    const ttl = b.method === 'getTransaction' ? Infinity : b.method === 'getSignaturesForAddress' ? 15000 : 0;
+    if (hit && Date.now() - hit.at < ttl) return send(res, 200, { jsonrpc: '2.0', id: b.id, result: hit.result });
+    try { const r = await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b), signal: AbortSignal.timeout(8000) }); const j = await r.json();
+      if (ttl && j && j.result != null && !j.error) { RPCC.set(key, { at: Date.now(), result: j.result }); if (RPCC.size > 3000) RPCC.delete(RPCC.keys().next().value); }
+      if (j.error && hit) return send(res, 200, { jsonrpc: '2.0', id: b.id, result: hit.result }); return send(res, 200, j); }
+    catch (e) { if (hit) return send(res, 200, { jsonrpc: '2.0', id: b.id, result: hit.result }); return send(res, 200, { jsonrpc: '2.0', id: b.id, error: { code: -1, message: 'RPC 不可达: ' + e.message } }); }
   }
   if (url === '/api/moderate' && req.method === 'POST') { // 上链前审核（两种模式都必须先通过）
     const { text, prefix, cipher } = await body(req); // prefix = 分类[~F封面[P]]（愿望）或 愿望签名（祝福）；私密卡附 cipher（E1: AES-GCM 密文），审核明文、证明绑定密文
@@ -181,5 +187,11 @@ http.createServer(async (req, res) => {
   if (url.startsWith('/api/')) return api(req, res, url).catch(e => send(res, 500, { error: e.message }));
   let f = path.normalize(path.join(__dirname, 'public', url === '/' ? 'index.html' : url));
   if (!f.startsWith(path.join(__dirname, 'public'))) { res.writeHead(403); return res.end(); }
-  fs.readFile(f, (err, d) => { if (err) { res.writeHead(404); return res.end('404'); } res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' }); res.end(d); });
+  // 静态资源：ETag + 304；vendor（第三方库）长缓存，其余 no-cache（每次轻量校验，部署即生效）；压缩由 Render 边缘（brotli）完成
+  fs.stat(f, (err, st) => { if (err || !st.isFile()) { res.writeHead(404); return res.end('404'); }
+    const etag = `W/"${st.size.toString(36)}-${Math.floor(st.mtimeMs).toString(36)}"`, cc = url.startsWith('/vendor/') || url.startsWith('/models/') ? 'public, max-age=604800, stale-while-revalidate=2592000' : 'no-cache';
+    const h = { 'content-type': MIME[path.extname(f)] || 'application/octet-stream', 'cache-control': cc, etag, vary: 'accept-encoding', 'x-wt': '1' }; // x-wt：供 Service Worker 识别真实响应（排除 Render 冷启动等待页）
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304, h); return res.end(); }
+    fs.readFile(f, (e2, d) => { if (e2) { res.writeHead(404); return res.end('404'); }
+      res.writeHead(200, h); res.end(d); }); });
 }).listen(PORT, '0.0.0.0', () => console.log(`世界树许愿树 http://localhost:${PORT}  RPC=${RPC}`));
