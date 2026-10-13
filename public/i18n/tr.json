@@ -260,5 +260,8 @@
 "err.imgDim": "Geçersiz görsel boyutu",
 "err.imgReject": "Görsel denetimden geçmedi",
 "err.imgSvc": "Görsel denetim hizmeti kullanılamıyor",
-"err.imgStore": "Görsel kaydedilemedi"
+"err.imgStore": "Görsel kaydedilemedi",
+"wish.inside": "İç şablon",
+"wish.mixHint": "Kapak ve iç sayfa ayrı ayrı hazır veya yüklü olabilir (yalnızca bir taraf yeterli). Yüklemeler denetlenir ve zincir dışında saklanır.",
+"wish.clearUp": "Yüklemeyi kaldır"
 }

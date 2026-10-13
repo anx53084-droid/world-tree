@@ -260,5 +260,8 @@
 "err.imgDim": "Ungültige Bildabmessungen",
 "err.imgReject": "Bild hat die Prüfung nicht bestanden",
 "err.imgSvc": "Bildprüfdienst nicht verfügbar",
-"err.imgStore": "Bildspeicherung fehlgeschlagen"
+"err.imgStore": "Bildspeicherung fehlgeschlagen",
+"wish.inside": "Innenseiten-Vorlage",
+"wish.mixHint": "Titel und Innenseite können je eingebaut oder hochgeladen sein (auch nur eine Seite). Uploads werden geprüft und off-chain gespeichert.",
+"wish.clearUp": "Upload entfernen"
 }

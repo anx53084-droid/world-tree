@@ -260,5 +260,8 @@
 "err.imgDim": "Invalid image dimensions",
 "err.imgReject": "Image did not pass moderation",
 "err.imgSvc": "Image moderation service unavailable",
-"err.imgStore": "Image storage failed"
+"err.imgStore": "Image storage failed",
+"wish.inside": "Inside template",
+"wish.mixHint": "Cover and inside can each be built-in or uploaded (you may customize only one side). Uploads are moderated and stored off-chain.",
+"wish.clearUp": "Clear upload"
 }

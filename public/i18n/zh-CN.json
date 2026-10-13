@@ -260,5 +260,8 @@
 "err.imgDim": "图片尺寸无效",
 "err.imgReject": "图片未通过审核",
 "err.imgSvc": "图片审核服务不可用",
-"err.imgStore": "图片存储失败"
+"err.imgStore": "图片存储失败",
+"wish.inside": "内页模板",
+"wish.mixHint": "封面与内页可分别选内置或上传（可只改一侧）。上传图片经自动审核后存链下。",
+"wish.clearUp": "清除上传"
 }

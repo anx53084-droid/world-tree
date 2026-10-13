@@ -260,5 +260,8 @@
 "err.imgDim": "Kích thước ảnh không hợp lệ",
 "err.imgReject": "Ảnh không qua kiểm duyệt",
 "err.imgSvc": "Dịch vụ kiểm duyệt ảnh không khả dụng",
-"err.imgStore": "Lưu ảnh thất bại"
+"err.imgStore": "Lưu ảnh thất bại",
+"wish.inside": "Mẫu trang trong",
+"wish.mixHint": "Bìa và trang trong có thể dùng mẫu sẵn hoặc tải lên riêng (chỉ cần một phía). Ảnh tải lên được kiểm duyệt và lưu ngoài chuỗi.",
+"wish.clearUp": "Xóa ảnh tải lên"
 }

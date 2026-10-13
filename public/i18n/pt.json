@@ -260,5 +260,8 @@
 "err.imgDim": "Dimensões de imagem inválidas",
 "err.imgReject": "A imagem não passou na moderação",
 "err.imgSvc": "Serviço de moderação de imagens indisponível",
-"err.imgStore": "Falha ao armazenar a imagem"
+"err.imgStore": "Falha ao armazenar a imagem",
+"wish.inside": "Modelo interno",
+"wish.mixHint": "Capa e interior podem ser inclusos ou enviados (pode personalizar só um lado). Envios são moderados e guardados fora da cadeia.",
+"wish.clearUp": "Limpar envio"
 }

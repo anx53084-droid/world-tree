@@ -260,5 +260,8 @@
 "err.imgDim": "圖片尺寸無效",
 "err.imgReject": "圖片未通過審核",
 "err.imgSvc": "圖片審核服務不可用",
-"err.imgStore": "圖片儲存失敗"
+"err.imgStore": "圖片儲存失敗",
+"wish.inside": "內頁範本",
+"wish.mixHint": "封面與內頁可分別選內建或上傳（可只改一側）。上傳圖片經自動審核後存鏈下。",
+"wish.clearUp": "清除上傳"
 }

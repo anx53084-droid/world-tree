@@ -260,5 +260,8 @@
 "err.imgDim": "Dimensi gambar tidak valid",
 "err.imgReject": "Gambar tidak lolos moderasi",
 "err.imgSvc": "Layanan moderasi gambar tidak tersedia",
-"err.imgStore": "Gagal menyimpan gambar"
+"err.imgStore": "Gagal menyimpan gambar",
+"wish.inside": "Templat dalam",
+"wish.mixHint": "Sampul dan dalam masing-masing bisa bawaan atau diunggah (cukup satu sisi). Unggahan dimoderasi dan disimpan di luar rantai.",
+"wish.clearUp": "Hapus unggahan"
 }

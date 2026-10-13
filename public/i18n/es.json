@@ -260,5 +260,8 @@
 "err.imgDim": "Dimensiones de imagen no válidas",
 "err.imgReject": "La imagen no superó la moderación",
 "err.imgSvc": "Servicio de moderación de imágenes no disponible",
-"err.imgStore": "Error al guardar la imagen"
+"err.imgStore": "Error al guardar la imagen",
+"wish.inside": "Plantilla interior",
+"wish.mixHint": "Portada e interior pueden ser incluidas o subidas (puedes personalizar solo un lado). Las subidas se moderan y se guardan fuera de la cadena.",
+"wish.clearUp": "Quitar subida"
 }

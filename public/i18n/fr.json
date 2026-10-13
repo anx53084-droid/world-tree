@@ -260,5 +260,8 @@
 "err.imgDim": "Dimensions d'image invalides",
 "err.imgReject": "L'image n'a pas passé la modération",
 "err.imgSvc": "Service de modération d'images indisponible",
-"err.imgStore": "Échec du stockage de l'image"
+"err.imgStore": "Échec du stockage de l'image",
+"wish.inside": "Modèle intérieur",
+"wish.mixHint": "Couverture et intérieur peuvent être intégrés ou importés (un seul côté suffit). Les importations sont modérées et stockées hors chaîne.",
+"wish.clearUp": "Effacer l'import"
 }
