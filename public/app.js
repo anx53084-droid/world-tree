@@ -341,11 +341,12 @@ function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1
   flush(); if (list) html += '</ul>'; return html.replace(/^<p><b>([^<]+)<\/b><\/p>/, '<h1>$1</h1>'); }
 function origin() { const lang = I18N.lang; fetch(`origin.${lang}.md`).then(r => r.ok ? r.text() : fetch('origin.md').then(r => r.text())).then(md => { const el = $('#origin'); if (el && el.lang === lang) el.innerHTML = mdRender(md); });
   return `<article id=origin class=origin lang="${lang}" dir="${document.documentElement.dir}"></article>`; }
+const MK = () => /^#\/wish\/make/.test(location.hash); // 制作页有独立路由，任何重渲染都保持打开
 function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
   const mine = S.mode === 'guest' ? [] : S.wishes.filter(isMine);
   const thumb = w => `<button type=button class=mw data-sig="${esc(w.sig)}"><img alt="" src="${w.cimg ? IMG(w.cimg) : w.folded ? WTCovers.url(w.cover, 120, 160) : WTCovers.url(WTCovers.forCat(w.cat)[0], 120, 160)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover ?? 0, 120, 160)}'">${w.priv ? '<i>🔒</i>' : ''}<span dir=auto>${esc(w.priv && !w.plain ? t('card.privateShort') : (w.plain || w.text))}</span></button>`;
   return `<h2>${E('nav.wish')}</h2><section class=card><h3>${E('mine.have')}</h3>${S.mode === 'guest' ? `<p class=muted>${t('mine.guest')}</p>` : mine.length ? `<div class=mw-grid>${mine.map(thumb).join('')}</div>` : `<p class=muted>${E('mine.empty')}</p>`}</section>
-  <section class=card><h3>${E('mine.make')}</h3><button id=mkbtn class="primary breathe">✨ ${E('mine.make')}</button><div id=maker hidden>${wishPanel()}</div></section>`; }
+  <section class=card><h3>${E('mine.make')}</h3><button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}</div></section>`; }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
@@ -398,7 +399,7 @@ let ready3d = false;
 async function route() {
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/me': me, '/help': help, '/terms': terms, '/origin': origin };
+  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
   document.body.classList.toggle('home', !!$('#scene')); document.querySelectorAll('#menu nav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
@@ -414,20 +415,26 @@ async function route() {
   $('#bs')?.addEventListener('click', async e => { const txt = $('#bt').value.trim(); if (!txt) return; e.target.disabled = true;
     try { await submit(await moderateThenMemo('B', e.target.dataset.sig, txt), 'bless'); } catch (er) { toast(er.html ? er.message : esc(er.message), 'err'); } e.target.disabled = false; });
   document.querySelectorAll('.mw').forEach(b => b.onclick = () => { const w = S.wishes.find(x => x.sig === b.dataset.sig); if (w) openCardPopup(w); });
-  $('#mkbtn')?.addEventListener('click', () => { $('#maker').hidden = false; $('#mkbtn').hidden = true; $('#maker').scrollIntoView({ behavior: 'smooth' }); });
+  $('#mkbtn')?.addEventListener('click', () => { location.hash = '#/wish/make'; });
   const ta = $('#wt'); if (ta) {
     const catSel = $('#wc2');
     const syncShip = () => { const on = catSel?.value === MATERIAL; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
     const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.cover === i));
     const syncCard = () => { const f = $('#ctype')?.value === 'folded'; if ($('#coverWrap')) $('#coverWrap').hidden = !f; const ta2 = $('#wt'); if (ta2) { ta2.maxLength = f && $('#priv')?.checked ? 100 : 140; $('#wc').textContent = [...ta2.value].length + '/' + ta2.maxLength; } };
-    const up = { C: null, N: null }, syncSrc = () => { const u = !!$('#tsrcUp')?.checked; $('#upWrap').hidden = !u; $('#bWrap').hidden = u; };
+    const D = S.draft ||= {}, up = D.up ||= { C: null, N: null }, syncSrc = () => { const u = !!$('#tsrcUp')?.checked; $('#upWrap').hidden = !u; $('#bWrap').hidden = u; };
     document.querySelectorAll('[name=tsrc]').forEach(x => x.addEventListener('change', syncSrc));
     ['C', 'N'].forEach(k => $('#up' + k)?.addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { up[k] = await shrinkImg(f); const im = $('#up' + k + 'i'); im.src = URL.createObjectURL(up[k]); im.hidden = false; } catch (er) { up[k] = null; toast(esc(er.message), 'err'); } }));
     $('#ctype')?.addEventListener('change', syncCard); $('#priv')?.addEventListener('change', syncCard);
     $('#covers')?.addEventListener('click', e => { const b = e.target.closest('[data-cover]'); if (b) pickCover(+b.dataset.cover); });
     catSel?.addEventListener('change', () => { if (!$('#covers .on') || $('#covers').dataset.auto !== '0') pickCover(WTCovers.forCat(catSel.value)[0]); }); $('#covers')?.addEventListener('click', () => $('#covers').dataset.auto = '0');
     pickCover(WTCovers.forCat(catSel?.value || '经典')[0]); syncCard();
-    catSel?.addEventListener('change', syncShip); syncShip();
+    catSel?.addEventListener('change', syncShip);
+    // 表单草稿：后台刷新/语言切换/钱包事件会重新渲染页面，这里把用户的选择写入 S.draft 并在重渲染后恢复
+    const F = { wc2: 'value', ctype: 'value', priv: 'checked', tsrcUp: 'checked', wt: 'value', amt: 'value', ship: 'value', ag: 'checked', ag2: 'checked' };
+    const saveD = () => { D.f = Object.fromEntries(Object.entries(F).filter(([id]) => $('#' + id)).map(([id, p]) => [id, $('#' + id)[p]])); D.cover = $('#covers .on')?.dataset.cover; D.auto = $('#covers')?.dataset.auto; };
+    if (D.f) { for (const [id, v] of Object.entries(D.f)) { const el = $('#' + id); if (el) el[F[id]] = v; } if (!D.f.tsrcUp && $('[name=tsrc][value=builtin]')) $('[name=tsrc][value=builtin]').checked = true;
+      if (D.cover != null) pickCover(+D.cover); if (D.auto) $('#covers').dataset.auto = D.auto; ['C', 'N'].forEach(k => { if (up[k]) { const im = $('#up' + k + 'i'); im.src = URL.createObjectURL(up[k]); im.hidden = false; } }); syncSrc(); syncCard(); }
+    syncShip(); const fc = ta.closest('.card'); fc.addEventListener('input', saveD); fc.addEventListener('change', saveD); $('#covers')?.addEventListener('click', () => setTimeout(saveD));
     const upd = () => { const ok = $('#ag').checked && (!$('#ag2') || $('#ag2').checked); $('#ws').disabled = !ok; $('#ws').classList.toggle('breathe', ok);
       const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { dev: sol(Math.floor(l * .2)), tre: sol(l - Math.floor(l * .2)) }); };
     fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); const a = $('#amt'); if (a) { a.min = c.minLamports / 1e9; if (+a.value * 1e9 < c.minLamports) a.value = (Math.ceil(c.minLamports / 1e5) / 1e4).toFixed(4); upd(); } }).catch(() => {});
@@ -448,7 +455,7 @@ async function route() {
         // 链下登记：记账 +（物质类）收货/联系备注；备注永不入链
         fetch('/api/wish-paid', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') },
           body: JSON.stringify({ sig, cat, text: priv ? '🔒' : txt, author: S.pubkey, lamports: lam, shippingNote, source: S.mode }) }).catch(() => {});
-        location.hash = '#/';
+        S.draft = null; location.hash = '#/';
       } else $('#ws').disabled = false;
     });
   }
@@ -482,5 +489,5 @@ addEventListener('langchange', () => { renderMode(); if (window.WT3D?.relabel) W
   $('#view').innerHTML = `<p class="muted breathe">${esc(t('route.loading'))}</p>`;
   try { Object.assign(S.cfg, await (await fetch('/api/config')).json()); } catch {}
   await loadWishes(); await hydrateFulfillments(); route();
-  setInterval(async () => { await loadWishes(true); if (!document.querySelector('textarea:focus,input:focus') && $('#modal').hidden) route(); }, 30000);
+  setInterval(async () => { await loadWishes(true); if (!document.querySelector('textarea:focus,input:focus,select:focus') && $('#modal').hidden && !($('#wt') && $('#maker') && !$('#maker').hidden)) route(); }, 30000); // 正在填写心愿卡时不重渲染
 })();
