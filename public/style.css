@@ -122,6 +122,11 @@ body.home #banner { margin-top: 52px }
 /* 调试控件：默认隐藏；body.debug（?debug=1 / localStorage wt_debug=1）时显示 */
 .debug-only { display: none !important; }
 body.debug .scene-ui.debug-only { display: flex !important; }
+body.debug .home-lists.debug-only { display: grid !important; }
+body.debug span.debug-only { display: inline !important; }
 body.debug .scene-nav.debug-only, body.debug .home-dock.debug-only { display: block !important; }
 body.home:not(.debug) main > .home-spacer { height: calc(100dvh - 100px) }
 @media (max-width: 700px) { body.home:not(.debug) main > .home-spacer { height: calc(100dvh - 120px) } }
+body.home:not(.debug) main > .home-spacer { display: none }
+body.home:not(.debug) { overflow: hidden; height: 100dvh }
+body.home:not(.debug) footer { position: fixed; left: 0; right: 0; bottom: 0; background: transparent }
