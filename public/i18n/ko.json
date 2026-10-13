@@ -229,10 +229,10 @@
 "err.admin": "관리자 권한이 필요합니다",
 "err.nf": "찾을 수 없습니다",
 "search.open": "검색 및 페이지",
-"search.title": "소원 검색",
+"search.title": "별소원 검색",
 "search.ph": "텍스트, #번호 또는 지갑 주소",
 "search.go": "검색",
-"search.none": "일치하는 소원이 없습니다",
+"search.none": "일치하는 별소원이 없습니다",
 "page.prev": "이전",
 "page.next": "다음",
 "page.label": "{p} / {n} 페이지",
@@ -263,5 +263,6 @@
 "err.imgStore": "이미지 저장 실패",
 "wish.inside": "속지 템플릿",
 "wish.mixHint": "표지와 속지를 각각 기본/업로드로 고를 수 있어요(한쪽만도 가능). 업로드 이미지는 자동 심사 후 체인 밖에 저장됩니다.",
-"wish.clearUp": "업로드 지우기"
+"wish.clearUp": "업로드 지우기",
+"search.make": "별소원 빌기"
 }

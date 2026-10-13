@@ -482,7 +482,7 @@ function openSearch() { const pi = window.WT3D?.pageInfo?.() || { page: 0, pages
   $('#qf').onsubmit = e => { e.preventDefault(); const q = $('#qi').value.trim().replace(/^#/, ''), out = $('#qr'); if (!q) return;
     const res = []; if (/^\d+$/.test(q) && +q < pi.total) res.push({ id: +q, text: '#' + q, sub: '' });
     for (const w of S.wishes) { if (res.length >= 30) break; if ((!w.priv && w.text.includes(q)) || (q.length >= 3 && w.author.startsWith(q))) res.push({ id: idOfSig(w.sig), text: w.text, sub: short(w.author) + ' · ' + catName(w.cat) }); }
-    out.innerHTML = res.length ? res.map(r => `<button type=button class=qhit data-id=${r.id}><bdi>${esc(r.text)}</bdi> <span class=muted>${esc(r.sub)} · #${r.id}</span></button>`).join('') : `<p class=muted>${E('search.none')}</p>`;
+    out.innerHTML = res.length ? res.map(r => `<button type=button class=qhit data-id=${r.id}><bdi>${esc(r.text)}</bdi> <span class=muted>${esc(r.sub)} · #${r.id}</span></button>`).join('') : `<p class=muted>${E('search.none')} <a href="#/wish/make" id=qmake>✨ ${E('search.make')}</a></p>`; $('#qmake')?.addEventListener('click', () => closeModal());
     out.querySelectorAll('[data-id]').forEach(b => b.onclick = () => open(+b.dataset.id)); };
   setTimeout(() => $('#qi')?.focus(), 50); }
 document.addEventListener('click', e => { if (e.target.closest('#qbtn')) openSearch(); });

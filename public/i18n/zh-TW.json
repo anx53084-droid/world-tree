@@ -229,10 +229,10 @@
 "err.admin": "需要管理員權限",
 "err.nf": "找不到",
 "search.open": "搜尋與翻頁",
-"search.title": "搜尋願望",
+"search.title": "搜尋星願",
 "search.ph": "輸入文字、#序號或錢包地址",
 "search.go": "搜尋",
-"search.none": "沒有找到相符的願望",
+"search.none": "沒有找到相符的星願",
 "page.prev": "上一頁",
 "page.next": "下一頁",
 "page.label": "第 {p} / {n} 頁",
@@ -263,5 +263,6 @@
 "err.imgStore": "圖片儲存失敗",
 "wish.inside": "內頁範本",
 "wish.mixHint": "封面與內頁可分別選內建或上傳（可只改一側）。上傳圖片經自動審核後存鏈下。",
-"wish.clearUp": "清除上傳"
+"wish.clearUp": "清除上傳",
+"search.make": "許個星願"
 }

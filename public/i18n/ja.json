@@ -229,10 +229,10 @@
 "err.admin": "管理者権限が必要です",
 "err.nf": "見つかりません",
 "search.open": "検索とページ",
-"search.title": "願いを検索",
+"search.title": "星願を検索",
 "search.ph": "文字、#番号、ウォレットアドレス",
 "search.go": "検索",
-"search.none": "一致する願いはありません",
+"search.none": "一致する星願は見つかりませんでした",
 "page.prev": "前へ",
 "page.next": "次へ",
 "page.label": "{p} / {n} ページ",
@@ -263,5 +263,6 @@
 "err.imgStore": "画像の保存に失敗しました",
 "wish.inside": "中面テンプレート",
 "wish.mixHint": "表紙と中面はそれぞれ内蔵／アップロードを選べます（片側だけでも可）。アップロード画像は自動審査後にオフチェーン保存。",
-"wish.clearUp": "アップロードを消す"
+"wish.clearUp": "アップロードを消す",
+"search.make": "星願をかける"
 }

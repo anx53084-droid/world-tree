@@ -229,10 +229,10 @@
 "err.admin": "Se requiere permiso de administrador",
 "err.nf": "No encontrado",
 "search.open": "Buscar y páginas",
-"search.title": "Buscar deseos",
+"search.title": "Buscar deseos estelares",
 "search.ph": "Texto, #número o dirección de billetera",
 "search.go": "Buscar",
-"search.none": "No hay deseos que coincidan",
+"search.none": "No se encontraron deseos estelares",
 "page.prev": "Anterior",
 "page.next": "Siguiente",
 "page.label": "Página {p} / {n}",
@@ -263,5 +263,6 @@
 "err.imgStore": "Error al guardar la imagen",
 "wish.inside": "Plantilla interior",
 "wish.mixHint": "Portada e interior pueden ser incluidas o subidas (puedes personalizar solo un lado). Las subidas se moderan y se guardan fuera de la cadena.",
-"wish.clearUp": "Quitar subida"
+"wish.clearUp": "Quitar subida",
+"search.make": "Pide un deseo estelar"
 }

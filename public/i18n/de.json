@@ -229,10 +229,10 @@
 "err.admin": "Administratorrechte erforderlich",
 "err.nf": "Nicht gefunden",
 "search.open": "Suche & Seiten",
-"search.title": "Wünsche suchen",
+"search.title": "Sternwünsche suchen",
 "search.ph": "Text, #Nummer oder Wallet-Adresse",
 "search.go": "Suchen",
-"search.none": "Keine passenden Wünsche",
+"search.none": "Keine passenden Sternwünsche gefunden",
 "page.prev": "Zurück",
 "page.next": "Weiter",
 "page.label": "Seite {p} / {n}",
@@ -263,5 +263,6 @@
 "err.imgStore": "Bildspeicherung fehlgeschlagen",
 "wish.inside": "Innenseiten-Vorlage",
 "wish.mixHint": "Titel und Innenseite können je eingebaut oder hochgeladen sein (auch nur eine Seite). Uploads werden geprüft und off-chain gespeichert.",
-"wish.clearUp": "Upload entfernen"
+"wish.clearUp": "Upload entfernen",
+"search.make": "Einen Sternwunsch machen"
 }

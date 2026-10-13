@@ -229,10 +229,10 @@
 "err.admin": "Memerlukan izin admin",
 "err.nf": "Tidak ditemukan",
 "search.open": "Cari & halaman",
-"search.title": "Cari harapan",
+"search.title": "Cari harapan bintang",
 "search.ph": "Teks, #nomor, atau alamat dompet",
 "search.go": "Cari",
-"search.none": "Tidak ada harapan yang cocok",
+"search.none": "Tidak ada harapan bintang yang cocok",
 "page.prev": "Sebelumnya",
 "page.next": "Berikutnya",
 "page.label": "Halaman {p} / {n}",
@@ -263,5 +263,6 @@
 "err.imgStore": "Gagal menyimpan gambar",
 "wish.inside": "Templat dalam",
 "wish.mixHint": "Sampul dan dalam masing-masing bisa bawaan atau diunggah (cukup satu sisi). Unggahan dimoderasi dan disimpan di luar rantai.",
-"wish.clearUp": "Hapus unggahan"
+"wish.clearUp": "Hapus unggahan",
+"search.make": "Buat harapan bintang"
 }

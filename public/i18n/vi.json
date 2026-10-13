@@ -229,10 +229,10 @@
 "err.admin": "Cần quyền quản trị viên",
 "err.nf": "Không tìm thấy",
 "search.open": "Tìm kiếm & trang",
-"search.title": "Tìm điều ước",
+"search.title": "Tìm điều ước sao",
 "search.ph": "Văn bản, #số hoặc địa chỉ ví",
 "search.go": "Tìm",
-"search.none": "Không có điều ước phù hợp",
+"search.none": "Không tìm thấy điều ước sao phù hợp",
 "page.prev": "Trước",
 "page.next": "Sau",
 "page.label": "Trang {p} / {n}",
@@ -263,5 +263,6 @@
 "err.imgStore": "Lưu ảnh thất bại",
 "wish.inside": "Mẫu trang trong",
 "wish.mixHint": "Bìa và trang trong có thể dùng mẫu sẵn hoặc tải lên riêng (chỉ cần một phía). Ảnh tải lên được kiểm duyệt và lưu ngoài chuỗi.",
-"wish.clearUp": "Xóa ảnh tải lên"
+"wish.clearUp": "Xóa ảnh tải lên",
+"search.make": "Ước một điều ước sao"
 }
