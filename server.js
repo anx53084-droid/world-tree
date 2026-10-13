@@ -182,9 +182,14 @@ async function api(req, res, url) {
   send(res, 404, { error: 'not found' });
 }
 
+const CORS_RE = new RegExp(process.env.CORS_ORIGIN_RE || '^https://([a-z0-9-]+\\.)?world-tree[a-z0-9-]*\\.pages\\.dev$'), ALLOWED = (process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean);
 http.createServer(async (req, res) => {
   const url = req.url.split('?')[0];
-  if (url.startsWith('/api/')) return api(req, res, url).catch(e => send(res, 500, { error: e.message }));
+  if (url.startsWith('/api/')) { // CORS：允许 Cloudflare Pages 前端（*.pages.dev 的 world-tree 项目及预览）与 ALLOWED_ORIGINS（自定义域名）；鉴权用 Bearer token，不用 cookie
+    const o = req.headers.origin; if (o && (CORS_RE.test(o) || ALLOWED.includes(o))) { res.setHeader('access-control-allow-origin', o); res.setHeader('vary', 'origin'); res.setHeader('access-control-allow-headers', 'content-type, authorization'); res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS'); res.setHeader('access-control-max-age', '86400'); }
+    else if (url.startsWith('/api/img/')) res.setHeader('access-control-allow-origin', '*'); // 公开图片（私密卡内页为密文）
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    return api(req, res, url).catch(e => send(res, 500, { error: e.message })); }
   let f = path.normalize(path.join(__dirname, 'public', url === '/' ? 'index.html' : url));
   if (!f.startsWith(path.join(__dirname, 'public'))) { res.writeHead(403); return res.end(); }
   // 静态资源：ETag + 304；vendor（第三方库）长缓存，其余 no-cache（每次轻量校验，部署即生效）；压缩由 Render 边缘（brotli）完成

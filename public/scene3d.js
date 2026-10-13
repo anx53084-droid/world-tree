@@ -396,7 +396,7 @@ function ornament(x, x0, y, w) { // 顶/底部金色纹饰带：细线 + 菱形�
   x.save(); x.strokeStyle = '#a57630'; x.fillStyle = '#a57630'; x.lineWidth = 1; x.beginPath(); x.moveTo(x0, y); x.lineTo(x0 + w, y); x.moveTo(x0, y + 9); x.lineTo(x0 + w, y + 9); x.stroke();
   for (let i = 0, n = 9; i < n; i++) { const cx = x0 + (i + .5) * w / n, cy = y + 4.5; if (i % 2) { x.beginPath(); x.arc(cx, cy, 1.6, 0, 7); x.fill(); } else { x.beginPath(); x.moveTo(cx, cy - 3.5); x.lineTo(cx + 3.5, cy); x.lineTo(cx, cy + 3.5); x.lineTo(cx - 3.5, cy); x.closePath(); x.fill(); } }
   x.restore(); }
-const UIMG = new Map(); function uimg(h) { if (!h) return null; if (!UIMG.has(h)) { const im = new Image(); im.onload = () => { im.ok = 1; dirty = true; }; im.src = '/api/img/' + h; UIMG.set(h, im); } const im = UIMG.get(h); return im.ok ? im : null; } // 用户自定义封面
+const UIMG = new Map(); function uimg(h) { if (!h) return null; if (!UIMG.has(h)) { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { im.ok = 1; dirty = true; }; im.src = (window.apiUrl || (x => x))('/api/img/' + h); UIMG.set(h, im); } const im = UIMG.get(h); return im.ok ? im : null; } // 用户自定义封面
 function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私密卡加锁）；哑光无发光
   const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : '') + (uimg(w.cimg) ? 'U' : ''); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;

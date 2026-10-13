@@ -264,5 +264,6 @@
 "wish.inside": "Innenseiten-Vorlage",
 "wish.mixHint": "Titel und Innenseite können je eingebaut oder hochgeladen sein (auch nur eine Seite). Uploads werden geprüft und off-chain gespeichert.",
 "wish.clearUp": "Upload entfernen",
-"search.make": "Einen Sternwunsch machen"
+"search.make": "Einen Sternwunsch machen",
+"route.waking": "Server wird geweckt (ca. 1 Min.)…"
 }

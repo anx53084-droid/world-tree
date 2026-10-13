@@ -264,5 +264,6 @@
 "wish.inside": "İç şablon",
 "wish.mixHint": "Kapak ve iç sayfa ayrı ayrı hazır veya yüklü olabilir (yalnızca bir taraf yeterli). Yüklemeler denetlenir ve zincir dışında saklanır.",
 "wish.clearUp": "Yüklemeyi kaldır",
-"search.make": "Bir yıldız dileği tut"
+"search.make": "Bir yıldız dileği tut",
+"route.waking": "Sunucu uyandırılıyor (yaklaşık 1 dk)…"
 }

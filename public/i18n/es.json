@@ -264,5 +264,6 @@
 "wish.inside": "Plantilla interior",
 "wish.mixHint": "Portada e interior pueden ser incluidas o subidas (puedes personalizar solo un lado). Las subidas se moderan y se guardan fuera de la cadena.",
 "wish.clearUp": "Quitar subida",
-"search.make": "Pide un deseo estelar"
+"search.make": "Pide un deseo estelar",
+"route.waking": "Despertando el servidor (≈1 min)…"
 }

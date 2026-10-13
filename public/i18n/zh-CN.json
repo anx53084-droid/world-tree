@@ -264,5 +264,6 @@
 "wish.inside": "内页模板",
 "wish.mixHint": "封面与内页可分别选内置或上传（可只改一侧）。上传图片经自动审核后存链下。",
 "wish.clearUp": "清除上传",
-"search.make": "许个星愿"
+"search.make": "许个星愿",
+"route.waking": "正在唤醒服务器（约 1 分钟）…"
 }

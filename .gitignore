@@ -9,3 +9,4 @@ verify*.js
 verify-*/
 public/config.js
 .env
+public/_headers

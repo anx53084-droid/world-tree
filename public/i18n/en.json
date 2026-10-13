@@ -264,5 +264,6 @@
 "wish.inside": "Inside template",
 "wish.mixHint": "Cover and inside can each be built-in or uploaded (you may customize only one side). Uploads are moderated and stored off-chain.",
 "wish.clearUp": "Clear upload",
-"search.make": "Make a star wish"
+"search.make": "Make a star wish",
+"route.waking": "Waking up the server (about 1 min)…"
 }

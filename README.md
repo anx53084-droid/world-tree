@@ -140,3 +140,9 @@ server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账
 
 ### Cloudflare R2（可选，持久化图片）
 设置 `R2_ACCOUNT_ID`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET`（可选 `R2_PUBLIC_URL`，如 r2.dev 公共域名，读取时 302 跳转）即改为存 R2；未设置则存本地 data/img。
+
+## Cloudflare Pages 前端（API 仍在 Render）
+- Pages 项目：连接 GitHub `anx53084-droid/world-tree`，分支 `main`；Framework preset: None；Build command: `node scripts/build-pages.js`；Build output directory: `public`。
+- 构建脚本生成 `public/config.js`（`apiBase` = `https://world-tree-ijv1.onrender.com`，审核公钥内置）与 `public/_headers`（`x-wt` 供 Service Worker 识别）。可用 Pages 环境变量 `WT_API_BASE` / `WT_MODERATOR_PUBKEY` 覆盖。
+- 服务器 CORS：默认允许 `https://world-tree*.pages.dev` 及其预览子域；自定义域名加到 Render 环境变量 `ALLOWED_ORIGINS`（逗号分隔），或用 `CORS_ORIGIN_RE` 覆盖规则。鉴权使用 Bearer token（localStorage），不依赖 cookie。
+- 冷启动：前端静态资源由 Cloudflare 提供，树立即渲染；`/api` 幂等请求在服务器唤醒期间自动重试（≤90s），显示「正在唤醒服务器」提示；链上读取超时后浏览器直连 devnet。
