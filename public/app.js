@@ -785,15 +785,15 @@ const RULES_LIST = () => `<ul>${[1, 2, 3, 4, 5].map(i => `<li>${E('rules.' + i)}
 const help = () => `<h2>${E('nav.help')}</h2>${prevail()}
 <div class="card" data-cat="经典"><h3>${E('help.rulesTitle')}</h3>${RULES_LIST()}</div>
 <div class=card><h3>🔐 ${E('help.selfTitle')}</h3>${bul(E('help.selfBody'))}</div>
-<div class="card notice"><h3>⚠️ ${E('help.hostTitle')}</h3>${bul(E('help.%s'))}</div>
-<div class=card><h3>👀 ${E('help.guestTitle')}</h3>${bul(E('help.%s'))}</div>
+<div class="card notice"><h3>⚠️ ${E('help.hostTitle')}</h3>${bul(E('help.hostBody'))}</div>
+<div class=card><h3>👀 ${E('help.guestTitle')}</h3>${bul(E('help.guestBody'))}</div>
 <div class=card><h3>💰 ${E('help.feeTitle')}</h3>${E('help.feeBody')}<br><span class=muted>${E('help.receive')} ${esc(S.cfg.receive || S.cfg.treasury || S.cfg.developer)}</span></div>
 <div class="card k-social"><h3>💬 ${E('help.socialTitle')}</h3>${bul(E('help.socialBody'))}<p class=muted>${E('help.socialVis')}</p></div>
 <div class="card k-gift"><h3>🎁 ${E('help.giftTitle')}</h3>${bul(E('help.giftBody'))}<p class=muted>${E('help.giftVis')}</p></div>
 <div class="card k-goods"><h3>🛍️ ${E('help.goodsTitle')}</h3>${bul(E('help.goodsBody'))}</div>
-<div class=card><h3>🛡️ ${E('help.modTitle')}</h3>${bul(E('help.%s'))} ${E('help.modPub')} <code style="word-break:break-all">${esc(S.cfg.moderator || '')}</code></div>
+<div class=card><h3>🛡️ ${E('help.modTitle')}</h3>${bul(E('help.modBody'))} ${E('help.modPub')} <code style="word-break:break-all">${esc(S.cfg.moderator || '')}</code></div>
 <div class=card><h3>🌳 ${E('help.stageTitle')}</h3>${E('help.stageBody', { green: seasonName('green'), bloom: seasonName('bloom'), fall: seasonName('fall') })}</div>
-<div class=card><h3>📜 ${E('help.riskTitle')}</h3>${bul(E('help.%s'))}</div>`;
+<div class=card><h3>📜 ${E('help.riskTitle')}</h3>${bul(E('help.riskBody'))}</div>`;
 const terms = () => `<h2>${E('terms.title')}</h2>${prevail()}<div class=card>
 <ol><li>${E('terms.1')}</li><li>${E('mod.notice')}</li><li>${E('terms.3')}${RULES_LIST()}</li>
 ${[4, 5, 6, 7, 8].map(i => `<li>${E('terms.' + i)}</li>`).join('')}</ol>
