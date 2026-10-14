@@ -201,7 +201,7 @@
 "cat.material": "Материальное",
 "wish.shipping": "Доставка / контакт (необязательно, только на сервере, не в блокчейн)",
 "wish.shippingPh": "напр. получатель, телефон, адрес или другой контакт (необязательно)",
-"wish.shippingHint": "Эта заметка только для сюрприза от Посланника Звёздного Желания. Она не пишется в блокчейн и не показывается публично.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "Исполнено Посланником Звёздного Желания",
 "fulfill.toast": "Посланник Звёздного Желания исполнил это желание ✨",
 "nav.menu": "Меню",

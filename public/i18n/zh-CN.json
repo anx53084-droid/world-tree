@@ -201,7 +201,7 @@
 "cat.material": "物质类",
 "wish.shipping": "收货 / 联系备注（选填，仅服务器保存，不上链）",
 "wish.shippingPh": "例如：收件人、电话、地址，或其它联系方式（可选）",
-"wish.shippingHint": "此备注仅用于星愿大使惊喜还愿，不会写入区块链，也不会公开展示。",
+"wish.shippingHint": "此备注仅存服务器，不会写入区块链，也不会公开展示。",
 "fulfill.badge": "星愿大使已还愿",
 "fulfill.toast": "星愿大使为你实现了这个愿望 ✨",
 "nav.menu": "菜单",

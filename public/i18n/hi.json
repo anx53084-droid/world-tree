@@ -201,7 +201,7 @@
 "cat.material": "भौतिक",
 "wish.shipping": "शिपिंग / संपर्क नोट (वैकल्पिक, केवल सर्वर, ऑन-चेन नहीं)",
 "wish.shippingPh": "जैसे: प्राप्तकर्ता, फ़ोन, पता या अन्य संपर्क (वैकल्पिक)",
-"wish.shippingHint": "यह नोट केवल स्टार-विश एंबेसडर के सरप्राइज़ पूर्ति के लिए है। यह ऑन-चेन नहीं लिखा जाता और सार्वजनिक रूप से नहीं दिखाया जाता।",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "स्टार-विश एंबेसडर ने पूरा किया",
 "fulfill.toast": "स्टार-विश एंबेसडर ने यह इच्छा पूरी की ✨",
 "nav.menu": "मेनू",

@@ -201,7 +201,7 @@
 "cat.material": "Maddi",
 "wish.shipping": "Kargo / iletişim notu (isteğe bağlı, yalnızca sunucu, zincire yazılmaz)",
 "wish.shippingPh": "örn. alıcı, telefon, adres veya diğer iletişim (isteğe bağlı)",
-"wish.shippingHint": "Bu not yalnızca Yıldız-Dilek Elçisi sürpriz gerçekleştirmesi içindir. Zincire yazılmaz ve kamuya gösterilmez.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "Yıldız-Dilek Elçisi tarafından gerçekleştirildi",
 "fulfill.toast": "Bir Yıldız-Dilek Elçisi bu dileği gerçekleştirdi ✨",
 "nav.menu": "Menü",

@@ -201,7 +201,7 @@
 "cat.material": "วัตถุ",
 "wish.shipping": "หมายเหตุจัดส่ง / ติดต่อ (ไม่บังคับ เก็บเฉพาะเซิร์ฟเวอร์ ไม่ขึ้นเชน)",
 "wish.shippingPh": "เช่น ผู้รับ โทรศัพท์ ที่อยู่ หรือช่องทางอื่น (ไม่บังคับ)",
-"wish.shippingHint": "หมายเหตุนี้ใช้สำหรับเซอร์ไพรส์จากทูตดาวปรารถนาเท่านั้น ไม่เคยเขียนบนเชนและไม่แสดงสาธารณะ",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "ทูตดาวปรารถนาทำให้สำเร็จแล้ว",
 "fulfill.toast": "ทูตดาวปรารถนาทำให้ความปรารถนานี้เป็นจริง ✨",
 "nav.menu": "เมนู",

@@ -201,7 +201,7 @@
 "cat.material": "Matériel",
 "wish.shipping": "Note de livraison / contact (facultatif, serveur uniquement, jamais on-chain)",
 "wish.shippingPh": "ex. destinataire, téléphone, adresse ou autre contact (facultatif)",
-"wish.shippingHint": "Cette note sert uniquement à une réalisation surprise par l’Ambassadeur Étoile-Vœu. Elle n’est jamais écrite on-chain ni affichée publiquement.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "Réalisé par l’Ambassadeur Étoile-Vœu",
 "fulfill.toast": "Un Ambassadeur Étoile-Vœu a réalisé ce vœu ✨",
 "nav.menu": "Menu",

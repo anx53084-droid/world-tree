@@ -201,7 +201,7 @@
 "cat.material": "مادي",
 "wish.shipping": "ملاحظة الشحن / التواصل (اختيارية، على الخادم فقط، ليست على السلسلة)",
 "wish.shippingPh": "مثلًا: المستلم، الهاتف، العنوان أو وسيلة تواصل أخرى (اختياري)",
-"wish.shippingHint": "هذه الملاحظة مخصّصة فقط لتحقيق مفاجأة من سفير نجمة الأمنية. لا تُكتب على السلسلة ولا تُعرض علنًا.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "حقّقه سفير نجمة الأمنية",
 "fulfill.toast": "سفير نجمة الأمنية حقّق هذه الأمنية ✨",
 "nav.menu": "القائمة",

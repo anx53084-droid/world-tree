@@ -201,7 +201,7 @@
 "cat.material": "Material",
 "wish.shipping": "Nota de envío / contacto (opcional, solo en servidor, nunca en cadena)",
 "wish.shippingPh": "p. ej. destinatario, teléfono, dirección u otro contacto (opcional)",
-"wish.shippingHint": "Esta nota es solo para un cumplimiento sorpresa del Embajador Estrella-Deseo. Nunca se escribe en cadena ni se muestra públicamente.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "Cumplido por el Embajador Estrella-Deseo",
 "fulfill.toast": "Un Embajador Estrella-Deseo hizo realidad este deseo ✨",
 "nav.menu": "Menú",

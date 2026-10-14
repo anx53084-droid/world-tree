@@ -201,7 +201,7 @@
 "cat.material": "Vật chất",
 "wish.shipping": "Ghi chú giao hàng / liên hệ (tùy chọn, chỉ trên máy chủ, không lên chuỗi)",
 "wish.shippingPh": "vd: người nhận, điện thoại, địa chỉ hoặc liên hệ khác (tùy chọn)",
-"wish.shippingHint": "Ghi chú này chỉ dùng cho bất ngờ thực hiện ước nguyện của Đại sứ Sao-Ước. Không ghi lên chuỗi và không công khai.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "Đại sứ Sao-Ước đã thực hiện",
 "fulfill.toast": "Đại sứ Sao-Ước đã thực hiện ước nguyện này ✨",
 "nav.menu": "Menu",

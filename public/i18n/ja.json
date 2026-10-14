@@ -201,7 +201,7 @@
 "cat.material": "物質",
 "wish.shipping": "配送 / 連絡メモ（任意・サーバーのみ・チェーンに書きません）",
 "wish.shippingPh": "例：受取人・電話・住所など（任意）",
-"wish.shippingHint": "このメモは星願大使のサプライズ実現専用です。チェーンには書かれず、公開もされません。",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "星願大使が願いを叶えました",
 "fulfill.toast": "星願大使がこの願いを叶えてくれました ✨",
 "nav.menu": "メニュー",

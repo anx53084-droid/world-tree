@@ -201,7 +201,7 @@
 "cat.material": "Materiell",
 "wish.shipping": "Versand- / Kontaktnotiz (optional, nur Server, nie on-chain)",
 "wish.shippingPh": "z. B. Empfänger, Telefon, Adresse oder anderer Kontakt (optional)",
-"wish.shippingHint": "Diese Notiz dient nur einer Überraschungs-Erfüllung durch den Sternwunsch-Botschafter. Sie wird nie on-chain geschrieben und nie öffentlich gezeigt.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "Vom Sternwunsch-Botschafter erfüllt",
 "fulfill.toast": "Ein Sternwunsch-Botschafter hat diesen Wunsch erfüllt ✨",
 "nav.menu": "Menü",

@@ -201,7 +201,7 @@
 "cat.material": "Material",
 "wish.shipping": "Shipping / contact note (optional, server-only, never on-chain)",
 "wish.shippingPh": "e.g. recipient, phone, address, or other contact (optional)",
-"wish.shippingHint": "This note is only for a surprise Star-Wish Ambassador fulfillment. It is never written on-chain and never shown publicly.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "Fulfilled by Star-Wish Ambassador",
 "fulfill.toast": "A Star-Wish Ambassador made this wish come true ✨",
 "nav.menu": "Menu",

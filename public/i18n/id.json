@@ -201,7 +201,7 @@
 "cat.material": "Material",
 "wish.shipping": "Catatan pengiriman / kontak (opsional, hanya di server, tidak on-chain)",
 "wish.shippingPh": "mis. penerima, telepon, alamat, atau kontak lain (opsional)",
-"wish.shippingHint": "Catatan ini hanya untuk pemenuhan kejutan Duta Bintang-Harapan. Tidak pernah ditulis on-chain dan tidak ditampilkan publik.",
+"wish.shippingHint": "This note is stored only on the server. It is never written on-chain and never shown publicly.",
 "fulfill.badge": "Dipenuhi Duta Bintang-Harapan",
 "fulfill.toast": "Duta Bintang-Harapan mewujudkan harapan ini ✨",
 "nav.menu": "Menu",
