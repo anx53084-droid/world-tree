@@ -319,7 +319,7 @@
 "sec.totpOff": "未開啟",
 "sec.totpEnable": "開啟兩步驗證",
 "sec.totpDisable": "關閉兩步驗證",
-"sec.totpStep": "在 Google Authenticator 中新增帳戶：點選下方按鈕或手動輸入金鑰，然後輸入 6 位驗證碼完成開啟。",
+"sec.totpStep": "在 Google Authenticator 中掃描二維碼（或點擊下方按鈕 / 手動輸入密鑰），然後輸入 6 位驗證碼完成開啟。",
 "sec.totpKey": "金鑰",
 "sec.totpOpen": "在驗證器中開啟",
 "sec.totpEmailOnly": "兩步驗證僅適用於郵箱帳戶；錢包帳戶由錢包簽名保護。",
@@ -381,5 +381,18 @@
 "err.chainId": "登入訊息的網路（Chain ID）不受支援",
 "wal.switchAcct": "切換帳戶 / 換個地址",
 "wal.oneAccount": "錢包只提供了先前授權的同一個地址。請在錢包的「已連線網站 / DApp 授權」設定中中斷本站，然後重試。",
-"wal.oneAccountHint": "想用其他地址？如錢包只顯示已授權的地址，請先在錢包的已連線網站設定中中斷本站。"
+"wal.oneAccountHint": "想用其他地址？如錢包只顯示已授權的地址，請先在錢包的已連線網站設定中中斷本站。",
+"code.title": "輸入兩步驗證碼",
+"code.loginTitle": "登錄：兩步驗證",
+"code.body": "打開 Google Authenticator 輸入 6 位驗證碼，或輸入一個恢復碼。",
+"code.ph": "6 位驗證碼或恢復碼",
+"code.ok": "確認",
+"sec.totpQr": "用 Google Authenticator 掃描二維碼",
+"sec.totpUses": "錢包賬戶與郵箱賬戶均可開啟。開啟後：新設備登錄、大額支付、退出其他設備、修改大額閾值、關閉兩步驗證都需要驗證碼。",
+"sec.rcTitle": "恢復碼（只顯示一次）",
+"sec.rcBody": "手機丟失時可用恢復碼代替驗證碼，每個只能用一次。請立即抄寫或保存到安全的地方，關閉後無法再次查看。",
+"sec.rcCopy": "複製",
+"sec.rcCopied": "已複製",
+"sec.rcDone": "我已保存",
+"sec.rcLeft": "剩餘恢復碼：{n}"
 }

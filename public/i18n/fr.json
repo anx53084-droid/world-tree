@@ -319,7 +319,7 @@
 "sec.totpOff": "Désactivée",
 "sec.totpEnable": "Activer la validation en deux étapes",
 "sec.totpDisable": "Désactiver la validation en deux étapes",
-"sec.totpStep": "Ajoutez le compte dans Google Authenticator : touchez le bouton ou saisissez la clé, puis entrez le code à 6 chiffres.",
+"sec.totpStep": "Scannez le QR code dans Google Authenticator (ou touchez le bouton / saisissez la clé), puis entrez le code à 6 chiffres pour activer.",
 "sec.totpKey": "Clé",
 "sec.totpOpen": "Ouvrir dans l’authentificateur",
 "sec.totpEmailOnly": "La validation en deux étapes concerne les comptes e-mail ; les comptes portefeuille sont protégés par la signature du portefeuille.",
@@ -381,5 +381,18 @@
 "err.chainId": "Le réseau (Chain ID) du message de connexion n’est pas pris en charge",
 "wal.switchAcct": "Changer de compte / autre adresse",
 "wal.oneAccount": "Votre portefeuille n’a proposé que l’adresse déjà autorisée. Déconnectez ce site dans les réglages « sites connectés » du portefeuille, puis réessayez.",
-"wal.oneAccountHint": "Une autre adresse ? Si le portefeuille n’affiche que l’adresse autorisée, déconnectez d’abord ce site dans ses réglages de sites connectés."
+"wal.oneAccountHint": "Une autre adresse ? Si le portefeuille n’affiche que l’adresse autorisée, déconnectez d’abord ce site dans ses réglages de sites connectés.",
+"code.title": "Saisissez le code 2FA",
+"code.loginTitle": "Connexion : vérification en deux étapes",
+"code.body": "Ouvrez Google Authenticator et saisissez le code à 6 chiffres, ou un code de récupération.",
+"code.ph": "Code à 6 chiffres ou de récupération",
+"code.ok": "Confirmer",
+"sec.totpQr": "Scannez ce QR code avec Google Authenticator",
+"sec.totpUses": "Disponible pour les comptes wallet et e-mail. Activée, un code est requis pour : connexion d'un nouvel appareil, gros paiements, déconnexion des autres appareils, modification du seuil et désactivation de la 2FA.",
+"sec.rcTitle": "Codes de récupération (affichés une seule fois)",
+"sec.rcBody": "Si vous perdez votre téléphone, utilisez un code de récupération à la place. Chacun ne sert qu'une fois. Notez-les ou conservez-les maintenant : ils ne seront plus affichés.",
+"sec.rcCopy": "Copier",
+"sec.rcCopied": "Copié",
+"sec.rcDone": "Je les ai enregistrés",
+"sec.rcLeft": "Codes de récupération restants : {n}"
 }

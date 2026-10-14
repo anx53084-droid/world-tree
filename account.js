@@ -51,6 +51,16 @@ const totpNow = (secret, t = Date.now()) => hotp(secret, Math.floor(t / 30000));
 function totpOk(user, code) { const s = user.totp?.on && user.totp.secret; if (!s || !/^\d{6}$/.test(String(code || ''))) return false; const c = Math.floor(Date.now() / 30000);
   for (const d of [-1, 0, 1]) if (c + d > (user.totp.last || 0) && crypto.timingSafeEqual(Buffer.from(hotp(s, c + d)), Buffer.from(String(code)))) { user.totp.last = c + d; return true; } return false; } // 同一时间步不可重放
 
+// 恢复码（一次性，只显示一次；仅保存哈希）与短期票据（登录第二步 / 大额支付预授权）
+const rcHash = c => crypto.createHash('sha256').update(String(c).toLowerCase().replace(/[^a-z0-9]/g, '')).digest('hex');
+function genRecovery() { const plain = Array.from({ length: 10 }, () => { const r = b32enc(crypto.randomBytes(5)).toLowerCase(); return r.slice(0, 4) + '-' + r.slice(4, 8); }); return { plain, hashes: plain.map(rcHash) }; }
+function check2fa(user, code) { if (!user.totp?.on) return true; const c = String(code || '').trim(); if (totpOk(user, c)) return true;
+  const h = rcHash(c), L = user.totp.rc || []; const i = /^[a-z2-7]{4}-?[a-z2-7]{4}$/i.test(c) ? L.indexOf(h) : -1; if (i >= 0) { L.splice(i, 1); return true; } return false; }
+const TICKETS = new Map();
+function issueTicket(uid, purpose, ms = 300000) { const t = crypto.randomBytes(18).toString('hex'); TICKETS.set(t, { uid, purpose, exp: Date.now() + ms, tries: 0 }); return t; }
+function peekTicket(t, purpose) { const x = TICKETS.get(t); if (!x || x.purpose !== purpose || x.exp < Date.now() || x.tries >= 5) { TICKETS.delete(t); return null; } return x; }
+function useTicket(t, uid, purpose) { const x = peekTicket(t, purpose); if (!x || (uid && x.uid !== uid)) return false; TICKETS.delete(t); return true; }
+
 // ---- 邮件（可选：RESEND_API_KEY + MAIL_FROM；未配置时无法发送验证码）----
 const MAIL_ON = !!(process.env.RESEND_API_KEY && process.env.MAIL_FROM), ECHO = process.env.EMAIL_DEV_ECHO === '1';
 async function sendMail(to, subject, text) { if (!MAIL_ON) return false;
@@ -91,4 +101,4 @@ async function verifyEvmPay(db, { chainId, txs }, from, usdPer, minUsd) {
   const usd = Number(tot) / 1e18 * usdPer; if (!(usd >= minUsd * 0.98)) throw Object.assign(new Error('amount below minimum'), { code: 'amount' });
   for (const h of txs) db.usedEvm[chainId + ':' + h.toLowerCase()] = Date.now(); return { usd, wei: tot.toString(), sym: CHAINS[chainId].sym }; }
 
-module.exports = { CHAINS, EVM_DEV, EVM_TREASURY, EVM_PAY, MAIL_ON, ECHO, nonce, verifyLogin, evmRecover, parseSiwe, b32enc, totpNow, totpOk, sendMail, tokHash, normSessions, newSession, pushMsg, prefs, inboxOf, notifyFulfil, verifyEvmPay };
+module.exports = { genRecovery, check2fa, issueTicket, peekTicket, useTicket, CHAINS, EVM_DEV, EVM_TREASURY, EVM_PAY, MAIL_ON, ECHO, nonce, verifyLogin, evmRecover, parseSiwe, b32enc, totpNow, totpOk, sendMail, tokHash, normSessions, newSession, pushMsg, prefs, inboxOf, notifyFulfil, verifyEvmPay };

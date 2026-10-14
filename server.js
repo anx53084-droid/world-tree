@@ -134,11 +134,15 @@ async function api(req, res, url) {
     evm: { pay: Acc.EVM_PAY, dev: Acc.EVM_DEV || null, treasury: Acc.EVM_TREASURY || null, usd: p.coins, chains: Object.fromEntries(Object.entries(Acc.CHAINS).map(([id, c]) => [id, { key: c.key, name: c.name, sym: c.sym, coin: c.coin, exp: c.exp, rpc: c.rpc }])) }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20 }); }
   if (url === '/api/nonce') return send(res, 200, { nonce: Acc.nonce() });
   if (url === '/api/login/wallet' && req.method === 'POST') { // 钱包签名登录：EVM（personal_sign，EIP-4361 格式）或 Solana（signMessage）；不涉及私钥、不发交易
-    let v; try { v = Acc.verifyLogin(await body(req), allowHost(req)); } catch (e) { return fail(res, e, 401); }
+    const lb = await body(req); let v; try { v = Acc.verifyLogin(lb, allowHost(req)); } catch (e) { return fail(res, e, 401); }
     const uid = v.kind + ':' + v.address;
     if (!db.users[uid]) { if (v.kind === 'evm') { const kp = web3.Keypair.generate(); db.users[uid] = { evm: v.address, pubkey: kp.publicKey.toBase58(), secret: Buffer.from(kp.secretKey).toString('base64'), created: Date.now() }; } // EVM 账户：愿望记录在 Solana devnet，由托管的 devnet 密钥签名 memo
       else db.users[uid] = { pubkey: v.address, created: Date.now() }; }
+    if (db.users[uid].totp?.on && !(lb.totp && Acc.check2fa(db.users[uid], lb.totp))) { save(db); return send(res, 401, { error: '需要两步验证码', code: 'totp', ticket: Acc.issueTicket(uid, 'login') }); } // 签名已通过，第二步：验证码
     const token = Acc.newSession(db, uid, req); save(db); return send(res, 200, { token, ...meOf(uid, db.users[uid]) }); }
+  if (url === '/api/login/totp' && req.method === 'POST') { const { ticket, code } = await body(req), x = Acc.peekTicket(ticket, 'login'); if (!x || !db.users[x.uid]) return send(res, 401, { error: 'expired', code: 'nonce' });
+    if (!Acc.check2fa(db.users[x.uid], code)) { x.tries++; save(db); return send(res, 401, { error: '验证码错误', code: 'totpBad' }); } Acc.useTicket(ticket, x.uid, 'login');
+    const token = Acc.newSession(db, x.uid, req); save(db); return send(res, 200, { token, ...meOf(x.uid, db.users[x.uid]) }); }
   if (url === '/api/rules') return send(res, 200, { categories: Object.keys(RULES), words: RULES }); // 供前端展示过滤
   // —— 星愿大使 / 还愿（公开只读徽章；履约联系方式仅存链下）——
   if (url.startsWith('/api/fulfillments/') && req.method === 'GET') {
@@ -180,7 +184,7 @@ async function api(req, res, url) {
   if (url === '/api/login' && req.method === 'POST') { // 演示：仅邮箱，无密码/验证码
     const { email, totp } = await body(req);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '') || /^(evm|sol):/.test(email)) return send(res, 400, { error: '邮箱格式不正确', code: 'email' });
-    if (db.users[email]?.totp?.on) { if (!totp) return send(res, 401, { error: '需要两步验证码', code: 'totp' }); if (!Acc.totpOk(db.users[email], totp)) { save(db); return send(res, 401, { error: '验证码错误', code: 'totpBad' }); } }
+    if (db.users[email]?.totp?.on) { if (!totp) return send(res, 401, { error: '需要两步验证码', code: 'totp' }); if (!Acc.check2fa(db.users[email], totp)) { save(db); return send(res, 401, { error: '验证码错误', code: 'totpBad' }); } }
     if (!db.users[email]) { const kp = web3.Keypair.generate(); db.users[email] = { pubkey: kp.publicKey.toBase58(), secret: Buffer.from(kp.secretKey).toString('base64'), created: Date.now() }; }
     const token = Acc.newSession(db, email, req); save(db);
     return send(res, 200, { token, ...meOf(email, db.users[email]) });
@@ -190,11 +194,12 @@ async function api(req, res, url) {
   if (!a) return send(res, 401, { error: '未登录', code: 'auth' });
   const U = a.user, isEmail = kindOf(a.uid) === 'email';
   // —— 安全设置 ——
-  if (url === '/api/security') return send(res, 200, { ...meOf(a.uid, U), mail: Acc.MAIL_ON || Acc.ECHO, largeUsd: U.largeUsd || 20,
+  if (url === '/api/security') return send(res, 200, { ...meOf(a.uid, U), recoveryLeft: U.totp?.rc?.length ?? null, mail: Acc.MAIL_ON || Acc.ECHO, largeUsd: U.largeUsd || 20,
     sessions: Object.entries(db.sessions).filter(([, s]) => s.uid === a.uid).map(([t, s]) => ({ id: Acc.tokHash(t), ua: s.ua, at: s.at, last: s.last, current: t === a.token })).sort((x, y) => y.last - x.last) });
-  if (url === '/api/sessions/revoke' && req.method === 'POST') { const { id, others } = await body(req); let n = 0;
+  const need2fa = code => { if (!U.totp?.on || Acc.check2fa(U, code)) return null; save(db); send(res, 401, { error: '需要两步验证码', code: code ? 'totpBad' : 'totp' }); return true; }; // 开启 2FA 后敏感操作需验证码（服务器强制）
+  if (url === '/api/sessions/revoke' && req.method === 'POST') { const { id, others, code } = await body(req); let n = 0; if (need2fa(code)) return;
     for (const [t, s] of Object.entries(db.sessions)) if (s.uid === a.uid && t !== a.token && (others || Acc.tokHash(t) === id)) { delete db.sessions[t]; n++; } save(db); return send(res, 200, { ok: true, revoked: n }); }
-  if (url === '/api/security/large' && req.method === 'POST') { const { usd } = await body(req); if (!(+usd >= 1 && +usd <= 100000)) return send(res, 400, { error: 'bad amount', code: 'param' }); U.largeUsd = Math.round(+usd); save(db); return send(res, 200, { ok: true, largeUsd: U.largeUsd }); }
+  if (url === '/api/security/large' && req.method === 'POST') { const { usd, code } = await body(req); if (need2fa(code)) return; if (!(+usd >= 1 && +usd <= 100000)) return send(res, 400, { error: 'bad amount', code: 'param' }); U.largeUsd = Math.round(+usd); save(db); return send(res, 200, { ok: true, largeUsd: U.largeUsd }); }
   if (url === '/api/email/send' && req.method === 'POST') { if (!isEmail) return send(res, 400, { error: 'not an email account', code: 'param' }); if (U.verified) return send(res, 200, { ok: true, verified: true });
     if (U.ev && Date.now() - U.ev.sent < 60000) return send(res, 429, { error: 'too frequent', code: 'rate' });
     if (!Acc.MAIL_ON && !Acc.ECHO) return send(res, 503, { error: 'mail service not configured', code: 'mailOff' });
@@ -205,14 +210,16 @@ async function api(req, res, url) {
     if (!ev || ev.exp < Date.now() || ev.tries >= 5) return send(res, 400, { error: 'code expired', code: 'codeExp' }); ev.tries++;
     if (crypto.createHash('sha256').update(String(code || '')).digest('hex') !== ev.h) { save(db); return send(res, 400, { error: 'wrong code', code: 'codeBad' }); }
     U.verified = true; delete U.ev; save(db); return send(res, 200, { ok: true, verified: true }); }
-  if (url === '/api/2fa/setup' && req.method === 'POST') { if (!isEmail) return send(res, 400, { error: 'email accounts only', code: 'param' }); if (U.totp?.on) return send(res, 400, { error: 'already on', code: 'totpOn' });
+  if (url === '/api/2fa/ticket' && req.method === 'POST') { const { code } = await body(req); if (!U.totp?.on) return send(res, 200, { ticket: null }); // 大额支付预授权：验证码先验证，换 10 分钟一次性票据（链上确认较慢）
+    if (!Acc.check2fa(U, code)) { save(db); return send(res, 401, { error: '验证码错误', code: 'totpBad' }); } save(db); return send(res, 200, { ticket: Acc.issueTicket(a.uid, 'pay', 600000) }); }
+  if (url === '/api/2fa/setup' && req.method === 'POST') { if (U.totp?.on) return send(res, 400, { error: 'already on', code: 'totpOn' });
     const secret = Acc.b32enc(crypto.randomBytes(20)); U.totpPending = secret; save(db);
-    return send(res, 200, { secret, uri: `otpauth://totp/${encodeURIComponent('World Tree:' + a.uid)}?secret=${secret}&issuer=${encodeURIComponent('World Tree')}&algorithm=SHA1&digits=6&period=30` }); }
+    return send(res, 200, { secret, uri: `otpauth://totp/${encodeURIComponent('World Tree:' + (isEmail ? a.uid : (U.evm || U.pubkey).slice(0, 6) + '…' + (U.evm || U.pubkey).slice(-4)))}?secret=${secret}&issuer=${encodeURIComponent('World Tree')}&algorithm=SHA1&digits=6&period=30` }); }
   if (url === '/api/2fa/enable' && req.method === 'POST') { const { code } = await body(req); if (!U.totpPending) return send(res, 400, { error: 'setup first', code: 'param' });
     const tmp = { totp: { on: true, secret: U.totpPending } }; if (!Acc.totpOk(tmp, code)) return send(res, 400, { error: 'wrong code', code: 'totpBad' });
-    U.totp = tmp.totp; delete U.totpPending; Acc.pushMsg(db, U.pubkey, { kind: 'totpOn' }); save(db); return send(res, 200, { ok: true, totp: true }); }
+    const rc = Acc.genRecovery(); U.totp = { ...tmp.totp, rc: rc.hashes }; delete U.totpPending; Acc.pushMsg(db, U.pubkey, { kind: 'totpOn' }); save(db); return send(res, 200, { ok: true, totp: true, recovery: rc.plain }); } // 恢复码只返回这一次
   if (url === '/api/2fa/disable' && req.method === 'POST') { const { code } = await body(req); if (!U.totp?.on) return send(res, 200, { ok: true, totp: false });
-    if (!Acc.totpOk(U, code)) { save(db); return send(res, 400, { error: 'wrong code', code: 'totpBad' }); } delete U.totp; Acc.pushMsg(db, U.pubkey, { kind: 'totpOff' }); save(db); return send(res, 200, { ok: true, totp: false }); }
+    if (!Acc.check2fa(U, code)) { save(db); return send(res, 400, { error: 'wrong code', code: 'totpBad' }); } delete U.totp; Acc.pushMsg(db, U.pubkey, { kind: 'totpOff' }); save(db); return send(res, 200, { ok: true, totp: false }); }
   // —— 站内信 / 消息设置（打开页面或菜单时拉取，无轮询）——
   if (url === '/api/inbox') return send(res, 200, Acc.inboxOf(db, U));
   if (url === '/api/inbox/read' && req.method === 'POST') { const { ids, all } = await body(req), want = all ? null : new Set(Array.isArray(ids) ? ids : []);
@@ -228,17 +235,18 @@ async function api(req, res, url) {
     catch (e) { return send(res, 200, { error: '空投失败: ' + e.message, code: 'airdrop', detail: e.message }); }
   }
   if (url === '/api/memo' && req.method === 'POST') { // 托管签名：后端用该用户的 devnet 密钥签名
-    const { memo, lamports = 0, evm, confirmLarge, totp } = await body(req); const isW = typeof memo === 'string' && memo.startsWith('WTREE1|W|'), P = await solPrice();
+    const { memo, lamports = 0, evm, confirmLarge, totp, payTicket } = await body(req); const payOk = () => !U.totp?.on || (payTicket && Acc.useTicket(payTicket, a.uid, 'pay')) || Acc.check2fa(U, totp); const isW = typeof memo === 'string' && memo.startsWith('WTREE1|W|'), P = await solPrice();
     if (typeof memo !== 'string') return send(res, 400, { error: 'memo 无效', code: 'memo' });
     if (/^WTREE1\|[WB]\|/.test(memo)) { if (!verifyWishMemo(memo)) return send(res, 400, { error: '缺少或无效的审核证明（attestation）', code: 'att' }); }
     else if (!/^WTREE1\|L\|[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(memo)) return send(res, 400, { error: 'memo 格式无效', code: 'memo' });
     let evmPaid = null; // EVM 账户：心愿费用在 EVM 测试网以原生币直接转给开发者/金库（20/80），服务器核验后用其 devnet 托管密钥上链（Solana 为唯一事实来源）
     if (isW && evm) { if (!U.evm) return send(res, 400, { error: 'not an EVM account', code: 'param' });
-      try { evmPaid = await Acc.verifyEvmPay(db, evm, U.evm, P.coins[Acc.CHAINS[+evm.chainId]?.coin] || 0, MIN_USD); save(db); } catch (e) { return fail(res, e); } }
+      try { evmPaid = await Acc.verifyEvmPay(db, evm, U.evm, P.coins[Acc.CHAINS[+evm.chainId]?.coin] || 0, MIN_USD); } catch (e) { return fail(res, e); }
+      if (evmPaid.usd >= (U.largeUsd || 20) && (!confirmLarge || !payOk())) return send(res, 401, { error: '需要两步验证码', code: U.totp?.on ? 'totp' : 'large' }); save(db); }
     else { if (isW && !(Number.isInteger(lamports) && lamports >= minLamports(P.usd))) return send(res, 400, { error: '金额低于最低 1 美元等值 SOL', code: 'amount' });
       if (isW && lamports / 1e9 * P.usd >= (U.largeUsd || 20)) { // 大额支付确认（开启两步验证时需验证码）
         if (!confirmLarge) return send(res, 400, { error: 'large payment needs confirmation', code: 'large' });
-        if (U.totp?.on && !Acc.totpOk(U, totp)) { save(db); return send(res, 401, { error: '验证码错误', code: 'totpBad' }); } save(db); } }
+        if (!payOk()) { save(db); return send(res, 401, { error: '验证码错误', code: 'totpBad' }); } save(db); } }
     try { const wishLam = isW && !evmPaid ? lamports : 0; const sig = await web3.sendAndConfirmTransaction(conn, buildMemoTx(kp.publicKey, memo, wishLam), [kp], { commitment: 'confirmed' });
       if (wishLam > 0 || evmPaid) { const parts = memo.split('|'); Fulfill.registerWish({ wishSig: sig, cat: parts[5].split('~')[0], text: /~F..P(~|$)/.test(parts[5]) ? '🔒' : parts[6], author: kp.publicKey.toBase58(), lamports: wishLam || Math.round(evmPaid.usd / P.usd * 1e9), source: evmPaid ? 'evm:' + evm.chainId : 'host' }); }
       return send(res, 200, { signature: sig }); }

@@ -228,11 +228,21 @@ async function solSignIn(w, nonce) { // 优先用钱包原生 Sign-In（solana:s
   if (w.canSignIn) { const o = await w.signIn({ domain: location.host, statement: STMT, uri: location.origin, version: '1', nonce, issuedAt: new Date().toISOString() });
     return { address: o.address, message: o.message, signature: WTW.b58(o.signature) }; }
   const m = siweMsg('Solana', S.pubkey, nonce, null); return { address: S.pubkey, message: m, signature: WTW.b58(await w.signMessage(new TextEncoder().encode(m))) }; }
+function askCode(title) { return new Promise(res => { // 两步验证码输入框：6 位验证码或一次性恢复码
+  modal(`<h3 style="margin-top:0">🔑 ${E(title || 'code.title')}</h3><p class=muted>${E('code.body')}</p><input id=acode autocomplete=one-time-code maxlength=9 placeholder="${E('code.ph')}" style="width:100%" dir=ltr>
+    <div class=row style="margin-top:12px"><button class=primary id=acok>${E('code.ok')}</button><button id=acno>${E('common.cancel')}</button></div>`);
+  setTimeout(() => $('#acode')?.focus(), 50); const done = v => { closeModal(); res(v); };
+  $('#acok').onclick = () => done($('#acode').value.trim() || null); $('#acno').onclick = () => done(null); $('#acode').onkeydown = e => { if (e.key === 'Enter') $('#acok').click(); }; }); }
+async function with2fa(fn) { if (!S.totp) return fn(); for (let i = 0; i < 5; i++) { const c = await askCode(); if (!c) return null; try { return await fn(c); } catch (e) { if (e.code !== 'totpBad') throw e; toast(esc(t('err.totpBad')), 'err'); } } return null; }
+async function walletLogin(body) { // 钱包签名登录；开启 2FA 时签名通过后再输入验证码（服务器发一次性票据）
+  try { return await api('/api/login/wallet', body); } catch (e) { if (e.code !== 'totp' || !e.data?.ticket) throw e;
+    for (let i = 0; i < 5; i++) { const c = await askCode('code.loginTitle'); if (!c) throw Object.assign(new Error(t('wal.rejected')), { code: 4001 });
+      try { return await api('/api/login/totp', { ticket: e.data.ticket, code: c }); } catch (e2) { if (e2.code !== 'totpBad') throw e2; toast(esc(t('err.totpBad')), 'err'); } } throw new Error(t('err.totpBad')); } }
 async function siws() { // Sign-In-With-Solana：签名消息换取会话（用于站内信、安全设置）
   const np = getNonce(); let w = S.wallet; if (!w) { const d = WTW.solWallets().find(x => x.id === localStorage.wt_wallet && x.installed); if (!d) throw new Error(t('wal.reconnect')); w = d.adapter(); if (!w.canSignIn && (await w.connect(false)) !== S.pubkey) throw new Error(t('wal.reconnect')); S.wallet = w; watchSol(w); }
   const o = await solSignIn(w, await np);
   if (o.address && o.address !== S.pubkey) throw new Error(t('wal.reconnect'));
-  const r = await api('/api/login/wallet', { message: o.message, signature: o.signature }); setSession(r); renderMode(); loadBell(); return r; }
+  const r = await walletLogin({ message: o.message, signature: o.signature }); setSession(r); renderMode(); loadBell(); return r; }
 function watchSol(a) { a.onChange?.(addr => { if (S.mode === 'self' && S.wallet === a && addr !== S.pubkey) { toast(esc(t('wal.switched')), 'err'); S.wallet = null; logout(); } }); }
 function watchEvm(p) { if (!p?.on || p.__wt) return; p.__wt = 1; // 钱包切换网络 / 账户
   p.on('chainChanged', h => { const c = parseInt(h, 16); if (EVM_KEYS[c]) localStorage.wt_chain = String(c); S.evmChain = c; });
@@ -259,7 +269,7 @@ async function connectSol(id, given) { const w = WTW.solWallets().find(x => x.id
   closeModal(); if (S.mode === 'host' && S.token) await logout(true);
   if (S.wantSwitch && S.solPrev && pk === S.solPrev) toast(esc(t('wal.oneAccount')), ''); S.wantSwitch = false; S.solPrev = null;
   S.mode = 'self'; S.kind = 'sol'; S.pubkey = pk; S.email = null; S.wallet = a; localStorage.wt_wallet = id; watchSol(a); renderMode(); route(); toast(esc(t('wal.ok', { addr: short(pk) })), 'ok');
-  try { if (signed) { const r = await api('/api/login/wallet', signed); setSession(r); renderMode(); loadBell(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); }
+  try { if (signed) { const r = await walletLogin(signed); setSession(r); renderMode(); loadBell(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); }
     else { toast(esc(t('wal.signing'))); await siws(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); } }
   catch (e) { toast(esc(walErr(e)) + ' · ' + esc(t('wal.signLater')), 'err'); } }
 async function pickEvmAccount(p) { // 让钱包重新弹出账户选择：wallet_requestPermissions（EIP-2255），不支持时回退 eth_requestAccounts
@@ -280,12 +290,12 @@ async function connectEvm(id, pick = true) { const w = WTW.evmWallets().find(x =
     const cid = await WTW.readyChain(p, chain, evmChains()[chain]); // 消息 Chain ID = 钱包当前 eth_chainId
     const m = siweMsg('Ethereum', addr, await np, cid);
     const sg = await p.request({ method: 'personal_sign', params: [WTW.hexOf(m), addr] });
-    const r = await api('/api/login/wallet', { message: m, signature: sg }); S.wallet = null; setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.evmProv = p; localStorage.wt_evm = id; if (EVM_KEYS[cid]) localStorage.wt_chain = String(cid); localStorage.removeItem('wt_wallet');
+    const r = await walletLogin({ message: m, signature: sg }); S.wallet = null; setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.evmProv = p; localStorage.wt_evm = id; if (EVM_KEYS[cid]) localStorage.wt_chain = String(cid); localStorage.removeItem('wt_wallet');
     renderMode(); route(); loadBell(); tt.update(esc(t('wal.ok', { addr: short(addr) })), 'ok'); }
   catch (e) { toast(esc(walErr(e)), 'err'); } }
 function emailLogin(needTotp, em0) {
   modal(`<h3>${esc(t(needTotp ? 'login.totpTitle' : 'login.emailTitle'))}</h3>${needTotp ? '' : `<p class="notice">⚠️ ${esc(t('login.emailWarn'))}</p>`}
-    <input id=em type=email placeholder="you@example.com" style="width:100%" dir=ltr value="${esc(em0 || '')}" ${needTotp ? 'hidden' : ''}>${needTotp ? `<input id=emt inputmode=numeric autocomplete=one-time-code maxlength=6 placeholder="${E('login.totpPh')}" style="width:100%">` : ''}
+    <input id=em type=email placeholder="you@example.com" style="width:100%" dir=ltr value="${esc(em0 || '')}" ${needTotp ? 'hidden' : ''}>${needTotp ? `<input id=emt autocomplete=one-time-code maxlength=9 placeholder="${E('login.totpPh')}" style="width:100%">` : ''}
     <div class=row style="margin-top:12px"><button class=primary id=emok>${esc(t('login.btn'))}</button><button data-close>${esc(t('common.cancel'))}</button></div>`);
   $('#emok').onclick = async () => { const email = $('#em').value.trim(); try { const r = await api('/api/login', { email, totp: $('#emt')?.value.trim() || undefined }); setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.wallet = null; closeModal(); renderMode(); route(); loadBell(); toast(esc(t('login.ok', { addr: short(r.pubkey) })), 'ok'); }
     catch (e) { if (e.code === 'totp') return emailLogin(true, email); toast(esc(t('login.fail', { msg: e.message })), 'err'); } };
@@ -294,8 +304,11 @@ async function logout(quiet) { if (S.token) await api('/api/logout', {}).catch((
   if (S.kind === 'evm') await revokeEvm(S.evmProv || WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed)?.provider); S.wallet = S.evmProv = null; ['wt_wallet', 'wt_evm'].forEach(k => localStorage.removeItem(k));
   S.token = null; localStorage.removeItem('wt_token'); S.kind = S.evmAddr = null; S.bell = 0; if (quiet === true) return; S.mode = 'guest'; S.pubkey = S.email = null; renderMode(); route(); paintBell(); }
 // 大额支付确认：金额 ≥ 阈值时弹窗确认；开启两步验证的邮箱账户需输入验证码（服务器同样校验）
-function confirmLarge(usd, amt) { const lim = S.largeUsd || S.cfg.largeUsdDefault || 20; if (!(usd >= lim)) return Promise.resolve({});
-  return new Promise(res => { modal(`<h3 style="margin-top:0">⚠️ ${E('large.title')}</h3><p>${E('large.body', { usd: usd.toFixed(2), amt })}</p>${S.totp && S.mode === 'host' ? `<input id=lgt inputmode=numeric maxlength=6 autocomplete=one-time-code placeholder="${E('large.totp')}" style="width:100%">` : ''}
+async function confirmLarge(usd, amt) { const lim = S.largeUsd || S.cfg.largeUsdDefault || 20; if (!(usd >= lim)) return {};
+  const ok = await confirmLarge0(usd, amt); if (!ok || !S.totp || !S.token) return ok; // 开启 2FA：先由服务器验证验证码，换取一次性支付票据
+  try { const r = await api('/api/2fa/ticket', { code: ok.totp }); return { confirmLarge: true, payTicket: r.ticket }; } catch (e) { toast(esc(e.message), 'err'); return null; } }
+function confirmLarge0(usd, amt) {
+  return new Promise(res => { modal(`<h3 style="margin-top:0">⚠️ ${E('large.title')}</h3><p>${E('large.body', { usd: usd.toFixed(2), amt })}</p>${S.totp ? `<input id=lgt maxlength=9 autocomplete=one-time-code placeholder="${E('large.totp')}" style="width:100%">` : ''}
     <div class=row style="margin-top:12px"><button class=primary id=lgok>${E('large.ok')}</button><button id=lgno>${E('common.cancel')}</button></div>`);
     $('#lgok').onclick = () => { const c = $('#lgt')?.value.trim(); closeModal(); res({ confirmLarge: true, totp: c }); }; $('#lgno').onclick = () => { closeModal(); res(null); }; }); }
 // ---------- 站内信铃铛（打开页面与打开菜单时获取；不轮询）----------
@@ -324,26 +337,32 @@ async function switchAccount() { // 切换账户 / 换个地址：EVM 重新请�
   connectWallet(); }
 function bindSiws() { if ($('#siws')) prefetchNonce(); $('#siws')?.addEventListener('click', async () => { try { await siws(); route(); } catch (e) { toast(esc(walErr(e)), 'err'); } }); }
 const security = () => needSession(E('sec.title')) || `<h2>${E('sec.title')}</h2><div id=secbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
+const loadQr = () => window.qrcode ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'vendor/qrcode.js'; s.onload = ok; s.onerror = no; document.head.append(s); }); // 本地生成二维码（不经第三方服务）
+function showRecovery(codes) { return new Promise(res => { // 恢复码只显示一次
+  modal(`<h3 style="margin-top:0">🧾 ${E('sec.rcTitle')}</h3><p class=muted>${E('sec.rcBody')}</p><pre class=rcodes dir=ltr>${codes.map(esc).join('\n')}</pre>
+    <div class=row style="margin-top:10px"><button id=rccp>${E('sec.rcCopy')}</button><button class=primary id=rcok>${E('sec.rcDone')}</button></div>`);
+  $('#rccp').onclick = () => navigator.clipboard?.writeText(codes.join('\n')).then(() => toast(E('sec.rcCopied'), 'ok'), () => {}); $('#rcok').onclick = () => { closeModal(); res(); }; }); }
 async function loadSec() { const box = $('#secbox'); if (!box) return bindSiws(); let d; try { d = await api('/api/security'); } catch (e) { box.innerHTML = `<p class=muted>${esc(e.message)}</p>`; return; }
   S.totp = d.totp; S.verified = d.verified; S.largeUsd = d.largeUsd; const email = d.kind === 'email';
   box.innerHTML = `${d.kind !== 'email' ? `<section class=card><p style="margin:0;word-break:break-all">${esc(d.kind === 'evm' ? d.evm : d.pubkey)}</p><button id=bsw2 style="margin-top:8px">🔁 ${E('wal.switchAcct')}</button><p class=muted style="font-size:12px">${E('wal.oneAccountHint')}</p></section>` : ''}<section class=card><h3>📱 ${E('sec.devices')}</h3>${d.sessions.map(x => `<div class="row dev"><div style="flex:1;min-width:0"><b>${esc(devName(x.ua))}</b> ${x.current ? `<span class=tag>${E('sec.current')}</span>` : ''}<div class=muted style="font-size:12px">${E('sec.lastActive', { t: fmtMs(x.last || x.at) })}</div></div>${x.current ? '' : `<button data-rv="${esc(x.id)}">${E('sec.signOut')}</button>`}</div>`).join('')}
     ${d.sessions.length > 1 ? `<button id=rvall class=primary style="margin-top:8px">${E('sec.signOutOthers')}</button>` : ''}</section>
   ${email ? `<section class=card><h3>✉️ ${E('sec.email')}</h3><p>${esc(d.email)} · ${d.verified ? `<span class=tag>✅ ${E('sec.verified')}</span>` : `<span class=tag>${E('sec.unverified')}</span>`}</p>
     ${d.verified ? '' : d.mail ? `<div class=row><button id=evs>${E('sec.sendCode')}</button><input id=evc inputmode=numeric maxlength=6 autocomplete=one-time-code placeholder="${E('sec.codePh')}" style="width:130px"><button id=evv class=primary>${E('sec.verify')}</button></div>` : `<p class=muted>${E('sec.mailOff')}</p>`}</section>` : ''}
-  <section class=card><h3>🔑 ${E('sec.totp')}</h3>${email ? `<p>${d.totp ? `<span class=tag>✅ ${E('sec.totpOn')}</span>` : `<span class=tag>${E('sec.totpOff')}</span>`}</p><div id=totpbox>${d.totp
-      ? `<div class=row><input id=tdc inputmode=numeric maxlength=6 placeholder="${E('sec.codePh')}" style="width:130px"><button id=tdis>${E('sec.totpDisable')}</button></div>` : `<button id=tset class=primary>${E('sec.totpEnable')}</button>`}</div>` : `<p class=muted>${E('sec.totpEmailOnly')}</p>`}</section>
+  <section class=card><h3>🔑 ${E('sec.totp')}</h3>${true ? `<p>${d.totp ? `<span class=tag>✅ ${E('sec.totpOn')}</span>` : `<span class=tag>${E('sec.totpOff')}</span>`}${d.totp && d.recoveryLeft != null ? ` <span class=muted style="font-size:12px">${E('sec.rcLeft', { n: d.recoveryLeft })}</span>` : ''}</p><p class=muted style="font-size:12px">${E('sec.totpUses')}</p><div id=totpbox>${d.totp
+      ? `<div class=row><input id=tdc maxlength=9 placeholder="${E('sec.codePh')}" style="width:130px"><button id=tdis>${E('sec.totpDisable')}</button></div>` : `<button id=tset class=primary>${E('sec.totpEnable')}</button>`}</div>` : `<p class=muted>${E('sec.totpEmailOnly')}</p>`}</section>
   <section class=card><h3>💳 ${E('sec.large')}</h3><p class=muted>${E('sec.largeHint', { usd: d.largeUsd, totp: d.totp ? E('sec.largeTotp') : '' })}</p><div class=row><label>USD <input id=lgu type=number min=1 max=100000 value=${d.largeUsd} style="width:110px"></label><button id=lgs>${E('sec.save')}</button></div></section>`;
   $('#bsw2')?.addEventListener('click', () => switchAccount().catch(e => toast(esc(walErr(e)), 'err')));
-  box.querySelectorAll('[data-rv]').forEach(b => b.onclick = async () => { await api('/api/sessions/revoke', { id: b.dataset.rv }).catch(e => toast(esc(e.message), 'err')); loadSec(); });
-  $('#rvall')?.addEventListener('click', async () => { try { const r = await api('/api/sessions/revoke', { others: true }); toast(esc(t('sec.revoked', { n: r.revoked })), 'ok'); } catch (e) { toast(esc(e.message), 'err'); } loadSec(); });
+  box.querySelectorAll('[data-rv]').forEach(b => b.onclick = async () => { await with2fa(code => api('/api/sessions/revoke', { id: b.dataset.rv, code })).catch(e => toast(esc(e.message), 'err')); loadSec(); });
+  $('#rvall')?.addEventListener('click', async () => { try { const r = await with2fa(code => api('/api/sessions/revoke', { others: true, code })); if (r) toast(esc(t('sec.revoked', { n: r.revoked })), 'ok'); } catch (e) { toast(esc(e.message), 'err'); } loadSec(); });
   $('#evs')?.addEventListener('click', async () => { try { const r = await api('/api/email/send', {}); toast(esc(t('sec.codeSent', { email: d.email })), 'ok'); if (r.devCode) $('#evc').value = r.devCode; } catch (e) { toast(esc(e.message), 'err'); } });
   $('#evv')?.addEventListener('click', async () => { try { await api('/api/email/verify', { code: $('#evc').value.trim() }); toast('✅ ' + E('sec.verified'), 'ok'); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } });
   $('#tset')?.addEventListener('click', async () => { try { const r = await api('/api/2fa/setup', {});
-    $('#totpbox').innerHTML = `<p class=muted>${E('sec.totpStep')}</p><p><a class=btn href="${esc(r.uri)}">${E('sec.totpOpen')}</a></p><p>${E('sec.totpKey')} <code class=totpkey>${esc(r.secret.replace(/(.{4})/g, '$1 ').trim())}</code></p>
+    await loadQr(); const q = qrcode(0, 'M'); q.addData(r.uri); q.make();
+    $('#totpbox').innerHTML = `<p class=muted>${E('sec.totpStep')}</p><div class=qr role=img aria-label="${E('sec.totpQr')}">${q.createSvgTag({ cellSize: 5, margin: 3, scalable: true })}</div><p class=muted style="text-align:center;font-size:12px">${E('sec.totpQr')}</p><p><a class=btn href="${esc(r.uri)}">${E('sec.totpOpen')}</a></p><p>${E('sec.totpKey')} <code class=totpkey>${esc(r.secret.replace(/(.{4})/g, '$1 ').trim())}</code></p>
       <div class=row><input id=tec inputmode=numeric maxlength=6 autocomplete=one-time-code placeholder="${E('sec.codePh')}" style="width:130px"><button id=ten class=primary>${E('sec.verify')}</button></div>`;
-    $('#ten').onclick = async () => { try { await api('/api/2fa/enable', { code: $('#tec').value.trim() }); toast('✅ ' + E('sec.totpOn'), 'ok'); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } }; } catch (e) { toast(esc(e.message), 'err'); } });
+    $('#ten').onclick = async () => { try { const r2 = await api('/api/2fa/enable', { code: $('#tec').value.trim() }); S.totp = true; toast('✅ ' + E('sec.totpOn'), 'ok'); if (r2.recovery) await showRecovery(r2.recovery); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } }; } catch (e) { toast(esc(e.message), 'err'); } });
   $('#tdis')?.addEventListener('click', async () => { try { await api('/api/2fa/disable', { code: $('#tdc').value.trim() }); toast(E('sec.totpOff'), 'ok'); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } });
-  $('#lgs')?.addEventListener('click', async () => { try { const r = await api('/api/security/large', { usd: +$('#lgu').value }); S.largeUsd = r.largeUsd; toast(E('sec.saved'), 'ok'); } catch (e) { toast(esc(e.message), 'err'); } }); }
+  $('#lgs')?.addEventListener('click', async () => { try { const r = await with2fa(code => api('/api/security/large', { usd: +$('#lgu').value, code })); if (r) { S.largeUsd = r.largeUsd; toast(E('sec.saved'), 'ok'); } } catch (e) { toast(esc(e.message), 'err'); } }); }
 const inboxPage = () => needSession(E('inbox.title')) || `<h2>🔔 ${E('inbox.title')}</h2><div class=row style="justify-content:space-between"><a href="#/notify">⚙️ ${E('ntf.title')}</a><button id=rdall>${E('inbox.readAll')}</button></div><div id=inbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
 function msgHtml(m) { const k = m.kind, T = k === 'fulfil' ? t('inbox.fulfilT') : k === 'login' ? t('inbox.loginT') : k === 'totpOn' ? t('inbox.totpOnT') : k === 'totpOff' ? t('inbox.totpOffT') : m.title || '';
   const B = k === 'fulfil' ? t('inbox.fulfilB', { text: m.text || '…', note: m.note ? ' · ' + m.note : '' }) : k === 'login' ? t('inbox.loginB', { ua: devName(m.ua) }) : k === 'system' ? m.body || '' : '';
@@ -633,7 +652,7 @@ async function route() {
       if (viaEvm) { const usd = +ea * (S.cfg.evm.usd[C[ch].coin] || 0); if (!(+ea >= evmMin(ch) / 1.02)) { $('#ws').disabled = false; return toast(esc(t('wish.evmMin', { min: evmMin(ch), sym: C[ch].sym })), 'err'); }
         const ok = await confirmLarge(usd, ea + ' ' + C[ch].sym); if (!ok) { $('#ws').disabled = false; return; }
         try { extra.evm = await evmPay(ch, ea); } catch (e) { $('#ws').disabled = false; return toast('❌ ' + esc(e.message || e), 'err'); }
-        sig = await submit(memo, 'wish', 0, extra); }
+        sig = await submit(memo, 'wish', 0, { ...extra, ...ok }); }
       else { const ok = await confirmLarge(lam / 1e9 * (S.cfg.solUsd || 0), sol(lam)); if (!ok) { $('#ws').disabled = false; return; } sig = await submit(memo, 'wish', lam, ok); }
       if (sig) {
         // 链下登记：记账 +（物质类）收货/联系备注；备注永不入链

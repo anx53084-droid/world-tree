@@ -319,7 +319,7 @@
 "sec.totpOff": "Kapalı",
 "sec.totpEnable": "İki adımlı doğrulamayı aç",
 "sec.totpDisable": "İki adımlı doğrulamayı kapat",
-"sec.totpStep": "Hesabı Google Authenticator'a ekleyin: aşağıdaki düğmeye dokunun veya anahtarı elle girin, ardından 6 haneli kodu girin.",
+"sec.totpStep": "QR kodunu Google Authenticator'da tarayın (veya alttaki düğmeye dokunun / anahtarı elle girin), ardından 6 haneli kodu girerek açın.",
 "sec.totpKey": "Anahtar",
 "sec.totpOpen": "Doğrulayıcıda aç",
 "sec.totpEmailOnly": "İki adımlı doğrulama e-posta hesapları içindir; cüzdan hesapları cüzdan imzasıyla korunur.",
@@ -381,5 +381,18 @@
 "err.chainId": "Giriş mesajının ağı (Chain ID) desteklenmiyor",
 "wal.switchAcct": "Hesap değiştir / başka adres",
 "wal.oneAccount": "Cüzdan yalnızca daha önce yetkilendirilen adresi sundu. Cüzdanın bağlı siteler ayarlarından bu sitenin bağlantısını kesip tekrar deneyin.",
-"wal.oneAccountHint": "Başka adres mi? Cüzdan yalnızca yetkili adresi gösteriyorsa önce bağlı siteler ayarlarından bu sitenin bağlantısını kesin."
+"wal.oneAccountHint": "Başka adres mi? Cüzdan yalnızca yetkili adresi gösteriyorsa önce bağlı siteler ayarlarından bu sitenin bağlantısını kesin.",
+"code.title": "2FA kodunu girin",
+"code.loginTitle": "Giriş: iki adımlı doğrulama",
+"code.body": "Google Authenticator'ı açıp 6 haneli kodu ya da bir kurtarma kodunu girin.",
+"code.ph": "6 haneli kod veya kurtarma kodu",
+"code.ok": "Onayla",
+"sec.totpQr": "Bu QR kodunu Google Authenticator ile tarayın",
+"sec.totpUses": "Cüzdan ve e-posta hesapları için kullanılabilir. Açıkken şu işlemler kod ister: yeni cihazdan giriş, büyük ödemeler, diğer cihazlardan çıkış, büyük ödeme eşiğini değiştirme ve 2FA'yı kapatma.",
+"sec.rcTitle": "Kurtarma kodları (yalnızca bir kez gösterilir)",
+"sec.rcBody": "Telefonunuzu kaybederseniz 2FA kodu yerine kurtarma kodu kullanın. Her biri bir kez geçerlidir. Şimdi not alın veya güvenle saklayın; tekrar gösterilmez.",
+"sec.rcCopy": "Kopyala",
+"sec.rcCopied": "Kopyalandı",
+"sec.rcDone": "Kaydettim",
+"sec.rcLeft": "Kalan kurtarma kodu: {n}"
 }

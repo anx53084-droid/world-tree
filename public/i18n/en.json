@@ -319,7 +319,7 @@
 "sec.totpOff": "Off",
 "sec.totpEnable": "Turn on two-step verification",
 "sec.totpDisable": "Turn off two-step verification",
-"sec.totpStep": "Add the account in Google Authenticator: tap the button below or enter the key manually, then enter the 6-digit code.",
+"sec.totpStep": "Scan the QR code in Google Authenticator (or tap the button below / enter the key manually), then enter the 6-digit code to turn it on.",
 "sec.totpKey": "Key",
 "sec.totpOpen": "Open in authenticator",
 "sec.totpEmailOnly": "Two-step verification is for email accounts; wallet accounts are protected by wallet signatures.",
@@ -381,5 +381,18 @@
 "err.chainId": "The sign-in message’s network (Chain ID) isn’t supported",
 "wal.switchAcct": "Switch account / use another address",
 "wal.oneAccount": "Your wallet only offered the previously authorised address. Disconnect this site in your wallet’s connected-sites settings, then try again.",
-"wal.oneAccountHint": "Want another address? If your wallet only shows the authorised one, disconnect this site in the wallet’s connected-sites settings first."
+"wal.oneAccountHint": "Want another address? If your wallet only shows the authorised one, disconnect this site in the wallet’s connected-sites settings first.",
+"code.title": "Enter 2FA code",
+"code.loginTitle": "Sign in: two-step verification",
+"code.body": "Open Google Authenticator and enter the 6-digit code, or enter a recovery code.",
+"code.ph": "6-digit code or recovery code",
+"code.ok": "Confirm",
+"sec.totpQr": "Scan this QR code with Google Authenticator",
+"sec.totpUses": "Available for wallet and email accounts. When on, a code is required for: new-device sign-in, large payments, signing out other devices, changing the large-payment threshold and turning 2FA off.",
+"sec.rcTitle": "Recovery codes (shown only once)",
+"sec.rcBody": "If you lose your phone, use a recovery code instead of a 2FA code. Each works once. Write them down or store them safely now — they can't be shown again.",
+"sec.rcCopy": "Copy",
+"sec.rcCopied": "Copied",
+"sec.rcDone": "I've saved them",
+"sec.rcLeft": "Recovery codes left: {n}"
 }

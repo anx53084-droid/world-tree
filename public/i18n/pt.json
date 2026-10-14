@@ -319,7 +319,7 @@
 "sec.totpOff": "Desativada",
 "sec.totpEnable": "Ativar verificação em duas etapas",
 "sec.totpDisable": "Desativar verificação em duas etapas",
-"sec.totpStep": "Adicione a conta no Google Authenticator: toque no botão ou digite a chave e depois insira o código de 6 dígitos.",
+"sec.totpStep": "Escaneie o QR code no Google Authenticator (ou toque no botão / digite a chave) e insira o código de 6 dígitos para ativar.",
 "sec.totpKey": "Chave",
 "sec.totpOpen": "Abrir no autenticador",
 "sec.totpEmailOnly": "A verificação em duas etapas é para contas de e-mail; contas de carteira são protegidas pela assinatura da carteira.",
@@ -381,5 +381,18 @@
 "err.chainId": "A rede (Chain ID) da mensagem de login não é suportada",
 "wal.switchAcct": "Trocar de conta / usar outro endereço",
 "wal.oneAccount": "A carteira só ofereceu o endereço autorizado antes. Desconecte este site nas configurações de sites conectados da carteira e tente novamente.",
-"wal.oneAccountHint": "Quer outro endereço? Se a carteira só mostrar o autorizado, desconecte este site nas configurações de sites conectados primeiro."
+"wal.oneAccountHint": "Quer outro endereço? Se a carteira só mostrar o autorizado, desconecte este site nas configurações de sites conectados primeiro.",
+"code.title": "Digite o código 2FA",
+"code.loginTitle": "Entrar: verificação em duas etapas",
+"code.body": "Abra o Google Authenticator e digite o código de 6 dígitos ou um código de recuperação.",
+"code.ph": "Código de 6 dígitos ou de recuperação",
+"code.ok": "Confirmar",
+"sec.totpQr": "Escaneie este QR code com o Google Authenticator",
+"sec.totpUses": "Disponível para contas de carteira e e-mail. Ativado, exige código para: login em novo dispositivo, pagamentos grandes, sair de outros dispositivos, alterar o limite e desativar o 2FA.",
+"sec.rcTitle": "Códigos de recuperação (exibidos só uma vez)",
+"sec.rcBody": "Se perder o celular, use um código de recuperação no lugar do 2FA. Cada um vale uma vez. Anote ou guarde agora — não serão exibidos novamente.",
+"sec.rcCopy": "Copiar",
+"sec.rcCopied": "Copiado",
+"sec.rcDone": "Já salvei",
+"sec.rcLeft": "Códigos de recuperação restantes: {n}"
 }

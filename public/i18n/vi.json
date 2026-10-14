@@ -319,7 +319,7 @@
 "sec.totpOff": "Đang tắt",
 "sec.totpEnable": "Bật xác minh hai bước",
 "sec.totpDisable": "Tắt xác minh hai bước",
-"sec.totpStep": "Thêm tài khoản vào Google Authenticator: chạm nút bên dưới hoặc nhập khóa thủ công, rồi nhập mã 6 chữ số.",
+"sec.totpStep": "Quét mã QR trong Google Authenticator (hoặc nhấn nút bên dưới / nhập khóa thủ công), rồi nhập mã 6 số để bật.",
 "sec.totpKey": "Khóa",
 "sec.totpOpen": "Mở trong ứng dụng xác thực",
 "sec.totpEmailOnly": "Xác minh hai bước dành cho tài khoản email; tài khoản ví được bảo vệ bằng chữ ký ví.",
@@ -381,5 +381,18 @@
 "err.chainId": "Mạng (Chain ID) trong tin nhắn đăng nhập không được hỗ trợ",
 "wal.switchAcct": "Đổi tài khoản / dùng địa chỉ khác",
 "wal.oneAccount": "Ví chỉ cung cấp địa chỉ đã cấp quyền trước đó. Hãy ngắt kết nối trang này trong cài đặt trang đã kết nối của ví rồi thử lại.",
-"wal.oneAccountHint": "Muốn dùng địa chỉ khác? Nếu ví chỉ hiện địa chỉ đã cấp quyền, hãy ngắt kết nối trang này trong cài đặt trang đã kết nối trước."
+"wal.oneAccountHint": "Muốn dùng địa chỉ khác? Nếu ví chỉ hiện địa chỉ đã cấp quyền, hãy ngắt kết nối trang này trong cài đặt trang đã kết nối trước.",
+"code.title": "Nhập mã 2FA",
+"code.loginTitle": "Đăng nhập: xác minh hai bước",
+"code.body": "Mở Google Authenticator và nhập mã 6 số, hoặc một mã khôi phục.",
+"code.ph": "Mã 6 số hoặc mã khôi phục",
+"code.ok": "Xác nhận",
+"sec.totpQr": "Quét mã QR này bằng Google Authenticator",
+"sec.totpUses": "Dùng được cho tài khoản ví và email. Khi bật, cần mã khi: đăng nhập thiết bị mới, thanh toán lớn, đăng xuất thiết bị khác, đổi ngưỡng thanh toán lớn và tắt 2FA.",
+"sec.rcTitle": "Mã khôi phục (chỉ hiển thị một lần)",
+"sec.rcBody": "Nếu mất điện thoại, hãy dùng mã khôi phục thay cho mã 2FA. Mỗi mã chỉ dùng một lần. Hãy ghi lại hoặc lưu an toàn ngay — sẽ không hiển thị lại.",
+"sec.rcCopy": "Sao chép",
+"sec.rcCopied": "Đã sao chép",
+"sec.rcDone": "Tôi đã lưu",
+"sec.rcLeft": "Mã khôi phục còn lại: {n}"
 }

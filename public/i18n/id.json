@@ -319,7 +319,7 @@
 "sec.totpOff": "Nonaktif",
 "sec.totpEnable": "Aktifkan verifikasi dua langkah",
 "sec.totpDisable": "Nonaktifkan verifikasi dua langkah",
-"sec.totpStep": "Tambahkan akun di Google Authenticator: ketuk tombol di bawah atau masukkan kunci secara manual, lalu masukkan kode 6 digit.",
+"sec.totpStep": "Pindai kode QR di Google Authenticator (atau ketuk tombol / masukkan kunci manual), lalu masukkan kode 6 digit untuk mengaktifkan.",
 "sec.totpKey": "Kunci",
 "sec.totpOpen": "Buka di autentikator",
 "sec.totpEmailOnly": "Verifikasi dua langkah untuk akun email; akun dompet dilindungi tanda tangan dompet.",
@@ -381,5 +381,18 @@
 "err.chainId": "Jaringan (Chain ID) pada pesan masuk tidak didukung",
 "wal.switchAcct": "Ganti akun / pakai alamat lain",
 "wal.oneAccount": "Dompet hanya menawarkan alamat yang sudah diizinkan sebelumnya. Putuskan situs ini di pengaturan situs terhubung pada dompet, lalu coba lagi.",
-"wal.oneAccountHint": "Ingin alamat lain? Jika dompet hanya menampilkan alamat yang diizinkan, putuskan situs ini dulu di pengaturan situs terhubung."
+"wal.oneAccountHint": "Ingin alamat lain? Jika dompet hanya menampilkan alamat yang diizinkan, putuskan situs ini dulu di pengaturan situs terhubung.",
+"code.title": "Masukkan kode 2FA",
+"code.loginTitle": "Masuk: verifikasi dua langkah",
+"code.body": "Buka Google Authenticator dan masukkan kode 6 digit, atau kode pemulihan.",
+"code.ph": "Kode 6 digit atau kode pemulihan",
+"code.ok": "Konfirmasi",
+"sec.totpQr": "Pindai kode QR ini dengan Google Authenticator",
+"sec.totpUses": "Tersedia untuk akun dompet dan email. Saat aktif, kode diperlukan untuk: masuk di perangkat baru, pembayaran besar, keluar dari perangkat lain, mengubah batas pembayaran besar, dan menonaktifkan 2FA.",
+"sec.rcTitle": "Kode pemulihan (hanya ditampilkan sekali)",
+"sec.rcBody": "Jika ponsel hilang, gunakan kode pemulihan sebagai pengganti kode 2FA. Masing-masing hanya sekali pakai. Catat atau simpan sekarang — tidak akan ditampilkan lagi.",
+"sec.rcCopy": "Salin",
+"sec.rcCopied": "Disalin",
+"sec.rcDone": "Sudah saya simpan",
+"sec.rcLeft": "Sisa kode pemulihan: {n}"
 }

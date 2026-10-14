@@ -319,7 +319,7 @@
 "sec.totpOff": "꺼짐",
 "sec.totpEnable": "2단계 인증 켜기",
 "sec.totpDisable": "2단계 인증 끄기",
-"sec.totpStep": "Google Authenticator에 계정을 추가하세요: 아래 버튼을 누르거나 키를 직접 입력한 뒤 6자리 코드를 입력하세요.",
+"sec.totpStep": "Google Authenticator에서 QR 코드를 스캔(또는 아래 버튼 / 키 직접 입력)한 뒤 6자리 코드를 입력해 켜세요.",
 "sec.totpKey": "키",
 "sec.totpOpen": "인증 앱에서 열기",
 "sec.totpEmailOnly": "2단계 인증은 이메일 계정용입니다. 지갑 계정은 지갑 서명으로 보호됩니다.",
@@ -381,5 +381,18 @@
 "err.chainId": "로그인 메시지의 네트워크(Chain ID)가 지원되지 않습니다",
 "wal.switchAcct": "계정 전환 / 다른 주소 사용",
 "wal.oneAccount": "지갑이 이전에 승인한 주소만 제공했습니다. 지갑의 연결된 사이트 설정에서 이 사이트의 연결을 끊은 뒤 다시 시도하세요.",
-"wal.oneAccountHint": "다른 주소를 쓰려면? 지갑에 승인된 주소만 보이면 먼저 지갑의 연결된 사이트 설정에서 이 사이트의 연결을 끊으세요."
+"wal.oneAccountHint": "다른 주소를 쓰려면? 지갑에 승인된 주소만 보이면 먼저 지갑의 연결된 사이트 설정에서 이 사이트의 연결을 끊으세요.",
+"code.title": "2단계 인증 코드 입력",
+"code.loginTitle": "로그인: 2단계 인증",
+"code.body": "Google Authenticator를 열어 6자리 코드 또는 복구 코드를 입력하세요.",
+"code.ph": "6자리 코드 또는 복구 코드",
+"code.ok": "확인",
+"sec.totpQr": "Google Authenticator로 QR 코드를 스캔하세요",
+"sec.totpUses": "지갑·이메일 계정 모두 사용 가능. 켜면 새 기기 로그인, 고액 결제, 다른 기기 로그아웃, 고액 기준 변경, 2단계 인증 해제 시 코드가 필요합니다.",
+"sec.rcTitle": "복구 코드 (한 번만 표시)",
+"sec.rcBody": "휴대폰을 잃어버리면 코드 대신 복구 코드를 사용하세요. 각 코드는 한 번만 쓸 수 있습니다. 지금 적어 두거나 안전하게 보관하세요. 다시 볼 수 없습니다.",
+"sec.rcCopy": "복사",
+"sec.rcCopied": "복사됨",
+"sec.rcDone": "저장했습니다",
+"sec.rcLeft": "남은 복구 코드: {n}"
 }

@@ -319,7 +319,7 @@
 "sec.totpOff": "Desactivada",
 "sec.totpEnable": "Activar verificación en dos pasos",
 "sec.totpDisable": "Desactivar verificación en dos pasos",
-"sec.totpStep": "Añade la cuenta en Google Authenticator: pulsa el botón o introduce la clave a mano y luego escribe el código de 6 dígitos.",
+"sec.totpStep": "Escanea el QR en Google Authenticator (o pulsa el botón / introduce la clave a mano) y escribe el código de 6 dígitos para activarlo.",
 "sec.totpKey": "Clave",
 "sec.totpOpen": "Abrir en el autenticador",
 "sec.totpEmailOnly": "La verificación en dos pasos es para cuentas de correo; las cuentas de billetera se protegen con la firma de la billetera.",
@@ -381,5 +381,18 @@
 "err.chainId": "La red (Chain ID) del mensaje de inicio de sesión no es compatible",
 "wal.switchAcct": "Cambiar de cuenta / usar otra dirección",
 "wal.oneAccount": "Tu billetera solo ofreció la dirección autorizada antes. Desconecta este sitio en los ajustes de sitios conectados de la billetera y vuelve a intentarlo.",
-"wal.oneAccountHint": "¿Quieres otra dirección? Si la billetera solo muestra la autorizada, primero desconecta este sitio en sus ajustes de sitios conectados."
+"wal.oneAccountHint": "¿Quieres otra dirección? Si la billetera solo muestra la autorizada, primero desconecta este sitio en sus ajustes de sitios conectados.",
+"code.title": "Introduce el código 2FA",
+"code.loginTitle": "Inicio de sesión: verificación en dos pasos",
+"code.body": "Abre Google Authenticator e introduce el código de 6 dígitos, o un código de recuperación.",
+"code.ph": "Código de 6 dígitos o de recuperación",
+"code.ok": "Confirmar",
+"sec.totpQr": "Escanea este código QR con Google Authenticator",
+"sec.totpUses": "Disponible para cuentas de billetera y de correo. Activado, se pide código para: inicio en nuevo dispositivo, pagos grandes, cerrar otras sesiones, cambiar el umbral de pago grande y desactivar 2FA.",
+"sec.rcTitle": "Códigos de recuperación (solo se muestran una vez)",
+"sec.rcBody": "Si pierdes el móvil, usa un código de recuperación en lugar del código 2FA. Cada uno sirve una vez. Anótalos o guárdalos ahora; no se volverán a mostrar.",
+"sec.rcCopy": "Copiar",
+"sec.rcCopied": "Copiado",
+"sec.rcDone": "Ya los guardé",
+"sec.rcLeft": "Códigos de recuperación restantes: {n}"
 }

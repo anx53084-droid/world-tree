@@ -319,7 +319,7 @@
 "sec.totpOff": "Inaktiv",
 "sec.totpEnable": "Zwei-Faktor-Authentifizierung aktivieren",
 "sec.totpDisable": "Zwei-Faktor-Authentifizierung deaktivieren",
-"sec.totpStep": "Füge das Konto in Google Authenticator hinzu: Tippe auf die Schaltfläche oder gib den Schlüssel manuell ein und dann den 6-stelligen Code.",
+"sec.totpStep": "Scanne den QR-Code in Google Authenticator (oder tippe unten / gib den Schlüssel manuell ein) und gib dann den 6-stelligen Code ein.",
 "sec.totpKey": "Schlüssel",
 "sec.totpOpen": "Im Authenticator öffnen",
 "sec.totpEmailOnly": "Zwei-Faktor-Authentifizierung gilt für E-Mail-Konten; Wallet-Konten sind durch Wallet-Signaturen geschützt.",
@@ -381,5 +381,18 @@
 "err.chainId": "Das Netzwerk (Chain ID) der Anmeldenachricht wird nicht unterstützt",
 "wal.switchAcct": "Konto wechseln / andere Adresse",
 "wal.oneAccount": "Deine Wallet hat nur die zuvor freigegebene Adresse angeboten. Trenne diese Seite in den Einstellungen „Verbundene Seiten“ der Wallet und versuche es erneut.",
-"wal.oneAccountHint": "Andere Adresse? Zeigt die Wallet nur die freigegebene Adresse, trenne diese Seite zuerst in den Einstellungen für verbundene Seiten."
+"wal.oneAccountHint": "Andere Adresse? Zeigt die Wallet nur die freigegebene Adresse, trenne diese Seite zuerst in den Einstellungen für verbundene Seiten.",
+"code.title": "2FA-Code eingeben",
+"code.loginTitle": "Anmeldung: Zwei-Schritt-Verifizierung",
+"code.body": "Öffne Google Authenticator und gib den 6-stelligen Code oder einen Wiederherstellungscode ein.",
+"code.ph": "6-stelliger Code oder Wiederherstellungscode",
+"code.ok": "Bestätigen",
+"sec.totpQr": "Scanne diesen QR-Code mit Google Authenticator",
+"sec.totpUses": "Für Wallet- und E-Mail-Konten. Aktiviert ist ein Code nötig für: Anmeldung auf neuen Geräten, große Zahlungen, Abmelden anderer Geräte, Ändern des Schwellenwerts und Deaktivieren von 2FA.",
+"sec.rcTitle": "Wiederherstellungscodes (nur einmal angezeigt)",
+"sec.rcBody": "Bei Verlust des Handys nutze einen Wiederherstellungscode statt des 2FA-Codes. Jeder gilt nur einmal. Jetzt notieren oder sicher speichern – sie werden nicht erneut angezeigt.",
+"sec.rcCopy": "Kopieren",
+"sec.rcCopied": "Kopiert",
+"sec.rcDone": "Gespeichert",
+"sec.rcLeft": "Verbleibende Wiederherstellungscodes: {n}"
 }

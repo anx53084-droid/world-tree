@@ -201,3 +201,6 @@ button.link { background: none; border: none; color: #c9a86a; text-decoration: u
 .dev { padding: 8px 0; border-bottom: 1px solid #ffffff14; flex-wrap: nowrap }
 .msg { cursor: default } .msg.unread { border-color: #ffd36e88; cursor: pointer } .msg .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff4d6d; margin-inline-end: 6px; vertical-align: middle }
 .totpkey { word-break: break-all; letter-spacing: .5px } .ntf { align-items: flex-start; margin: 10px 0 } .evpay { margin: 8px 0 } .evpay label { display: inline-block; margin: 4px 8px 4px 0 }
+
+.qr { width: 200px; margin: 8px auto; background: #fff; padding: 6px; border-radius: 8px } .qr svg { display: block; width: 100%; height: auto }
+.rcodes { background: #0006; padding: 10px; border-radius: 8px; font: 15px/1.7 ui-monospace, monospace; text-align: center; user-select: all; margin: 0 }
