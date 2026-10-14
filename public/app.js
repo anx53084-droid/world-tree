@@ -764,7 +764,7 @@ function wishPanel() {
   <button id=ws class=primary disabled>✨ ${E('wish.submit')}</button></div>`;
 }
 function growth() { // 世界树成长进度：树苗→幼树→繁盛→参天→世界树 + 本月形态
-  const n = S.wishes.length, st = stageOf(n), TH = [0, 10, 50, 200, 1000], nxt = TH[st + 1], seg = nxt ? (n - TH[st]) / (nxt - TH[st]) : 1, pct = Math.min(100, (st + seg) / (STAGE_N - 1) * 100), cur = S.season || autoSeason(), ICON = { green: '🌱', bloom: '🌸', fall: '🍂' };
+  const n = S.stress ? S.total : S.wishes.length, st = stageOf(n), TH = [0, 10, 50, 200, 1000], nxt = TH[st + 1], seg = nxt ? (n - TH[st]) / (nxt - TH[st]) : 1, pct = Math.min(100, (st + seg) / (STAGE_N - 1) * 100), cur = S.season || autoSeason(), ICON = { green: '🌱', bloom: '🌸', fall: '🍂' }; // n 与首页 3D 树 / WT3D.growthProgress 同源
   return `<section class="card motif growth"><h3>🌳 ${E('ux.growthTitle')}</h3><div class=gbar role=progressbar aria-valuemin=0 aria-valuemax=100 aria-valuenow=${Math.round(pct)}><i style="width:${pct.toFixed(1)}%"></i></div>
   <ol class=gstages>${Array.from({ length: STAGE_N }, (_, i) => `<li class="${i < st ? 'done' : i === st ? 'on' : ''}"><b></b><span>${esc(stageName(i))}</span></li>`).join('')}</ol>
   <p class=muted>${nxt ? E('ux.growthNext', { n: num(n), need: num(nxt - n), stage: stageName(st + 1) }) : E('ux.growthMax', { n: num(n) })}</p>

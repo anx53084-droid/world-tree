@@ -10,7 +10,9 @@ THREE.ColorManagement.enabled = false; // 全流程使用“原样”sRGB 数值
 
 let renderer, scene, camera, controls, treeGroup, cardGroup, galaxy, petals, strings, raycaster = new THREE.Raycaster(), ptr = new THREE.Vector2();
 let hovered = null, targetScale = 1, onPick = null, slot = null, cards = new Map(), texCache = new Map(), season = 'bloom', galaxyBright = .5;
-let composer, bloom, useBloom = false, seasonV = 1; const BU = { uTime: { value: 0 }, uPR: { value: 1 }, uSeason: { value: 1 } }; // 花冠/花瓣共享 uniform
+let composer, bloom, useBloom = false, seasonV = 1; const BU = { uTime: { value: 0 }, uPR: { value: 1 }, uSeason: { value: 1 }, uGrowth: { value: 0 } }; // 花冠/花瓣/生长共享 uniform
+const GROW_TH = [0, 10, 50, 200, 1000]; // 与 app stageOf / 光栖足迹成长进度一致：树苗→幼树→繁盛→参天→世界树
+let growthT = 0, targetGrowth = 0, growthStage = -1, bodyGroup = null, canopyObj = null, trunkObj = null;
 const rng = seed => () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
 const MOBILE = matchMedia('(pointer:coarse)').matches || innerWidth < 700, QS = new URLSearchParams(location.search);
 const tr = (k, v) => window.I18N ? I18N.t(k, v) : k; // 国际化（见 i18n.js）
@@ -37,8 +39,8 @@ function init() {
   controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }; // 单指旋转，双指捏合缩放+平移
   controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
   scene.add(new THREE.AmbientLight(0x6070c0, 0.9));
-  treeGroup = new THREE.Group(); cardGroup = new THREE.Group(); treeGroup.add(cardGroup); scene.add(treeGroup);
-  deepSpace(); makeGalaxy(); makeTrunk(); makeCanopy(); makePetals(); makeInst(); controls.addEventListener('change', scheduleLoad);
+  treeGroup = new THREE.Group(); bodyGroup = new THREE.Group(); bodyGroup.name = 'body'; cardGroup = new THREE.Group(); treeGroup.add(bodyGroup); treeGroup.add(cardGroup); scene.add(treeGroup);
+  deepSpace(); makeGalaxy(); makeTrunk(0); makeCanopy(0); makePetals(); makeInst(); controls.addEventListener('change', scheduleLoad);
   // Bloom：桌面全分辨率；移动端降低强度与内部分辨率，帧时过长时自动关闭（?bloom=0/1 可强制）
   useBloom = QS.get('bloom') ? QS.get('bloom') === '1' : true;
   composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
@@ -128,53 +130,82 @@ let barkMat; const bark = () => barkMat || (barkMat = new THREE.ShaderMaterial({
       float g=exp(-max(vP.y,0.)*.42)+.08, cr=smoothstep(.6,.78,ns(vec2(vUv.y*8.+vUv.x*.7,vUv.x*2.2-uTime*.06))), pulse=.82+.18*sin(uTime*1.4+vP.y*1.3);
       c+=vec3(1.8,1.12,.38)*cr*g*pulse*1.4 + vec3(.85,.48,.14)*exp(-max(vP.y,0.)*.9)*.55;
       float up=smoothstep(4.5,7.,vP.y); c+=up*(vec3(1.05,.68,.28)*pow(vRim,2.2)*.6 + vec3(.4,.24,.1)*.25 + vec3(1.4,.95,.4)*cr*.3*pulse); gl_FragColor=vec4(c,1.); }` }));
-function makeTrunk() { const r = rng(11), L = [], S = 12;
+function clearCore() { if (!bodyGroup) return;
+  [...bodyGroup.children].forEach(o => { bodyGroup.remove(o); o.geometry?.dispose(); if (o.material && o.material !== barkMat && o.material !== blossomMat) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose?.()); else o.material.dispose?.(); } });
+  trunkObj = canopyObj = null; }
+function growthOf(n) { // 连续 0..1，阈值与成长进度条相同
+  n = Math.max(0, +n || 0); const st = n < 10 ? 0 : n < 50 ? 1 : n < 200 ? 2 : n < 1000 ? 3 : 4;
+  if (st >= 4) return 1; const a = GROW_TH[st], b = GROW_TH[st + 1]; return (st + (n - a) / (b - a)) / 4; }
+function growthParams(g) { // 树苗→世界树：根更深更粗、干更高更粗、枝更多更长、花冠更密更大
+  const t = Math.min(1, Math.max(0, g)), e = t * t * (3 - 2 * t); // smoothstep
+  return {
+    trunkH: 4.2 + e * 4.8, trunkR: .55 + e * .85, spineR: .7 + e * 1.35,
+    rootN: Math.round(10 + e * 14), rootLen: 2.8 + e * 7.2, rootR: .35 + e * .55,
+    limbN: Math.round(8 + e * 16), limbLen: 2.8 + e * 7.5, limbR: .35 + e * .35,
+    canopyY: 7.2 + e * 6.5, canopyRX: 7.5 + e * 12, canopyRY: 4.2 + e * 5.5,
+    canopyCl: Math.round(120 + e * 280), canopyN: Math.round((MOBILE ? 6000 : 18000) + e * (MOBILE ? 20000 : 52000)),
+    canopySz: .18 + e * .14, rootDisc: 5 + e * 6, glow: .45 + e * .55
+  };
+}
+function makeTrunk(g = 0) { const P = growthParams(g), r = rng(11), L = [], S = 12;
   for (let i = 0; i < S; i++) { const a0 = i / S * Math.PI * 2 + r() * .3, tw = 1.5 + r() * .9, pts = [];
-    for (let k = 0; k <= 10; k++) { const t = k / 10, rr = .55 + 1.7 * Math.pow(1 - t, 2.4) + .18 * Math.sin(t * 9 + i), sp = t > .78 ? (t - .78) * 4.5 : 0, a = a0 + t * tw;
-      pts.push(V(Math.cos(a) * (rr * .72 + sp * 1.3), -.4 + t * 6.9 + sp * .5, Math.sin(a) * (rr * .72 + sp * 1.3))); }
-    L.push({ pts, rf: t => .36 + .5 * Math.pow(1 - t, 2) + .05 * Math.sin(t * 20 + i), seg: 44, knot: i }); }
-  L.push({ pts: [V(0, -.4, 0), V(.1, 3, -.1), V(0, 6.4, 0)], rf: t => .85 + 1.1 * Math.pow(1 - t, 3), seg: 14 });
-  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + r() * .3, len = 3.5 + r() * 6.5, pts = [];
-    for (let k = 0; k <= 8; k++) { const t = k / 8, d = 1.1 + t * len, w = Math.sin(t * 5 + i) * .35 * t; pts.push(V(Math.cos(a + w) * d, .95 * (1 - t) * (1 - t) - .12 - t * .18 + Math.sin(t * 7 + i) * .07, Math.sin(a + w) * d)); }
-    L.push({ pts, rf: t => .52 * Math.pow(1 - t, 1.3) + .04, seg: 30, knot: i + 3 });
-    const st = pts[3], dir = pts[4].clone().sub(pts[2]).normalize(), side = V(-dir.z, 0, dir.x).multiplyScalar(r() < .5 ? 1 : -1), sub = [];
-    for (let k = 0; k <= 4; k++) sub.push(st.clone().addScaledVector(dir, k * .9).addScaledVector(side, k * .7 + Math.sin(k + i) * .2).setY(st.y * (1 - k / 4) - .15));
-    L.push({ pts: sub, rf: t => .2 * (1 - t) + .03, seg: 14, knot: i }); }
-  const m = new THREE.Mesh(tubes(L, 9), bark()); treeGroup.add(m);
-  // 根部隆起的暗色根团 + 金色脉络 + 蓝色星屑
-  const dg = new THREE.CircleGeometry(8, 64, 0, Math.PI * 2); dg.rotateX(-Math.PI / 2); const p = dg.attributes.position;
-  for (let i = 0; i < p.count; i++) { const d = Math.hypot(p.getX(i), p.getZ(i)); p.setY(i, .85 * Math.pow(Math.max(0, 1 - d / 8), 2.2) - .25); } dg.computeVertexNormals();
-  treeGroup.add(new THREE.Mesh(dg, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime },
+    for (let k = 0; k <= 10; k++) { const t = k / 10, rr = (P.trunkR * .7) + P.trunkR * 1.5 * Math.pow(1 - t, 2.4) + .18 * Math.sin(t * 9 + i), sp = t > .78 ? (t - .78) * (2.5 + g * 3) : 0, a = a0 + t * tw;
+      pts.push(V(Math.cos(a) * (rr * .72 + sp * 1.3), -.4 + t * P.trunkH + sp * .5, Math.sin(a) * (rr * .72 + sp * 1.3))); }
+    L.push({ pts, rf: t => P.trunkR * (.4 + .55 * Math.pow(1 - t, 2)) + .05 * Math.sin(t * 20 + i), seg: 44, knot: i }); }
+  L.push({ pts: [V(0, -.4, 0), V(.1, P.trunkH * .45, -.1), V(0, P.trunkH * .95, 0)], rf: t => P.spineR * (.5 + .7 * Math.pow(1 - t, 3)), seg: 14 });
+  for (let i = 0; i < P.limbN; i++) { const a = i / P.limbN * Math.PI * 2 + r() * .3, len = P.limbLen * (.55 + r() * .7), pts = [];
+    for (let k = 0; k <= 8; k++) { const t = k / 8, d = (P.trunkR * 1.2) + t * len, w = Math.sin(t * 5 + i) * .35 * t;
+      pts.push(V(Math.cos(a + w) * d, P.trunkH * .14 * (1 - t) * (1 - t) - .12 - t * .18 + Math.sin(t * 7 + i) * .07, Math.sin(a + w) * d)); }
+    L.push({ pts, rf: t => P.limbR * Math.pow(1 - t, 1.3) + .03, seg: 30, knot: i + 3 });
+    if (g > .25) { const st = pts[3], dir = pts[4].clone().sub(pts[2]).normalize(), side = V(-dir.z, 0, dir.x).multiplyScalar(r() < .5 ? 1 : -1), sub = [];
+      for (let k = 0; k <= 4; k++) sub.push(st.clone().addScaledVector(dir, k * (.6 + g * .5)).addScaledVector(side, k * (.45 + g * .4) + Math.sin(k + i) * .2).setY(st.y * (1 - k / 4) - .15));
+      L.push({ pts: sub, rf: t => P.limbR * .45 * (1 - t) + .02, seg: 14, knot: i }); } }
+  // 更深更粗的支撑根（向上生长阶段）
+  for (let i = 0; i < P.rootN; i++) { const a = i / P.rootN * Math.PI * 2 + r() * .25, len = P.rootLen * (.5 + r() * .7), pts = [];
+    for (let k = 0; k <= 7; k++) { const t = k / 7, d = P.trunkR * .8 + t * len, dip = t * t * (1.1 + g * 1.4);
+      pts.push(V(Math.cos(a) * d * (1 + t * .15), -.15 - dip, Math.sin(a) * d * (1 + t * .15))); }
+    L.push({ pts, rf: t => P.rootR * Math.pow(1 - t, 1.15) + .03, seg: 22, knot: i }); }
+  const m = new THREE.Mesh(tubes(L, 9), bark()); m.userData.core = true; trunkObj = m; bodyGroup.add(m);
+  const R = P.rootDisc;
+  const dg = new THREE.CircleGeometry(R, 64, 0, Math.PI * 2); dg.rotateX(-Math.PI / 2); const p = dg.attributes.position;
+  for (let i = 0; i < p.count; i++) { const d = Math.hypot(p.getX(i), p.getZ(i)); p.setY(i, (.55 + g * .55) * Math.pow(Math.max(0, 1 - d / R), 2.2) - .25); } dg.computeVertexNormals();
+  const disc = new THREE.Mesh(dg, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime, uGrowth: BU.uGrowth },
     vertexShader: `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-    fragmentShader: `uniform float uTime; varying vec3 vP; ${NOISE} void main(){ float d=length(vP.xz), a=atan(vP.z,vP.x);
+    fragmentShader: `uniform float uTime,uGrowth; varying vec3 vP; ${NOISE} void main(){ float d=length(vP.xz), a=atan(vP.z,vP.x), Rmix=mix(5.,11.,uGrowth);
       float v=pow(1.-abs(sin(a*11.+d*1.2+sin(d*2.3)*1.2)),14.)+pow(1.-abs(sin(a*23.-d*.8)),26.)*.6;
       float fall=exp(-d*.45), sp=step(.985,h1(floor(vP.xz*18.)))*(.5+.5*sin(uTime*3.+h1(floor(vP.xz*18.))*50.));
       vec3 c=vec3(.03,.035,.09)+vec3(1.6,1.0,.35)*v*fall*(.85+.15*sin(uTime*1.3-d))+vec3(.4,.6,1.4)*sp*(1.-fall)+vec3(.8,.45,.12)*exp(-d*1.2)*.6;
-      gl_FragColor=vec4(c, smoothstep(8.,5.,d)*.96); }` })));
-  addSprite(glowTex(), new THREE.Color(1.2, .85, .4), .7, V(0, .9, 0), 4.5, treeGroup); addSprite(glowTex(), new THREE.Color(.8, .45, .18), .32, V(0, .6, 0), 12, treeGroup);
+      gl_FragColor=vec4(c, smoothstep(Rmix,Rmix*.55,d)*.96); }` }));
+  disc.userData.core = true; bodyGroup.add(disc);
+  const g1 = addSprite(glowTex(), new THREE.Color(1.2, .85, .4), .55 * P.glow, V(0, .9, 0), 3.2 + g * 3, bodyGroup); g1.userData.core = true;
+  const g2 = addSprite(glowTex(), new THREE.Color(.8, .45, .18), .25 * P.glow, V(0, .6, 0), 8 + g * 8, bodyGroup); g2.userData.core = true;
+  TRUNK.set(0, P.trunkH * .9, 0);
 }
 // ---------- 樱花穹冠：数万个实例化花朵点（着色器绘制五瓣花形），季节由 uSeason 平滑过渡：0 新绿+花苞 / 1 盛放 / 2 飘落稀疏 ----------
 let blossomMat; const blossom = () => blossomMat || (blossomMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: BU,
-  vertexShader: `attribute vec4 bs; uniform float uTime,uPR,uSeason; varying vec3 vC; varying float vA,vR;
-    void main(){ float g=1.-clamp(uSeason,0.,1.), f=clamp(uSeason-1.,0.,1.), bud=step(bs.x,.16);
+  vertexShader: `attribute vec4 bs; uniform float uTime,uPR,uSeason,uGrowth; varying vec3 vC; varying float vA,vR;
+    void main(){ float g=1.-clamp(uSeason,0.,1.), f=clamp(uSeason-1.,0.,1.), bud=step(bs.x,.16), grow=clamp(uGrowth,0.,1.);
       vec3 pink=mix(vec3(.74,.3,.55),vec3(1.,.84,.94),bs.w), green=mix(vec3(.12,.42,.18),vec3(.45,.85,.38),bs.w), budc=vec3(1.,.55,.75)*(.7+.3*bs.w);
-      vC=mix(pink, mix(green,budc,bud), g); vA = (bs.x > 1.-.5*f) ? 0. : 1.; vR=bs.y;
+      vC=mix(pink, mix(green,budc,bud), g); vA = (bs.x > 1.-.5*f) ? 0. : (bs.x > .22+.78*grow ? 0. : 1.); vR=bs.y;
       vec3 p=position; p.x+=sin(uTime*.7+p.y*.35+bs.y*6.)*.06; p.z+=cos(uTime*.6+p.x*.3)*.05;
-      vec4 mv=modelViewMatrix*vec4(p,1.); gl_PointSize=bs.z*uPR*(300./-mv.z)*mix(1.,mix(.95,.55,bud),g); gl_Position=projectionMatrix*mv; }`,
+      vec4 mv=modelViewMatrix*vec4(p,1.); gl_PointSize=bs.z*uPR*(300./-mv.z)*mix(1.,mix(.95,.55,bud),g)*mix(.75,1.15,grow); gl_Position=projectionMatrix*mv; }`,
   fragmentShader: `varying vec3 vC; varying float vA,vR; void main(){ if(vA<=0.) discard; vec2 q=gl_PointCoord-.5; float r=length(q)*2., a=atan(q.y,q.x)+vR*6.;
     float pet=.62+.38*abs(cos(a*2.5)); if(r>pet) discard; vec3 c=mix(vC,vec3(1.05,.9,.7),smoothstep(.3,0.,r)*.45); gl_FragColor=vec4(c,.62*(1.-r/pet*.4)); }` }));
 function blossomPoints(pts) { const n = pts.length / 5, pos = new Float32Array(n * 3), bs = new Float32Array(n * 4);
   for (let i = 0; i < n; i++) { pos.set(pts.slice(i * 5, i * 5 + 3), i * 3); bs.set([pts[i * 5 + 3], (i * 0.618) % 1, pts[i * 5 + 4], .6], i * 4); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('bs', new THREE.BufferAttribute(bs, 4));
   const p = new THREE.Points(g, blossom()); p.renderOrder = 1; return p; }
-function makeCanopy() { const r = rng(21), C = V(0, 11.2, 0), RX = 14.4, RY = 7, nC = 260, cl = [], out = [], n = MOBILE ? 19000 : 58000, gs = () => (r() + r() + r() - 1.5) / 1.5;
+function makeCanopy(g = 0) { const P = growthParams(g), r = rng(21), C = V(0, P.canopyY, 0), RX = P.canopyRX, RY = P.canopyRY, nC = P.canopyCl, cl = [], out = [], n = P.canopyN, gs = () => (r() + r() + r() - 1.5) / 1.5;
   for (let i = 0; i < nC; i++) { const u = r(), ph = Math.acos(1 - u * 1.25), th = r() * Math.PI * 2, s = .72 + .3 * r();
-    cl.push([C.x + Math.sin(ph) * Math.cos(th) * RX * s, C.y + Math.cos(ph) * RY * s - (ph > 1.3 ? (ph - 1.3) * 3 : 0), C.z + Math.sin(ph) * Math.sin(th) * RX * s, 1.3 + r() * 1.3]); }
+    cl.push([C.x + Math.sin(ph) * Math.cos(th) * RX * s, C.y + Math.cos(ph) * RY * s - (ph > 1.3 ? (ph - 1.3) * 3 : 0), C.z + Math.sin(ph) * Math.sin(th) * RX * s, 1.1 + r() * (1.1 + g)]); }
   for (let i = 0; i < n; i++) { const c = cl[i % nC], ox = gs() * c[3] * .8, oy = gs() * c[3] * .62, oz = gs() * c[3] * .8, y = c[1] + oy;
-    const sh = Math.min(1, Math.max(0, .18 + oy / c[3] * .55 + (y - 10) / 9 + (r() - .5) * .35)); // 顶部/外侧更亮（白粉），底部更深（玫粉）
-    const rr = Math.hypot(c[0] + ox, c[2] + oz) / RX; if (y < C.y + 1.2 - rr * 1.5 && r() < .82) continue; // 掏空花冠下/内侧，让枝干轮廓透出
-    out.push(c[0] + ox, y, c[2] + oz, r(), (.24 + r() * .24) * (MOBILE ? 1.35 : 1)); out.push; tmpSh.push(sh); }
-  const p = blossomPoints(out); const bs = p.geometry.attributes.bs; tmpSh.forEach((v, i) => bs.setW(i, v)); tmpSh.length = 0; treeGroup.add(p);
+    const sh = Math.min(1, Math.max(0, .18 + oy / c[3] * .55 + (y - (P.canopyY - 1.2)) / 9 + (r() - .5) * .35));
+    const rr = Math.hypot(c[0] + ox, c[2] + oz) / RX; if (y < C.y + 1.2 - rr * 1.5 && r() < .82) continue;
+    // 生长早期更稀疏：用 seed 丢弃（着色器 uGrowth 再淡入）
+    if (r() > .35 + g * .65) continue;
+    out.push(c[0] + ox, y, c[2] + oz, r(), P.canopySz * (1 + r()) * (MOBILE ? 1.35 : 1)); tmpSh.push(sh); }
+  const p = blossomPoints(out); const bs = p.geometry.attributes.bs; tmpSh.forEach((v, i) => bs.setW(i, v)); tmpSh.length = 0;
+  p.userData.core = true; canopyObj = p; bodyGroup.add(p);
 }
 const tmpSh = [];
 function makePetals() { // 飘落花瓣（着色器内下落 + 漂移），数量随季节：盛放少量、下旬大量
@@ -191,10 +222,10 @@ function makePetals() { // 飘落花瓣（着色器内下落 + 漂移），数�
 }
 export function setSeason(s) { if (!SEASONS[s]) return; season = s; seasonV = SEASONS[s].v; }
 // ---------- 几何：节点位置只由相对路径决定（以当前焦点为根重建坐标，避免千亿级深度的浮点精度问题） ----------
-const V = (x, y, z) => new THREE.Vector3(x, y, z), TRUNK = V(0, 6, 0);
+const V = (x, y, z) => new THREE.Vector3(x, y, z); let TRUNK = V(0, 6, 0);
 function dirOf(theta, el) { return V(Math.cos(el) * Math.cos(theta), Math.sin(el), Math.cos(el) * Math.sin(theta)); }
-function childEnd(reg, j) { const h = strHash(reg + A.HEX[j]), th = j / 16 * Math.PI * 2 + (h - .5) * .35; return { th, p: TRUNK.clone().addScaledVector(dirOf(th, .42 + h * .4), 8) }; } // 主枝长度 ×1.33，略放平向外舒展
-function grandEnd(reg, j, g) { const c = childEnd(reg, j), h = strHash(reg + A.HEX[j] + A.HEX[g]), th = c.th + (g / 15 - .5) * 2.4; return c.p.clone().addScaledVector(dirOf(th, .15 + h * .7), 3.2); }
+function childEnd(reg, j) { const h = strHash(reg + A.HEX[j]), th = j / 16 * Math.PI * 2 + (h - .5) * .35, len = 5.5 + growthT * 5.5; return { th, p: TRUNK.clone().addScaledVector(dirOf(th, .42 + h * .4), len) }; }
+function grandEnd(reg, j, g) { const c = childEnd(reg, j), h = strHash(reg + A.HEX[j] + A.HEX[g]), th = c.th + (g / 15 - .5) * 2.4; return c.p.clone().addScaledVector(dirOf(th, .15 + h * .7), 2.2 + growthT * 2.2); }
 function slotOf(t, s) { return t.slots[Math.min(s, t.slots.length - 1)]; }
 function slotPos(P, sz, s) { const k = s >> 2, a = (s & 3) * Math.PI / 2 + k * .45, r = sz * 1.15; return V(P.x + Math.cos(a) * r, P.y - sz * (1.1 + k * 1.2), P.z + Math.sin(a) * r); } // 4 股流苏垂挂，每股 ≤16 张
 
@@ -462,12 +493,22 @@ export async function jumpTo(id) { // 按卡片序号跳转：O(深度) 计算�
 export function cardById(id) { id = +id; if (id < real.length) return toUI(null, id); return toUI(A.synth(id), id); }
 
 export function stage(n) { return n < 10 ? 0 : n < 50 ? 1 : n < 200 ? 2 : n < 1000 ? 3 : 4; }
+export function growthProgress(n) { return growthOf(n); } // 供 光栖足迹 成长进度同步
+function applyGrowth(n) { // 按全局卡片数重建树核（阶段变化）+ 连续目标（平滑过渡）
+  targetGrowth = growthOf(n);
+  const st = stage(n);
+  if (st !== growthStage) { growthStage = st; clearCore(); makeTrunk(targetGrowth); makeCanopy(targetGrowth);
+    if (bodyGroup) { bodyGroup.scale.setScalar(.88); } // 换阶段时轻微「抽芽」再弹回
+    if (view) { dirty = true; show(focus); } // TRUNK 高度变了，重建挂卡枝
+  }
+}
 export function update(wishes, pickCb, opts = {}) { // wishes：真实愿望（新→旧）；序号按时间旧→新，新卡追加不改变旧卡地址
   if (!renderer) init(); onPick = pickCb;
   const r2 = [...wishes].reverse(), nc = { stress: !!opts.stress, total: opts.stress ? Math.min(A.CAPACITY, Math.max(r2.length, Math.floor(+opts.total || 1e11))) : r2.length };
   const changed = !view || nc.stress !== cfg.stress || nc.total !== N || r2.length !== real.length || r2.some((w, i) => real[i].sig !== w.sig || real[i].likes !== w.likes || real[i].pending !== w.pending);
   real = r2; cfg = nc; N = nc.total;
-  targetScale = Math.min(2, 0.8 + Math.log2(N + 2) * 0.035); // 树的视觉尺寸随总数对数增长
+  applyGrowth(N);
+  targetScale = Math.min(1.55, 0.92 + Math.log2(Math.min(N, 5000) + 2) * 0.028); // 整体尺寸温和放大；形态主要由 applyGrowth 承担
   galaxyBright = Math.min(1.1, .45 + Math.log2(N + 1) * .03); galaxy.material.uniforms.uDensity.value = Math.min(1, .3 + Math.log10(N + 1) / 11 * .7);
   if (changed) { tiles.clear(); countsCache.clear(); if (A.count(focus, N) <= A.HANG) focus = ''; show(focus); } else renderNav();
 }
@@ -501,6 +542,8 @@ function loop() {
   if (MOBILE && useBloom && !QS.get('bloom')) { slowN = dt > 55 ? slowN + 1 : Math.max(0, slowN - 1); if (slowN > 90) { useBloom = false; console.info('bloom disabled (perf)'); } } // 移动端帧时持续过长则关闭 bloom
   const t = now / 1000, s0 = treeGroup.scale.x, s = s0 + (targetScale - s0) * 0.04; treeGroup.scale.setScalar(s); treeGroup.updateMatrixWorld(); // 平滑生长
   if (!fly && Math.abs(s - s0) > 1e-5) { controls.target.multiplyScalar(s / s0); camera.position.multiplyScalar(s / s0); }
+  growthT += (targetGrowth - growthT) * (1 - Math.exp(-Math.min(dt, 1000) / 700)); BU.uGrowth.value = growthT;
+  if (bodyGroup) { const bs = bodyGroup.scale.x, bt = 0.92 + 0.08 * growthT; /* 同阶段内也随进度略胀 */ const want = Math.abs(bs - 1) > 0.02 ? 1 : bt; bodyGroup.scale.setScalar(bs + (want - bs) * 0.06); }
   BU.uTime.value = t; BU.uSeason.value += (seasonV - BU.uSeason.value) * (1 - Math.exp(-Math.min(dt, 1000) / 350)); const u = galaxy.material.uniforms; u.uBright.value += (galaxyBright - u.uBright.value) * .03; galaxy.scale.setScalar(s);
   if (fly) { const k = Math.min(1, (now - fly.t0) / fly.dur), e = k * k * (3 - 2 * k); controls.target.lerpVectors(fly.fT, fly.tT, e).multiplyScalar(s); camera.position.lerpVectors(fly.fP, fly.tP, e).multiplyScalar(s); if (k >= 1) { fly = null; scheduleLoad(); } }
   if (dirty) rebuildInst(); else updateNear(false); updateVis(dt);
@@ -522,4 +565,4 @@ export const camInfo = () => ({ cam: camera.position.toArray().map(v => +v.toFix
 export const resetStats = () => { frameT.length = 0; };
 export const descend = r => setFocus(r);
 function relabel() { renderNav(); }
-window.WT3D = { setPage, pageInfo, relabel, cardScreenPos, update, attach, setSeason, stage, SEASONS, jumpTo, cardById, stats, camInfo, resetStats, camTo, descend, addr: A, _dbg: () => ({ scene, camera, treeGroup, renderer }) }; window.dispatchEvent(new Event('wt3d-ready'));
+window.WT3D = { setPage, pageInfo, relabel, cardScreenPos, update, attach, setSeason, stage, growthProgress, GROW_TH, SEASONS, jumpTo, cardById, stats, camInfo, resetStats, camTo, descend, addr: A, _dbg: () => ({ scene, camera, treeGroup, bodyGroup, renderer, growthT: () => growthT, targetGrowth: () => targetGrowth }) }; window.dispatchEvent(new Event('wt3d-ready'));
