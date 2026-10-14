@@ -346,3 +346,4 @@ img, video, canvas { max-width: 100% }
   .mk-grid { grid-template-columns: 1fr } .mk-prev { order: -1; top: calc(var(--hdr, 56px) + 4px); z-index: 5 }
   .pv-toggle { display: inline-block } .mk-prev:not(.open) .pv-panel { display: none } .mk-prev .pv-body { max-height: 55vh; overflow: auto }
 }
+.pv-modes button { font-size: 13px; padding: 6px 10px } .pv-toggle { font-size: 13px; padding: 6px 10px }

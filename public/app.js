@@ -778,7 +778,7 @@ function coverGridHtml() { // 卡片封面设计：经典（原有分组）+ 自
   const grp = (k, inner) => `<div class=cg-sec><h4 class=cg-t>${E('cover.g.' + k)}</h4><div class=cover-grid>${inner}</div></div>`;
   return `<div id=covers>${grp('classic', classic.map(([c, i], j, A) => (j === 0 || (A[j - 1][0][0] === MATERIAL ? '经典' : A[j - 1][0][0]) !== (c[0] === MATERIAL ? '经典' : c[0]) ? `<b class=cg-h>${esc(catName(c[0]))}</b>` : '') + btn(i)).join(''))}
     ${['nature', 'minimal', 'emotion'].map(g => grp(g, WTCovers.ids(g).map(btn).join(''))).join('')}</div>
-    <div class=cg-sec><h4 class=cg-t>${E('cover.g.custom')}</h4><div class=up-row><label class=up-box sm><input type=file id=upC accept="image/*" class=sr-only><img id=upCi alt="" hidden><span>🖼️ ${E('wish.upCover')}</span></label><button type=button id=clrC class=link hidden>${E('wish.clearUp')}</button></div></div>`; }
+    <div class=cg-sec><h4 class=cg-t>${E('cover.g.custom')}</h4><div class=up-row><label class="up-box sm"><input type=file id=upC accept="image/*" class=sr-only><img id=upCi alt="" hidden><span>🖼️ ${E('wish.upCover')}</span></label><button type=button id=clrC class=link hidden>${E('wish.clearUp')}</button></div></div>`; }
 function previewAside() { return `<aside class=mk-prev aria-labelledby=pvh><div class=pv-head><h4 id=pvh>👁️ ${E('pv.title')}</h4>
   <button type=button id=pvToggle class=pv-toggle aria-expanded=false aria-controls=pvPanel>${E('pv.show')}</button></div>
   <div id=pvPanel class=pv-panel><div class=pv-modes role=group aria-label="${E('pv.mode')}"><button type=button data-pv=single aria-pressed=true>${E('wish.typeSingle')}</button><button type=button data-pv=folded aria-pressed=false>${E('wish.typeFolded')}</button></div>
@@ -809,7 +809,7 @@ function wishPanel() {
   <fieldset class=cover-design id=coverDesign><legend>${E('wish.coverStyle')}</legend>${coverGridHtml()}</fieldset>
   <div id=coverWrap hidden>
     <div class=muted style="margin-top:10px">${E('wish.inside')}</div><div class=cover-grid id=insides>${WTInsides.list.map((c, i) => `<button type=button data-inside=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTInsides.url(i)}"></button>`).join('')}</div>
-    <div class=up-row><label class=up-box sm><input type=file id=upN accept="image/*" class=sr-only><img id=upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label><button type=button id=clrN class=link hidden>${E('wish.clearUp')}</button></div>
+    <div class=up-row><label class="up-box sm"><input type=file id=upN accept="image/*" class=sr-only><img id=upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label><button type=button id=clrN class=link hidden>${E('wish.clearUp')}</button></div>
     <p class=muted style="margin:4px 0">${E('wish.mixHint')}</p>
     <label class=agree><input type=checkbox id=priv> <span>🔒 ${E('wish.private')}</span></label><p class=muted style="margin:4px 0">${E('wish.privateHint')}${S.mode === 'host' ? ' ' + E('wish.privateHostNote') : ''} ${E('wish.upPrivNote')}</p></div>
   <div id=sharedVis class=kwrap>
