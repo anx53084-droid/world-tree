@@ -95,7 +95,7 @@ function prefs(u) { return { fulfil: u?.notify?.fulfil !== false, system: u?.not
 function inboxOf(db, u) { const p = prefs(u), own = (db.inbox?.[u.pubkey] || []).filter(m => (m.kind !== 'fulfil' || p.fulfil) && (m.kind !== 'gift' || p.system)), rd = new Set(u.sysRead || []);
   const sys = p.system ? (db.sys || []).filter(m => m.at >= (u.created || 0) - 30 * 86400000).map(m => ({ ...m, kind: 'system', read: rd.has(m.id) })) : [];
   const items = [...own, ...sys].sort((a, b) => b.at - a.at).slice(0, 100); return { items, unread: items.filter(m => !m.read).length }; }
-function notifyFulfil(db, author, info) { // 星愿大使标记还愿 → 给愿望主人发站内信（尊重其消息设置）
+function notifyFulfil(db, author, info) { // 标记心愿已实现 → 给愿望主人发站内信（尊重其消息设置）
   if (!author) return 0; const owners = Object.values(db.users).filter(u => u.pubkey === author); if (owners.length && owners.every(u => !prefs(u).fulfil)) return 0;
   pushMsg(db, author, { kind: 'fulfil', sig: info.sig, text: String(info.text || '').slice(0, 140), note: String(info.note || '').slice(0, 280) }); return 1; }
 

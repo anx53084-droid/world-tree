@@ -1,4 +1,4 @@
-// 星愿大使 · 还愿（物质类）—— 链下履约 + 内部记账。无 LP / 无收益分润。
+// 心愿实现（物质类）—— 链下履约 + 内部记账。无 LP / 无收益分润。
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const web3 = require('@solana/web3.js');
 const nacl = require('tweetnacl');
@@ -27,7 +27,7 @@ function adminOk(req) {
   return typeof k === 'string' && k.length > 0 && k === ADMIN_KEY;
 }
 
-/** 记账：全额入账后按 FULFILL_FUND_BPS 记还愿基金（纯会计，不上链、不展示；无 20/80 拆分） */
+/** 记账：全额入账后按 FULFILL_FUND_BPS 记心愿实现基金（纯会计，不上链、不展示；无 20/80 拆分） */
 function recordFund(wishSig, lamports, source) {
   const lam = Math.max(0, Math.floor(+lamports || 0));
   if (!wishSig || !lam) return null;

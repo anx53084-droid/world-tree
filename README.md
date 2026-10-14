@@ -44,10 +44,10 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 收款地址由环境变量 `RECEIVE_PUBKEY` 配置（本地未设时生成 `data/payees.json`）。
 
 
-### 星愿大使 · 物质类还愿（惊喜）
-物质类愿望可在购买时填写**可选**收货/联系备注，仅存服务器 `data/fulfillments.json`，**永不入链、不公开展示**。管理员通过 `X-Admin-Key`（`ADMIN_KEY`）调用 `/api/admin/fulfillments` 查看待还愿列表并标记已还愿；可选 `FULFILL_HOT_WALLET` 在 devnet 发送微量 SOL tip + 链上 memo `WTREE1|F|…`。用户侧仅在愿望被还愿后看到徽章「星愿大使已还愿」与庆祝提示，规则页**不**描述内部基金或 LP。
+### 星愿大使 · 物质类心愿实现（惊喜）
+物质类愿望可在购买时填写**可选**收货/联系备注，仅存服务器 `data/fulfillments.json`，**永不入链、不公开展示**。管理员通过 `X-Admin-Key`（`ADMIN_KEY`）调用 `/api/admin/fulfillments` 查看待心愿实现列表并标记已心愿实现；可选 `FULFILL_HOT_WALLET` 在 devnet 发送微量 SOL tip + 链上 memo `WTREE1|F|…`。用户侧仅在愿望被心愿实现后看到徽章「星愿大使已心愿实现」与庆祝提示，规则页**不**描述内部基金或 LP。
 
-> **内部运维（不对用户展示）**：付款全额至单一收款地址。服务器在 `data/fund-ledger.json` 对总支付做纯会计记账「还愿基金」，比例由 `FULFILL_FUND_BPS`（默认 2000 = 总支付的 20%）配置。无质押、无收益、无 LP、无分润展示。
+> **内部运维（不对用户展示）**：付款全额至单一收款地址。服务器在 `data/fund-ledger.json` 对总支付做纯会计记账「心愿实现基金」，比例由 `FULFILL_FUND_BPS`（默认 2000 = 总支付的 20%）配置。无质押、无收益、无 LP、无分润展示。
 
 ### 世界树光谱（灵魂绑定记录）
 每次许愿的交易本身就是与作者地址绑定、不可转让的记录；前端由交易哈希确定性生成唯一 SVG 光谱。（真正的 NFT 可后续改用 Token-2022 NonTransferable 扩展铸造。）
@@ -130,7 +130,7 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 - Anchor 程序化 + Token-2022 不可转让光谱 NFT。
 
 ## 文件
-server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账） · verify.js · verify-scale.js · verify-fulfill.js · shots/ · public/{index.html, app.js, addr.js, scene3d.js, style.css, i18n/, starfield-worklet.js, config.js(自动生成), vendor/} · data/（users.json、moderator.json、payees.json、fulfillments.json、fund-ledger.json、review-queue.jsonl —— 演示/运营数据，勿提交）
+server.js · moderation.js · fulfillment.js（心愿实现 + 内部记账） · verify.js · verify-scale.js · verify-fulfill.js · shots/ · public/{index.html, app.js, addr.js, scene3d.js, style.css, i18n/, starfield-worklet.js, config.js(自动生成), vendor/} · data/（users.json、moderator.json、payees.json、fulfillments.json、fund-ledger.json、review-queue.jsonl —— 演示/运营数据，勿提交）
 
 ## 自定义模板图片（我的星愿 → 制作我的心愿卡）
 - 浏览器内压缩为 ≤800px、≤300KB 的 webp/jpeg，`POST /api/img` 上传，`GET /api/img/<hash>` 读取；memo 只记录 `~C<封面哈希>` / `~N<内页哈希>`（32 hex，旧客户端忽略，显示内置封面）。
@@ -152,7 +152,7 @@ server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账
 - **登录**：EIP-4361 风格消息（一次性 nonce，5 分钟有效，校验域名）。EVM 用 `personal_sign`（服务器 secp256k1 恢复地址），Solana 用 `signMessage`（ed25519）。愿望仍以 Solana devnet 为唯一事实来源：EVM 账户由服务器托管一个 devnet 密钥签 memo（演示）。
 - **EVM 支付**：按链设置 `EVM_PAY_ETH` / `EVM_PAY_BSC` / `EVM_PAY_BASE` / `EVM_PAY_ARB`（及可选 `EVM_PAY_UNI`）后开启；用户钱包发送**一笔**原生币转账至该链收款地址。含 Unichain Sepolia（chainId 1301，`EVM_PAY_UNI`）。服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
 - **安全设置** `#/security`：已登录设备列表、单独退出 / 退出其他所有设备；邮箱验证（需 `RESEND_API_KEY` + `MAIL_FROM`）；邮箱账户可选 TOTP（Google Authenticator，RFC 6238）；大额支付确认（默认 ≥ 20 美元，开启 2FA 时需验证码，服务器同样校验）。
-- **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记还愿时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（`GET /api/admin/notice` 列表、`POST /api/admin/notice/delete {id}` 删除）（均需 `x-admin-key`）。
+- **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记心愿实现时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（`GET /api/admin/notice` 列表、`POST /api/admin/notice/delete {id}` 删除）（均需 `x-admin-key`）。
 
 ## 持久化（Cloudflare D1）
-设置 `D1_API_TOKEN`（Account › D1 › Edit）、`D1_ACCOUNT_ID`、`D1_DATABASE_ID` 后，服务启动时从 D1（库 `guangqi-db`，表 `kv`）拉取账户、会话、两步验证、恢复码、站内信、通知设置、还愿记录与资金账本、审核密钥等到 `data/`，之后每次写入按条目差量写回 D1（内存缓存 + write-through）。拉取失败则拒绝启动，避免用空数据覆盖。一次性 nonce 与登录票据（≤10 分钟）仅存内存。未设置时只用本地文件（Render 重新部署会清空）。图片仍需配置 R2 才能持久保存。
+设置 `D1_API_TOKEN`（Account › D1 › Edit）、`D1_ACCOUNT_ID`、`D1_DATABASE_ID` 后，服务启动时从 D1（库 `guangqi-db`，表 `kv`）拉取账户、会话、两步验证、恢复码、站内信、通知设置、心愿实现记录与资金账本、审核密钥等到 `data/`，之后每次写入按条目差量写回 D1（内存缓存 + write-through）。拉取失败则拒绝启动，避免用空数据覆盖。一次性 nonce 与登录票据（≤10 分钟）仅存内存。未设置时只用本地文件（Render 重新部署会清空）。图片仍需配置 R2 才能持久保存。

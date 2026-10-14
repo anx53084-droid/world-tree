@@ -205,7 +205,7 @@ async function api(req, res, url) {
     const token = Acc.newSession(db, x.uid, req); save(db); return send(res, 200, { token, ...meOf(x.uid, db.users[x.uid]) }); }
   if (url === '/api/blocklist/info') return send(res, 200, Block.info());
   if (url === '/api/rules') return send(res, 200, { categories: Object.keys(RULES), words: RULES }); // 供前端展示过滤
-  // —— 星愿大使 / 还愿（公开只读徽章；履约联系方式仅存链下）——
+  // —— 心愿实现（公开只读徽章；履约联系方式仅存链下）——
   if (url.startsWith('/api/fulfillments/') && req.method === 'GET') {
     const sig = decodeURIComponent(url.slice('/api/fulfillments/'.length).split('/')[0] || '');
     const v = Fulfill.publicView(sig); return v ? send(res, 200, v) : send(res, 404, { error: 'not found', code: 'nf' });

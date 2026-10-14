@@ -178,7 +178,7 @@ function aggregate() {
   for (const [ws, t] of likes) W[ws]?.likers.add(t.author); // 每地址对每愿望只计 1 赞
   for (const [ws, t, text] of bless) W[ws]?.blessings.push({ author: t.author, text, time: t.time, sig: t.sig, pending: t.pending });
   S.hidden = hidden;
-  // 还愿 memo：WTREE1|F|wishSig|noteHash|ts|attestation
+  // 心愿实现 memo：WTREE1|F|wishSig|noteHash|ts|attestation
   for (const t of all) { const f = t.memo.split('|'); if (f[1] === 'F' && f[2] && W[f[2]]) W[f[2]].fulfilled = { noteHash: f[3], ts: +f[4], attestation: f[5], sig: t.sig, onChain: true }; }
   for (const [sig, fv] of Object.entries(S.fulfill || {})) if (fv?.fulfilled && W[sig]) W[sig].fulfilled = Object.assign({}, W[sig].fulfilled || {}, { badge: true, note: fv.fulfillNote || '', ts: fv.fulfillTs || 0, tx: fv.fulfillTx, server: true });
   S.wishes = Object.values(W).map(w => Object.assign(w, { likes: w.likers.size, heat: w.likers.size * 2 + w.blessings.length * 3 })).sort((a, b) => (b.time || 9e9) - (a.time || 9e9));
@@ -483,7 +483,7 @@ async function loadNotify() { const box = $('#ntfbox'); if (!box) return bindSiw
   const row = (k, h) => `<label class="agree ntf"><input type=checkbox data-n=${k} ${p[k] ? 'checked' : ''}> <span><b>${E('ntf.' + k)}</b><br><span class=muted>${E('ntf.' + k + 'Hint')}</span></span></label>`;
   box.innerHTML = row('fulfil') + row('system');
   box.querySelectorAll('[data-n]').forEach(c => c.onchange = async () => { const b = {}; box.querySelectorAll('[data-n]').forEach(x => b[x.dataset.n] = x.checked); try { await api('/api/notify', b); toast(E('sec.saved'), 'ok'); } catch (e) { toast(esc(e.message), 'err'); } }); }
-// ---------- 星愿大使还愿徽章（公开；收货信息永不进入前端展示逻辑之外的公开文案） ----------
+// ---------- 心愿实现徽章（公开；收货信息永不进入前端展示逻辑之外的公开文案） ----------
 async function loadFulfillment(sig) {
   if (!sig || /^SAMPLE|^SYN|^SL|^SB/.test(sig)) return null;
   try { const r = await fetch('/api/fulfillments/' + encodeURIComponent(sig)); if (!r.ok) return null; const j = await r.json(); S.fulfill[sig] = j; return j; } catch { return null; }
