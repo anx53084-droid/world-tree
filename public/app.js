@@ -56,7 +56,7 @@ const sha256hex = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-
 
 const QS = new URLSearchParams(location.search);
 const S = { stress: QS.has('stress') ? QS.get('stress') !== '0' : localStorage.wt_stress === '1', total: Math.min(2.75e11, Math.floor(+QS.get('stress') || +localStorage.wt_total || 1e11)), mode: 'guest', pubkey: null, email: null, token: localStorage.wt_token || null, txs: [], wishes: [], hidden: 0, offline: false, pending: [],
-  history: JSON.parse(localStorage.wt_hist || '[]'), cfg: { minLamports: 6666667, solUsd: 150, priceSource: 'fallback', developer: '', treasury: '', moderator: window.WT_CONFIG?.moderatorPubkeyHex }, words: null, season: null, fulfill: {}, fulfillToast: JSON.parse(localStorage.wt_ful_toast || '{}') };
+  history: JSON.parse(localStorage.wt_hist || '[]'), cfg: { minLamports: 6666667, solUsd: 150, priceSource: 'fallback', receive: '', developer: '', treasury: '', moderator: window.WT_CONFIG?.moderatorPubkeyHex }, words: null, season: null, fulfill: {}, fulfillToast: JSON.parse(localStorage.wt_ful_toast || '{}') };
 window.__S = S; // 测试/诊断用
 const saveHist = () => localStorage.wt_hist = JSON.stringify(S.history.slice(0, 100));
 // 调试控件：?debug=1|true 开启并写入 localStorage；?debug=0|false 清除；默认隐藏
@@ -104,8 +104,9 @@ async function parseTx(sig, tx) {
   const ins = tx.transaction.message.instructions, ix = ins.find(i => i.programId === MEMO || i.program === 'spl-memo');
   const memo = typeof ix?.parsed === 'string' ? ix.parsed : null; if (!memo || !memo.startsWith(TAG)) return null;
   const k0 = tx.transaction.message.accountKeys[0], author = k0.pubkey || k0;
-  let paid = 0, devPaid = 0; for (const i of ins) if (i.program === 'system' && i.parsed?.type === 'transfer') { const d = i.parsed.info.destination;
-    if (d === S.cfg.treasury) paid += i.parsed.info.lamports; if (d === S.cfg.developer) { paid += i.parsed.info.lamports; devPaid += i.parsed.info.lamports; } }
+  const recv = S.cfg.receive || S.cfg.treasury || S.cfg.developer; let paid = 0, devPaid = 0;
+  for (const i of ins) if (i.program === 'system' && i.parsed?.type === 'transfer') { const d = i.parsed.info.destination;
+    if (d === recv) { paid += i.parsed.info.lamports; } }
   return { sig, author, memo, time: tx.blockTime, paid, devPaid, verified: memo.startsWith(TAG + 'L|') || await verifyAtt(memo) };
 }
 async function loadWishes(force) {
@@ -168,8 +169,9 @@ const SAMPLE = (() => { // 仅当 RPC 不可达时展示的离线示例（非链
 // ---------- 写层：两种模式（同一份链上数据格式） ----------
 function memoTx(payer, memo, lamports) {
   const p = new W3.PublicKey(payer), tx = new W3.Transaction();
-  if (lamports > 0) { const dev = Math.floor(lamports * 0.2); // 资金直接从用户钱包转出：20% 开发者 / 80% 项目金库，平台不经手
-    tx.add(W3.SystemProgram.transfer({ fromPubkey: p, toPubkey: new W3.PublicKey(S.cfg.developer), lamports: dev }), W3.SystemProgram.transfer({ fromPubkey: p, toPubkey: new W3.PublicKey(S.cfg.treasury), lamports: lamports - dev })); }
+  const recv = S.cfg.receive || S.cfg.treasury || S.cfg.developer;
+  if (lamports > 0) // 全额转入项目收款地址（无 20/80 拆分），签名时钱包显示收款方
+    tx.add(W3.SystemProgram.transfer({ fromPubkey: p, toPubkey: new W3.PublicKey(recv), lamports }));
   tx.add(W3.SystemProgram.transfer({ fromPubkey: p, toPubkey: new W3.PublicKey(TREE), lamports: 0 })); // 0 lamport：让交易可按 TREE 地址索引
   tx.add(new W3.TransactionInstruction({ programId: new W3.PublicKey(MEMO), keys: [{ pubkey: p, isSigner: true, isWritable: false }], data: new TextEncoder().encode(memo) }));
   return tx;
@@ -225,6 +227,12 @@ async function api(url, data) {
 // Solana：Phantom / Solflare / Backpack / OKX（Wallet Standard 优先）；EVM：MetaMask / OKX / Coinbase / EIP-6963 注入钱包（BSC、Base、Ethereum、Arbitrum 测试网）
 const EVM_KEYS = { 97: 'bsc', 84532: 'base', 11155111: 'eth', 421614: 'arb' };
 const evmChains = () => S.cfg.evm?.chains || { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB' }, 84532: { key: 'base', name: 'Base Sepolia', sym: 'ETH' }, 11155111: { key: 'eth', name: 'Sepolia', sym: 'ETH' }, 421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH' } };
+// 支付路由：含 UNI（经以太坊路径）；选项 value = payKey
+const evmRoutes = () => {
+  const r = S.cfg.evm?.routes; if (r && Object.keys(r).length) return r;
+  const out = {}; for (const [id, c] of Object.entries(evmChains())) out[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: c.receive || S.cfg.evm?.recipients?.[c.key] || null };
+  return out;
+};
 function siweMsg(kind, addr, nonce, chainId) { return `${location.host} wants you to sign in with your ${kind} account:\n${addr}\n\nSign in to World Tree. This request will not trigger a transaction or cost any fees.\n\nURI: ${location.origin}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`.replace(chainId == null ? /\nChain ID: [^\n]*/ : /$^/, ''); } // Solana 省略 Chain ID（钱包会按其当前网络校验）
 function setSession(r) { S.token = localStorage.wt_token = r.token; S.kind = r.kind; S.email = r.email; S.evmAddr = r.evm; S.totp = r.totp; S.verified = r.verified; S.largeUsd = r.largeUsd || S.largeUsd; }
 async function solWallet() { if (S.wallet) return S.wallet; const id = localStorage.wt_wallet, w = WTW.solWallets().find(x => x.id === id && x.installed);
@@ -553,17 +561,20 @@ function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
   const g = S.mode === 'guest';
   return `<h2 class=gold-title>${E('nav.wish')}</h2><p class=tagline>✨ ${E('ux.tagline')}</p>${g ? guestCta() + `<h3 class=sub>${E('ux.samplesTitle')}</h3>` + sampleCards(2) : ''}<section class="card motif"><h3>${E('mine.have')}</h3><div id=mine>${mineBlock()}</div></section>
   <section class="card motif"><h3>${E('mine.make')}</h3>${chips()}<button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}</div></section>`; }
-const evmMin = id => { const c = evmChains()[id], p = S.cfg.evm?.usd?.[c?.coin] || 0; return p ? Math.ceil((S.cfg.minUsd || 1) / p * 1.02 * 1e5) / 1e5 : 0; };
-function evmPayHtml() { if (S.kind !== 'evm' || !S.cfg.evm?.pay) return ''; const ch = localStorage.wt_chain || '84532', C = evmChains(); // 未配置 EVM 收款地址时隐藏（仅登录）
+const evmMinByRoute = key => { const r = evmRoutes()[key], p = S.cfg.evm?.usd?.[r?.coin] || 0; return p ? Math.ceil((S.cfg.minUsd || 1) / p * 1.02 * 1e5) / 1e5 : 0; };
+const evmMin = id => { const c = evmChains()[id]; return evmMinByRoute(c?.key || id); };
+function evmPayHtml() { if (S.kind !== 'evm' || !S.cfg.evm?.pay) return ''; const R = evmRoutes(), keys = Object.keys(R); if (!keys.length) return '';
+  const ch = localStorage.wt_pay || localStorage.wt_chain || 'base', sel = R[ch] ? ch : keys[0], r0 = R[sel];
   return `<div class="card evpay"><label>${E('wish.payVia')} <select id=pv><option value=evm>⬡ ${E('wish.payEvm')}</option><option value=sol>◎ ${E('wish.paySol')}</option></select></label>
-  <div id=evbox class=row><label>${E('wish.evmChain')} <select id=evc>${Object.entries(C).map(([id, c]) => `<option value=${id} ${id === ch ? 'selected' : ''}>${esc(t('chain.' + c.key))} · ${esc(c.name)}</option>`).join('')}</select></label>
-  <label><span id=evaL>${E('wish.evmAmt', { sym: C[ch].sym })}</span> <input id=eva type=number step=0.00001 min=0 value="${evmMin(ch)}" style="width:120px"></label><span class="muted" id=evmin>${E('wish.evmMin', { min: evmMin(ch), sym: C[ch].sym })}</span></div></div>`; }
-async function evmPay(chainId, amount) { // EVM 测试网原生币转账：20% 开发者 / 80% 金库，各一笔；用户钱包直接签名发送（非托管）
-  const p = await evmProvider(), c = evmChains()[chainId], wei = WTW.toWei(amount), dev = wei / 5n, tre = wei - dev, from = S.evmAddr, txs = [];
+  <div id=evbox class=row><label>${E('wish.evmChain')} <select id=evc>${keys.map(k => { const r = R[k]; return `<option value=${esc(k)} ${k === sel ? 'selected' : ''}>${esc(t('chain.' + r.key))} · ${esc(r.name)}</option>`; }).join('')}</select></label>
+  <label><span id=evaL>${E('wish.evmAmt', { sym: r0.sym })}</span> <input id=eva type=number step=0.00001 min=0 value="${evmMinByRoute(sel)}" style="width:120px"></label><span class="muted" id=evmin>${E('wish.evmMin', { min: evmMinByRoute(sel), sym: r0.sym })}</span></div></div>`; }
+async function evmPay(payKey, amount) { // EVM：全额转入该链单一收款地址；UNI 经以太坊路径
+  const p = await evmProvider(), r = evmRoutes()[payKey]; if (!r?.receive) throw new Error('no receive address');
+  const chainId = r.chainId, c = evmChains()[chainId] || r, wei = WTW.toWei(amount), from = S.evmAddr;
   await WTW.switchChain(p, chainId, c);
-  for (const [to, v] of [[S.cfg.evm.dev, dev], [S.cfg.evm.treasury, tre]]) { toast(esc(t('wish.evmSending', { i: txs.length + 1 })));
-    txs.push(await p.request({ method: 'eth_sendTransaction', params: [{ from, to, value: '0x' + v.toString(16) }] })); }
-  toast(esc(t('wish.evmWaiting'))); for (const h of txs) await WTW.waitReceipt(p, h); return { chainId: +chainId, txs }; }
+  toast(esc(t('wish.evmSending', { i: 1 })));
+  const h = await p.request({ method: 'eth_sendTransaction', params: [{ from, to: r.receive, value: '0x' + wei.toString(16) }] });
+  toast(esc(t('wish.evmWaiting'))); await WTW.waitReceipt(p, h); return { chainId: +chainId, txs: [h], payKey: r.key }; }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}${guestCta()}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
@@ -612,7 +623,7 @@ const help = () => `<h2>${E('nav.help')}</h2>${prevail()}
 <div class=card><h3>🔐 ${E('help.selfTitle')}</h3>${bul(E('help.selfBody'))}</div>
 <div class="card notice"><h3>⚠️ ${E('help.hostTitle')}</h3>${bul(E('help.%s'))}</div>
 <div class=card><h3>👀 ${E('help.guestTitle')}</h3>${bul(E('help.%s'))}</div>
-<div class=card><h3>💰 ${E('help.feeTitle')}</h3>${E('help.feeBody')}<br><span class=muted>${E('help.developer')} ${esc(S.cfg.developer)}<br>${E('help.treasury')} ${esc(S.cfg.treasury)}</span></div>
+<div class=card><h3>💰 ${E('help.feeTitle')}</h3>${E('help.feeBody')}<br><span class=muted>${E('help.receive')} ${esc(S.cfg.receive || S.cfg.treasury || S.cfg.developer)}</span></div>
 <div class=card><h3>🛡️ ${E('help.modTitle')}</h3>${bul(E('help.%s'))} ${E('help.modPub')} <code style="word-break:break-all">${esc(S.cfg.moderator || '')}</code></div>
 <div class=card><h3>🌳 ${E('help.stageTitle')}</h3>${E('help.stageBody', { stages: Array.from({ length: STAGE_N }, (_, i) => `${stageName(i)} (≥${[0, 10, 50, 200, 1000][i]})`).join(' → '), green: seasonName('green'), bloom: seasonName('bloom'), fall: seasonName('fall') })}</div>
 <div class=card><h3>📜 ${E('help.riskTitle')}</h3>${bul(E('help.%s'))}</div>`;
@@ -672,10 +683,10 @@ async function route() {
       if (D.cover != null) pickCover(+D.cover); if (D.inside != null) pickInside(+D.inside); if (D.auto) $('#covers').dataset.auto = D.auto; if (D.iauto) $('#insides').dataset.auto = D.iauto; ['C', 'N'].forEach(k => showUp(k, up[k])); syncCard(); }
     syncShip(); const fc = ta.closest('.card'); fc.addEventListener('input', saveD); fc.addEventListener('change', saveD); ['#covers', '#insides'].forEach(sel => $(sel)?.addEventListener('click', () => setTimeout(saveD)));
     const upd = () => { const ok = $('#ag').checked && (!$('#ag2') || $('#ag2').checked); $('#ws').disabled = !ok; $('#ws').classList.toggle('breathe', ok);
-      const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { dev: sol(Math.floor(l * .2)), tre: sol(l - Math.floor(l * .2)) }); };
+      const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { amt: sol(l), dev: sol(l), tre: sol(l) }); };
     fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); const a = $('#amt'); if (a) { a.min = c.minLamports / 1e9; if (+a.value * 1e9 < c.minLamports) a.value = (Math.ceil(c.minLamports / 1e5) / 1e4).toFixed(4); upd(); } }).catch(() => {});
     ta.addEventListener('input', () => $('#wc').textContent = [...ta.value].length + '/' + ta.maxLength); ['#ag', '#ag2', '#amt'].forEach(s => $(s)?.addEventListener('input', upd)); upd();
-    $('#evc')?.addEventListener('change', e => { const id = e.target.value, c = evmChains()[id]; localStorage.wt_chain = id; $('#eva').value = evmMin(id); $('#evaL').textContent = t('wish.evmAmt', { sym: c.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMin(id), sym: c.sym }); });
+    $('#evc')?.addEventListener('change', e => { const key = e.target.value, r = evmRoutes()[key]; localStorage.wt_pay = key; localStorage.wt_chain = String(r.chainId); $('#eva').value = evmMinByRoute(key); $('#evaL').textContent = t('wish.evmAmt', { sym: r.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMinByRoute(key), sym: r.sym }); });
     const pvSync = () => { const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
     $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = $('#wc2').value;
       const shippingNote = cat === MATERIAL ? ($('#ship')?.value || '').trim() : '';
@@ -690,9 +701,10 @@ async function route() {
       if ($('#ag2')) localStorage.wt_terms = '1';
       const viaEvm = $('#pv')?.value === 'evm', C = evmChains(), ch = $('#evc')?.value, ea = $('#eva')?.value;
       let extra = {}, sig;
-      if (viaEvm) { const usd = +ea * (S.cfg.evm.usd[C[ch].coin] || 0); if (!(+ea >= evmMin(ch) / 1.02)) { $('#ws').disabled = false; return toast(esc(t('wish.evmMin', { min: evmMin(ch), sym: C[ch].sym })), 'err'); }
-        const ok = await confirmLarge(usd, ea + ' ' + C[ch].sym); if (!ok) { $('#ws').disabled = false; return; }
-        try { extra.evm = await evmPay(ch, ea); } catch (e) { $('#ws').disabled = false; return toast('❌ ' + esc(e.message || e), 'err'); }
+      if (viaEvm) { const R = evmRoutes(), r = R[ch] || Object.values(R)[0]; if (!r) { $('#ws').disabled = false; return toast('❌ no EVM route', 'err'); }
+        const usd = +ea * (S.cfg.evm.usd[r.coin] || 0); if (!(+ea >= evmMinByRoute(r.key) / 1.02)) { $('#ws').disabled = false; return toast(esc(t('wish.evmMin', { min: evmMinByRoute(r.key), sym: r.sym })), 'err'); }
+        const ok = await confirmLarge(usd, ea + ' ' + r.sym); if (!ok) { $('#ws').disabled = false; return; }
+        try { extra.evm = await evmPay(r.key, ea); } catch (e) { $('#ws').disabled = false; return toast('❌ ' + esc(e.message || e), 'err'); }
         sig = await submit(memo, 'wish', 0, { ...extra, ...ok }); }
       else { const ok = await confirmLarge(lam / 1e9 * (S.cfg.solUsd || 0), sol(lam)); if (!ok) { $('#ws').disabled = false; return; } sig = await submit(memo, 'wish', lam, ok); }
       if (sig) {

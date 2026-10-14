@@ -8,10 +8,12 @@ services:
     envVars:
       - key: MODERATOR_SECRET
         sync: false
-      - key: DEV_PUBKEY
-        value: Bo7ZRCgtfoi7ozLTG7wSjvdGjNeFiG6tMoBpukKuTTia
-      - key: TREASURY_PUBKEY
-        value: HGhjetz9MFSQBeCoSdPpuVqF7nhaJij7BGDyyigk7YRK
+      - key: RECEIVE_PUBKEY # Solana 单一收款地址（全额）
+        sync: false
+      - key: DEV_PUBKEY # 兼容旧名；未设 RECEIVE_PUBKEY 时可用
+        sync: false
+      - key: TREASURY_PUBKEY # 兼容旧名；未设 RECEIVE_PUBKEY 时可用
+        sync: false
       - key: SOLANA_RPC
         value: https://api.devnet.solana.com
       - key: R2_ACCOUNT_ID
@@ -32,9 +34,15 @@ services:
         sync: false
       - key: ADMIN_KEY # 星愿大使后台（x-admin-key）
         sync: false
-      - key: EVM_DEV_ADDRESS # EVM 测试网收款：开发者 20%（与 EVM_TREASURY_ADDRESS 都设置后才显示 EVM 支付）
+      - key: EVM_PAY_ETH # Ethereum/Sepolia 单一收款
         sync: false
-      - key: EVM_TREASURY_ADDRESS # EVM 测试网收款：项目金库 80%
+      - key: EVM_PAY_BSC # BNB/BSC 单一收款
+        sync: false
+      - key: EVM_PAY_BASE # Base 单一收款
+        sync: false
+      - key: EVM_PAY_ARB # Arbitrum 单一收款
+        sync: false
+      - key: EVM_PAY_UNI # UNI：Unichain 未实现时经以太坊路径，地址标 UNI
         sync: false
       - key: RESEND_API_KEY # 邮箱验证码发送（可选，配合 MAIL_FROM）
         sync: false

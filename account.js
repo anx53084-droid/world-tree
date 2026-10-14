@@ -12,8 +12,21 @@ const CHAINS = { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB',
   421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia-rollup.arbitrum.io/rpc', exp: 'https://sepolia.arbiscan.io' } };
 for (const id in CHAINS) if (process.env['EVM_RPC_' + id]) CHAINS[id].rpc = process.env['EVM_RPC_' + id];
 const isAddr = a => /^0x[0-9a-fA-F]{40}$/.test(a || '');
-const EVM_DEV = isAddr(process.env.EVM_DEV_ADDRESS) ? process.env.EVM_DEV_ADDRESS.toLowerCase() : '', EVM_TREASURY = isAddr(process.env.EVM_TREASURY_ADDRESS) ? process.env.EVM_TREASURY_ADDRESS.toLowerCase() : '';
-const EVM_PAY = !!(EVM_DEV && EVM_TREASURY);
+// 每链单一收款地址（无 20/80 拆分）。UNI 链未实现：经以太坊路径支付，地址标为 UNI。
+const PAY_ENV = { bsc: 'EVM_PAY_BSC', base: 'EVM_PAY_BASE', eth: 'EVM_PAY_ETH', arb: 'EVM_PAY_ARB', uni: 'EVM_PAY_UNI' };
+const EVM_RECV = {};
+for (const [k, env] of Object.entries(PAY_ENV)) { const a = process.env[env]; if (isAddr(a)) EVM_RECV[k] = a.toLowerCase(); }
+// 兼容旧双地址：若未设 EVM_PAY_* 但设了旧变量，则各链共用金库地址
+if (!Object.keys(EVM_RECV).length) { const legacy = isAddr(process.env.EVM_TREASURY_ADDRESS) ? process.env.EVM_TREASURY_ADDRESS.toLowerCase() : (isAddr(process.env.EVM_DEV_ADDRESS) ? process.env.EVM_DEV_ADDRESS.toLowerCase() : '');
+  if (legacy) for (const k of ['bsc', 'base', 'eth', 'arb']) EVM_RECV[k] = legacy; }
+const EVM_PAY = Object.keys(EVM_RECV).length > 0;
+const UNI_CHAIN_IMPLEMENTED = false; // Unichain 未接入；UNI 走以太坊 Sepolia 支付路径
+const EVM_DEV = EVM_RECV.eth || '', EVM_TREASURY = EVM_RECV.eth || ''; // 兼容旧导出字段
+function recvFor(chainId, payKey) {
+  const c = CHAINS[chainId]; if (!c) return '';
+  const key = payKey && EVM_RECV[payKey] ? payKey : c.key;
+  return EVM_RECV[key] || EVM_RECV[c.key] || '';
+}
 
 // ---- 签名登录 ----
 const EVM_LOGIN_CHAINS = new Set([56, 97, 8453, 84532, 1, 11155111, 42161, 421614]); // BSC / Base / Ethereum / Arbitrum 主网与测试网
@@ -85,20 +98,23 @@ function notifyFulfil(db, author, info) { // 星愿大使标记还愿 → 给愿
   if (!author) return 0; const owners = Object.values(db.users).filter(u => u.pubkey === author); if (owners.length && owners.every(u => !prefs(u).fulfil)) return 0;
   pushMsg(db, author, { kind: 'fulfil', sig: info.sig, text: String(info.text || '').slice(0, 140), note: String(info.note || '').slice(0, 280) }); return 1; }
 
-// ---- EVM 付款校验（测试网原生币转账：20% 开发者 / 80% 金库）----
+// ---- EVM 付款校验（测试网原生币转账：每链单一收款地址，全额）----
 async function evmRpc(chainId, method, params) { const r = await fetch(CHAINS[chainId].rpc, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), signal: AbortSignal.timeout(10000) });
   const j = await r.json(); if (j.error) throw new Error(j.error.message); return j.result; }
-async function verifyEvmPay(db, { chainId, txs }, from, usdPer, minUsd) {
+async function verifyEvmPay(db, { chainId, txs, payKey }, from, usdPer, minUsd) {
   chainId = +chainId; if (!EVM_PAY) throw Object.assign(new Error('EVM payment disabled'), { code: 'evmOff' }); if (!CHAINS[chainId]) throw Object.assign(new Error('unsupported chain'), { code: 'evmChain' });
-  if (!Array.isArray(txs) || txs.length !== 2 || !txs.every(h => /^0x[0-9a-fA-F]{64}$/.test(h)) || txs[0].toLowerCase() === txs[1].toLowerCase()) throw Object.assign(new Error('bad tx'), { code: 'evmTx' });
-  db.usedEvm = db.usedEvm || {}; let dev = 0n, tre = 0n;
-  for (const h of txs) { const k = chainId + ':' + h.toLowerCase(); if (db.usedEvm[k]) throw Object.assign(new Error('tx already used'), { code: 'evmUsed' });
-    const [tx, rc] = await Promise.all([evmRpc(chainId, 'eth_getTransactionByHash', [h]), evmRpc(chainId, 'eth_getTransactionReceipt', [h])]);
-    if (!tx || !rc || rc.status !== '0x1') throw Object.assign(new Error('tx not confirmed'), { code: 'evmPending' });
-    if ((tx.from || '').toLowerCase() !== from || (tx.chainId && +tx.chainId !== chainId)) throw Object.assign(new Error('tx sender mismatch'), { code: 'evmTx' });
-    const to = (tx.to || '').toLowerCase(), v = BigInt(tx.value); if (to === EVM_DEV) dev += v; else if (to === EVM_TREASURY) tre += v; else throw Object.assign(new Error('wrong recipient'), { code: 'evmTx' }); }
-  const tot = dev + tre; if (!dev || !tre || dev * 100n < tot * 19n || dev * 100n > tot * 21n) throw Object.assign(new Error('split must be 20/80'), { code: 'evmSplit' });
+  const recv = recvFor(chainId, payKey); if (!recv) throw Object.assign(new Error('no receive address for chain'), { code: 'evmOff' });
+  const hashes = Array.isArray(txs) ? txs : [];
+  if (hashes.length !== 1 || !/^0x[0-9a-fA-F]{64}$/.test(hashes[0])) throw Object.assign(new Error('bad tx'), { code: 'evmTx' });
+  db.usedEvm = db.usedEvm || {}; const h = hashes[0], k = chainId + ':' + h.toLowerCase();
+  if (db.usedEvm[k]) throw Object.assign(new Error('tx already used'), { code: 'evmUsed' });
+  const [tx, rc] = await Promise.all([evmRpc(chainId, 'eth_getTransactionByHash', [h]), evmRpc(chainId, 'eth_getTransactionReceipt', [h])]);
+  if (!tx || !rc || rc.status !== '0x1') throw Object.assign(new Error('tx not confirmed'), { code: 'evmPending' });
+  if ((tx.from || '').toLowerCase() !== from || (tx.chainId && +tx.chainId !== chainId)) throw Object.assign(new Error('tx sender mismatch'), { code: 'evmTx' });
+  const to = (tx.to || '').toLowerCase(), tot = BigInt(tx.value);
+  if (to !== recv) throw Object.assign(new Error('wrong recipient'), { code: 'evmTx' });
+  if (!tot) throw Object.assign(new Error('amount below minimum'), { code: 'amount' });
   const usd = Number(tot) / 1e18 * usdPer; if (!(usd >= minUsd * 0.98)) throw Object.assign(new Error('amount below minimum'), { code: 'amount' });
-  for (const h of txs) db.usedEvm[chainId + ':' + h.toLowerCase()] = Date.now(); return { usd, wei: tot.toString(), sym: CHAINS[chainId].sym }; }
+  db.usedEvm[k] = Date.now(); return { usd, wei: tot.toString(), sym: CHAINS[chainId].sym, recv, payKey: payKey || CHAINS[chainId].key }; }
 
-module.exports = { genRecovery, check2fa, issueTicket, peekTicket, useTicket, CHAINS, EVM_DEV, EVM_TREASURY, EVM_PAY, MAIL_ON, ECHO, nonce, verifyLogin, evmRecover, parseSiwe, b32enc, totpNow, totpOk, sendMail, tokHash, normSessions, newSession, pushMsg, prefs, inboxOf, notifyFulfil, verifyEvmPay };
+module.exports = { genRecovery, check2fa, issueTicket, peekTicket, useTicket, CHAINS, EVM_DEV, EVM_TREASURY, EVM_PAY, EVM_RECV, UNI_CHAIN_IMPLEMENTED, recvFor, MAIL_ON, ECHO, nonce, verifyLogin, evmRecover, parseSiwe, b32enc, totpNow, totpOk, sendMail, tokHash, normSessions, newSession, pushMsg, prefs, inboxOf, notifyFulfil, verifyEvmPay };

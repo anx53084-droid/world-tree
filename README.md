@@ -28,7 +28,7 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 ### 链上方案：SPL Memo 交易（未使用 Anchor 自定义程序）
 原因：本机无 Solana/Anchor 工具链，且**本机网络无法访问 devnet RPC**（无法空投、部署）。Memo 方案不需要部署程序，任何钱包都能写，读取用标准 RPC 即可。
 每笔交易包含：
-1. （仅许愿）两笔 SystemProgram 转账：金额 20% → 开发者地址，80% → 项目金库地址（用户钱包直接转出，平台不经手）；
+1. （仅许愿）一笔 SystemProgram 转账：全额 → 项目收款地址（用户钱包直接转出，平台不经手；签名时钱包显示收款方）；
 2. 一笔 0 lamport 转账到固定索引地址 `TREE = pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb`（sha256("world-tree-wishes-v1")），用于 `getSignaturesForAddress` 索引；
 3. 一条 Memo：
    - 许愿：`WTREE1|W|<sha256(分类|正文)>|<时间戳>|<审核签名hex>|<分类>|<正文≤140>`
@@ -40,14 +40,14 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 拒绝提示：「您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。」并显示命中类别。
 
 ### 支付
-金额自由填写，最低 1 美元等值 SOL（价格优先取 CoinGecko，失败用常量 `SOL_USD`，默认 150）。20%/80% 拆分在同一笔交易中完成。**不实现**任何 LP 收益、分红、循环返利。
-收款地址为本机生成的 devnet 密钥（`data/payees.json`）。
+金额自由填写，最低 1 美元等值 SOL（价格优先取 CoinGecko，失败用常量 `SOL_USD`，默认 150）。全额转入单一收款地址（`RECEIVE_PUBKEY`）。**不实现**任何 LP 收益、分红、循环返利。
+收款地址由环境变量 `RECEIVE_PUBKEY` 配置（本地未设时生成 `data/payees.json`）。
 
 
 ### 星愿大使 · 物质类还愿（惊喜）
 物质类愿望可在购买时填写**可选**收货/联系备注，仅存服务器 `data/fulfillments.json`，**永不入链、不公开展示**。管理员通过 `X-Admin-Key`（`ADMIN_KEY`）调用 `/api/admin/fulfillments` 查看待还愿列表并标记已还愿；可选 `FULFILL_HOT_WALLET` 在 devnet 发送微量 SOL tip + 链上 memo `WTREE1|F|…`。用户侧仅在愿望被还愿后看到徽章「星愿大使已还愿」与庆祝提示，规则页**不**描述内部基金或 LP。
 
-> **内部运维（不对用户展示）**：付款拆分仍为 20% 开发者 / 80% 金库。服务器在 `data/fund-ledger.json` 对金库份额做纯会计记账「还愿基金」，比例由 `FULFILL_FUND_BPS`（默认 2500 = 金库的 25%）配置。无质押、无收益、无 LP、无分润展示。
+> **内部运维（不对用户展示）**：付款全额至单一收款地址。服务器在 `data/fund-ledger.json` 对总支付做纯会计记账「还愿基金」，比例由 `FULFILL_FUND_BPS`（默认 2000 = 总支付的 20%）配置。无质押、无收益、无 LP、无分润展示。
 
 ### 世界树光谱（灵魂绑定记录）
 每次许愿的交易本身就是与作者地址绑定、不可转让的记录；前端由交易哈希确定性生成唯一 SVG 光谱。（真正的 NFT 可后续改用 Token-2022 NonTransferable 扩展铸造。）
@@ -150,7 +150,7 @@ server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账
 ## 多链钱包 · 安全设置 · 站内信
 - **钱包**（非托管，只请求签名）：Solana — Phantom / Solflare / Backpack / OKX（Wallet Standard 优先，注入式回退）；EVM — MetaMask / OKX / Coinbase / 任意 EIP-6963 钱包，可切换 BSC Testnet、Base Sepolia、Sepolia、Arbitrum Sepolia。移动端未检测到钱包时用各钱包深链接在其内置浏览器打开本站。
 - **登录**：EIP-4361 风格消息（一次性 nonce，5 分钟有效，校验域名）。EVM 用 `personal_sign`（服务器 secp256k1 恢复地址），Solana 用 `signMessage`（ed25519）。愿望仍以 Solana devnet 为唯一事实来源：EVM 账户由服务器托管一个 devnet 密钥签 memo（演示）。
-- **EVM 支付**：设置 `EVM_DEV_ADDRESS` 与 `EVM_TREASURY_ADDRESS` 后开启；用户钱包直接发送两笔原生币转账（20% / 80%），服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、比例、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
+- **EVM 支付**：按链设置 `EVM_PAY_ETH` / `EVM_PAY_BSC` / `EVM_PAY_BASE` / `EVM_PAY_ARB`（及可选 `EVM_PAY_UNI`）后开启；用户钱包发送**一笔**原生币转账至该链收款地址。UNI：Unichain 未实现，经以太坊 Sepolia 路径支付并标为 UNI。服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
 - **安全设置** `#/security`：已登录设备列表、单独退出 / 退出其他所有设备；邮箱验证（需 `RESEND_API_KEY` + `MAIL_FROM`）；邮箱账户可选 TOTP（Google Authenticator，RFC 6238）；大额支付确认（默认 ≥ 20 美元，开启 2FA 时需验证码，服务器同样校验）。
 - **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记还愿时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（`GET /api/admin/notice` 列表、`POST /api/admin/notice/delete {id}` 删除）（均需 `x-admin-key`）。
 

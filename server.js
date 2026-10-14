@@ -33,10 +33,12 @@ function verifyWishMemo(memo) { // WTREE1|W|hash|ts|sig|分类|正文  或  WTRE
   return sha256hex(m[4]) === m[1] && nacl.sign.detached.verify(attMsg(m[1], m[2]), Buffer.from(m[3], 'hex'), MODKEY.publicKey);
 }
 const PAYEES_F = path.join(DATA_DIR, 'payees.json'); let PAYEES = null; try { PAYEES = JSON.parse(fs.readFileSync(PAYEES_F)); } catch {}
-if (!PAYEES) { const d = web3.Keypair.generate(), t = web3.Keypair.generate(); PAYEES = { developer: { pubkey: d.publicKey.toBase58(), secret: Array.from(d.secretKey) }, treasury: { pubkey: t.publicKey.toBase58(), secret: Array.from(t.secretKey) } };
-  if (!process.env.DEV_PUBKEY || !process.env.TREASURY_PUBKEY) { fs.writeFileSync(PAYEES_F, JSON.stringify(PAYEES, null, 2), { mode: 0o600 }); console.warn('⚠️  generated new devnet payee keypairs in data/payees.json (set DEV_PUBKEY / TREASURY_PUBKEY)'); } }
-if (process.env.DEV_PUBKEY) PAYEES.developer = { pubkey: process.env.DEV_PUBKEY }; if (process.env.TREASURY_PUBKEY) PAYEES.treasury = { pubkey: process.env.TREASURY_PUBKEY }; // devnet 演示收款地址（开发者 20% / 项目金库 80%）
-const DEV = new web3.PublicKey(PAYEES.developer.pubkey), TREASURY = new web3.PublicKey(PAYEES.treasury.pubkey);
+if (!PAYEES) { const r = web3.Keypair.generate(); PAYEES = { receive: { pubkey: r.publicKey.toBase58(), secret: Array.from(r.secretKey) }, developer: { pubkey: r.publicKey.toBase58() }, treasury: { pubkey: r.publicKey.toBase58() } };
+  if (!process.env.RECEIVE_PUBKEY && !process.env.TREASURY_PUBKEY && !process.env.DEV_PUBKEY) { fs.writeFileSync(PAYEES_F, JSON.stringify(PAYEES, null, 2), { mode: 0o600 }); console.warn('⚠️  generated new devnet receive keypair in data/payees.json (set RECEIVE_PUBKEY)'); } }
+// 单一 Solana 收款地址（全额）；优先 RECEIVE_PUBKEY，其次 TREASURY_PUBKEY / DEV_PUBKEY / 本地 payees
+const recvStr = process.env.RECEIVE_PUBKEY || process.env.TREASURY_PUBKEY || process.env.DEV_PUBKEY || PAYEES.receive?.pubkey || PAYEES.treasury?.pubkey || PAYEES.developer?.pubkey;
+PAYEES.receive = { pubkey: recvStr }; PAYEES.developer = { pubkey: recvStr }; PAYEES.treasury = { pubkey: recvStr };
+const RECEIVE = new web3.PublicKey(recvStr), DEV = RECEIVE, TREASURY = RECEIVE;
 const MIN_USD = 1, SOL_USD_FALLBACK = +process.env.SOL_USD || 150; let priceCache = { usd: SOL_USD_FALLBACK, src: 'fallback', at: 0 };
 const COIN_FB = { ethereum: +process.env.ETH_USD || 3000, binancecoin: +process.env.BNB_USD || 600 }; priceCache.coins = { ...COIN_FB };
 async function solPrice() { if (Date.now() - priceCache.at < 600000) return priceCache;
@@ -79,8 +81,8 @@ async function imgUpload(b) {
 
 function buildMemoTx(payer, memo, lamports) {
   const tx = new web3.Transaction();
-  if (lamports > 0) { const dev = Math.floor(lamports * 0.2); // 直接从用户账户转给收款方：20% 开发者 / 80% 金库
-    tx.add(web3.SystemProgram.transfer({ fromPubkey: payer, toPubkey: DEV, lamports: dev }), web3.SystemProgram.transfer({ fromPubkey: payer, toPubkey: TREASURY, lamports: lamports - dev })); }
+  if (lamports > 0) // 全额转入单一收款地址（无 20/80 拆分）
+    tx.add(web3.SystemProgram.transfer({ fromPubkey: payer, toPubkey: RECEIVE, lamports }));
   // 0 lamport 转账给固定 TREE 地址，使该笔交易可通过 getSignaturesForAddress(TREE) 被索引
   tx.add(web3.SystemProgram.transfer({ fromPubkey: payer, toPubkey: TREE, lamports: 0 }));
   tx.add(new web3.TransactionInstruction({ programId: MEMO, keys: [{ pubkey: payer, isSigner: true, isWritable: false }], data: Buffer.from(memo, 'utf8') }));
@@ -133,8 +135,14 @@ async function api(req, res, url) {
     res.setHeader('cache-control', 'public, max-age=60');
     return send(res, 200, url === '/api/tiles' ? { total: N, level, tiles: regs.map(one) } : { total: N, level, ...one(regs[0]) });
   }
-  if (url === '/api/config') { const p = await solPrice(); return send(res, 200, { developer: DEV.toBase58(), treasury: TREASURY.toBase58(), split: [20, 80], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, minLamports: minLamports(p.usd), moderator: MOD_PUB,
-    evm: { pay: Acc.EVM_PAY, dev: Acc.EVM_DEV || null, treasury: Acc.EVM_TREASURY || null, usd: p.coins, chains: Object.fromEntries(Object.entries(Acc.CHAINS).map(([id, c]) => [id, { key: c.key, name: c.name, sym: c.sym, coin: c.coin, exp: c.exp, rpc: c.rpc }])) }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20 }); }
+  if (url === '/api/config') { const p = await solPrice();
+    const chains = Object.fromEntries(Object.entries(Acc.CHAINS).map(([id, c]) => [id, { key: c.key, name: c.name, sym: c.sym, coin: c.coin, exp: c.exp, rpc: c.rpc, receive: Acc.EVM_RECV[c.key] || null }]));
+    // UNI：Unichain 未实现 → 走以太坊 Sepolia 支付路径，收款地址标为 UNI
+    const routes = {};
+    for (const [id, c] of Object.entries(Acc.CHAINS)) if (Acc.EVM_RECV[c.key]) routes[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: Acc.EVM_RECV[c.key] };
+    if (Acc.EVM_RECV.uni) { const eth = Acc.CHAINS[11155111]; routes.uni = { chainId: 11155111, key: 'uni', name: 'UNI (via Ethereum)', sym: eth?.sym || 'ETH', coin: eth?.coin || 'ethereum', receive: Acc.EVM_RECV.uni, via: 'eth', uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED }; }
+    return send(res, 200, { receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, minLamports: minLamports(p.usd), moderator: MOD_PUB,
+    evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV }, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20 }); }
   if (url === '/api/nonce') return send(res, 200, { nonce: Acc.nonce() });
   if (url === '/api/login/wallet' && req.method === 'POST') { // 钱包签名登录：EVM（personal_sign，EIP-4361 格式）或 Solana（signMessage）；不涉及私钥、不发交易
     const lb = await body(req); let v; try { v = Acc.verifyLogin(lb, allowHost(req)); } catch (e) { return fail(res, e, 401); }

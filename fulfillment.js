@@ -4,7 +4,7 @@ const web3 = require('@solana/web3.js');
 const nacl = require('tweetnacl');
 
 const MATERIAL = '物质类';
-const FULFILL_FUND_BPS = Math.max(0, Math.min(10000, parseInt(process.env.FULFILL_FUND_BPS || '2500', 10) || 2500)); // 占金库 80% 的比例，默认 2500 = 25% → 总支付的 20%
+const FULFILL_FUND_BPS = Math.max(0, Math.min(10000, parseInt(process.env.FULFILL_FUND_BPS || '2000', 10) || 2000)); // 占总支付比例，默认 2000 = 20%（无 20/80 拆分后按全额计）
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const DATA_DIR = path.join(__dirname, 'data');
 const FUL_F = path.join(DATA_DIR, 'fulfillments.json');
@@ -27,13 +27,13 @@ function adminOk(req) {
   return typeof k === 'string' && k.length > 0 && k === ADMIN_KEY;
 }
 
-/** 记账：从总支付中按 20% 开发者 / 80% 金库拆分后，将金库份额的 FULFILL_FUND_BPS 记为还愿基金（纯会计，不上链、不展示） */
+/** 记账：全额入账后按 FULFILL_FUND_BPS 记还愿基金（纯会计，不上链、不展示；无 20/80 拆分） */
 function recordFund(wishSig, lamports, source) {
   const lam = Math.max(0, Math.floor(+lamports || 0));
   if (!wishSig || !lam) return null;
   const ledger = loadLedger();
   if (ledger.entries.some(e => e.wishSig === wishSig)) return ledger.entries.find(e => e.wishSig === wishSig);
-  const treasuryShare = lam - Math.floor(lam * 0.2);
+  const treasuryShare = lam; // 全额为项目收款
   const fundLamports = Math.floor(treasuryShare * FULFILL_FUND_BPS / 10000);
   const entry = { wishSig, lamports: lam, treasuryShare, fundBps: FULFILL_FUND_BPS, fundLamports, at: Date.now(), source: source || 'unknown' };
   ledger.fundBps = FULFILL_FUND_BPS;
