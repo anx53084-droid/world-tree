@@ -544,5 +544,17 @@
   "guide.cta": "✨ Buat kartu harapan saya",
   "guide.secondary": "Lihat dulu harapan orang lain",
   "guide.dismiss": "Jangan tampilkan lagi",
-  "guide.close": "Tutup"
+  "guide.close": "Tutup",
+  "a11y.skip": "Lewati ke konten utama",
+  "a11y.skyLabel": "Langit berbintang Pohon Dunia",
+  "a11y.skyDesc": "Pohon Dunia tumbuh seiring jumlah kartu harapan. Setiap bulan ia berganti tiga wujud: awal, tengah, dan akhir bulan dengan bunga sakura berguguran. Tombol panah untuk memutar, Atas/Bawah atau +/- untuk zoom.",
+  "a11y.treeLabel": "Pohon Dunia 3D",
+  "a11y.fab": "Buat kartu harapan",
+  "a11y.dialog": "Dialog",
+  "a11y.field": "Kolom isian",
+  "a11y.f.type": "Jenis",
+  "a11y.f.cat": "Kategori",
+  "a11y.f.days": "Rentang waktu",
+  "a11y.f.heat": "Popularitas",
+  "a11y.f.sort": "Urutkan"
 }

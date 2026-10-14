@@ -503,6 +503,7 @@ function maybeFulfillToast(w) {
   S.fulfillToast[w.sig] = 1; try { localStorage.wt_ful_toast = JSON.stringify(S.fulfillToast); } catch {}
   toast(`✨ ${esc(t('fulfill.toast'))}`, 'ok celebrate');
 }
+document.addEventListener('click', e => { const a = e.target.closest('[data-scroll]'); if (a) { e.preventDefault(); document.getElementById(a.dataset.scroll)?.scrollIntoView({ behavior: 'smooth' }); } });
 // ---------- 滑出菜单 ----------
 function setMenu(open) { const m = $('#menu'), bd = $('#menu-bd'), b = $('#burger'); if (!m) return;
   document.body.classList.toggle('menu-open', open); bd.hidden = !open; m.inert = !open; m.setAttribute('aria-hidden', !open); b.setAttribute('aria-expanded', open);
@@ -512,12 +513,28 @@ $('#burger').addEventListener('click', () => setMenu(true)); $('#menu-x').addEve
 ['pointerdown', 'wheel', 'touchmove'].forEach(ev => $('#menu-bd').addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }, { passive: false }));
 $('#gq').addEventListener('click', () => { const sub = $('#gqsub'), o = sub.hidden; sub.hidden = !o; $('#gq').setAttribute('aria-expanded', o); });
 $('#menu').addEventListener('click', e => { if (e.target.closest('nav a, #mode button')) setMenu(false); });
-addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('menu-open')) { const lm = $('#langmenu'); if (lm && !lm.hidden) return; setMenu(false); } });
+addEventListener('keydown', e => { if (!document.body.classList.contains('menu-open')) return;
+  if (e.key === 'Escape') { const lm = $('#langmenu'); if (lm && !lm.hidden) return; setMenu(false); return; }
+  if (e.key === 'Tab') { const f = [...$('#menu').querySelectorAll(FOCUSABLE)].filter(x => x.offsetParent !== null); if (!f.length) return; const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } } });
 // ---------- UI 工具 ----------
 function toast(html, cls = '') { const d = document.createElement('div'); d.className = 'toast ' + cls; d.innerHTML = html; $('#toasts').append(d);
   const kill = () => setTimeout(() => d.remove(), 9000); if (cls) kill(); d.update = (h, c = '') => { d.innerHTML = h; d.className = 'toast ' + c; if (c) kill(); }; return d; }
-function modal(html, cat) { $('#modal-box').innerHTML = html; $('#modal-box').dataset.cat = cat || ''; $('#modal').hidden = false; }
-function closeModal() { $('#modal').hidden = true; }
+let modalRet = null;
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+function modal(html, cat) { const box = $('#modal-box'), wasOpen = !$('#modal').hidden; if (!wasOpen) modalRet = document.activeElement;
+  box.innerHTML = html; box.dataset.cat = cat || ''; $('#modal').hidden = false;
+  const h = box.querySelector('h1,h2,h3'); if (h) { h.id = h.id || 'modal-title'; box.setAttribute('aria-labelledby', h.id); } else { box.removeAttribute('aria-labelledby'); box.setAttribute('aria-label', t('a11y.dialog')); }
+  a11yFix(box); setTimeout(() => (box.querySelector('[autofocus]') || box.querySelector(FOCUSABLE) || box).focus(), 30); }
+function closeModal() { if ($('#modal').hidden) return; $('#modal').hidden = true; const r = modalRet; modalRet = null; if (r && document.contains(r)) r.focus?.(); }
+$('#modal').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeModal(); return; }
+  if (e.key !== 'Tab') return; const f = [...$('#modal-box').querySelectorAll(FOCUSABLE)].filter(x => x.offsetParent !== null); if (!f.length) { e.preventDefault(); return; }
+  const first = f[0], last = f[f.length - 1]; if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } });
+function a11yFix(root = document) { // 无可访问名称的表单控件：用 placeholder / title / name 补 aria-label；装饰性 svg 隐藏
+  root.querySelectorAll('input:not([type=hidden]),select,textarea').forEach(el => { if (el.getAttribute('aria-label') || el.closest('label') || (el.id && document.querySelector(`label[for="${el.id}"]`))) return;
+    const n = el.getAttribute('placeholder') || el.title || (el.name && t('a11y.f.' + el.name) !== 'a11y.f.' + el.name ? t('a11y.f.' + el.name) : '') || t('a11y.field'); el.setAttribute('aria-label', n); });
+  root.querySelectorAll('svg:not([aria-label]):not([role=img])').forEach(s => s.setAttribute('aria-hidden', 'true')); }
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal' || e.target.closest('[data-close]')) closeModal(); });
 // 世界树光谱：由交易签名哈希确定性生成的唯一 SVG（灵魂绑定记录：绑定作者地址的链上交易，非代币、不可转让）
 function spectrum(sig, size = 96) {
@@ -628,7 +645,7 @@ function home() {
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
 </form>
   <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.growing')}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
-  <div class=scene-hint>${E('home.hint')} <span class=debug-only>· <a href="#lists" onclick="document.getElementById('lists').scrollIntoView({behavior:'smooth'});return false">⌄ ${E('home.rank')}</a></span></div></div>
+  <div class=scene-hint>${E('home.hint')} <span class=debug-only>· <a href="#lists" data-scroll=lists>⌄ ${E('home.rank')}</a></span></div></div>
   <div class="cols home-lists debug-only" id=lists><div class=glass><h2>🔥 ${E('home.hot')}</h2>${hot.map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div><div class=glass><h2>🆕 ${E('home.new')}</h2>${visibleWishes().slice(0, 5).map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div></div>`;
 }
 function list(q, only) {
@@ -638,12 +655,12 @@ function list(q, only) {
   if (sort === 'hot') ws = [...ws].sort((a, b) => b.heat - a.heat); if (sort === 'old') ws = [...ws].reverse();
   const body = () => !ws.length && S.syncing ? skel(3) : `<p class=muted>${E('list.count', { n: num(ws.length) })}</p>${ws.length ? ws.map(wishCard).join('') : `<div class=card><h3>🌟 ${E('ux.featured')}</h3><p class=muted>${E('ux.featuredHint')}</p>${sampleCards(3)}</div>`}`; if (only) return body();
   const opt = (arr, v) => arr.map(([k, l]) => `<option value="${k}" ${String(k) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('');
-  return `<h2>${E('list.title')}</h2><form class=row id=lf><input name=q placeholder="${E('list.kwPh')}" value="${esc(kw)}">
-  <select name=type>${opt([['', t('list.allTypes')], ['wish', '✨ ' + t('kind.wish')], ['social', '💬 ' + t('kind.social')], ['gift', '🎁 ' + t('kind.gift')], ['goods', '🛍️ ' + t('kind.goods')]], type)}</select>
-  <select name=cat>${opt([['', t('list.allCovers')], ...COVER_CATS.map(c => [c, catName(c)])], cat)}</select>
-  <select name=days>${opt([[0, t('list.allTime')], [1, t('list.h24')], [7, t('list.d7')], [30, t('list.d30')]], days)}</select>
-  <select name=heat>${opt([[0, t('list.heatAny')], [2, t('list.heatMin', { n: 2 })], [10, t('list.heatMin', { n: 10 })]], minHeat)}</select>
-  <select name=sort>${opt([['new', t('home.new')], ['hot', t('home.hot')], ['old', t('list.sortOld')]], sort)}</select><button>${E('list.filter')}</button><button type=button id=rf>${E('list.refresh')}</button></form>
+  return `<h2>${E('list.title')}</h2><form class=row id=lf role=search aria-label="${E('list.filter')}"><input name=q aria-label="${E('list.kwPh')}" placeholder="${E('list.kwPh')}" value="${esc(kw)}">
+  <select name=type aria-label="${E('a11y.f.type')}">${opt([['', t('list.allTypes')], ['wish', '✨ ' + t('kind.wish')], ['social', '💬 ' + t('kind.social')], ['gift', '🎁 ' + t('kind.gift')], ['goods', '🛍️ ' + t('kind.goods')]], type)}</select>
+  <select name=cat aria-label="${E('a11y.f.cat')}">${opt([['', t('list.allCovers')], ...COVER_CATS.map(c => [c, catName(c)])], cat)}</select>
+  <select name=days aria-label="${E('a11y.f.days')}">${opt([[0, t('list.allTime')], [1, t('list.h24')], [7, t('list.d7')], [30, t('list.d30')]], days)}</select>
+  <select name=heat aria-label="${E('a11y.f.heat')}">${opt([[0, t('list.heatAny')], [2, t('list.heatMin', { n: 2 })], [10, t('list.heatMin', { n: 10 })]], minHeat)}</select>
+  <select name=sort aria-label="${E('a11y.f.sort')}">${opt([['new', t('home.new')], ['hot', t('home.hot')], ['old', t('list.sortOld')]], sort)}</select><button>${E('list.filter')}</button><button type=button id=rf>${E('list.refresh')}</button></form>
   <div id=wl>${body()}</div>`;
 }
 function detail(sig) {
@@ -836,7 +853,7 @@ ${localStorage.wt_terms === '1' ? `<p class=muted>✅ ${E('terms.agreed')}</p>` 
 // ---------- 路由 ----------
 let ready3d = false;
 function paintFab(p) { let f = $('#fab'); if (!f) { f = document.createElement('a'); f.id = 'fab'; f.href = '#/wish/make'; document.body.append(f); }
-  f.innerHTML = `✨ <span>${E('ux.fab')}</span>`; f.hidden = S.mode === 'guest' || /^\/wish/.test(p) || !!$('#search-panel:not([hidden])'); } // 已登录才显示；制作页本身不显示
+  f.innerHTML = `<span aria-hidden=true>✨</span> <span>${E('ux.fab')}</span>`; f.setAttribute('aria-label', t('a11y.fab')); f.hidden = S.mode === 'guest' || /^\/wish/.test(p) || !!$('#search-panel:not([hidden])'); } // 已登录才显示；制作页本身不显示
 // ---------- SEO / 分享 meta：随路由更新 title、description、og/twitter ----------
 const SEO = {
   '/': ['光栖 · 世界树许愿树', '在世界树上留下你的正向心愿，永久上链', 'Guangqi · World Wish Tree', 'Leave a positive wish on the World Tree—recorded on-chain forever'],
@@ -860,7 +877,7 @@ async function route() {
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
   const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
-  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
+  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });
@@ -1015,8 +1032,15 @@ function syncChip(on) { S.syncing = !!on; let c = $('#sync'); if (!c) { c = docu
 function refreshView() { // 后台数据到达：首页只更新 3D 数据，其他页面在用户未编辑时重渲染
   if ($('#scene') && window.WT3D) { WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); const bn = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; if ($('#banner').innerHTML !== bn) $('#banner').innerHTML = bn; return; }
   softRefresh(); }
+function canvasA11y() { const c = $('#scene canvas'); if (!c || c.dataset.a11y) return; c.dataset.a11y = 1;
+  c.setAttribute('role', 'img'); c.setAttribute('tabindex', '0'); c.setAttribute('aria-label', t('a11y.treeLabel')); c.setAttribute('aria-describedby', 'sky-desc');
+  c.addEventListener('keydown', e => { const d = window.WT3D?._dbg?.(); if (!d?.controls) return; const C = d.controls, cam = d.camera, off = cam.position.clone().sub(C.target);
+    const rot = a => { const x = off.x, z = off.z; off.x = x * Math.cos(a) - z * Math.sin(a); off.z = x * Math.sin(a) + z * Math.cos(a); };
+    if (e.key === 'ArrowLeft') rot(-.12); else if (e.key === 'ArrowRight') rot(.12);
+    else if (e.key === 'ArrowUp' || e.key === '+' || e.key === '=') off.multiplyScalar(.9); else if (e.key === 'ArrowDown' || e.key === '-') off.multiplyScalar(1.1); else return;
+    e.preventDefault(); off.setLength(Math.min(C.maxDistance, Math.max(C.minDistance, off.length()))); cam.position.copy(C.target).add(off); C.update(); }); }
 function mount3d() { if (!window.WT3D) { if (!ready3d) { ready3d = true; addEventListener('wt3d-ready', () => $('#scene') && mount3d()); } return; }
-  WT3D.attach($('#scene')); WT3D.setSeason(S.season || autoSeason()); WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); }
+  WT3D.attach($('#scene')); canvasA11y(); WT3D.setSeason(S.season || autoSeason()); WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); }
 addEventListener('hashchange', () => { closeModal(); $('#tip').hidden = true; route(); });
 addEventListener('langchange', () => { renderMode(); if (window.WT3D?.relabel) WT3D.relabel(); if (!document.querySelector('textarea:focus') && $('#modal').hidden) route(); });
 if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.hostname) || QS.get('sw') === '1') navigator.serviceWorker?.register('sw.js').catch(() => {});

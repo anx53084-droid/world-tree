@@ -544,5 +544,17 @@
   "guide.cta": "✨ Tạo thẻ ước nguyện của tôi",
   "guide.secondary": "Xem ước nguyện của người khác trước",
   "guide.dismiss": "Không hiện lại",
-  "guide.close": "Đóng"
+  "guide.close": "Đóng",
+  "a11y.skip": "Chuyển đến nội dung chính",
+  "a11y.skyLabel": "Bầu trời sao Cây Thế Giới",
+  "a11y.skyDesc": "Cây Thế Giới lớn lên theo số thẻ điều ước. Mỗi tháng cây có ba hình thái: đầu tháng, giữa tháng và cuối tháng với hoa anh đào rơi. Dùng phím mũi tên để xoay, Lên/Xuống hoặc +/- để thu phóng.",
+  "a11y.treeLabel": "Cây Thế Giới 3D",
+  "a11y.fab": "Tạo thẻ điều ước",
+  "a11y.dialog": "Hộp thoại",
+  "a11y.field": "Ô nhập",
+  "a11y.f.type": "Loại",
+  "a11y.f.cat": "Danh mục",
+  "a11y.f.days": "Khoảng thời gian",
+  "a11y.f.heat": "Độ phổ biến",
+  "a11y.f.sort": "Sắp xếp"
 }

@@ -544,5 +544,17 @@
   "guide.cta": "✨ Dilek kartımı oluştur",
   "guide.secondary": "Önce başkalarının dileklerine bak",
   "guide.dismiss": "Bir daha gösterme",
-  "guide.close": "Kapat"
+  "guide.close": "Kapat",
+  "a11y.skip": "Ana içeriğe geç",
+  "a11y.skyLabel": "Dünya Ağacı yıldızlı gökyüzü",
+  "a11y.skyDesc": "Dünya Ağacı dilek kartı sayısıyla büyür. Her ay üç biçim alır: ay başı, ortası ve kiraz çiçeklerinin döküldüğü ay sonu. Döndürmek için ok tuşları, yakınlaştırmak için Yukarı/Aşağı veya +/-.",
+  "a11y.treeLabel": "3D Dünya Ağacı",
+  "a11y.fab": "Dilek kartı oluştur",
+  "a11y.dialog": "İletişim kutusu",
+  "a11y.field": "Giriş alanı",
+  "a11y.f.type": "Tür",
+  "a11y.f.cat": "Kategori",
+  "a11y.f.days": "Zaman aralığı",
+  "a11y.f.heat": "Popülerlik",
+  "a11y.f.sort": "Sırala"
 }

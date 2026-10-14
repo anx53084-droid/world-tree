@@ -544,5 +544,17 @@
   "guide.cta": "✨ Créer ma carte de vœu",
   "guide.secondary": "Voir d’abord les vœux des autres",
   "guide.dismiss": "Ne plus afficher",
-  "guide.close": "Fermer"
+  "guide.close": "Fermer",
+  "a11y.skip": "Aller au contenu principal",
+  "a11y.skyLabel": "Ciel étoilé de l'Arbre-Monde",
+  "a11y.skyDesc": "L'Arbre-Monde grandit avec le nombre de cartes de vœux. Chaque mois il prend trois formes : début, milieu et fin de mois avec des fleurs de cerisier qui tombent. Flèches pour pivoter, Haut/Bas ou +/- pour zoomer.",
+  "a11y.treeLabel": "Arbre-Monde 3D",
+  "a11y.fab": "Créer une carte de vœu",
+  "a11y.dialog": "Boîte de dialogue",
+  "a11y.field": "Champ de saisie",
+  "a11y.f.type": "Type",
+  "a11y.f.cat": "Catégorie",
+  "a11y.f.days": "Période",
+  "a11y.f.heat": "Popularité",
+  "a11y.f.sort": "Trier"
 }

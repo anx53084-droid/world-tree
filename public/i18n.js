@@ -17,6 +17,7 @@
   const load = l => fetch('i18n/' + l + '.json').then(r => { if (!r.ok) throw new Error(l); return r.json(); });
   I.apply = function () { const h = document.documentElement; h.lang = I.lang; h.dir = RTL.includes(I.lang) ? 'rtl' : 'ltr'; document.title = I.t('meta.title'); try { window.WT_applySeo?.(); } catch {}
     document.querySelectorAll('[data-i18n]').forEach(e => e.textContent = I.t(e.dataset.i18n));
+    document.querySelectorAll('[data-i18n-aria]').forEach(e => e.setAttribute('aria-label', I.t(e.dataset.i18nAria)));
     document.querySelectorAll('[data-i18n-title]').forEach(e => { e.title = I.t(e.dataset.i18nTitle); e.setAttribute('aria-label', e.title); });
     renderSwitcher(); };
   function renderSwitcher() { const box = document.getElementById('lang'); if (!box) return;
@@ -25,9 +26,17 @@
     const btn = box.querySelector('#langbtn'), menu = box.querySelector('#langmenu');
     btn.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', !menu.hidden); };
     menu.onclick = e => { const li = e.target.closest('[data-lang]'); if (li) I.set(li.dataset.lang); };
-    menu.onkeydown = e => { if (e.key === 'Enter') { const li = e.target.closest('[data-lang]'); if (li) I.set(li.dataset.lang); } if (e.key === 'Escape') menu.hidden = true; };
+    btn.setAttribute('aria-controls', 'langmenu');
+    const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.focus(); };
+    btn.onkeydown = e => { if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); (menu.querySelector('[aria-selected=true]') || menu.firstElementChild).focus(); } };
+    menu.onkeydown = e => { const li = e.target.closest('[data-lang]'), items = [...menu.children], k = items.indexOf(li);
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (li) I.set(li.dataset.lang); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); items[(k + 1) % items.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); items[(k - 1 + items.length) % items.length].focus(); }
+      else if (e.key === 'Home') { e.preventDefault(); items[0].focus(); } else if (e.key === 'End') { e.preventDefault(); items[items.length - 1].focus(); } };
   }
-  document.addEventListener('click', e => { const m = document.getElementById('langmenu'); if (m && !m.hidden && !e.target.closest('#lang')) m.hidden = true; });
+  document.addEventListener('click', e => { const m = document.getElementById('langmenu'); if (m && !m.hidden && !e.target.closest('#lang')) { m.hidden = true; document.getElementById('langbtn')?.setAttribute('aria-expanded', 'false'); } });
   I.set = async function (l) { l = match(l) || DEF; try { localStorage.wt_lang = l; } catch {} if (l === I.lang) { renderSwitcher(); return; }
     try { I.dict = await load(l); I.lang = l; } catch { return; }
     const u = new URL(location.href); if (u.searchParams.has('lang')) { u.searchParams.set('lang', l); history.replaceState(null, '', u); }

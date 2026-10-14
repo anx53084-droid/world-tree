@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>光栖 · 世界树许愿树</title>
 <meta name="description" content="在世界树上留下你的正向心愿，永久上链，不可转让。钱包签名，资金直达项目地址，本站不托管。">
 <meta name="keywords" content="光栖,世界树,许愿树,心愿卡,链上心愿,Solana,Web3,区块链许愿,Guangqi,World Tree,wish tree">
@@ -24,19 +24,19 @@
 <meta name="twitter:image" content="https://world-tree.pages.dev/og-image.png">
 <meta name="twitter:image:alt" content="光栖 · 世界树许愿树"><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css">
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/"}}</script></head>
-<body><canvas id="sky-fallback"></canvas><div id="sky"></div>
+<body><a class="skip-link" href="#view" data-i18n="a11y.skip">跳到主要内容</a><canvas id="sky-fallback" role="img" data-i18n-aria="a11y.skyLabel" aria-label="世界树星空" aria-describedby="sky-desc"></canvas><div id="sky"></div><p id="sky-desc" class="sr-only" data-i18n="a11y.skyDesc"></p>
 <header><a href="#/" class="logo" data-i18n-title="brand"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 22v-9M12 16l-3-2.5M12 15l3-2.5"/><path d="M12 2.5l7 10H5z"/></svg></a><a href="#/origin" class="brand" data-i18n="nav.gq">光栖</a>
 <nav id="topnav" aria-label="main"><a href="#/" data-i18n="nav.gqHome">光栖之处</a><a href="#/list" data-i18n="nav.list">星愿星语</a><a href="#/wish" data-i18n="nav.wish">我的星愿</a><a href="#/me" data-i18n="nav.me">光栖足迹</a><a href="#/help" data-i18n="nav.help">规则与说明</a></nav>
 <span class="hdr-r"><a id="bell" class="icon-btn bell" href="#/inbox" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><b id="bellN" hidden></b></a><button type="button" id="burger" class="icon-btn" aria-controls="menu" aria-expanded="false" data-i18n-title="nav.menu"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.4"/></svg></button></span></header>
 <div id="menu-bd" hidden></div>
-<aside id="menu" role="dialog" aria-modal="true" aria-hidden="true" inert>
+<aside id="menu" role="dialog" aria-modal="true" aria-hidden="true" data-i18n-aria="nav.menu" aria-label="菜单" inert>
 <button type="button" id="menu-x" class="icon-btn" data-i18n-title="nav.close"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="3"/></svg></button>
 <nav><button type=button id=gq class=gq aria-expanded=false data-i18n="nav.gq">光栖</button><div id=gqsub class=gqsub hidden><a href="#/" data-i18n="nav.gqHome">光栖之处</a><a href="#/origin" data-i18n="nav.gqOrigin">光栖起源</a></div><a href="#/list" data-i18n="nav.list">星愿星语</a><a href="#/wish" class="acc" data-i18n="nav.wish">我的星愿</a><a href="#/me" data-i18n="nav.me">光栖足迹</a><a href="#/inbox" data-i18n="nav.inbox">站内信</a><a href="#/notify" data-i18n="nav.notify">消息设置</a><a href="#/security" data-i18n="nav.security">安全设置</a><a href="#/help" data-i18n="nav.help">规则与说明</a><a href="#/terms" data-i18n="nav.terms">用户协议</a></nav>
 <div class="menu-sec"><div class="menu-h" data-i18n="nav.account">账户</div><div id="mode"></div></div>
 <div class="menu-sec"><div class="menu-h" data-i18n="nav.language">语言</div><div id="lang"></div></div>
 </aside>
-<div id="banner"></div><main id="view"></main><div id="toasts"></div><div id="tip" hidden></div>
-<div id="modal" class="modal" hidden><div class="modal-box" id="modal-box"></div></div>
+<div id="banner"></div><main id="view" tabindex="-1"></main><div id="toasts" role="status" aria-live="polite"></div><div id="tip" hidden></div>
+<div id="modal" class="modal" hidden><div class="modal-box" id="modal-box" role="dialog" aria-modal="true" tabindex="-1"></div></div>
 <footer class=debug-only data-i18n="footer">Solana devnet · 链上数据为唯一事实来源 · 资金由你的钱包直接转给收款地址，本站不托管资金 · MVP 演示</footer>
 <script src="config.js"></script><script src="net.js"></script><script src="vendor/nacl-fast.min.js"></script>
 <script src="i18n.js"></script><script src="covers.js"></script><script src="insides.js"></script><script src="addr.js"></script><script src="blockmatch.js"></script><script src="wallets.js"></script><script type="module" src="scene3d.js"></script><script src="app.js"></script></body></html>

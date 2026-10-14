@@ -544,5 +544,17 @@
   "guide.cta": "✨ Meine Wunschkarte erstellen",
   "guide.secondary": "Zuerst andere Wünsche ansehen",
   "guide.dismiss": "Nicht mehr anzeigen",
-  "guide.close": "Schließen"
+  "guide.close": "Schließen",
+  "a11y.skip": "Zum Hauptinhalt springen",
+  "a11y.skyLabel": "Sternenhimmel des Weltenbaums",
+  "a11y.skyDesc": "Der Weltenbaum wächst mit der Zahl der Wunschkarten. Jeden Monat zeigt er drei Formen: Monatsanfang, -mitte und -ende mit fallenden Kirschblüten. Pfeiltasten zum Drehen, Hoch/Runter oder +/- zum Zoomen.",
+  "a11y.treeLabel": "3D-Weltenbaum",
+  "a11y.fab": "Wunschkarte erstellen",
+  "a11y.dialog": "Dialog",
+  "a11y.field": "Eingabefeld",
+  "a11y.f.type": "Typ",
+  "a11y.f.cat": "Kategorie",
+  "a11y.f.days": "Zeitraum",
+  "a11y.f.heat": "Beliebtheit",
+  "a11y.f.sort": "Sortieren"
 }

@@ -544,5 +544,17 @@
   "guide.cta": "✨ Crear mi tarjeta de deseo",
   "guide.secondary": "Ver primero los deseos de otros",
   "guide.dismiss": "No volver a mostrar",
-  "guide.close": "Cerrar"
+  "guide.close": "Cerrar",
+  "a11y.skip": "Saltar al contenido principal",
+  "a11y.skyLabel": "Cielo estrellado del Árbol del Mundo",
+  "a11y.skyDesc": "El Árbol del Mundo crece con el número de tarjetas de deseo. Cada mes adopta tres formas: inicio, mitad y final de mes con flores de cerezo cayendo. Usa las flechas para girar, Arriba/Abajo o +/- para hacer zoom.",
+  "a11y.treeLabel": "Árbol del Mundo 3D",
+  "a11y.fab": "Crear tarjeta de deseo",
+  "a11y.dialog": "Diálogo",
+  "a11y.field": "Campo de texto",
+  "a11y.f.type": "Tipo",
+  "a11y.f.cat": "Categoría",
+  "a11y.f.days": "Periodo",
+  "a11y.f.heat": "Popularidad",
+  "a11y.f.sort": "Ordenar"
 }

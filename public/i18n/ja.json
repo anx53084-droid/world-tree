@@ -544,5 +544,17 @@
   "guide.cta": "✨ 願いカードを作る",
   "guide.secondary": "まずは他の願いを見る",
   "guide.dismiss": "今後表示しない",
-  "guide.close": "閉じる"
+  "guide.close": "閉じる",
+  "a11y.skip": "メインコンテンツへ移動",
+  "a11y.skyLabel": "世界樹の星空",
+  "a11y.skyDesc": "世界樹は願いカードの数に応じて成長します。毎月、上旬・中旬・下旬（桜が舞う）の姿に変わります。矢印キーで回転、上下キーまたは +/- で拡大縮小。",
+  "a11y.treeLabel": "3D 世界樹",
+  "a11y.fab": "願いカードを作る",
+  "a11y.dialog": "ダイアログ",
+  "a11y.field": "入力欄",
+  "a11y.f.type": "種類",
+  "a11y.f.cat": "カテゴリ",
+  "a11y.f.days": "期間",
+  "a11y.f.heat": "人気",
+  "a11y.f.sort": "並び替え"
 }

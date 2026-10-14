@@ -544,5 +544,17 @@
   "guide.cta": "✨ 制作我的心愿卡",
   "guide.secondary": "先看看别人的心愿",
   "guide.dismiss": "不再提示",
-  "guide.close": "关闭"
+  "guide.close": "关闭",
+  "a11y.skip": "跳到主要内容",
+  "a11y.skyLabel": "世界树星空",
+  "a11y.skyDesc": "世界树随心愿卡数量成长；每月呈现不同形态：上旬、中旬、下旬·樱花飘落。可用方向键旋转，上下键或 +/- 缩放。",
+  "a11y.treeLabel": "3D 世界树",
+  "a11y.fab": "制作心愿卡",
+  "a11y.dialog": "对话框",
+  "a11y.field": "输入框",
+  "a11y.f.type": "类型",
+  "a11y.f.cat": "分类",
+  "a11y.f.days": "时间范围",
+  "a11y.f.heat": "热度",
+  "a11y.f.sort": "排序"
 }

@@ -544,5 +544,17 @@
   "guide.cta": "✨ 내 소원 카드 만들기",
   "guide.secondary": "먼저 다른 소원 보기",
   "guide.dismiss": "다시 보지 않기",
-  "guide.close": "닫기"
+  "guide.close": "닫기",
+  "a11y.skip": "본문으로 건너뛰기",
+  "a11y.skyLabel": "세계수 밤하늘",
+  "a11y.skyDesc": "세계수는 소원 카드 수에 따라 자랍니다. 매달 초순·중순·하순(벚꽃이 흩날림)의 모습으로 바뀝니다. 화살표 키로 회전, 위/아래 또는 +/- 로 확대/축소.",
+  "a11y.treeLabel": "3D 세계수",
+  "a11y.fab": "소원 카드 만들기",
+  "a11y.dialog": "대화상자",
+  "a11y.field": "입력란",
+  "a11y.f.type": "유형",
+  "a11y.f.cat": "분류",
+  "a11y.f.days": "기간",
+  "a11y.f.heat": "인기",
+  "a11y.f.sort": "정렬"
 }

@@ -544,5 +544,17 @@
   "guide.cta": "✨ 製作我的心願卡",
   "guide.secondary": "先看看別人的心願",
   "guide.dismiss": "不再提示",
-  "guide.close": "關閉"
+  "guide.close": "關閉",
+  "a11y.skip": "跳到主要內容",
+  "a11y.skyLabel": "世界樹星空",
+  "a11y.skyDesc": "世界樹隨心願卡數量成長；每月呈現不同形態：上旬、中旬、下旬·櫻花飄落。可用方向鍵旋轉，上下鍵或 +/- 縮放。",
+  "a11y.treeLabel": "3D 世界樹",
+  "a11y.fab": "製作心願卡",
+  "a11y.dialog": "對話框",
+  "a11y.field": "輸入框",
+  "a11y.f.type": "類型",
+  "a11y.f.cat": "分類",
+  "a11y.f.days": "時間範圍",
+  "a11y.f.heat": "熱度",
+  "a11y.f.sort": "排序"
 }

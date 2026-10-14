@@ -544,5 +544,17 @@
   "guide.cta": "✨ Make my wish card",
   "guide.secondary": "Browse others’ wishes first",
   "guide.dismiss": "Don’t show again",
-  "guide.close": "Close"
+  "guide.close": "Close",
+  "a11y.skip": "Skip to main content",
+  "a11y.skyLabel": "World Tree starry sky",
+  "a11y.skyDesc": "The World Tree grows with the number of wish cards. Each month it takes three forms: early, mid, and late month with falling cherry blossoms. Use arrow keys to rotate, Up/Down or +/- to zoom.",
+  "a11y.treeLabel": "3D World Tree",
+  "a11y.fab": "Make a wish card",
+  "a11y.dialog": "Dialog",
+  "a11y.field": "Input field",
+  "a11y.f.type": "Type",
+  "a11y.f.cat": "Category",
+  "a11y.f.days": "Time range",
+  "a11y.f.heat": "Popularity",
+  "a11y.f.sort": "Sort"
 }
