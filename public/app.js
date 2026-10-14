@@ -224,10 +224,10 @@ async function api(url, data) {
 }
 
 // ---------- 登录：多链钱包（非托管）+ 邮箱 ----------
-// Solana：Phantom / Solflare / Backpack / OKX（Wallet Standard 优先）；EVM：MetaMask / OKX / Coinbase / EIP-6963 注入钱包（BSC、Base、Ethereum、Arbitrum 测试网）
-const EVM_KEYS = { 97: 'bsc', 84532: 'base', 11155111: 'eth', 421614: 'arb' };
-const evmChains = () => S.cfg.evm?.chains || { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB' }, 84532: { key: 'base', name: 'Base Sepolia', sym: 'ETH' }, 11155111: { key: 'eth', name: 'Sepolia', sym: 'ETH' }, 421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH' } };
-// 支付路由：含 UNI（经以太坊路径）；选项 value = payKey
+// Solana：Phantom / Solflare / Backpack / OKX（Wallet Standard 优先）；EVM：MetaMask / OKX / Coinbase / EIP-6963（BSC、Base、Ethereum、Arbitrum、Unichain 测试网）
+const EVM_KEYS = { 97: 'bsc', 84532: 'base', 11155111: 'eth', 421614: 'arb', 1301: 'uni' };
+const evmChains = () => S.cfg.evm?.chains || { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB' }, 84532: { key: 'base', name: 'Base Sepolia', sym: 'ETH' }, 11155111: { key: 'eth', name: 'Sepolia', sym: 'ETH' }, 421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH' }, 1301: { key: 'uni', name: 'Unichain Sepolia', sym: 'ETH', rpc: 'https://sepolia.unichain.org', exp: 'https://sepolia.uniscan.xyz' } };
+// 支付路由（含 Unichain）；选项 value = payKey
 const evmRoutes = () => {
   const r = S.cfg.evm?.routes; if (r && Object.keys(r).length) return r;
   const out = {}; for (const [id, c] of Object.entries(evmChains())) out[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: c.receive || S.cfg.evm?.recipients?.[c.key] || null };
@@ -568,7 +568,7 @@ function evmPayHtml() { if (S.kind !== 'evm' || !S.cfg.evm?.pay) return ''; cons
   return `<div class="card evpay"><label>${E('wish.payVia')} <select id=pv><option value=evm>⬡ ${E('wish.payEvm')}</option><option value=sol>◎ ${E('wish.paySol')}</option></select></label>
   <div id=evbox class=row><label>${E('wish.evmChain')} <select id=evc>${keys.map(k => { const r = R[k]; return `<option value=${esc(k)} ${k === sel ? 'selected' : ''}>${esc(t('chain.' + r.key))} · ${esc(r.name)}</option>`; }).join('')}</select></label>
   <label><span id=evaL>${E('wish.evmAmt', { sym: r0.sym })}</span> <input id=eva type=number step=0.00001 min=0 value="${evmMinByRoute(sel)}" style="width:120px"></label><span class="muted" id=evmin>${E('wish.evmMin', { min: evmMinByRoute(sel), sym: r0.sym })}</span></div></div>`; }
-async function evmPay(payKey, amount) { // EVM：全额转入该链单一收款地址；UNI 经以太坊路径
+async function evmPay(payKey, amount) { // EVM：全额转入该链单一收款地址（含 Unichain Sepolia）
   const p = await evmProvider(), r = evmRoutes()[payKey]; if (!r?.receive) throw new Error('no receive address');
   const chainId = r.chainId, c = evmChains()[chainId] || r, wei = WTW.toWei(amount), from = S.evmAddr;
   await WTW.switchChain(p, chainId, c);

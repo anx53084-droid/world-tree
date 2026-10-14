@@ -9,7 +9,8 @@ const hex = u => Buffer.from(u).toString('hex'), unhex = h => Uint8Array.from(Bu
 const CHAINS = { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB', coin: 'binancecoin', rpc: 'https://data-seed-prebsc-1-s1.bnbchain.org:8545', exp: 'https://testnet.bscscan.com' },
   84532: { key: 'base', name: 'Base Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia.base.org', exp: 'https://sepolia.basescan.org' },
   11155111: { key: 'eth', name: 'Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://ethereum-sepolia-rpc.publicnode.com', exp: 'https://sepolia.etherscan.io' },
-  421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia-rollup.arbitrum.io/rpc', exp: 'https://sepolia.arbiscan.io' } };
+  421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia-rollup.arbitrum.io/rpc', exp: 'https://sepolia.arbiscan.io' },
+  1301: { key: 'uni', name: 'Unichain Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia.unichain.org', exp: 'https://sepolia.uniscan.xyz' } };
 for (const id in CHAINS) if (process.env['EVM_RPC_' + id]) CHAINS[id].rpc = process.env['EVM_RPC_' + id];
 const isAddr = a => /^0x[0-9a-fA-F]{40}$/.test(a || '');
 // 每链单一收款地址（无 20/80 拆分）。UNI 链未实现：经以太坊路径支付，地址标为 UNI。
@@ -20,7 +21,7 @@ for (const [k, env] of Object.entries(PAY_ENV)) { const a = process.env[env]; if
 if (!Object.keys(EVM_RECV).length) { const legacy = isAddr(process.env.EVM_TREASURY_ADDRESS) ? process.env.EVM_TREASURY_ADDRESS.toLowerCase() : (isAddr(process.env.EVM_DEV_ADDRESS) ? process.env.EVM_DEV_ADDRESS.toLowerCase() : '');
   if (legacy) for (const k of ['bsc', 'base', 'eth', 'arb']) EVM_RECV[k] = legacy; }
 const EVM_PAY = Object.keys(EVM_RECV).length > 0;
-const UNI_CHAIN_IMPLEMENTED = false; // Unichain 未接入；UNI 走以太坊 Sepolia 支付路径
+const UNI_CHAIN_IMPLEMENTED = true; // Unichain Sepolia (1301)
 const EVM_DEV = EVM_RECV.eth || '', EVM_TREASURY = EVM_RECV.eth || ''; // 兼容旧导出字段
 function recvFor(chainId, payKey) {
   const c = CHAINS[chainId]; if (!c) return '';
@@ -29,7 +30,7 @@ function recvFor(chainId, payKey) {
 }
 
 // ---- 签名登录 ----
-const EVM_LOGIN_CHAINS = new Set([56, 97, 8453, 84532, 1, 11155111, 42161, 421614]); // BSC / Base / Ethereum / Arbitrum 主网与测试网
+const EVM_LOGIN_CHAINS = new Set([56, 97, 8453, 84532, 1, 11155111, 42161, 421614, 130, 1301]); // BSC / Base / Ethereum / Arbitrum / Unichain 主网与测试网
 const SOL_CHAINS = new Set(['', 'mainnet', 'devnet', 'testnet', 'solana:mainnet', 'solana:devnet', 'solana:testnet']); // Solana 消息可省略 Chain ID
 const NONCES = new Map(); // nonce → 过期时间（一次性，5 分钟）
 function nonce() { const n = crypto.randomBytes(12).toString('hex'); NONCES.set(n, Date.now() + 300000); if (NONCES.size > 5000) for (const [k, v] of NONCES) if (v < Date.now()) NONCES.delete(k); return n; }

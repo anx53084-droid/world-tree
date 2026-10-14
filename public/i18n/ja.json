@@ -420,5 +420,5 @@
 "err.blockPhish": "既知のフィッシング／詐欺サイト（{msg}）が含まれているため送信できません。",
 "err.blockAddr": "詐欺として報告されたウォレットアドレスが含まれているため送信できません。",
 "help.receive": "受取アドレス：",
-"chain.uni": "UNI"
+"chain.uni": "Unichain"
 }

@@ -420,5 +420,5 @@
 "err.blockPhish": "Có trang lừa đảo / phishing đã biết ({msg}), không thể gửi.",
 "err.blockAddr": "Có địa chỉ ví bị đánh dấu lừa đảo, không thể gửi.",
 "help.receive": "Địa chỉ nhận:",
-"chain.uni": "UNI"
+"chain.uni": "Unichain"
 }

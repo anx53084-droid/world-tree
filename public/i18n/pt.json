@@ -420,5 +420,5 @@
 "err.blockPhish": "Contém um site conhecido de phishing / golpe ({msg}) e não pode ser enviado.",
 "err.blockAddr": "Contém um endereço de carteira marcado como golpe e não pode ser enviado.",
 "help.receive": "Endereço de recebimento:",
-"chain.uni": "UNI"
+"chain.uni": "Unichain"
 }

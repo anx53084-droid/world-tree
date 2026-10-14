@@ -137,10 +137,8 @@ async function api(req, res, url) {
   }
   if (url === '/api/config') { const p = await solPrice();
     const chains = Object.fromEntries(Object.entries(Acc.CHAINS).map(([id, c]) => [id, { key: c.key, name: c.name, sym: c.sym, coin: c.coin, exp: c.exp, rpc: c.rpc, receive: Acc.EVM_RECV[c.key] || null }]));
-    // UNI：Unichain 未实现 → 走以太坊 Sepolia 支付路径，收款地址标为 UNI
     const routes = {};
     for (const [id, c] of Object.entries(Acc.CHAINS)) if (Acc.EVM_RECV[c.key]) routes[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: Acc.EVM_RECV[c.key] };
-    if (Acc.EVM_RECV.uni) { const eth = Acc.CHAINS[11155111]; routes.uni = { chainId: 11155111, key: 'uni', name: 'UNI (via Ethereum)', sym: eth?.sym || 'ETH', coin: eth?.coin || 'ethereum', receive: Acc.EVM_RECV.uni, via: 'eth', uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED }; }
     return send(res, 200, { receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, minLamports: minLamports(p.usd), moderator: MOD_PUB,
     evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV }, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20 }); }
   if (url === '/api/nonce') return send(res, 200, { nonce: Acc.nonce() });

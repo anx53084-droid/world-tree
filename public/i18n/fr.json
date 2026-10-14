@@ -420,5 +420,5 @@
 "err.blockPhish": "Contient un site d'hameçonnage / d'arnaque connu ({msg}) : envoi impossible.",
 "err.blockAddr": "Contient une adresse de wallet signalée comme arnaque : envoi impossible.",
 "help.receive": "Adresse de réception :",
-"chain.uni": "UNI"
+"chain.uni": "Unichain"
 }

@@ -420,5 +420,5 @@
 "err.blockPhish": "Contains a known phishing / scam site ({msg}) and can't be submitted.",
 "err.blockAddr": "Contains a wallet address flagged as a scam and can't be submitted.",
 "help.receive": "Receive address:",
-"chain.uni": "UNI"
+"chain.uni": "Unichain"
 }

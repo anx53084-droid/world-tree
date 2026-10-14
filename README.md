@@ -148,9 +148,9 @@ server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账
 - 冷启动：前端静态资源由 Cloudflare 提供，树立即渲染；`/api` 幂等请求在服务器唤醒期间自动重试（≤90s），显示「正在唤醒服务器」提示；链上读取超时后浏览器直连 devnet。
 
 ## 多链钱包 · 安全设置 · 站内信
-- **钱包**（非托管，只请求签名）：Solana — Phantom / Solflare / Backpack / OKX（Wallet Standard 优先，注入式回退）；EVM — MetaMask / OKX / Coinbase / 任意 EIP-6963 钱包，可切换 BSC Testnet、Base Sepolia、Sepolia、Arbitrum Sepolia。移动端未检测到钱包时用各钱包深链接在其内置浏览器打开本站。
+- **钱包**（非托管，只请求签名）：Solana — Phantom / Solflare / Backpack / OKX（Wallet Standard 优先，注入式回退）；EVM — MetaMask / OKX / Coinbase / 任意 EIP-6963 钱包，可切换 BSC Testnet、Base Sepolia、Sepolia、Arbitrum Sepolia、Unichain Sepolia。移动端未检测到钱包时用各钱包深链接在其内置浏览器打开本站。
 - **登录**：EIP-4361 风格消息（一次性 nonce，5 分钟有效，校验域名）。EVM 用 `personal_sign`（服务器 secp256k1 恢复地址），Solana 用 `signMessage`（ed25519）。愿望仍以 Solana devnet 为唯一事实来源：EVM 账户由服务器托管一个 devnet 密钥签 memo（演示）。
-- **EVM 支付**：按链设置 `EVM_PAY_ETH` / `EVM_PAY_BSC` / `EVM_PAY_BASE` / `EVM_PAY_ARB`（及可选 `EVM_PAY_UNI`）后开启；用户钱包发送**一笔**原生币转账至该链收款地址。UNI：Unichain 未实现，经以太坊 Sepolia 路径支付并标为 UNI。服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
+- **EVM 支付**：按链设置 `EVM_PAY_ETH` / `EVM_PAY_BSC` / `EVM_PAY_BASE` / `EVM_PAY_ARB`（及可选 `EVM_PAY_UNI`）后开启；用户钱包发送**一笔**原生币转账至该链收款地址。含 Unichain Sepolia（chainId 1301，`EVM_PAY_UNI`）。服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
 - **安全设置** `#/security`：已登录设备列表、单独退出 / 退出其他所有设备；邮箱验证（需 `RESEND_API_KEY` + `MAIL_FROM`）；邮箱账户可选 TOTP（Google Authenticator，RFC 6238）；大额支付确认（默认 ≥ 20 美元，开启 2FA 时需验证码，服务器同样校验）。
 - **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记还愿时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（`GET /api/admin/notice` 列表、`POST /api/admin/notice/delete {id}` 删除）（均需 `x-admin-key`）。
 

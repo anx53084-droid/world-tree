@@ -420,5 +420,5 @@
 "err.blockPhish": "Berisi situs phishing / penipuan yang dikenal ({msg}) dan tidak dapat dikirim.",
 "err.blockAddr": "Berisi alamat dompet yang ditandai sebagai penipuan dan tidak dapat dikirim.",
 "help.receive": "Alamat penerima:",
-"chain.uni": "UNI"
+"chain.uni": "Unichain"
 }

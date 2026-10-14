@@ -65,7 +65,7 @@
   async function waitReceipt(p, h, ms = 180000) { const t0 = Date.now(); // 仅在发出自己的交易后等待确认（非数据轮询）
     while (Date.now() - t0 < ms) { const r = await p.request({ method: 'eth_getTransactionReceipt', params: [h] }).catch(() => null); if (r) { if (r.status !== '0x1') throw new Error('tx reverted'); return r; } await new Promise(r => setTimeout(r, 2500)); }
     throw new Error('timeout'); }
-  const LOGIN_CHAINS = [56, 97, 8453, 84532, 1, 11155111, 42161, 421614];
+  const LOGIN_CHAINS = [56, 97, 8453, 84532, 1, 11155111, 42161, 421614, 130, 1301];
   async function chainOf(p) { return parseInt(await p.request({ method: 'eth_chainId' }), 16); }
   async function readyChain(p, want, cfg) { // 签名前确定钱包当前网络：不受支持则切换到所选网络，切换后重新读取；消息里的 Chain ID 必须与之相同
     let c = await chainOf(p); if (LOGIN_CHAINS.includes(c) && (!want || c === +want)) return c;

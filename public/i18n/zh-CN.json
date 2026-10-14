@@ -420,5 +420,5 @@
 "err.blockPhish": "包含已知钓鱼 / 诈骗网站（{msg}），无法提交。",
 "err.blockAddr": "包含已被标记为诈骗的钱包地址，无法提交。",
 "help.receive": "收款地址：",
-"chain.uni": "UNI"
+"chain.uni": "Unichain"
 }
