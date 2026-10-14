@@ -10,7 +10,8 @@ const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z');
 const { moderate, RULES } = require('./moderation');
 const Fulfill = require('./fulfillment');
 const Acc = require('./account');
-const Block = require('./blocklist'); // 钓鱼 / 短链黑名单（服务器端权威）
+const Block = require('./blocklist');
+const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
@@ -29,7 +30,7 @@ const sha256hex = t => crypto.createHash('sha256').update(t, 'utf8').digest('hex
 const attMsg = (hash, ts) => Buffer.from(`WTREE-ATT1|${hash}|pass|${ts}`, 'utf8');
 function attest(text) { const hash = sha256hex(text), ts = Math.floor(Date.now() / 1000); return { hash, ts, sig: Buffer.from(nacl.sign.detached(attMsg(hash, ts), MODKEY.secretKey)).toString('hex'), moderator: MOD_PUB }; }
 function verifyWishMemo(memo) { // WTREE1|W|hash|ts|sig|分类|正文  或  WTREE1|B|hash|ts|sig|愿望签名|祝福
-  const m = memo.match(/^WTREE1\|[WB]\|([0-9a-f]{64})\|(\d{10})\|([0-9a-f]{128})\|([^|]{1,90}\|[^|]{1,600})$/u); if (!m) return false;
+  const m = memo.match(/^WTREE1\|[WB]\|([0-9a-f]{64})\|(\d{10})\|([0-9a-f]{128})\|([^|]{1,400}\|[^|]{1,600})$/u); if (!m) return false;
   return sha256hex(m[4]) === m[1] && nacl.sign.detached.verify(attMsg(m[1], m[2]), Buffer.from(m[3], 'hex'), MODKEY.publicKey);
 }
 const PAYEES_F = path.join(DATA_DIR, 'payees.json'); let PAYEES = null; try { PAYEES = JSON.parse(fs.readFileSync(PAYEES_F)); } catch {}
@@ -96,6 +97,15 @@ const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'emai
 function allowHost(req) { const hs = new Set([req.headers.host]); const o = req.headers.origin; if (o && (CORS_RE.test(o) || ALLOWED.includes(o))) try { hs.add(new URL(o).host); } catch {} return d => hs.has(d); }
 const fail = (res, e, code = 400) => send(res, code, { error: e.message, code: e.code || 'err' });
 
+async function checkContact(c) { // 联系方式：1–60 字，审核 + 钓鱼/短链/地址黑名单
+  if (typeof c !== 'string' || !c.trim() || Soc.len(c.trim()) > 60) return { error: 'bad contact', code: 'contactLen' };
+  const bh = Block.check(c); if (bh) return { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', detail: bh.domain };
+  const r = await moderate(c); return r.pass ? null : { error: REJECT, code: 'reject' }; }
+async function txInfo(sig) { // 读取自己刚上链的交易（最多重试 4 次）：作者 + memo
+  for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+    if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], author = k.pubkey?.toBase58?.() || String(k.pubkey || k);
+      const ix = tx.transaction.message.instructions.find(x => x.program === 'spl-memo' || x.programId?.toBase58?.() === MEMO.toBase58()); return { author, memo: typeof ix?.parsed === 'string' ? ix.parsed : null }; } } catch {}
+    await new Promise(r => setTimeout(r, 1500)); } return null; }
 const RPCC = new Map();
 async function api(req, res, url) {
   const db = load(); Acc.normSessions(db);
@@ -115,9 +125,15 @@ async function api(req, res, url) {
     for (const h of (typeof prefix === 'string' ? prefix.match(/~[CN]([0-9a-f]{32})/g) || [] : [])) if (!(await Store.has(h.slice(2)).catch(() => false))) return send(res, 400, { pass: false, message: '图片未上传或未通过审核', code: 'img' }); // 引用的图片必须已通过上传审核
     if (priv && (typeof cipher !== 'string' || !/^E1:[A-Za-z0-9+/=]{24,560}$/.test(cipher) || [...(text || '')].length > 100)) return send(res, 400, { pass: false, message: '私密卡参数无效', code: 'param' });
     if (typeof text !== 'string' || !text.trim() || [...text].length > 140 || text.includes('|')) return send(res, 400, { pass: false, message: '内容需为 1–140 字，且不含字符 |', code: 'len' });
-    if (typeof prefix !== 'string' || !/^[^|]{1,90}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
-    const bh = Block.check(text); if (bh) return send(res, 200, { pass: false, type: bh.type, code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', domain: bh.domain, message: '内容包含被拦截的链接或地址：' + bh.domain }); // 在审核证明之前拦截
-    const r = await moderate(text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
+    if (typeof prefix !== 'string' || !/^[^|]{1,400}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
+    const K = Soc.parseKind(prefix); if (K.kind === 'wish' && prefix.length > 90) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
+    if ((K.kind !== 'wish') && priv) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
+    const ve = Soc.validate(K); if (ve) return send(res, 400, { pass: false, message: '参数无效', code: ve });
+    if (Buffer.byteLength(prefix + '|' + (priv ? cipher : text), 'utf8') > 600) return send(res, 400, { pass: false, message: '内容过长', code: 'memoSize' });
+    if (K.kind === 'gift' && Block.addrBlocked(K.to)) return send(res, 200, { pass: false, code: 'giftBlocked', message: '该地址已被拦截' });
+    const extra = K.kind === 'social' ? [...K.tags, K.intro, K.looking].join('\n') : K.kind === 'gift' ? K.note : '';
+    const bh = Block.check(extra ? text + '\n' + extra : text); if (bh) return send(res, 200, { pass: false, type: bh.type, code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', domain: bh.domain, message: '内容包含被拦截的链接或地址：' + bh.domain }); // 在审核证明之前拦截
+    const r = await moderate(extra ? text + '\n' + extra : text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
   if (url === '/api/img' && req.method === 'POST') { // 用户自定义模板图片：链下存储（memo 仅存内容哈希），上传即自动审核
     const r = await imgUpload(await body(req, 700000)); return send(res, r.error ? 400 : 200, r); }
@@ -159,6 +175,22 @@ async function api(req, res, url) {
     const sig = decodeURIComponent(url.slice('/api/fulfillments/'.length).split('/')[0] || '');
     const v = Fulfill.publicView(sig); return v ? send(res, 200, v) : send(res, 404, { error: 'not found', code: 'nf' });
   }
+  // —— 交友卡联系方式（链下）/ 礼品卡索引 ——
+  if (url === '/api/contact/check' && req.method === 'POST') { const { contact } = await body(req); const r = await checkContact(contact); return send(res, r ? 400 : 200, r || { ok: true }); }
+  if (url.startsWith('/api/contact/') && req.method === 'GET') { const sig = decodeURIComponent(url.slice(13)); const c = Soc.load().contacts[sig]; if (!c) return send(res, 200, {});
+    const me = auth(req, db); if (me && me.user.pubkey === c.owner) return send(res, 200, { contact: c.contact, show: !!c.show, mine: true });
+    return send(res, 200, c.show ? { contact: c.contact } : {}); }
+  if (url === '/api/gifts' && req.method === 'GET') { const to = new URL(req.url, 'http://x').searchParams.get('to') || ''; if (!(Soc.solOk(to) || Soc.evmOk(to))) return send(res, 400, { error: 'bad address', code: 'giftTo' });
+    return send(res, 200, { sigs: (Soc.load().gifts[Soc.addrKey(to)] || []).slice(-500) }); }
+  if (url === '/api/gift-sent' && req.method === 'POST') { // 礼品卡上链后登记：服务器从链上读取并校验 memo，索引接收方并发站内信（无资产转移）
+    const { sig } = await body(req); if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
+    const st = Soc.load(); if (st.giftSeen[sig]) return send(res, 200, { ok: true, already: true });
+    const ti = await txInfo(sig); if (!ti || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 400, { error: 'not found', code: 'nf' });
+    const parts = ti.memo.split('|'), K = Soc.parseKind(parts[5]); if (K.kind !== 'gift' || Soc.validate(K)) return send(res, 400, { error: 'not a gift', code: 'param' });
+    const key = Soc.addrKey(K.to); st.gifts[key] = [...(st.gifts[key] || []).filter(x => x !== sig), sig]; st.giftSeen[sig] = Date.now(); Soc.save(st);
+    const tos = Soc.evmOk(K.to) ? Object.values(db.users).filter(u => u.evm === key).map(u => u.pubkey) : [K.to];
+    let n = 0; for (const pk of new Set(tos)) { const owners = Object.values(db.users).filter(u => u.pubkey === pk); if (owners.length && owners.every(u => !Acc.prefs(u).system)) continue; Acc.pushMsg(db, pk, { kind: 'gift', sig, from: ti.author, note: K.note.slice(0, 50) }); n++; }
+    if (n) save(db); return send(res, 200, { ok: true, notified: n }); }
   if (url === '/api/wish-paid' && req.method === 'POST') { // 付款成功后登记记账 +（物质类）可选收货/联系备注（永不入链）
     const b = await body(req);
     const r = Fulfill.registerWish({ wishSig: b.sig || b.wishSig, cat: b.cat, text: b.text, author: b.author, lamports: b.lamports, shippingNote: b.shippingNote, source: b.source || 'client' });
@@ -237,6 +269,16 @@ async function api(req, res, url) {
     const sr = new Set(U.sysRead || []); for (const m of db.sys || []) if (!want || want.has(m.id)) sr.add(m.id); U.sysRead = [...sr].slice(-300); save(db); return send(res, 200, Acc.inboxOf(db, U)); }
   if (url === '/api/notify') { if (req.method === 'POST') { const b = await body(req); U.notify = { fulfil: b.fulfil !== false, system: b.system !== false }; save(db); } return send(res, 200, Acc.prefs(U)); }
   if (url === '/api/logout' && req.method === 'POST') { delete db.sessions[a.token]; save(db); return send(res, 200, { ok: true }); } // 只退出当前设备；其他设备在安全设置中退出
+  if (url === '/api/contact' && req.method === 'POST') { // 设置/修改交友卡联系方式：仅卡片作者；审核 + 黑名单
+    const { sig, contact, show } = await body(req); if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
+    const bad = await checkContact(contact); if (bad) return send(res, 400, bad);
+    const st = Soc.load(), cur = st.contacts[sig];
+    if (cur) { if (cur.owner !== U.pubkey) return send(res, 403, { error: 'forbidden', code: 'forbidden' }); }
+    else { const ti = await txInfo(sig); if (!ti || ti.author !== U.pubkey || !ti.memo || !verifyWishMemo(ti.memo) || Soc.parseKind(ti.memo.split('|')[5]).kind !== 'social') return send(res, 403, { error: 'forbidden', code: 'forbidden' }); }
+    st.contacts[sig] = { owner: U.pubkey, contact: String(contact).trim(), show: !!show, at: Date.now() }; Soc.save(st); return send(res, 200, { ok: true, contact: st.contacts[sig].contact, show: !!show }); }
+  if (url === '/api/contact/delete' && req.method === 'POST') { const { sig } = await body(req), st = Soc.load(), cur = st.contacts[sig];
+    if (!cur) return send(res, 200, { ok: true }); if (cur.owner !== U.pubkey) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
+    delete st.contacts[sig]; Soc.save(st); return send(res, 200, { ok: true }); }
   if (!U.secret) return send(res, 403, { error: 'wallet account: sign with your wallet', code: 'noCustody' });
   const kp = web3.Keypair.fromSecretKey(Buffer.from(U.secret, 'base64'));
   if (url === '/api/privkey' && req.method === 'POST') return send(res, 200, { key: crypto.createHmac('sha256', Buffer.from(kp.secretKey)).update('WTREE-PRIV1').digest('hex') }); // 托管模式私密卡密钥（服务器可派生 → 托管模式下服务器可解密）

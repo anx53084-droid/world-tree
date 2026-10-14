@@ -250,3 +250,19 @@ ul.bul { margin: 6px 0; padding-inline-start: 1.2em } ul.bul li { margin: 4px 0 
 @media (max-width: 700px) { .card p, .card li, .notice { line-height: 1.75 } .card li + li { margin-top: 6px } .card h3 { margin-bottom: 10px } .gold-title { font-size: 27px } }
 .card.sample { padding-top: 26px } .samples { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)) } @media (min-width: 1024px) { .samples { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) } .cta button { flex: 0 1 240px } }
 .blkwarn { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: #ff4d4d1a; border: 1px solid #ff6b6b66; color: #ffb3b3; font-size: 13px; line-height: 1.6 }
+
+/* 交友卡 / 礼品卡 */
+.card.k-social, .mw.k-social, .row.k-social { border-left: 3px solid #4f9dff }
+.mw-k { position: absolute; top: 4px; left: 4px; font-style: normal; z-index: 1; text-shadow: 0 1px 2px #000 }
+.soc-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 }
+.tag.soc { background: #4f9dff22; border-color: #4f9dff66; color: #bcd9ff }
+.tag.k-gift { background: #e0a84a22; border-color: #e0a84a77 }
+.soc-intro, .gift-note { margin: .3em 0 }
+.gift-ft code { font-size: 12px }
+.hint { font-size: 12px; margin: 6px 0 0 }
+.kwrap { display: grid; gap: 6px; margin: 6px 0 }
+.kwrap label { display: block }
+.ct-edit, .ct-show { margin-top: 10px }
+.mw.gl { display: block; width: 100%; padding: 8px 10px; margin: 6px 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.gsec { margin: 14px 0 4px }
+.mw.gl span.tag { display: inline-block; padding: 1px 8px; margin: 0 4px }
