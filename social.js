@@ -7,8 +7,8 @@ const DEL = { T: 'tree', O: 'off', B: 'both' };
 function load() {
   try {
     const d = JSON.parse(fs.readFileSync(F));
-    return { contacts: d.contacts || {}, gifts: d.gifts || {}, giftSeen: d.giftSeen || {}, meta: d.meta || {}, unlocks: d.unlocks || {} };
-  } catch { return { contacts: {}, gifts: {}, giftSeen: {}, meta: {}, unlocks: {} }; }
+    return { contacts: d.contacts || {}, gifts: d.gifts || {}, giftSeen: d.giftSeen || {}, meta: d.meta || {}, unlocks: d.unlocks || {}, goods: d.goods || {} };
+  } catch { return { contacts: {}, gifts: {}, giftSeen: {}, meta: {}, unlocks: {}, goods: {} }; }
 }
 function save(d) { fs.mkdirSync(path.dirname(F), { recursive: true }); fs.writeFileSync(F, JSON.stringify(d), { mode: 0o600 }); }
 const solOk = a => { if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a || '')) return false; try { return b58.decode(a).length === 32; } catch { return false; } };
@@ -23,6 +23,7 @@ function parseKind(prefix) {
   const vis = VIS[f('v')] || 'public', deliver = DEL[f('d')] || 'tree';
   const loc = { country: cleanLoc(f('A')), province: cleanLoc(f('B')), city: cleanLoc(f('Y')) };
   if (o === 'S') return { kind: 'social', vis, deliver: 'tree', tags: f('t') ? f('t').split(',').filter(Boolean).slice(0, 5) : [], intro: f('i'), looking: f('l'), ...loc };
+  if (o === 'H') return { kind: 'goods', vis: 'public', deliver: 'tree', domain: f('D').slice(0, 40), pid: f('P').slice(0, 24) };
   if (o === 'G') return { kind: 'gift', vis, deliver, to: f('T'), note: f('M'), ...loc };
   return { kind: 'wish', vis: 'public', deliver: 'tree' };
 }

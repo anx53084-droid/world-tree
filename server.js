@@ -11,6 +11,7 @@ const { moderate, RULES } = require('./moderation');
 const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
+const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
 const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
@@ -97,6 +98,20 @@ const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'emai
 function allowHost(req) { const hs = new Set([req.headers.host]); const o = req.headers.origin; if (o && (CORS_RE.test(o) || ALLOWED.includes(o))) try { hs.add(new URL(o).host); } catch {} return d => hs.has(d); }
 const fail = (res, e, code = 400) => send(res, code, { error: e.message, code: e.code || 'err' });
 
+const goodsCache = new Map(), goodsRate = new Map(); // 预览缓存（10 分钟）与每用户限速（20 次/10 分钟）
+async function goodsImage(u) { // 商品图：安全抓取 → sharp 转 webp ≤800px → 与用户上传同一管线（NSFW + R2）
+  const r = await Goods.fetchSafe(u, Block, Goods.MAX_IMG, 'image/avif,image/webp,image/png,image/jpeg,image/*'); if (!/^image\//i.test(r.type) && r.buf.length < 64) throw Object.assign(new Error('not image'), { code: 'goodsImg' });
+  const sharp = require('sharp'); let out; try { out = await sharp(r.buf, { limitInputPixels: 4e7 }).rotate().resize(800, 800, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 78 }).toBuffer(); } catch { throw Object.assign(new Error('bad image'), { code: 'goodsImg' }); }
+  if (out.length > IMG_MAX) out = await sharp(out).resize(512, 512, { fit: 'inside' }).webp({ quality: 65 }).toBuffer();
+  const up = await imgUpload({ mime: 'image/webp', data: out.toString('base64') }); if (up.error) throw Object.assign(new Error(up.error), { code: up.code }); return up.hash; }
+async function goodsPreview(u) {
+  const hit = goodsCache.get(u); if (hit && Date.now() - hit.fetchedAt < 600000) return hit;
+  const r = await Goods.fetchSafe(u, Block); const html = Goods.decodeHtml(r.buf, r.type), x = Goods.extract(html, r.url);
+  const bh = Block.check(r.url); if (bh) throw Object.assign(new Error('blocked'), { code: bh.type === 'shortener' ? 'blockShort' : 'blockPhish' });
+  let titleOk = true; if (x.title) { const bt = Block.check(x.title), m = bt ? { pass: false } : await moderate(x.title); if (!m.pass) { x.title = ''; titleOk = false; } }
+  let image = null, imgErr = null; if (x.image) try { image = await goodsImage(x.image); } catch (e) { imgErr = e.code || 'goodsImg'; }
+  const k = Goods.productKey(u), out = { url: u, finalUrl: r.url, domain: k.domain, pid: k.pid, title: x.title, price: x.price, currency: x.currency, image, imgErr, titleOk, source: x.source, fetchedAt: Date.now() };
+  goodsCache.set(u, out); if (goodsCache.size > 500) goodsCache.delete(goodsCache.keys().next().value); return out; }
 async function checkContact(c) { // 联系方式：1–60 字，审核 + 钓鱼/短链/地址黑名单
   if (typeof c !== 'string' || !c.trim() || Soc.len(c.trim()) > 60) return { error: 'bad contact', code: 'contactLen' };
   const bh = Block.check(c); if (bh) return { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', detail: bh.domain };
@@ -143,7 +158,7 @@ async function api(req, res, url) {
     const ve = Soc.validate(K); if (ve) return send(res, 400, { pass: false, message: '参数无效', code: ve });
     if (Buffer.byteLength(prefix + '|' + (priv ? cipher : text), 'utf8') > 600) return send(res, 400, { pass: false, message: '内容过长', code: 'memoSize' });
     if (K.kind === 'gift' && Block.addrBlocked(K.to)) return send(res, 200, { pass: false, code: 'giftBlocked', message: '该地址已被拦截' });
-    const extra = K.kind === 'social' ? [...K.tags, K.intro, K.looking].join('\n') : K.kind === 'gift' ? K.note : '';
+    const extra = K.kind === 'social' ? [...K.tags, K.intro, K.looking].join('\n') : K.kind === 'gift' ? K.note : K.kind === 'goods' ? 'https://' + K.domain + '/' : '';
     const bh = Block.check(extra ? text + '\n' + extra : text); if (bh) return send(res, 200, { pass: false, type: bh.type, code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', domain: bh.domain, message: '内容包含被拦截的链接或地址：' + bh.domain }); // 在审核证明之前拦截
     const r = await moderate(extra ? text + '\n' + extra : text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
@@ -187,6 +202,27 @@ async function api(req, res, url) {
     const sig = decodeURIComponent(url.slice('/api/fulfillments/'.length).split('/')[0] || '');
     const v = Fulfill.publicView(sig); return v ? send(res, 200, v) : send(res, 404, { error: 'not found', code: 'nf' });
   }
+  // —— 心愿卡：商品链接预览 + 链下商品元数据 ——
+  if (url === '/api/goods/preview' && req.method === 'POST') { const a = auth(req, db); if (!a) return send(res, 401, { error: '未登录', code: 'auth' });
+    const now = Date.now(), rl = (goodsRate.get(a.uid) || []).filter(t => now - t < 600000); if (rl.length >= 20) return send(res, 429, { error: 'rate', code: 'rate' }); rl.push(now); goodsRate.set(a.uid, rl);
+    const { url: u } = await body(req); if (typeof u !== 'string' || u.length > 1000) return send(res, 400, { error: 'bad url', code: 'goodsUrl' });
+    let x; try { x = Goods.checkUrl(u.trim(), Block); } catch (e) { return fail(res, e); }
+    try { return send(res, 200, await goodsPreview(x.href)); } catch (e) { const k = Goods.productKey(x.href); return send(res, 200, { url: x.href, domain: k.domain, pid: k.pid, title: '', price: '', currency: '', image: null, failed: e.code || 'goodsFetch', fetchedAt: Date.now() }); } }
+  if (url === '/api/goods-meta' && req.method === 'POST') { const a = auth(req, db); if (!a) return send(res, 401, { error: '未登录', code: 'auth' });
+    const b = await body(req), sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
+    const ti = await txInfo(sig); if (!ti || ti.author !== a.user.pubkey || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
+    const K = Soc.parseKind(ti.memo.split('|')[5]); if (K.kind !== 'goods') return send(res, 400, { error: 'param', code: 'param' });
+    let x; try { x = Goods.checkUrl(String(b.url || '').trim(), Block); } catch (e) { return fail(res, e); }
+    const k = Goods.productKey(x.href); if (k.domain !== K.domain || k.pid !== K.pid) return send(res, 400, { error: 'url mismatch', code: 'goodsMismatch' });
+    const title = Goods.clean(b.title, 80), price = Goods.normPrice(b.price), currency = Goods.normCur(b.currency) || (price ? 'CNY' : '');
+    if (title) { const bt = Block.check(title); if (bt) return send(res, 400, { error: 'blocked', code: 'blockPhish' }); const m = await moderate(title); if (!m.pass) return send(res, 400, { error: REJECT, code: 'reject' }); }
+    const c = goodsCache.get(x.href), image = /^[0-9a-f]{32}$/.test(b.image || '') && c && c.image === b.image ? b.image : (c?.image || null);
+    const edited = !c || c.title !== title || c.price !== price;
+    const st = Soc.load(); st.goods[sig] = { owner: a.user.pubkey, url: x.href, domain: k.domain, title, price, currency, image, fetchedAt: c?.fetchedAt || Date.now(), edited, at: Date.now() }; Soc.save(st);
+    return send(res, 200, { ok: true }); }
+  if (url === '/api/goods-meta/batch' && req.method === 'POST') { const { sigs } = await body(req), list = Array.isArray(sigs) ? sigs.slice(0, 200) : [], st = Soc.load(), out = {};
+    for (const sig of list) { const g = st.goods[sig]; if (g) out[sig] = { url: g.url, domain: g.domain, title: g.title, price: g.price, currency: g.currency, image: g.image, fetchedAt: g.fetchedAt, edited: !!g.edited }; }
+    return send(res, 200, { meta: out }); }
   // —— 交友卡 / 礼品卡：联系方式、可见性元数据、礼品索引 ——
   if (url === '/api/contact/check' && req.method === 'POST') { const { contact } = await body(req); const r = await checkContact(contact); return send(res, r ? 400 : 200, r || { ok: true }); }
   if (url.startsWith('/api/contact/') && req.method === 'GET') { const sig = decodeURIComponent(url.slice(13)); const c = Soc.load().contacts[sig]; if (!c) return send(res, 200, {});

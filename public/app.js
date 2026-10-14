@@ -7,8 +7,8 @@ const RPC_WRITE = 'https://api.devnet.solana.com';
 const EXPLORER = s => `https://explorer.solana.com/tx/${s}?cluster=devnet`;
 const CATS = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270 }; // 分类 → 色相
 const CAT_KEY = { 经典: 'classic', 风景: 'scenery', 人物: 'people', 动物: 'animals', 卡通: 'cartoon', 物质类: 'material' }; // 链上分类保持中文原值，仅显示时翻译
-const MATERIAL = '物质类';
-const catName = c => CAT_KEY[c] ? t('cat.' + CAT_KEY[c]) : c;
+const MATERIAL = '物质类', COVER_CATS = ['经典', '风景', '人物', '动物', '卡通']; // 物质类仅为旧卡兼容（显示为心愿卡）
+const catName = c => c === '物质类' ? t('cat.classic') : CAT_KEY[c] ? t('cat.' + CAT_KEY[c]) : c;
 const MODCAT_KEY = { 违法: 'illegal', 侵权: 'infringement', 色情: 'sexual', 暴力: 'violence', 歧视: 'discrimination', 违法宣传: 'illegalPromo', 负面消极: 'negative', 'AI 语义审核': 'ai' };
 const modCat = c => MODCAT_KEY[c] ? t('modcat.' + MODCAT_KEY[c]) : c;
 const tErr = (code, msg) => code && I18N.dict['err.' + code] ? t('err.' + code, { msg: msg || '' }) : msg;
@@ -27,12 +27,12 @@ const hex2b = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
 // 自定义图片：~C<封面哈希32hex> ~N<内页哈希32hex>（图片存链下 /api/img/<hash>；旧客户端忽略多余段，显示内置封面）
 const parseOpt = raw => { const [c, o = '', ...ex] = String(raw).split('~'), m = o.match(/^F([0-9a-z]{2})(P?)$/), g = k => (ex.find(x => new RegExp('^' + k + '[0-9a-f]{32}$').test(x)) || '').slice(1) || null,
   ii = (ex.find(x => /^I[0-9a-z]{2}$/.test(x)) || '');
-  const fx = p => { const x = ex.find(s => s[0] === p); return x == null ? '' : x.slice(1); }, kind = o === 'S' ? 'social' : o === 'G' ? 'gift' : 'wish';
+  const fx = p => { const x = ex.find(s => s[0] === p); return x == null ? '' : x.slice(1); }, kind = o === 'S' ? 'social' : o === 'G' ? 'gift' : o === 'H' ? 'goods' : c === '物质类' ? 'goods' : 'wish';
   const VISM = { P: 'public', N: 'nearby', R: 'recent', I: 'invite', L: 'locked' }, DELM = { T: 'tree', O: 'off', B: 'both' };
   return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : null, priv: !!(m && m[2]), cimg: m ? g('C') : null, nimg: m ? g('N') : null, inside: m && ii ? parseInt(ii.slice(1), 36) : null,
     kind, vis: VISM[fx('v')] || 'public', deliver: kind === 'gift' ? (DELM[fx('d')] || 'tree') : 'tree',
     country: fx('A'), province: fx('B'), city: fx('Y'),
-    tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' ? fx('T') : '', note: kind === 'gift' ? fx('M') : '' }; };
+    tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' ? fx('T') : '', note: kind === 'gift' ? fx('M') : '', domain: o === 'H' ? fx('D') : '', pid: o === 'H' ? fx('P') : '', legacyGoods: o !== 'H' && c === '物质类' }; };
 // 交友卡 / 礼品卡：~S/~G + ~v可见性 + ~d投递(礼品) + ~A国家~B省~Y市(交友可选) + 既有字段
 const VISC = { public: 'P', nearby: 'N', recent: 'R', invite: 'I', locked: 'L' }, DELC = { tree: 'T', off: 'O', both: 'B' };
 const cleanLoc = x => String(x || '').trim().replace(/[~|]/g, '').slice(0, 20);
@@ -40,6 +40,7 @@ const encLoc = K => `${K.country ? '~A' + cleanLoc(K.country) : ''}${K.province 
 const encKind = (cat, K) => {
   const v = '~v' + (VISC[K.vis] || 'P');
   if (K.kind === 'social') return `${cat}~S${v}${encLoc(K)}${K.tags.length ? '~t' + K.tags.join(',') : ''}${K.intro ? '~i' + K.intro : ''}${K.looking ? '~l' + K.looking : ''}`;
+  if (K.kind === 'goods') return `${cat}~H~D${K.domain}~P${K.pid}`;
   return `${cat}~G${v}~d${DELC[K.deliver] || 'T'}${encLoc(K)}~T${K.to}${K.note ? '~M' + K.note : ''}`;
 };
 const locLabel = w => [w.country, w.province, w.city].filter(Boolean).join(' · ');
@@ -74,7 +75,7 @@ const WTPriv = window.WTPriv = {
 const sha256hex = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
 
 const QS = new URLSearchParams(location.search);
-const S = { stress: QS.has('stress') ? QS.get('stress') !== '0' : localStorage.wt_stress === '1', total: Math.min(2.75e11, Math.floor(+QS.get('stress') || +localStorage.wt_total || 1e11)), mode: 'guest', pubkey: null, email: null, token: localStorage.wt_token || null, txs: [], wishes: [], hidden: 0, offline: false, pending: [],
+const S = { stress: QS.has('stress') ? QS.get('stress') !== '0' : localStorage.wt_stress === '1', total: Math.min(2.75e11, Math.floor(+QS.get('stress') || +localStorage.wt_total || 1e11)), mode: 'guest', pubkey: null, email: null, token: localStorage.wt_token || null, txs: [], wishes: [], goods: {}, hidden: 0, offline: false, pending: [],
   history: JSON.parse(localStorage.wt_hist || '[]'), cfg: { minLamports: 6666667, solUsd: 150, priceSource: 'fallback', receive: '', developer: '', treasury: '', moderator: window.WT_CONFIG?.moderatorPubkeyHex }, words: null, season: null, fulfill: {}, fulfillToast: JSON.parse(localStorage.wt_ful_toast || '{}') };
 window.__S = S; // 测试/诊断用
 const saveHist = () => localStorage.wt_hist = JSON.stringify(S.history.slice(0, 100));
@@ -183,7 +184,7 @@ function buildRecentMap() { // 最近互动：7 日内互相关注的点赞/祝�
   for (const w of S.wishes) { for (const L of w.likers || []) touch(w.author, L, w.time || 0);
     for (const b of w.blessings || []) touch(w.author, b.author, b.time || w.time || 0); if (w.kind === 'gift' && w.to) touch(w.author, w.to, w.time || 0); }
 }
-const typeLabels = w => w.kind === 'social' ? ['交友卡', 'social', t('kind.social')] : w.kind === 'gift' ? ['礼品卡', 'gift', t('kind.gift')] : [];
+const typeLabels = w => w.kind === 'social' ? ['交友卡', 'social', t('kind.social')] : w.kind === 'gift' ? ['礼品卡', 'gift', t('kind.gift')] : w.kind === 'goods' ? ['心愿卡', 'goods', 'wish card', '物质类', t('kind.goods'), S.goods[w.sig]?.title, w.domain] : ['星语星愿', 'wish', t('kind.wish')];
 function cardSearchText(w) { return [w.text, w.intro, w.looking, ...(w.tags || []), ...typeLabels(w), w.note, w.to, w.author, w.country, w.province, w.city].filter(Boolean).join(' ').toLowerCase(); }
 function recentOk(owner) { return !!(S.pubkey && S.recentMap?.[S.pubkey]?.has(owner)); }
 function locEq(a, b) { const n = x => String(x || '').trim().toLowerCase(); return !!(a && b && n(a) === n(b)); }
@@ -217,6 +218,13 @@ async function loadCardMeta(list) {
   try { const r = await fetch('/api/card-meta/batch', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') }, body: JSON.stringify({ sigs: need }) }).then(x => x.json());
     Object.assign(S.cardMeta, r.meta || {}); softRefresh(); } catch { metaFor = ''; }
 }
+let goodsFor = '';
+async function loadGoodsMeta(list) { const need = (list || S.wishes).filter(w => w.kind === 'goods' && w.domain && !(w.sig in S.goods) && !/^SAMPLE/.test(w.sig)).map(w => w.sig).slice(0, 200);
+  if (!need.length) return; const key = need.join(','); if (goodsFor === key) return; goodsFor = key;
+  try { const r = await fetch('/api/goods-meta/batch', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sigs: need }) }).then(x => x.json());
+    for (const sg of need) S.goods[sg] = (r.meta || {})[sg] || null; softRefresh(); } catch { goodsFor = ''; } }
+document.addEventListener('click', e => { const a = e.target.closest?.('a.goods-link'); if (!a) return; // 外链提示
+  if (!confirm(t('goods.extWarn', { domain: a.dataset.ext || '' }))) e.preventDefault(); }, true);
 const SAMPLE = (() => { // 仅当 RPC 不可达时展示的离线示例（非链上数据）
   const ws = [['经典', '愿家人平安喜乐'], ['风景', '希望明年能去冰岛看极光'], ['人物', '考研上岸，不负自己！'], ['动物', '愿流浪猫猫都有温暖的家'], ['卡通', '代码一次就跑通'], ['经典', '早日找到喜欢的工作'],
     ['风景', '和你一起看遍山川湖海'], ['人物', '妈妈生日快乐，永远年轻'], ['卡通', '愿星愿成真'], ['动物', '小狗健康长寿'], ['经典', '愿世界和平'], ['风景', '去看一次富士山的日出'], ['物质类', '想要一本好书陪伴冬天']];
@@ -510,14 +518,18 @@ function spectrum(sig, size = 96) {
   return `<svg class=spectrum width=${size} height=${size} viewBox="0 0 100 100"><defs><radialGradient id="${id}"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="hsl(${hues[0]},100%,70%)"/><stop offset="1" stop-color="hsl(${hues[5]},80%,10%)"/></radialGradient></defs><circle cx=50 cy=50 r=50 fill="url(#${id})"/>${rings}</svg>`;
 }
 const likeBtn = w => `<button data-like="${esc(w.sig)}" ${w.pending || w.sample ? 'disabled' : ''}>${S.pubkey && w.likers.has(S.pubkey) ? '💖 ' + esc(t('card.liked')) : '🤍 ' + esc(t('label.like'))} ${w.likes}</button>`;
-const KICON = { social: '💬 ', gift: '🎁 ' }, kIcon = w => KICON[w.kind] || '';
+const KICON = { social: '💬 ', gift: '🎁 ', goods: '🛍️ ' }, kIcon = w => KICON[w.kind] || '';
 const giftToMe = w => w.kind === 'gift' && !!w.to && ((S.pubkey && w.to === S.pubkey) || (S.evmAddr && w.to.toLowerCase() === S.evmAddr));
 const kindTag = w => w.kind !== 'gift' ? '' : isMine(w) ? `<span class="tag k-gift">${E('gift.sent')}</span>` : giftToMe(w) ? `<span class="tag k-gift">${E('gift.recv')}</span>` : '';
 function kindHtml(w, full) { // 交友卡 / 礼品卡附加信息（全部转义）
   if (w.kind === 'social') return `${w.tags.length ? `<div class=soc-tags>${w.tags.map(x => `<span class="tag soc">#${esc(x)}</span>`).join('')}</div>` : ''}${w.intro ? `<p class=soc-intro dir=auto>${esc(w.intro)}</p>` : ''}${w.looking ? `<p class=muted dir=auto>${E('soc.lookingL')} ${esc(w.looking)}</p>` : ''}`;
   if (w.kind === 'gift') return `<p class=gift-ft>🎁 <code>${esc(short(w.author))}</code> → <code>${esc(short(w.to))}</code></p>${w.note ? `<p class=gift-note dir=auto>“${esc(w.note)}”</p>` : ''}${full ? `<p class="muted hint">${E('gift.hint')}</p>` : ''}`;
+  if (w.kind === 'goods') { const g = S.goods[w.sig]; if (!g) return w.domain ? `<p class="muted goods-dom">🛍️ ${esc(w.domain)}</p>` : '';
+    const pr = g.price ? `<b class=goods-price>${esc(g.currency || '')} ${esc(g.price)}</b>` : '';
+    return `<div class=goods>${g.image ? `<img class=goods-img alt="" loading=lazy src="${IMG(g.image)}">` : ''}<div class=goods-info><p class=goods-title dir=auto>${esc(g.title || g.domain)}</p>${pr}<p class="muted hint">${E('goods.priceAt', { time: fmtMs(g.fetchedAt) })}</p>
+      <a class="goods-link" href="${esc(g.url)}" target=_blank rel="noopener noreferrer nofollow" data-ext="${esc(g.domain)}">↗ ${esc(g.domain)}</a></div></div>`; }
   return ''; }
-const typeTag = w => w.kind === 'social' || w.kind === 'gift' ? `<span class="tag ktype">${esc(t('kind.' + w.kind))}</span>` : '';
+const typeTag = w => w.kind === 'social' || w.kind === 'gift' || w.kind === 'goods' ? `<span class="tag ktype">${esc(t('kind.' + w.kind))}</span>` : '';
 const visBadge = w => w.vis && w.vis !== 'public' ? `<span class="tag kvis">${E('vis.' + w.vis)}</span>` : (w.deliver === 'off' ? `<span class="tag kvis">${E('vis.offTree')}</span>` : '');
 const wishCard = w => { const L = lockPaint(w); return `<div class="card hover k-${w.kind || 'wish'}${L.lockedView ? ' locked-card' : ''}" data-cat="${w.cat}">${locCorner(w)}<div>${w.pending ? '⏳ ' : ''}${kIcon(w)}${esc(L.text)} ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}</div>${L.lockedView ? `<p class=muted>${E('vis.unlockHint')}</p>` : kindHtml(w)}<div class="row muted" style="margin-top:6px">
   <span class=tag>${esc(catName(w.cat))}</span><span>${esc(t('card.author', { addr: short(w.author) }))}</span><span>${fmtT(w.time)}</span><span>🔥 ${w.heat}</span>${L.lockedView ? '' : likeBtn(w)}<a class=btn href="#/w/${encodeURIComponent(w.sig)}">${esc(t('card.details'))}</a></div></div>`; };
@@ -540,7 +552,7 @@ function openCardPopup(w) { if (w.folded) return openFolded(w); maybeFulfillToas
   modal(`<div class="row k-${w.kind || 'wish'}" style="position:relative">${locCorner(w)}${spectrum(w.sig, 72)}<div><span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}<p style="font-size:18px;margin:.4em 0" dir=auto>${kIcon(w)}${esc(L.text)}</p>${locked ? unlockHtml : kindHtml(w, true)}${w.kind === 'social' && !locked ? '<div id=ctbox></div>' : ''}
   <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · ${fmtT(w.time)} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div></div></div>
   <div class=row style="margin-top:14px">${locked ? '' : likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`, w.hue);
-  if (w.kind === 'social' && !w.sample && !locked) loadContact(w);
+  if (w.kind === 'social' && !w.sample && !locked) loadContact(w); if (w.kind === 'goods') loadGoodsMeta([w]);
   $('#uok')?.addEventListener('click', async () => { try { await api('/api/card-unlock', { sig: w.sig, password: $('#upass').value }); S.unlocked[w.sig] = 1; sessionStorage.wt_unlock = JSON.stringify(S.unlocked); toast(E('vis.unlocked'), 'ok'); closeModal(); openCardPopup(w); softRefresh(); } catch (e) { toast(esc(e.message), 'err'); } });
   $('#usetloc')?.addEventListener('click', async () => { const loc = { country: cleanLoc($('#ucountry')?.value), province: cleanLoc($('#uprov')?.value), city: cleanLoc($('#ucity')?.value) }; S.myLoc = loc; localStorage.wt_loc = JSON.stringify(loc); try { if (S.token) await api('/api/me/loc', loc); } catch {} metaFor = ''; await loadCardMeta(); closeModal(); openCardPopup(w); softRefresh(); });
 }
@@ -563,7 +575,7 @@ const stageOf = n => n < 10 ? 0 : n < 50 ? 1 : n < 200 ? 2 : n < 1000 ? 3 : 4;
 const E = (k, v) => esc(t(k, v)); // 转义后的翻译文本
 const prevail = () => I18N.isZh() ? '' : `<p class="notice prevail">⚖️ ${E('legal.prevail')}</p>`;
 function home() {
-  loadCardMeta();
+  loadCardMeta(); loadGoodsMeta();
   const hot = [...visibleWishes()].sort((a, b) => b.heat - a.heat).slice(0, 5), cur = S.season || autoSeason();
   return `<div class=scene id=scene><div class="scene-ui debug-only">${SEASON_KEYS.map(k => `<button data-season=${k} class="${k === cur ? 'on' : ''}">${E('season.' + k)}${k === autoSeason() ? E('season.current') : ''}</button>`).join('')}</div></div>
   <button id=qbtn class=qbtn type=button title="${E('search.open')}" aria-label="${E('search.open')}"><svg viewBox="0 0 24 24" width=22 height=22 fill=none stroke=currentColor stroke-width=2 stroke-linecap=round><circle cx=10.5 cy=10.5 r=6.5 /><path d="M15.5 15.5 21 21"/></svg></button>
@@ -575,14 +587,15 @@ function home() {
   <div class="cols home-lists debug-only" id=lists><div class=glass><h2>🔥 ${E('home.hot')}</h2>${hot.map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div><div class=glass><h2>🆕 ${E('home.new')}</h2>${visibleWishes().slice(0, 5).map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div></div>`;
 }
 function list(q, only) {
-  const kw = q.get('q') || '', sort = q.get('sort') || 'new', cat = q.get('cat') || '', days = +q.get('days') || 0, minHeat = +q.get('heat') || 0, now = Date.now() / 1000, kql = kw.toLowerCase();
-  loadCardMeta();
-  let ws = visibleWishes(S.wishes).filter(w => (!kw || (!w.priv && (cardSearchText(w).includes(kql) || w.author.startsWith(kw) || (w.time && (ymd(w.time).startsWith(kw) || fmtT(w.time).includes(kw))))) || (kw && w.author.startsWith(kw))) && (!cat || w.cat === cat) && (!days || (w.time || now) > now - days * 86400) && w.heat >= minHeat);
+  const kw = q.get('q') || '', sort = q.get('sort') || 'new', cat = q.get('cat') || '', type = q.get('type') || '', days = +q.get('days') || 0, minHeat = +q.get('heat') || 0, now = Date.now() / 1000, kql = kw.toLowerCase();
+  loadCardMeta(); loadGoodsMeta();
+  let ws = visibleWishes(S.wishes).filter(w => (!kw || (!w.priv && (cardSearchText(w).includes(kql) || w.author.startsWith(kw) || (w.time && (ymd(w.time).startsWith(kw) || fmtT(w.time).includes(kw))))) || (kw && w.author.startsWith(kw))) && (!cat || w.cat === cat || (cat === '经典' && w.cat === MATERIAL)) && (!type || (w.kind || 'wish') === type) && (!days || (w.time || now) > now - days * 86400) && w.heat >= minHeat);
   if (sort === 'hot') ws = [...ws].sort((a, b) => b.heat - a.heat); if (sort === 'old') ws = [...ws].reverse();
   const body = () => !ws.length && S.syncing ? skel(3) : `<p class=muted>${E('list.count', { n: num(ws.length) })}</p>${ws.length ? ws.map(wishCard).join('') : `<div class=card><h3>🌟 ${E('ux.featured')}</h3><p class=muted>${E('ux.featuredHint')}</p>${sampleCards(3)}</div>`}`; if (only) return body();
   const opt = (arr, v) => arr.map(([k, l]) => `<option value="${k}" ${String(k) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('');
   return `<h2>${E('list.title')}</h2><form class=row id=lf><input name=q placeholder="${E('list.kwPh')}" value="${esc(kw)}">
-  <select name=cat>${opt([['', t('list.allCats')], ...Object.keys(CATS).map(c => [c, catName(c)])], cat)}</select>
+  <select name=type>${opt([['', t('list.allTypes')], ['wish', '✨ ' + t('kind.wish')], ['social', '💬 ' + t('kind.social')], ['gift', '🎁 ' + t('kind.gift')], ['goods', '🛍️ ' + t('kind.goods')]], type)}</select>
+  <select name=cat>${opt([['', t('list.allCovers')], ...COVER_CATS.map(c => [c, catName(c)])], cat)}</select>
   <select name=days>${opt([[0, t('list.allTime')], [1, t('list.h24')], [7, t('list.d7')], [30, t('list.d30')]], days)}</select>
   <select name=heat>${opt([[0, t('list.heatAny')], [2, t('list.heatMin', { n: 2 })], [10, t('list.heatMin', { n: 10 })]], minHeat)}</select>
   <select name=sort>${opt([['new', t('home.new')], ['hot', t('home.hot')], ['old', t('list.sortOld')]], sort)}</select><button>${E('list.filter')}</button><button type=button id=rf>${E('list.refresh')}</button></form>
@@ -590,6 +603,7 @@ function list(q, only) {
 }
 function detail(sig) {
   const w = S.wishes.find(x => x.sig === sig) || (/^SYN\d+$/.test(sig) && window.WT3D?.cardById(sig.slice(3))); if (!w) return `<p>${E('detail.notFound')}</p>`;
+  if (w.kind === 'goods') loadGoodsMeta([w]);
   maybeFulfillToast(w); loadCardMeta([w]);
   if (!S.fulfill[sig] && !/^SAMPLE|^SYN|^SL|^SB/.test(sig)) loadFulfillment(sig).then(fv => { if (fv?.fulfilled) { aggregate(); if (!document.querySelector('textarea:focus') && $('#modal').hidden) route(); } });
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w), L = lockPaint(w);
@@ -692,8 +706,13 @@ function wishPanel() {
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
   return `<h2>${E('wish.title')}</h2><div class=card>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
-  <div class=row><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option></select></label></div>
-  <div class=row><label>${E('wish.cat')} <select id=wc2>${Object.keys(CATS).map(c => `<option value="${c}">${esc(catName(c))}</option>`).join('')}</select></label></div>
+  <div class=row><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option></select></label></div>
+  <div class=row><label>${E('wish.coverStyle')} <select id=wc2><optgroup label="${E('cat.classic')}">${COVER_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : esc(catName(c))}</option>`).join('')}</optgroup></select></label></div>
+  <div id=goodsWrap class=kwrap hidden>
+    <label>${E('goods.url')}<input id=gurl type=url inputmode=url maxlength=1000 autocomplete=off spellcheck=false placeholder="https://" style="width:100%"></label>
+    <button type=button id=gfetch>🔎 ${E('goods.fetch')}</button><p class="muted hint">${E('goods.hint')}</p>
+    <div id=gprev hidden class=goods><img id=gimg class=goods-img alt="" hidden><div class=goods-info><label>${E('goods.title')}<input id=gtitle maxlength=80 dir=auto style="width:100%"></label>
+      <div class=row><label>${E('goods.price')}<input id=gprice inputmode=decimal maxlength=12 style="width:110px"></label><label>${E('goods.currency')}<input id=gcur maxlength=3 style="width:70px;text-transform:uppercase"></label></div><p class="muted hint" id=gnote></p></div></div></div>
   <div id=socWrap class=kwrap hidden>
     <label>${E('vis.label')} <select id=svis><option value=public>${E('vis.public')}</option><option value=nearby>${E('vis.nearby')}</option><option value=recent>${E('vis.recent')}</option></select></label>
     <div class=loc-row><label>${E('loc.country')}<input id=scountry maxlength=20 dir=auto></label><label>${E('loc.province')}<input id=sprov maxlength=20 dir=auto></label><label>${E('loc.city')}<input id=scity maxlength=20 dir=auto></label></div>
@@ -710,7 +729,7 @@ function wishPanel() {
     <p class="muted hint">${E('gift.hint')}</p></div>
   <div class=row><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
   <div id=coverWrap hidden>
-    <div class=muted>${E('wish.cover')}</div><div class=cover-grid id=covers>${WTCovers.list.map((c, i) => `<button type=button data-cover=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTCovers.url(i)}"></button>`).join('')}</div>
+    <div class=muted>${E('wish.cover')}</div><div class=cover-grid id=covers>${WTCovers.list.map((c, i) => [c, i]).sort((a, b) => COVER_CATS.indexOf(a[0][0] === MATERIAL ? '经典' : a[0][0]) - COVER_CATS.indexOf(b[0][0] === MATERIAL ? '经典' : b[0][0])).map(([c, i], j, A) => (j === 0 || (A[j - 1][0][0] === MATERIAL ? '经典' : A[j - 1][0][0]) !== (c[0] === MATERIAL ? '经典' : c[0]) ? `<b class=cg-h>${esc(catName(c[0]))}</b>` : '') + `<button type=button data-cover=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTCovers.url(i)}"></button>`).join('')}</div>
     <div class=up-row><label class=up-box sm><input type=file id=upC accept="image/*" hidden><img id=upCi alt="" hidden><span>🖼️ ${E('wish.upCover')}</span></label><button type=button id=clrC class=link hidden>${E('wish.clearUp')}</button></div>
     <div class=muted style="margin-top:10px">${E('wish.inside')}</div><div class=cover-grid id=insides>${WTInsides.list.map((c, i) => `<button type=button data-inside=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTInsides.url(i)}"></button>`).join('')}</div>
     <div class=up-row><label class=up-box sm><input type=file id=upN accept="image/*" hidden><img id=upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label><button type=button id=clrN class=link hidden>${E('wish.clearUp')}</button></div>
@@ -753,6 +772,7 @@ const help = () => `<h2>${E('nav.help')}</h2>${prevail()}
 <div class=card><h3>💰 ${E('help.feeTitle')}</h3>${E('help.feeBody')}<br><span class=muted>${E('help.receive')} ${esc(S.cfg.receive || S.cfg.treasury || S.cfg.developer)}</span></div>
 <div class="card k-social"><h3>💬 ${E('help.socialTitle')}</h3>${bul(E('help.socialBody'))}<p class=muted>${E('help.socialVis')}</p></div>
 <div class="card k-gift"><h3>🎁 ${E('help.giftTitle')}</h3>${bul(E('help.giftBody'))}<p class=muted>${E('help.giftVis')}</p></div>
+<div class="card k-goods"><h3>🛍️ ${E('help.goodsTitle')}</h3>${bul(E('help.goodsBody'))}</div>
 <div class=card><h3>🛡️ ${E('help.modTitle')}</h3>${bul(E('help.%s'))} ${E('help.modPub')} <code style="word-break:break-all">${esc(S.cfg.moderator || '')}</code></div>
 <div class=card><h3>🌳 ${E('help.stageTitle')}</h3>${E('help.stageBody', { stages: Array.from({ length: STAGE_N }, (_, i) => `${stageName(i)} (≥${[0, 10, 50, 200, 1000][i]})`).join(' → '), green: seasonName('green'), bloom: seasonName('bloom'), fall: seasonName('fall') })}</div>
 <div class=card><h3>📜 ${E('help.riskTitle')}</h3>${bul(E('help.%s'))}</div>`;
@@ -792,7 +812,7 @@ async function route() {
     const blkCheck = () => { const h = WTBlock.checkText(S.block, ta.value); bw.hidden = !h; if (h) bw.textContent = '⛔ ' + t(h.type === 'shortener' ? 'err.blockShort' : h.type === 'address' ? 'err.blockAddr' : 'err.blockPhish', { msg: h.domain }); return h; };
     ta.addEventListener('input', blkCheck); blkFullP?.then(blkCheck); window.__blkCheck = blkCheck;
     const catSel = $('#wc2');
-    const syncShip = () => { const on = catSel?.value === MATERIAL; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
+    const syncShip = () => { const on = ($('#ckind')?.value || 'wish') === 'goods'; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
     const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.cover === i));
     const syncCard = () => { const f = $('#ctype')?.value === 'folded'; if ($('#coverWrap')) $('#coverWrap').hidden = !f; const ta2 = $('#wt'); if (ta2) { ta2.maxLength = f && $('#priv')?.checked ? 100 : 140; $('#wc').textContent = [...ta2.value].length + '/' + ta2.maxLength; } };
     const D = S.draft ||= {}, up = D.up ||= { C: null, N: null };
@@ -808,11 +828,19 @@ async function route() {
     pickCover(WTCovers.forCat(catSel?.value || '经典')[0]); pickInside(WTInsides.forCat(catSel?.value || '经典')[0]); syncCard();
     catSel?.addEventListener('change', syncShip);
     // 表单草稿：后台刷新/语言切换/钱包事件会重新渲染页面，这里把用户的选择写入 S.draft 并在重渲染后恢复
-    const F = { ckind: 'value', wc2: 'value', ctype: 'value', priv: 'checked', wt: 'value', amt: 'value', ship: 'value', ag: 'checked', ag2: 'checked', stg: 'value', sin: 'value', slk: 'value', sct: 'value', ssh: 'checked', gto: 'value', gnt: 'value', svis: 'value', scountry: 'value', sprov: 'value', scity: 'value', gdel: 'value', gvis: 'value', gcountry: 'value', gprov: 'value', gcity: 'value', ginv: 'value' };
+    const F = { ckind: 'value', wc2: 'value', ctype: 'value', priv: 'checked', wt: 'value', amt: 'value', ship: 'value', ag: 'checked', ag2: 'checked', stg: 'value', sin: 'value', slk: 'value', sct: 'value', ssh: 'checked', gto: 'value', gnt: 'value', svis: 'value', scountry: 'value', sprov: 'value', scity: 'value', gdel: 'value', gvis: 'value', gcountry: 'value', gprov: 'value', gcity: 'value', ginv: 'value', gurl: 'value', gtitle: 'value', gprice: 'value', gcur: 'value' };
     const syncGiftDel = () => { const d = $('#gdel')?.value || 'tree', part = d === 'tree_partial' || d === 'both_partial';
       if ($('#gvisBox')) $('#gvisBox').hidden = !part; if ($('#gpassBox')) $('#gpassBox').hidden = d !== 'locked';
       const gv = $('#gvis')?.value; if ($('#gcityBox')) $('#gcityBox').hidden = !part || gv !== 'nearby'; if ($('#ginvBox')) $('#ginvBox').hidden = !part || gv !== 'invite'; };
-    const syncKind = () => { const k = $('#ckind')?.value || 'wish', ct = $('#ctype'); $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if (ct) { if (k !== 'wish') ct.value = 'single'; ct.closest('.row').hidden = k !== 'wish'; } syncGiftDel(); syncCard(); };
+    let gp = null; // 商品预览（服务器抓取）
+    $('#gfetch')?.addEventListener('click', async () => { const u = ($('#gurl').value || '').trim(); if (!/^https:\/\//i.test(u)) return toast(E('err.goodsHttps'), 'err');
+      const b = $('#gfetch'); b.disabled = true; b.textContent = '⏳ ' + t('goods.fetching');
+      try { gp = await api('/api/goods/preview', { url: u }); $('#gprev').hidden = false; $('#gtitle').value = gp.title || ''; $('#gprice').value = gp.price || ''; $('#gcur').value = gp.currency || (gp.price ? 'CNY' : '');
+        const im = $('#gimg'); if (gp.image) { im.src = IMG(gp.image); im.hidden = false; } else { im.removeAttribute('src'); im.hidden = true; }
+        $('#gnote').textContent = gp.failed ? t('goods.failed') : !gp.title || !gp.price ? t('goods.partial') : t('goods.priceAt', { time: fmtMs(gp.fetchedAt) }); saveD(); }
+      catch (e) { gp = null; toast(esc(e.message), 'err'); }
+      b.disabled = false; b.textContent = '🔎 ' + t('goods.fetch'); });
+    const syncKind = () => { const k = $('#ckind')?.value || 'wish', ct = $('#ctype'); $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if ($('#goodsWrap')) $('#goodsWrap').hidden = k !== 'goods'; syncShip(); if (ct) { if (k !== 'wish') ct.value = 'single'; ct.closest('.row').hidden = k !== 'wish'; } syncGiftDel(); syncCard(); };
     $('#ckind')?.addEventListener('change', syncKind); $('#gdel')?.addEventListener('change', syncGiftDel); $('#gvis')?.addEventListener('change', syncGiftDel);
     saveD = () => { D.f = Object.fromEntries(Object.entries(F).filter(([id]) => $('#' + id)).map(([id, p]) => [id, $('#' + id)[p]])); D.cover = $('#covers .on')?.dataset.cover; D.inside = $('#insides .on')?.dataset.inside; D.auto = $('#covers')?.dataset.auto; D.iauto = $('#insides')?.dataset.auto; };
     if (D.f) { for (const [id, v] of Object.entries(D.f)) { const el = $('#' + id); if (el) el[F[id]] = v; }
@@ -825,7 +853,7 @@ async function route() {
     $('#evc')?.addEventListener('change', e => { const key = e.target.value, r = evmRoutes()[key]; localStorage.wt_pay = key; localStorage.wt_chain = String(r.chainId); $('#eva').value = evmMinByRoute(key); $('#evaL').textContent = t('wish.evmAmt', { sym: r.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMinByRoute(key), sym: r.sym }); });
     const pvSync = () => { const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
     $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = $('#wc2').value;
-      const shippingNote = cat === MATERIAL ? ($('#ship')?.value || '').trim() : '';
+      const shippingNote = ($('#ckind')?.value || 'wish') === 'goods' ? ($('#ship')?.value || '').trim() : '';
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
       const kind = $('#ckind')?.value || 'wish', bad = x => /[~|]/.test(x); let K = null, contact = '', showCt = false;
       let metaPayload = {};
@@ -849,6 +877,11 @@ async function route() {
           if (vis === 'invite') { const inv = ($('#ginv')?.value || '').split(/[\s,，;；]+/).map(x => x.trim()).filter(Boolean); if (!inv.length || inv.some(a => !(solAddrOk(a) || evmAddrOk(a)))) return toast(E('err.inviteNeed'), 'err'); metaPayload.invite = inv; }
           metaPayload = { ...metaPayload, country, province, city }; }
         K = { kind, to, note, vis, deliver, country: metaPayload.country || '', province: metaPayload.province || '', city: metaPayload.city || '' }; }
+      if (kind === 'goods') { const u = ($('#gurl').value || '').trim(); if (!gp || gp.url !== (() => { try { return new URL(u).href; } catch { return ''; } })()) return toast(E('err.goodsPreview'), 'err');
+        const title = $('#gtitle').value.trim(), price = $('#gprice').value.trim(), cur = $('#gcur').value.trim().toUpperCase();
+        if (!title || [...title].length > 80 || bad(title) || (price && !/^\d{1,9}(\.\d{1,2})?$/.test(price)) || (cur && !/^[A-Z]{3}$/.test(cur))) return toast(E('err.goodsField'), 'err');
+        if (/[~|]/.test(gp.domain + gp.pid)) return toast(E('err.goodsUrl'), 'err');
+        K = { kind, domain: gp.domain, pid: gp.pid }; metaPayload = { url: gp.url, title, price, currency: cur, image: gp.image }; }
       { await loadBlocklist(true); const h = window.__blkCheck?.(); if (h) return toast(esc($('#blkwarn').textContent), 'err'); } // 付款前拦截（服务器审核同样强制）
       if (!($('#pv')?.value === 'evm') && !(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
@@ -870,10 +903,11 @@ async function route() {
       if (sig) {
         // 链下登记：记账 +（物质类）收货/联系备注；备注永不入链
         fetch('/api/wish-paid', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') },
-          body: JSON.stringify({ sig, cat, text: priv ? '🔒' : txt, author: S.pubkey, lamports: lam, shippingNote, source: S.mode }) }).catch(() => {});
+          body: JSON.stringify({ sig, cat: K?.kind === 'goods' ? MATERIAL : cat, text: priv ? '🔒' : txt, author: S.pubkey, lamports: lam, shippingNote, source: S.mode }) }).catch(() => {});
         if (K?.kind === 'social') { if (contact) api('/api/contact', { sig, contact, show: showCt }).catch(e => toast(esc(e.message), 'err'));
           api('/api/card-meta', { sig, ...metaPayload }).catch(() => {});
           if (metaPayload.city || metaPayload.province || metaPayload.country) { S.myLoc = { country: metaPayload.country, province: metaPayload.province, city: metaPayload.city }; localStorage.wt_loc = JSON.stringify(S.myLoc); api('/api/me/loc', S.myLoc).catch(() => {}); } }
+        if (K?.kind === 'goods') { S.goods[sig] = { ...metaPayload, domain: K.domain, fetchedAt: gp.fetchedAt }; api('/api/goods-meta', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err')); }
         if (K?.kind === 'gift') api('/api/gift-sent', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err'));
         S.draft = null; location.hash = '#/';
       } else $('#ws').disabled = false;
