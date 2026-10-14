@@ -373,5 +373,10 @@
 "err.evmTx": "轉賬校驗失敗",
 "err.evmSplit": "轉賬須按 20% / 80% 分配",
 "err.evmUsed": "該轉賬已被使用",
-"err.evmPending": "轉賬尚未確認，請稍後重試"
+"err.evmPending": "轉賬尚未確認，請稍後重試",
+"wal.rejected": "你已在錢包中取消簽名",
+"wal.chainMismatch": "錢包目前網路與簽名請求不一致，請在錢包中切換網路後重試",
+"wal.chainUnsupported": "錢包目前網路不受支援，請切換到 BSC、Base、Ethereum 或 Arbitrum",
+"wal.switched": "錢包帳戶已切換，已登出，請重新連線",
+"err.chainId": "登入訊息的網路（Chain ID）不受支援"
 }

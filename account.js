@@ -16,6 +16,8 @@ const EVM_DEV = isAddr(process.env.EVM_DEV_ADDRESS) ? process.env.EVM_DEV_ADDRES
 const EVM_PAY = !!(EVM_DEV && EVM_TREASURY);
 
 // ---- 签名登录 ----
+const EVM_LOGIN_CHAINS = new Set([56, 97, 8453, 84532, 1, 11155111, 42161, 421614]); // BSC / Base / Ethereum / Arbitrum 主网与测试网
+const SOL_CHAINS = new Set(['', 'mainnet', 'devnet', 'testnet', 'solana:mainnet', 'solana:devnet', 'solana:testnet']); // Solana 消息可省略 Chain ID
 const NONCES = new Map(); // nonce → 过期时间（一次性，5 分钟）
 function nonce() { const n = crypto.randomBytes(12).toString('hex'); NONCES.set(n, Date.now() + 300000); if (NONCES.size > 5000) for (const [k, v] of NONCES) if (v < Date.now()) NONCES.delete(k); return n; }
 function parseSiwe(msg) { // 解析 EIP-4361 风格消息（Solana 同格式）
@@ -31,6 +33,8 @@ function verifyLogin({ message, signature }, allowHost) { // → { kind, address
   const p = parseSiwe(message); if (!p) throw Object.assign(new Error('bad message'), { code: 'siwe' });
   if (!allowHost(p.domain)) throw Object.assign(new Error('domain mismatch'), { code: 'siwe' });
   const exp = NONCES.get(p.nonce); if (!exp || exp < Date.now()) throw Object.assign(new Error('nonce expired'), { code: 'nonce' }); NONCES.delete(p.nonce);
+  // Chain ID 必须是支持的网络（主网或测试网）；签名按消息里的 Chain ID 校验（钱包会要求它等于当前网络）
+  if (p.kind === 'evm' ? !EVM_LOGIN_CHAINS.has(+p.chainId) : !SOL_CHAINS.has(p.chainId)) throw Object.assign(new Error('unsupported chain id'), { code: 'chainId' });
   if (Math.abs(Date.now() - Date.parse(p.issuedAt)) > 600000) throw Object.assign(new Error('stale'), { code: 'nonce' });
   if (p.kind === 'evm') { if (!isAddr(p.address) || evmRecover(message, signature).toLowerCase() !== p.address.toLowerCase()) throw Object.assign(new Error('signature invalid'), { code: 'sig' }); return { kind: 'evm', address: p.address.toLowerCase() }; }
   let pk, sg; try { pk = b58.decode(p.address); sg = /^[0-9a-f]{128}$/i.test(signature) ? unhex(signature) : b58.decode(signature); } catch { throw Object.assign(new Error('signature invalid'), { code: 'sig' }); }

@@ -373,5 +373,10 @@
 "err.evmTx": "Überweisung konnte nicht geprüft werden",
 "err.evmSplit": "Überweisungen müssen 20 % / 80 % aufgeteilt sein",
 "err.evmUsed": "Diese Überweisung wurde bereits verwendet",
-"err.evmPending": "Überweisung noch nicht bestätigt, bitte gleich erneut versuchen"
+"err.evmPending": "Überweisung noch nicht bestätigt, bitte gleich erneut versuchen",
+"wal.rejected": "Du hast die Signatur in deiner Wallet abgebrochen",
+"wal.chainMismatch": "Das Netzwerk deiner Wallet passt nicht zur Signaturanfrage. Wechsle in der Wallet das Netzwerk und versuche es erneut",
+"wal.chainUnsupported": "Das aktuelle Netzwerk deiner Wallet wird nicht unterstützt. Wechsle zu BSC, Base, Ethereum oder Arbitrum",
+"wal.switched": "Wallet-Konto gewechselt – du wurdest abgemeldet. Bitte erneut verbinden",
+"err.chainId": "Das Netzwerk (Chain ID) der Anmeldenachricht wird nicht unterstützt"
 }

@@ -22,12 +22,18 @@
         if (F['solana:signAndSendTransaction']) { const [o] = await F['solana:signAndSendTransaction'].signAndSendTransaction({ account: acct, transaction: bytes, chain: 'solana:devnet' }); return b58(toU8(o.signature)); }
         const [o] = await F['solana:signTransaction'].signTransaction({ account: acct, transaction: bytes, chain: 'solana:devnet' }); return { raw: toU8(o.signedTransaction) }; },
       async signMessage(m) { if (!F['solana:signMessage']) throw new Error('signMessage unsupported'); const [o] = await F['solana:signMessage'].signMessage({ account: acct, message: m }); return toU8(o.signature); },
+      canSignIn: !!F['solana:signIn'],
+      async signIn(input) { const [o] = await F['solana:signIn'].signIn(input); acct = o.account; return { address: o.account.address, message: new TextDecoder().decode(toU8(o.signedMessage)), signature: toU8(o.signature) }; },
+      onChange(cb) { try { return F['standard:events']?.on('change', ch => { if (ch.accounts) cb(ch.accounts[0]?.address || null); }); } catch {} },
       async disconnect() { try { await F['standard:disconnect']?.disconnect(); } catch {} } }; }
   function injAdapter(p, d) { let pk = null;
     return { id: d.id, name: d.name,
       async connect(silent) { const r = await p.connect(silent ? { onlyIfTrusted: true } : undefined); pk = (r?.publicKey || p.publicKey)?.toString(); if (!pk) throw new Error('no account'); return pk; },
       async signAndSend(tx) { const r = await p.signAndSendTransaction(tx); return typeof r === 'string' ? r : r.signature || r.publicKey && r; },
       async signMessage(m) { return toU8(await p.signMessage(m, 'utf8')); },
+      canSignIn: typeof p.signIn === 'function',
+      async signIn(input) { const o = await p.signIn(input); pk = (o.address || o.account?.address || p.publicKey)?.toString(); return { address: pk, message: new TextDecoder().decode(toU8(o.signedMessage)), signature: toU8(o.signature) }; },
+      onChange(cb) { try { p.on?.('accountChanged', k => cb(k ? k.toString() : null)); p.on?.('disconnect', () => cb(null)); } catch {} },
       async disconnect() { try { await p.disconnect?.(); } catch {} } }; }
   function solWallets() { // 返回四个固定钱包 + 其余 Wallet Standard 钱包；installed 表示可直接连接
     const out = [], used = new Set();
@@ -59,5 +65,11 @@
   async function waitReceipt(p, h, ms = 180000) { const t0 = Date.now(); // 仅在发出自己的交易后等待确认（非数据轮询）
     while (Date.now() - t0 < ms) { const r = await p.request({ method: 'eth_getTransactionReceipt', params: [h] }).catch(() => null); if (r) { if (r.status !== '0x1') throw new Error('tx reverted'); return r; } await new Promise(r => setTimeout(r, 2500)); }
     throw new Error('timeout'); }
-  window.WTW = { solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
+  const LOGIN_CHAINS = [56, 97, 8453, 84532, 1, 11155111, 42161, 421614];
+  async function chainOf(p) { return parseInt(await p.request({ method: 'eth_chainId' }), 16); }
+  async function readyChain(p, want, cfg) { // 签名前确定钱包当前网络：不受支持则切换到所选网络，切换后重新读取；消息里的 Chain ID 必须与之相同
+    let c = await chainOf(p); if (LOGIN_CHAINS.includes(c) && (!want || c === +want)) return c;
+    if (want) { try { await switchChain(p, want, cfg); } catch (e) { if (e?.code === 4001) throw e; } c = await chainOf(p); }
+    if (!LOGIN_CHAINS.includes(c)) throw Object.assign(new Error('unsupported chain ' + c), { code: 'chainUnsupported' }); return c; }
+  window.WTW = { LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
 })();

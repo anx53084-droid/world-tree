@@ -373,5 +373,10 @@
 "err.evmTx": "Transfer verification failed",
 "err.evmSplit": "Transfers must be split 20% / 80%",
 "err.evmUsed": "This transfer was already used",
-"err.evmPending": "Transfer not confirmed yet, retry shortly"
+"err.evmPending": "Transfer not confirmed yet, retry shortly",
+"wal.rejected": "You cancelled the signature in your wallet",
+"wal.chainMismatch": "Your wallet’s network doesn’t match the signature request. Switch network in your wallet and try again",
+"wal.chainUnsupported": "Your wallet’s current network isn’t supported. Switch to BSC, Base, Ethereum or Arbitrum",
+"wal.switched": "Wallet account changed — you were signed out. Please reconnect",
+"err.chainId": "The sign-in message’s network (Chain ID) isn’t supported"
 }

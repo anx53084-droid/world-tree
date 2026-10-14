@@ -373,5 +373,10 @@
 "err.evmTx": "Xác minh giao dịch chuyển thất bại",
 "err.evmSplit": "Giao dịch chuyển phải chia 20% / 80%",
 "err.evmUsed": "Giao dịch chuyển này đã được dùng",
-"err.evmPending": "Giao dịch chuyển chưa được xác nhận, thử lại sau ít phút"
+"err.evmPending": "Giao dịch chuyển chưa được xác nhận, thử lại sau ít phút",
+"wal.rejected": "Bạn đã hủy ký trong ví",
+"wal.chainMismatch": "Mạng của ví không khớp với yêu cầu ký. Hãy đổi mạng trong ví rồi thử lại",
+"wal.chainUnsupported": "Mạng hiện tại của ví không được hỗ trợ. Hãy chuyển sang BSC, Base, Ethereum hoặc Arbitrum",
+"wal.switched": "Tài khoản ví đã thay đổi — bạn đã bị đăng xuất. Vui lòng kết nối lại",
+"err.chainId": "Mạng (Chain ID) trong tin nhắn đăng nhập không được hỗ trợ"
 }

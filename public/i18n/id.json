@@ -373,5 +373,10 @@
 "err.evmTx": "Verifikasi transfer gagal",
 "err.evmSplit": "Transfer harus dibagi 20% / 80%",
 "err.evmUsed": "Transfer ini sudah dipakai",
-"err.evmPending": "Transfer belum terkonfirmasi, coba lagi sebentar"
+"err.evmPending": "Transfer belum terkonfirmasi, coba lagi sebentar",
+"wal.rejected": "Anda membatalkan tanda tangan di dompet",
+"wal.chainMismatch": "Jaringan dompet tidak cocok dengan permintaan tanda tangan. Ganti jaringan di dompet lalu coba lagi",
+"wal.chainUnsupported": "Jaringan dompet saat ini tidak didukung. Beralih ke BSC, Base, Ethereum, atau Arbitrum",
+"wal.switched": "Akun dompet berganti — Anda telah keluar. Silakan hubungkan ulang",
+"err.chainId": "Jaringan (Chain ID) pada pesan masuk tidak didukung"
 }

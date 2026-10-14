@@ -211,13 +211,32 @@ async function api(url, data) {
 // Solana：Phantom / Solflare / Backpack / OKX（Wallet Standard 优先）；EVM：MetaMask / OKX / Coinbase / EIP-6963 注入钱包（BSC、Base、Ethereum、Arbitrum 测试网）
 const EVM_KEYS = { 97: 'bsc', 84532: 'base', 11155111: 'eth', 421614: 'arb' };
 const evmChains = () => S.cfg.evm?.chains || { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB' }, 84532: { key: 'base', name: 'Base Sepolia', sym: 'ETH' }, 11155111: { key: 'eth', name: 'Sepolia', sym: 'ETH' }, 421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH' } };
-function siweMsg(kind, addr, nonce, chainId) { return `${location.host} wants you to sign in with your ${kind} account:\n${addr}\n\nSign in to World Tree. This request will not trigger a transaction or cost any fees.\n\nURI: ${location.origin}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`; }
+function siweMsg(kind, addr, nonce, chainId) { return `${location.host} wants you to sign in with your ${kind} account:\n${addr}\n\nSign in to World Tree. This request will not trigger a transaction or cost any fees.\n\nURI: ${location.origin}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`.replace(chainId == null ? /\nChain ID: [^\n]*/ : /$^/, ''); } // Solana 省略 Chain ID（钱包会按其当前网络校验）
 function setSession(r) { S.token = localStorage.wt_token = r.token; S.kind = r.kind; S.email = r.email; S.evmAddr = r.evm; S.totp = r.totp; S.verified = r.verified; S.largeUsd = r.largeUsd || S.largeUsd; }
 async function solWallet() { if (S.wallet) return S.wallet; const id = localStorage.wt_wallet, w = WTW.solWallets().find(x => x.id === id && x.installed);
-  if (!w) throw new Error(t('wal.reconnect')); const a = w.adapter(); const pk = await a.connect(false); if (pk !== S.pubkey) throw new Error(t('wal.reconnect')); S.wallet = a; return a; }
+  if (!w) throw new Error(t('wal.reconnect')); const a = w.adapter(); const pk = await a.connect(false); if (pk !== S.pubkey) throw new Error(t('wal.reconnect')); S.wallet = a; watchSol(a); return a; }
+// 预取一次性 nonce：点击后立刻弹出钱包签名（不在用户手势与弹窗之间插入网络请求）
+let nonceP = null, nonceAt = 0; const getNonce = () => { if (!nonceP || Date.now() - nonceAt > 240000) { nonceAt = Date.now(); nonceP = api('/api/nonce').then(r => r.nonce).catch(e => { nonceP = null; throw e; }); } const p = nonceP; nonceP = null; return p; };
+const prefetchNonce = () => { if (!nonceP) { nonceAt = Date.now(); nonceP = api('/api/nonce').then(r => r.nonce).catch(() => { nonceP = null; }); } };
+const STMT = 'Sign in to World Tree. This request will not trigger a transaction or cost any fees.';
+function walErr(e) { const m = String(e?.message || e || ''); // 钱包错误 → 本地化提示
+  if (e?.code === 4001 || e?.code === 'ACTION_REJECTED' || /reject|denied|cancel|declin/i.test(m)) return t('wal.rejected');
+  if (/chain id|chainid|chain_id/i.test(m) || e?.code === 'chainId') return t('wal.chainMismatch');
+  if (e?.code === 'chainUnsupported') return t('wal.chainUnsupported'); if (e?.code === 'nonce') return t('err.nonce'); if (e?.code === 'sig') return t('err.sig');
+  return t('wal.fail', { msg: m }); }
+async function solSignIn(w, nonce) { // 优先用钱包原生 Sign-In（solana:signIn：连接+签名一步完成）；否则 signMessage（消息不含 Chain ID）
+  if (w.canSignIn) { const o = await w.signIn({ domain: location.host, statement: STMT, uri: location.origin, version: '1', nonce, issuedAt: new Date().toISOString() });
+    return { address: o.address, message: o.message, signature: WTW.b58(o.signature) }; }
+  const m = siweMsg('Solana', S.pubkey, nonce, null); return { address: S.pubkey, message: m, signature: WTW.b58(await w.signMessage(new TextEncoder().encode(m))) }; }
 async function siws() { // Sign-In-With-Solana：签名消息换取会话（用于站内信、安全设置）
-  const w = await solWallet(), { nonce } = await api('/api/nonce'), m = siweMsg('Solana', S.pubkey, nonce, 'devnet');
-  const sg = await w.signMessage(new TextEncoder().encode(m)); const r = await api('/api/login/wallet', { message: m, signature: WTW.b58(sg) }); setSession(r); renderMode(); loadBell(); return r; }
+  const np = getNonce(); let w = S.wallet; if (!w) { const d = WTW.solWallets().find(x => x.id === localStorage.wt_wallet && x.installed); if (!d) throw new Error(t('wal.reconnect')); w = d.adapter(); if (!w.canSignIn && (await w.connect(false)) !== S.pubkey) throw new Error(t('wal.reconnect')); S.wallet = w; watchSol(w); }
+  const o = await solSignIn(w, await np);
+  if (o.address && o.address !== S.pubkey) throw new Error(t('wal.reconnect'));
+  const r = await api('/api/login/wallet', { message: o.message, signature: o.signature }); setSession(r); renderMode(); loadBell(); return r; }
+function watchSol(a) { a.onChange?.(addr => { if (S.mode === 'self' && S.wallet === a && addr !== S.pubkey) { toast(esc(t('wal.switched')), 'err'); S.wallet = null; logout(); } }); }
+function watchEvm(p) { if (!p?.on || p.__wt) return; p.__wt = 1; // 钱包切换网络 / 账户
+  p.on('chainChanged', h => { const c = parseInt(h, 16); if (EVM_KEYS[c]) localStorage.wt_chain = String(c); S.evmChain = c; });
+  p.on('accountsChanged', a => { if (S.kind === 'evm' && (a[0] || '').toLowerCase() !== S.evmAddr) { toast(esc(t('wal.switched')), 'err'); logout(); } }); }
 function walletItem(w, kind) { return `<button type=button class="witem${w.installed ? '' : ' off'}" data-k=${kind} data-w="${esc(w.id)}">${w.icon ? `<img src="${esc(w.icon)}" alt="" width=24 height=24>` : '<i>◎</i>'}<b>${esc(w.name)}</b><span class=muted>${w.installed ? '' : WTW.mobile() ? E('wal.open') : E('wal.install')}</span></button>`; }
 function connectWallet(tab) {
   tab = tab || localStorage.wt_wtab || 'sol'; const ch = localStorage.wt_chain || '84532', C = evmChains();
@@ -233,23 +252,28 @@ function connectWallet(tab) {
 const connectPhantom = () => connectWallet('sol');
 async function connectSol(id) { const w = WTW.solWallets().find(x => x.id === id); if (!w) return;
   if (!w.installed) { if (WTW.mobile()) location.href = w.deep(); else window.open(w.site, '_blank'); return; }
-  try { const a = w.adapter(), pk = await a.connect(false); closeModal();
-    if (S.mode === 'host' && S.token) await logout(true);
-    S.mode = 'self'; S.kind = 'sol'; S.pubkey = pk; S.email = null; S.wallet = a; localStorage.wt_wallet = id; renderMode(); route(); toast(esc(t('wal.ok', { addr: short(pk) })), 'ok');
-    try { toast(esc(t('wal.signing'))); await siws(); } catch { toast(esc(t('wal.signLater')), ''); } }
-  catch (e) { toast(esc(t('wal.fail', { msg: e.message || e })), 'err'); } }
+  const a = w.adapter(), np = getNonce(); let pk, signed = null;
+  try { if (a.canSignIn) { const o = await a.signIn({ domain: location.host, statement: STMT, uri: location.origin, version: '1', nonce: await np, issuedAt: new Date().toISOString() }); // 一次点击：连接并签名
+      pk = o.address; signed = { message: o.message, signature: WTW.b58(o.signature) }; } else pk = await a.connect(false); }
+  catch (e) { return toast(esc(walErr(e)), 'err'); }
+  closeModal(); if (S.mode === 'host' && S.token) await logout(true);
+  S.mode = 'self'; S.kind = 'sol'; S.pubkey = pk; S.email = null; S.wallet = a; localStorage.wt_wallet = id; watchSol(a); renderMode(); route(); toast(esc(t('wal.ok', { addr: short(pk) })), 'ok');
+  try { if (signed) { const r = await api('/api/login/wallet', signed); setSession(r); renderMode(); loadBell(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); }
+    else { toast(esc(t('wal.signing'))); await siws(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); } }
+  catch (e) { toast(esc(walErr(e)) + ' · ' + esc(t('wal.signLater')), 'err'); } }
 async function evmProvider() { if (S.evmProv) return S.evmProv; const w = WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed) || WTW.evmWallets().find(x => x.installed); if (!w) throw new Error(t('wish.evmNoWallet'));
-  const [a] = await w.provider.request({ method: 'eth_requestAccounts' }); if ((a || '').toLowerCase() !== S.evmAddr) throw new Error(t('wish.evmNoWallet')); return S.evmProv = w.provider; }
+  const [a] = await w.provider.request({ method: 'eth_requestAccounts' }); if ((a || '').toLowerCase() !== S.evmAddr) throw new Error(t('wish.evmNoWallet')); watchEvm(w.provider); return S.evmProv = w.provider; }
 async function connectEvm(id) { const w = WTW.evmWallets().find(x => x.id === id); if (!w) return;
   if (!w.installed) { if (WTW.mobile()) location.href = w.deep(); else window.open(w.site, '_blank'); return; }
   const chain = $('#wch')?.value || localStorage.wt_chain || '84532', p = w.provider;
-  try { const [addr] = await p.request({ method: 'eth_requestAccounts' }); closeModal(); const tt = toast(esc(t('wal.signing')));
-    try { await WTW.switchChain(p, chain, evmChains()[chain]); } catch {} // 切换网络失败不影响登录
-    const { nonce } = await api('/api/nonce'), m = siweMsg('Ethereum', addr, nonce, chain);
+  const np = getNonce();
+  try { const [addr] = await p.request({ method: 'eth_requestAccounts' }); closeModal(); const tt = toast(esc(t('wal.signing'))); watchEvm(p);
+    const cid = await WTW.readyChain(p, chain, evmChains()[chain]); // 消息 Chain ID = 钱包当前 eth_chainId
+    const m = siweMsg('Ethereum', addr, await np, cid);
     const sg = await p.request({ method: 'personal_sign', params: [WTW.hexOf(m), addr] });
-    const r = await api('/api/login/wallet', { message: m, signature: sg }); S.wallet = null; setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.evmProv = p; localStorage.wt_evm = id; localStorage.wt_chain = chain; localStorage.removeItem('wt_wallet');
+    const r = await api('/api/login/wallet', { message: m, signature: sg }); S.wallet = null; setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.evmProv = p; localStorage.wt_evm = id; if (EVM_KEYS[cid]) localStorage.wt_chain = String(cid); localStorage.removeItem('wt_wallet');
     renderMode(); route(); loadBell(); tt.update(esc(t('wal.ok', { addr: short(addr) })), 'ok'); }
-  catch (e) { toast(esc(t('wal.fail', { msg: e.message || e })), 'err'); } }
+  catch (e) { toast(esc(walErr(e)), 'err'); } }
 function emailLogin(needTotp, em0) {
   modal(`<h3>${esc(t(needTotp ? 'login.totpTitle' : 'login.emailTitle'))}</h3>${needTotp ? '' : `<p class="notice">⚠️ ${esc(t('login.emailWarn'))}</p>`}
     <input id=em type=email placeholder="you@example.com" style="width:100%" dir=ltr value="${esc(em0 || '')}" ${needTotp ? 'hidden' : ''}>${needTotp ? `<input id=emt inputmode=numeric autocomplete=one-time-code maxlength=6 placeholder="${E('login.totpPh')}" style="width:100%">` : ''}
@@ -280,7 +304,7 @@ const devName = ua => { if (!ua) return t('sec.unknownDevice'); const b = /Edg\/
   const o = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : ''; return [b, o].filter(Boolean).join(' · ') || t('sec.unknownDevice'); };
 const fmtMs = ms => ms ? new Date(ms).toLocaleString(I18N.locale(), { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 const needSession = title => S.mode === 'guest' ? `<h2>${title}</h2><div class=card>${E('sec.needLogin')}</div>` : !S.token ? `<h2>${title}</h2><div class=card><p>${E('sec.needSign')}</p><button id=siws class=primary>${E('wal.siws')}</button></div>` : '';
-function bindSiws() { $('#siws')?.addEventListener('click', async () => { try { await siws(); route(); } catch (e) { toast(esc(t('wal.fail', { msg: e.message || e })), 'err'); } }); }
+function bindSiws() { if ($('#siws')) prefetchNonce(); $('#siws')?.addEventListener('click', async () => { try { await siws(); route(); } catch (e) { toast(esc(walErr(e)), 'err'); } }); }
 const security = () => needSession(E('sec.title')) || `<h2>${E('sec.title')}</h2><div id=secbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
 async function loadSec() { const box = $('#secbox'); if (!box) return bindSiws(); let d; try { d = await api('/api/security'); } catch (e) { box.innerHTML = `<p class=muted>${esc(e.message)}</p>`; return; }
   S.totp = d.totp; S.verified = d.verified; S.largeUsd = d.largeUsd; const email = d.kind === 'email';
@@ -632,9 +656,9 @@ if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.host
   fetch('/api/config').then(r => r.json()).then(c => Object.assign(S.cfg, c)).catch(() => {}).then(() => fetch('/api/rules')).then(r => r.json()).then(r => S.words = r.words).catch(() => {});
   const silentSol = async () => { const w = WTW.solWallets().find(x => x.id === localStorage.wt_wallet && x.installed); if (!w) return null; try { const a = w.adapter(), pk = await a.connect(true); return { a, pk }; } catch { return null; } };
   if (S.token) api('/api/me').then(async r => { setSession({ ...r, token: S.token }); S.pubkey = r.pubkey;
-    if (r.kind === 'sol') { S.mode = 'self'; const c = await silentSol(); if (c && c.pk === r.pubkey) S.wallet = c.a; } else S.mode = 'host'; renderMode(); route(); loadBell(); })
+    if (r.kind === 'sol') { S.mode = 'self'; const c = await silentSol(); if (c && c.pk === r.pubkey) { S.wallet = c.a; watchSol(c.a); } } else { S.mode = 'host'; if (r.kind === 'evm') watchEvm(WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed)?.provider); } renderMode(); route(); loadBell(); })
     .catch(e => { if (e.status === 401) { localStorage.removeItem('wt_token'); S.token = null; } });
-  else if (localStorage.wt_wallet) setTimeout(async () => { const c = await silentSol(); if (c && S.mode === 'guest') { S.mode = 'self'; S.kind = 'sol'; S.pubkey = c.pk; S.wallet = c.a; renderMode(); route(); } }, 300); // Wallet Standard 钱包注册稍晚
+  else if (localStorage.wt_wallet) setTimeout(async () => { const c = await silentSol(); if (c && S.mode === 'guest') { S.mode = 'self'; S.kind = 'sol'; S.pubkey = c.pk; S.wallet = c.a; watchSol(c.a); renderMode(); route(); } }, 300); // Wallet Standard 钱包注册稍晚
   // 首屏立即渲染：先用上次缓存的链上数据（localStorage）画出世界树，链上读取在后台进行，完成后无感刷新
   try { if (localStorage.wt_sigs != null) { const sigs = JSON.parse(localStorage.wt_sigs); S.txs = sigs.map(x => txCache[x]).filter(Boolean); S.hadReal = true; } } catch {} aggregate(); route(); syncChip(true);
   (async () => { await loadWishes(); syncChip(false); await hydrateFulfillments(); refreshView(); })();
