@@ -535,5 +535,14 @@
   "soc.tagsPh": "愛好，最多 5 個標籤，逗號分隔",
   "soc.profHint": "年齡、性別、職業僅存鏈下，只在詳情頁展示；愛好作為標籤上鏈。",
   "ux.growthLive": "已有 {n} 張心願卡，世界樹持續生長，沒有終點。",
-  "home.growing": "🌱 持續生長中"
+  "home.growing": "🌱 持續生長中",
+  "guide.title": "讓光有處可棲",
+  "guide.sub": "在世界樹上留下你的正向心願，永久上鏈，不可轉讓。",
+  "guide.b1": "寫下心願 → 審核後永久上鏈",
+  "guide.b2": "錢包簽名 → 資金直達專案地址，本站不託管",
+  "guide.b3": "隨心願生長 → 樹會隨卡片數量持續變化形態",
+  "guide.cta": "✨ 製作我的心願卡",
+  "guide.secondary": "先看看別人的心願",
+  "guide.dismiss": "不再提示",
+  "guide.close": "關閉"
 }

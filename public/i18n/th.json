@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "ที่พักของแสง",
+  "guide.sub": "ฝากความปรารถนาเชิงบวกไว้บนต้นไม้โลก—บันทึกบนเชนถาวร โอนไม่ได้",
+  "guide.b1": "เขียนความปรารถนา → ขึ้นเชนถาวรหลังตรวจ",
+  "guide.b2": "ลงนามด้วยวอลเล็ต → เงินไปตรงถึงที่อยู่โครงการ เราไม่ถือครอง",
+  "guide.b3": "เติบโตตามความปรารถนา → ต้นไม้เปลี่ยนรูปร่างตามจำนวนการ์ดอย่างต่อเนื่อง",
+  "guide.cta": "✨ สร้างการ์ดความปรารถนาของฉัน",
+  "guide.secondary": "ดูก่อนว่าคนอื่นปรารถนาอะไร",
+  "guide.dismiss": "ไม่ต้องแสดงอีก",
+  "guide.close": "ปิด"
 }

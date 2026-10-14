@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "願い札 {n} 枚。世界樹は終わりなく育ち続けます。",
-  "home.growing": "🌱 育ち続けています"
+  "home.growing": "🌱 育ち続けています",
+  "guide.title": "光の居場所を",
+  "guide.sub": "世界樹に前向きな願いを残しましょう。永久にチェーン上に記録され、譲渡できません。",
+  "guide.b1": "願いを書く → 審査後に永久オンチェーン",
+  "guide.b2": "ウォレット署名 → 資金はプロジェクト先へ直送、当サイトは預かりません",
+  "guide.b3": "願いとともに成長 → カード数に応じて樹の姿が変わり続けます",
+  "guide.cta": "✨ 願いカードを作る",
+  "guide.secondary": "まずは他の願いを見る",
+  "guide.dismiss": "今後表示しない",
+  "guide.close": "閉じる"
 }

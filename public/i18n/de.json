@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "Ein Ort, an dem Licht wohnen kann",
+  "guide.sub": "Hinterlasse einen positiven Wunsch am Weltenbaum—dauerhaft on-chain, nicht übertragbar.",
+  "guide.b1": "Wunsch schreiben → nach Prüfung dauerhaft on-chain",
+  "guide.b2": "Wallet-Signatur → Mittel gehen direkt an die Projektadresse; wir verwahren nichts",
+  "guide.b3": "Wächst mit Wünschen → der Baum verändert sich weiter mit der Kartenzahl",
+  "guide.cta": "✨ Meine Wunschkarte erstellen",
+  "guide.secondary": "Zuerst andere Wünsche ansehen",
+  "guide.dismiss": "Nicht mehr anzeigen",
+  "guide.close": "Schließen"
 }

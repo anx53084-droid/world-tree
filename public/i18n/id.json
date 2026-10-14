@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "Tempat cahaya bersemayam",
+  "guide.sub": "Tinggalkan harapan positif di Pohon Dunia—tercatat on-chain selamanya, tidak dapat dipindahtangankan.",
+  "guide.b1": "Tulis harapan → permanen on-chain setelah ditinjau",
+  "guide.b2": "Tanda tangan dompet → dana langsung ke alamat proyek; kami tidak menyimpan",
+  "guide.b3": "Tumbuh bersama harapan → pohon terus berubah seiring jumlah kartu",
+  "guide.cta": "✨ Buat kartu harapan saya",
+  "guide.secondary": "Lihat dulu harapan orang lain",
+  "guide.dismiss": "Jangan tampilkan lagi",
+  "guide.close": "Tutup"
 }

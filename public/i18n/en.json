@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "A place for light to dwell",
+  "guide.sub": "Leave a positive wish on the World Tree—recorded on-chain forever, non-transferable.",
+  "guide.b1": "Write a wish → permanently on-chain after review",
+  "guide.b2": "Wallet signature → funds go straight to the project address; we never custody",
+  "guide.b3": "Grow with wishes → the tree keeps changing with card count",
+  "guide.cta": "✨ Make my wish card",
+  "guide.secondary": "Browse others’ wishes first",
+  "guide.dismiss": "Don’t show again",
+  "guide.close": "Close"
 }

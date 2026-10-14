@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "موطن للنور",
+  "guide.sub": "اترك أمنية إيجابية على شجرة العالم—تُسجَّل على السلسلة إلى الأبد وغير قابلة للتحويل.",
+  "guide.b1": "اكتب أمنية → تُسجَّل على السلسلة للأبد بعد المراجعة",
+  "guide.b2": "توقيع المحفظة → تذهب الأموال مباشرة لعنوان المشروع؛ لا نحتفظ بها",
+  "guide.b3": "تنمو مع الأمنيات → تتغيّر الشجرة باستمرار مع عدد البطاقات",
+  "guide.cta": "✨ اصنع بطاقة أمنيتي",
+  "guide.secondary": "اطّلع أولاً على أمنيات الآخرين",
+  "guide.dismiss": "لا تُظهر مرة أخرى",
+  "guide.close": "إغلاق"
 }

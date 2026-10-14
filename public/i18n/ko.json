@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "소원 카드 {n}장. 세계수는 끝없이 자랍니다.",
-  "home.growing": "🌱 계속 성장 중"
+  "home.growing": "🌱 계속 성장 중",
+  "guide.title": "빛이 머물 곳",
+  "guide.sub": "세계나무에 긍정적인 소원을 남기세요. 영구히 온체인에 기록되며 양도할 수 없습니다.",
+  "guide.b1": "소원 작성 → 심사 후 영구 온체인",
+  "guide.b2": "지갑 서명 → 자금은 프로젝트 주소로 직행, 본 사이트는 보관하지 않음",
+  "guide.b3": "소원과 함께 성장 → 카드 수에 따라 나무가 계속 형태를 바꿉니다",
+  "guide.cta": "✨ 내 소원 카드 만들기",
+  "guide.secondary": "먼저 다른 소원 보기",
+  "guide.dismiss": "다시 보지 않기",
+  "guide.close": "닫기"
 }

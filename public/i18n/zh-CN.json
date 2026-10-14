@@ -535,5 +535,14 @@
   "soc.tagsPh": "爱好，最多 5 个标签，逗号分隔",
   "soc.profHint": "年龄、性别、职业仅存链下，只在详情页展示；爱好作为标签上链。",
   "ux.growthLive": "已有 {n} 张心愿卡，世界树在持续生长，没有终点。",
-  "home.growing": "🌱 持续生长中"
+  "home.growing": "🌱 持续生长中",
+  "guide.title": "让光有处可栖",
+  "guide.sub": "在世界树上留下你的正向心愿，永久上链，不可转让。",
+  "guide.b1": "写下心愿 → 审核后永久上链",
+  "guide.b2": "钱包签名 → 资金直达项目地址，本站不托管",
+  "guide.b3": "随心愿生长 → 树会随卡片数量持续变化形态",
+  "guide.cta": "✨ 制作我的心愿卡",
+  "guide.secondary": "先看看别人的心愿",
+  "guide.dismiss": "不再提示",
+  "guide.close": "关闭"
 }

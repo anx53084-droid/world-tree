@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "प्रकाश का ठिकाना",
+  "guide.sub": "विश्व वृक्ष पर अपनी सकारात्मक मनोकामना छोड़ें—स्थायी रूप से ऑन-चेन, अहस्तांतरणीय।",
+  "guide.b1": "मनोकामना लिखें → समीक्षा के बाद स्थायी ऑन-चेन",
+  "guide.b2": "वॉलेट हस्ताक्षर → धन सीधे परियोजना पते पर; हम हिरासत नहीं रखते",
+  "guide.b3": "मनोकामनाओं के साथ बढ़े → कार्ड संख्या के साथ वृक्ष रूप बदलता रहता है",
+  "guide.cta": "✨ मेरा मनोकामना कार्ड बनाएँ",
+  "guide.secondary": "पहले दूसरों की मनोकामनाएँ देखें",
+  "guide.dismiss": "फिर न दिखाएँ",
+  "guide.close": "बंद करें"
 }

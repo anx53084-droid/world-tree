@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "Место, где может обитать свет",
+  "guide.sub": "Оставьте позитивное желание на Мировом Древе—навсегда в блокчейне, без передачи.",
+  "guide.b1": "Напишите желание → после проверки навсегда on-chain",
+  "guide.b2": "Подпись кошелька → средства идут прямо на адрес проекта; мы ничего не храним",
+  "guide.b3": "Растёт с желаниями → дерево продолжает меняться с числом карточек",
+  "guide.cta": "✨ Создать карточку желания",
+  "guide.secondary": "Сначала посмотреть чужие желания",
+  "guide.dismiss": "Больше не показывать",
+  "guide.close": "Закрыть"
 }

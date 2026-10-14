@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "Nơi ánh sáng có thể trú ngụ",
+  "guide.sub": "Để lại ước nguyện tích cực trên Cây Thế Giới—ghi on-chain vĩnh viễn, không thể chuyển nhượng.",
+  "guide.b1": "Viết ước nguyện → on-chain vĩnh viễn sau kiểm duyệt",
+  "guide.b2": "Ký bằng ví → tiền đến thẳng địa chỉ dự án; chúng tôi không giữ hộ",
+  "guide.b3": "Lớn lên cùng ước nguyện → cây tiếp tục đổi hình theo số thẻ",
+  "guide.cta": "✨ Tạo thẻ ước nguyện của tôi",
+  "guide.secondary": "Xem ước nguyện của người khác trước",
+  "guide.dismiss": "Không hiện lại",
+  "guide.close": "Đóng"
 }

@@ -535,5 +535,14 @@
   "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
   "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
   "ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
-  "home.growing": "🌱 Growing continuously"
+  "home.growing": "🌱 Growing continuously",
+  "guide.title": "Işığın konaklayacağı yer",
+  "guide.sub": "Dünya Ağacı’na olumlu bir dilek bırakın—sonsuza dek zincirde, devredilemez.",
+  "guide.b1": "Dilek yaz → incelemeden sonra kalıcı olarak zincirde",
+  "guide.b2": "Cüzdan imzası → fonlar doğrudan proje adresine; saklamıyoruz",
+  "guide.b3": "Dileklerle büyür → ağaç kart sayısına göre biçim değiştirmeye devam eder",
+  "guide.cta": "✨ Dilek kartımı oluştur",
+  "guide.secondary": "Önce başkalarının dileklerine bak",
+  "guide.dismiss": "Bir daha gösterme",
+  "guide.close": "Kapat"
 }

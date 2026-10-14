@@ -585,10 +585,44 @@ const stageOf = n => n < 10 ? 0 : n < 50 ? 1 : n < 200 ? 2 : n < 1000 ? 3 : 4;
 // ---------- 页面 ----------
 const E = (k, v) => esc(t(k, v)); // 转义后的翻译文本
 const prevail = () => I18N.isZh() ? '' : `<p class="notice prevail">⚖️ ${E('legal.prevail')}</p>`;
+const GUIDE_KEY = 'gq_guide_dismissed';
+function guideDismissed() { try { return localStorage[GUIDE_KEY] === '1' || sessionStorage[GUIDE_KEY] === '1'; } catch { return false; } }
+function guideHtml() {
+  return `<div id=gq-guide role="dialog" aria-modal="true" aria-labelledby="gq-guide-title">
+  <div class=gq-guide-panel>
+    <button type=button class=gq-guide-x id=gq-guide-x title="${E('guide.close')}" aria-label="${E('guide.close')}">×</button>
+    <h2 id=gq-guide-title>${E('guide.title')}</h2>
+    <p class=gq-guide-sub>${E('guide.sub')}</p>
+    <ul>
+      <li><em>✨</em><span>${E('guide.b1')}</span></li>
+      <li><em>🔗</em><span>${E('guide.b2')}</span></li>
+      <li><em>🌳</em><span>${E('guide.b3')}</span></li>
+    </ul>
+    <div class=gq-guide-actions>
+      <a class=gq-guide-cta href="#/wish/make" id=gq-guide-cta>${E('guide.cta')}</a>
+      <a class=gq-guide-sec href="#/list" id=gq-guide-sec>${E('guide.secondary')}</a>
+    </div>
+    <label class=gq-guide-foot><input type=checkbox id=gq-guide-never> <span>${E('guide.dismiss')}</span></label>
+  </div></div>`; }
+function closeGuide(forcePersist) {
+  const el = $('#gq-guide'); if (!el) return;
+  const never = forcePersist || $('#gq-guide-never')?.checked;
+  try { if (never) localStorage[GUIDE_KEY] = '1'; sessionStorage[GUIDE_KEY] = '1'; } catch {}
+  el.hidden = true; el.remove(); }
+function bindGuide() {
+  if (!$('#gq-guide')) return;
+  const hide = (persist) => () => closeGuide(!!persist);
+  $('#gq-guide-x')?.addEventListener('click', hide(false));
+  $('#gq-guide-cta')?.addEventListener('click', () => closeGuide($('#gq-guide-never')?.checked));
+  $('#gq-guide-sec')?.addEventListener('click', () => closeGuide($('#gq-guide-never')?.checked));
+  // 点半透明背景关闭（不强制「不再提示」除非勾选）
+  $('#gq-guide')?.addEventListener('click', e => { if (e.target.id === 'gq-guide') closeGuide(false); });
+}
 function home() {
   loadCardMeta(); loadGoodsMeta();
   const hot = [...visibleWishes()].sort((a, b) => b.heat - a.heat).slice(0, 5), cur = S.season || autoSeason();
-  return `<div class=scene id=scene><div class="scene-ui debug-only">${SEASON_KEYS.map(k => `<button data-season=${k} class="${k === cur ? 'on' : ''}">${E('season.' + k)}${k === autoSeason() ? E('season.current') : ''}</button>`).join('')}</div></div>
+  const guide = guideDismissed() ? '' : guideHtml();
+  return `${guide}<div class=scene id=scene><div class="scene-ui debug-only">${SEASON_KEYS.map(k => `<button data-season=${k} class="${k === cur ? 'on' : ''}">${E('season.' + k)}${k === autoSeason() ? E('season.current') : ''}</button>`).join('')}</div></div>
   <button id=qbtn class=qbtn type=button title="${E('search.open')}" aria-label="${E('search.open')}"><svg viewBox="0 0 24 24" width=22 height=22 fill=none stroke=currentColor stroke-width=2 stroke-linecap=round><circle cx=10.5 cy=10.5 r=6.5 /><path d="M15.5 15.5 21 21"/></svg></button>
   <div class=home-spacer></div>
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
@@ -808,7 +842,7 @@ async function route() {
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
   const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
-  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
+  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });
