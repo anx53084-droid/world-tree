@@ -378,5 +378,8 @@
 "wal.chainMismatch": "Le réseau de votre portefeuille ne correspond pas à la demande de signature. Changez de réseau dans le portefeuille puis réessayez",
 "wal.chainUnsupported": "Le réseau actuel de votre portefeuille n’est pas pris en charge. Passez à BSC, Base, Ethereum ou Arbitrum",
 "wal.switched": "Le compte du portefeuille a changé : vous avez été déconnecté. Reconnectez-vous",
-"err.chainId": "Le réseau (Chain ID) du message de connexion n’est pas pris en charge"
+"err.chainId": "Le réseau (Chain ID) du message de connexion n’est pas pris en charge",
+"wal.switchAcct": "Changer de compte / autre adresse",
+"wal.oneAccount": "Votre portefeuille n’a proposé que l’adresse déjà autorisée. Déconnectez ce site dans les réglages « sites connectés » du portefeuille, puis réessayez.",
+"wal.oneAccountHint": "Une autre adresse ? Si le portefeuille n’affiche que l’adresse autorisée, déconnectez d’abord ce site dans ses réglages de sites connectés."
 }

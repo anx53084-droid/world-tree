@@ -378,5 +378,8 @@
 "wal.chainMismatch": "Your wallet’s network doesn’t match the signature request. Switch network in your wallet and try again",
 "wal.chainUnsupported": "Your wallet’s current network isn’t supported. Switch to BSC, Base, Ethereum or Arbitrum",
 "wal.switched": "Wallet account changed — you were signed out. Please reconnect",
-"err.chainId": "The sign-in message’s network (Chain ID) isn’t supported"
+"err.chainId": "The sign-in message’s network (Chain ID) isn’t supported",
+"wal.switchAcct": "Switch account / use another address",
+"wal.oneAccount": "Your wallet only offered the previously authorised address. Disconnect this site in your wallet’s connected-sites settings, then try again.",
+"wal.oneAccountHint": "Want another address? If your wallet only shows the authorised one, disconnect this site in the wallet’s connected-sites settings first."
 }

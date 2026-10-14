@@ -378,5 +378,8 @@
 "wal.chainMismatch": "Das Netzwerk deiner Wallet passt nicht zur Signaturanfrage. Wechsle in der Wallet das Netzwerk und versuche es erneut",
 "wal.chainUnsupported": "Das aktuelle Netzwerk deiner Wallet wird nicht unterstützt. Wechsle zu BSC, Base, Ethereum oder Arbitrum",
 "wal.switched": "Wallet-Konto gewechselt – du wurdest abgemeldet. Bitte erneut verbinden",
-"err.chainId": "Das Netzwerk (Chain ID) der Anmeldenachricht wird nicht unterstützt"
+"err.chainId": "Das Netzwerk (Chain ID) der Anmeldenachricht wird nicht unterstützt",
+"wal.switchAcct": "Konto wechseln / andere Adresse",
+"wal.oneAccount": "Deine Wallet hat nur die zuvor freigegebene Adresse angeboten. Trenne diese Seite in den Einstellungen „Verbundene Seiten“ der Wallet und versuche es erneut.",
+"wal.oneAccountHint": "Andere Adresse? Zeigt die Wallet nur die freigegebene Adresse, trenne diese Seite zuerst in den Einstellungen für verbundene Seiten."
 }

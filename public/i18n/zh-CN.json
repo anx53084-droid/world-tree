@@ -378,5 +378,8 @@
 "wal.chainMismatch": "钱包当前网络与签名请求不一致，请在钱包中切换网络后重试",
 "wal.chainUnsupported": "钱包当前网络不受支持，请切换到 BSC、Base、Ethereum 或 Arbitrum",
 "wal.switched": "钱包账户已切换，已退出登录，请重新连接",
-"err.chainId": "登录消息的网络（Chain ID）不受支持"
+"err.chainId": "登录消息的网络（Chain ID）不受支持",
+"wal.switchAcct": "切换账户 / 换个地址",
+"wal.oneAccount": "钱包只提供了之前授权的同一个地址。请在钱包的「已连接网站 / DApp 授权」设置中断开本站，然后重试。",
+"wal.oneAccountHint": "想用其他地址？如钱包只显示已授权的地址，请先在钱包的已连接网站设置中断开本站。"
 }

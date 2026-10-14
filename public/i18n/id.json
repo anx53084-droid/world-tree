@@ -378,5 +378,8 @@
 "wal.chainMismatch": "Jaringan dompet tidak cocok dengan permintaan tanda tangan. Ganti jaringan di dompet lalu coba lagi",
 "wal.chainUnsupported": "Jaringan dompet saat ini tidak didukung. Beralih ke BSC, Base, Ethereum, atau Arbitrum",
 "wal.switched": "Akun dompet berganti — Anda telah keluar. Silakan hubungkan ulang",
-"err.chainId": "Jaringan (Chain ID) pada pesan masuk tidak didukung"
+"err.chainId": "Jaringan (Chain ID) pada pesan masuk tidak didukung",
+"wal.switchAcct": "Ganti akun / pakai alamat lain",
+"wal.oneAccount": "Dompet hanya menawarkan alamat yang sudah diizinkan sebelumnya. Putuskan situs ini di pengaturan situs terhubung pada dompet, lalu coba lagi.",
+"wal.oneAccountHint": "Ingin alamat lain? Jika dompet hanya menampilkan alamat yang diizinkan, putuskan situs ini dulu di pengaturan situs terhubung."
 }

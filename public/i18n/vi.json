@@ -378,5 +378,8 @@
 "wal.chainMismatch": "Mạng của ví không khớp với yêu cầu ký. Hãy đổi mạng trong ví rồi thử lại",
 "wal.chainUnsupported": "Mạng hiện tại của ví không được hỗ trợ. Hãy chuyển sang BSC, Base, Ethereum hoặc Arbitrum",
 "wal.switched": "Tài khoản ví đã thay đổi — bạn đã bị đăng xuất. Vui lòng kết nối lại",
-"err.chainId": "Mạng (Chain ID) trong tin nhắn đăng nhập không được hỗ trợ"
+"err.chainId": "Mạng (Chain ID) trong tin nhắn đăng nhập không được hỗ trợ",
+"wal.switchAcct": "Đổi tài khoản / dùng địa chỉ khác",
+"wal.oneAccount": "Ví chỉ cung cấp địa chỉ đã cấp quyền trước đó. Hãy ngắt kết nối trang này trong cài đặt trang đã kết nối của ví rồi thử lại.",
+"wal.oneAccountHint": "Muốn dùng địa chỉ khác? Nếu ví chỉ hiện địa chỉ đã cấp quyền, hãy ngắt kết nối trang này trong cài đặt trang đã kết nối trước."
 }

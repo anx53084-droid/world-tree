@@ -378,5 +378,8 @@
 "wal.chainMismatch": "Cüzdanın ağı imza isteğiyle eşleşmiyor. Cüzdanda ağı değiştirip tekrar deneyin",
 "wal.chainUnsupported": "Cüzdanın mevcut ağı desteklenmiyor. BSC, Base, Ethereum veya Arbitrum’a geçin",
 "wal.switched": "Cüzdan hesabı değişti — oturumunuz kapatıldı. Lütfen yeniden bağlanın",
-"err.chainId": "Giriş mesajının ağı (Chain ID) desteklenmiyor"
+"err.chainId": "Giriş mesajının ağı (Chain ID) desteklenmiyor",
+"wal.switchAcct": "Hesap değiştir / başka adres",
+"wal.oneAccount": "Cüzdan yalnızca daha önce yetkilendirilen adresi sundu. Cüzdanın bağlı siteler ayarlarından bu sitenin bağlantısını kesip tekrar deneyin.",
+"wal.oneAccountHint": "Başka adres mi? Cüzdan yalnızca yetkili adresi gösteriyorsa önce bağlı siteler ayarlarından bu sitenin bağlantısını kesin."
 }

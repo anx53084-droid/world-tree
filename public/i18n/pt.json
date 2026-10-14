@@ -378,5 +378,8 @@
 "wal.chainMismatch": "A rede da carteira não corresponde ao pedido de assinatura. Troque a rede na carteira e tente novamente",
 "wal.chainUnsupported": "A rede atual da carteira não é suportada. Mude para BSC, Base, Ethereum ou Arbitrum",
 "wal.switched": "A conta da carteira mudou — você saiu. Conecte novamente",
-"err.chainId": "A rede (Chain ID) da mensagem de login não é suportada"
+"err.chainId": "A rede (Chain ID) da mensagem de login não é suportada",
+"wal.switchAcct": "Trocar de conta / usar outro endereço",
+"wal.oneAccount": "A carteira só ofereceu o endereço autorizado antes. Desconecte este site nas configurações de sites conectados da carteira e tente novamente.",
+"wal.oneAccountHint": "Quer outro endereço? Se a carteira só mostrar o autorizado, desconecte este site nas configurações de sites conectados primeiro."
 }
