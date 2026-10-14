@@ -284,7 +284,7 @@ ul.bul { margin: 6px 0; padding-inline-start: 1.2em } ul.bul li { margin: 4px 0 
 .cg-h { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin: 6px 0 0 }
 
 /* ---------- 首次访问引导（方案一）：半透明层，避开树冠，移动端底部抽屉 ---------- */
-#gq-guide { position: fixed; inset: 0; z-index: 18; pointer-events: none; display: flex; align-items: flex-end; justify-content: center; padding: 0 14px calc(18px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent 28%, #02030bcc 68%, #02030be6 100%); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); animation: gqGuideIn .45s ease both }
+#gq-guide { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: flex; align-items: flex-end; justify-content: center; padding: 0 14px calc(18px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent 28%, #02030bcc 68%, #02030be6 100%); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); animation: gqGuideIn .45s ease both }
 #gq-guide[hidden] { display: none }
 #gq-guide .gq-guide-panel { pointer-events: auto; width: min(440px, 100%); max-height: min(62dvh, 520px); overflow: auto; margin-bottom: 8px; padding: 18px 18px 16px; border-radius: 18px 18px 14px 14px; background: #0b0a24e6; border: 1px solid #e8b85a66; box-shadow: 0 12px 40px #000a, 0 0 40px #ffb34722; color: #f6ecd2; position: relative }
 #gq-guide .gq-guide-x { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border: 0; border-radius: 999px; background: transparent; color: #f3e2b8cc; font-size: 22px; line-height: 1; cursor: pointer }
