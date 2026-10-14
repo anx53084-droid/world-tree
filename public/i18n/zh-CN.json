@@ -415,5 +415,8 @@
 "ux.growthNext": "已有 {n} 张心愿卡，再有 {need} 张即可成长为「{stage}」",
 "ux.growthMax": "世界树已长成！共 {n} 张心愿卡",
 "ux.monthTitle": "本月形态",
-"ux.monthDays": "{a}–{b} 日"
+"ux.monthDays": "{a}–{b} 日",
+"err.blockShort": "包含短链接（{msg}）：为防钓鱼，心愿卡中不允许使用短链接，请改为写出完整网址或删除链接。",
+"err.blockPhish": "包含已知钓鱼 / 诈骗网站（{msg}），无法提交。",
+"err.blockAddr": "包含已被标记为诈骗的钱包地址，无法提交。"
 }

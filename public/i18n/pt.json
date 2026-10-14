@@ -415,5 +415,8 @@
 "ux.growthNext": "{n} cartões até agora — faltam {need} para virar “{stage}”",
 "ux.growthMax": "A Árvore do Mundo cresceu por completo! {n} cartões",
 "ux.monthTitle": "Forma deste mês",
-"ux.monthDays": "Dias {a}–{b}"
+"ux.monthDays": "Dias {a}–{b}",
+"err.blockShort": "Contém um link encurtado ({msg}). Para evitar phishing, links encurtados não são permitidos nos cartões — escreva o endereço completo ou remova-o.",
+"err.blockPhish": "Contém um site conhecido de phishing / golpe ({msg}) e não pode ser enviado.",
+"err.blockAddr": "Contém um endereço de carteira marcado como golpe e não pode ser enviado."
 }

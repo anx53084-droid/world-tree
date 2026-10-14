@@ -10,6 +10,7 @@ const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z');
 const { moderate, RULES } = require('./moderation');
 const Fulfill = require('./fulfillment');
 const Acc = require('./account');
+const Block = require('./blocklist'); // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
@@ -113,6 +114,7 @@ async function api(req, res, url) {
     if (priv && (typeof cipher !== 'string' || !/^E1:[A-Za-z0-9+/=]{24,560}$/.test(cipher) || [...(text || '')].length > 100)) return send(res, 400, { pass: false, message: '私密卡参数无效', code: 'param' });
     if (typeof text !== 'string' || !text.trim() || [...text].length > 140 || text.includes('|')) return send(res, 400, { pass: false, message: '内容需为 1–140 字，且不含字符 |', code: 'len' });
     if (typeof prefix !== 'string' || !/^[^|]{1,90}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
+    const bh = Block.check(text); if (bh) return send(res, 200, { pass: false, type: bh.type, code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', domain: bh.domain, message: '内容包含被拦截的链接或地址：' + bh.domain }); // 在审核证明之前拦截
     const r = await moderate(text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
   if (url === '/api/img' && req.method === 'POST') { // 用户自定义模板图片：链下存储（memo 仅存内容哈希），上传即自动审核
@@ -144,6 +146,7 @@ async function api(req, res, url) {
   if (url === '/api/login/totp' && req.method === 'POST') { const { ticket, code } = await body(req), x = Acc.peekTicket(ticket, 'login'); if (!x || !db.users[x.uid]) return send(res, 401, { error: 'expired', code: 'nonce' });
     if (!Acc.check2fa(db.users[x.uid], code)) { x.tries++; save(db); return send(res, 401, { error: '验证码错误', code: 'totpBad' }); } Acc.useTicket(ticket, x.uid, 'login');
     const token = Acc.newSession(db, x.uid, req); save(db); return send(res, 200, { token, ...meOf(x.uid, db.users[x.uid]) }); }
+  if (url === '/api/blocklist/info') return send(res, 200, Block.info());
   if (url === '/api/rules') return send(res, 200, { categories: Object.keys(RULES), words: RULES }); // 供前端展示过滤
   // —— 星愿大使 / 还愿（公开只读徽章；履约联系方式仅存链下）——
   if (url.startsWith('/api/fulfillments/') && req.method === 'GET') {

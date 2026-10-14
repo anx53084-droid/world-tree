@@ -415,5 +415,8 @@
 "ux.growthNext": "Đã có {n} thẻ — thêm {need} thẻ để lớn thành “{stage}”",
 "ux.growthMax": "Cây Thế Giới đã lớn hoàn toàn! {n} thẻ",
 "ux.monthTitle": "Hình thái tháng này",
-"ux.monthDays": "Ngày {a}–{b}"
+"ux.monthDays": "Ngày {a}–{b}",
+"err.blockShort": "Có liên kết rút gọn ({msg}). Để chống lừa đảo, thẻ điều ước không cho phép liên kết rút gọn — hãy ghi địa chỉ đầy đủ hoặc xóa đi.",
+"err.blockPhish": "Có trang lừa đảo / phishing đã biết ({msg}), không thể gửi.",
+"err.blockAddr": "Có địa chỉ ví bị đánh dấu lừa đảo, không thể gửi."
 }

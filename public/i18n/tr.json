@@ -415,5 +415,8 @@
 "ux.growthNext": "Şu ana kadar {n} kart — «{stage}» olmak için {need} kart daha",
 "ux.growthMax": "Dünya Ağacı tamamen büyüdü! {n} kart",
 "ux.monthTitle": "Bu ayın görünümü",
-"ux.monthDays": "{a}–{b}. günler"
+"ux.monthDays": "{a}–{b}. günler",
+"err.blockShort": "Kısa bağlantı ({msg}) içeriyor. Kimlik avını önlemek için dilek kartlarında kısa bağlantılara izin verilmez — tam adresi yazın veya kaldırın.",
+"err.blockPhish": "Bilinen bir kimlik avı / dolandırıcılık sitesi ({msg}) içeriyor, gönderilemez.",
+"err.blockAddr": "Dolandırıcılık olarak işaretlenmiş bir cüzdan adresi içeriyor, gönderilemez."
 }

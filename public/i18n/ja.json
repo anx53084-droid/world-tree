@@ -415,5 +415,8 @@
 "ux.growthNext": "現在 {n} 枚、あと {need} 枚で「{stage}」に成長",
 "ux.growthMax": "世界樹が完成しました！合計 {n} 枚",
 "ux.monthTitle": "今月のすがた",
-"ux.monthDays": "{a}–{b} 日"
+"ux.monthDays": "{a}–{b} 日",
+"err.blockShort": "短縮リンク（{msg}）が含まれています。フィッシング防止のため願いカードでは短縮リンクは使えません。完全なURLにするか削除してください。",
+"err.blockPhish": "既知のフィッシング／詐欺サイト（{msg}）が含まれているため送信できません。",
+"err.blockAddr": "詐欺として報告されたウォレットアドレスが含まれているため送信できません。"
 }

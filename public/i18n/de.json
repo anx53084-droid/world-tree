@@ -415,5 +415,8 @@
 "ux.growthNext": "Bisher {n} Karten – noch {need} bis „{stage}“",
 "ux.growthMax": "Der Weltenbaum ist ausgewachsen! {n} Karten",
 "ux.monthTitle": "Gestalt diesen Monat",
-"ux.monthDays": "Tag {a}–{b}"
+"ux.monthDays": "Tag {a}–{b}",
+"err.blockShort": "Enthält einen Kurzlink ({msg}). Zum Schutz vor Phishing sind Kurzlinks auf Wunschkarten nicht erlaubt – vollständige Adresse schreiben oder entfernen.",
+"err.blockPhish": "Enthält eine bekannte Phishing-/Betrugsseite ({msg}) und kann nicht gesendet werden.",
+"err.blockAddr": "Enthält eine als Betrug markierte Wallet-Adresse und kann nicht gesendet werden."
 }

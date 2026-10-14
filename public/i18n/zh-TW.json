@@ -415,5 +415,8 @@
 "ux.growthNext": "已有 {n} 張心願卡，再有 {need} 張即可成長為「{stage}」",
 "ux.growthMax": "世界樹已長成！共 {n} 張心願卡",
 "ux.monthTitle": "本月形態",
-"ux.monthDays": "{a}–{b} 日"
+"ux.monthDays": "{a}–{b} 日",
+"err.blockShort": "包含短鏈接（{msg}）：為防釣魚，心願卡中不允許使用短鏈接，請改為寫出完整網址或刪除鏈接。",
+"err.blockPhish": "包含已知釣魚 / 詐騙網站（{msg}），無法提交。",
+"err.blockAddr": "包含已被標記為詐騙的錢包地址，無法提交。"
 }

@@ -415,5 +415,8 @@
 "ux.growthNext": "{n} wish cards so far — {need} more to grow into “{stage}”",
 "ux.growthMax": "The World Tree is fully grown! {n} wish cards",
 "ux.monthTitle": "This month's form",
-"ux.monthDays": "Days {a}–{b}"
+"ux.monthDays": "Days {a}–{b}",
+"err.blockShort": "Contains a short link ({msg}). To prevent phishing, short links aren't allowed on wish cards — write the full address or remove it.",
+"err.blockPhish": "Contains a known phishing / scam site ({msg}) and can't be submitted.",
+"err.blockAddr": "Contains a wallet address flagged as a scam and can't be submitted."
 }

@@ -415,5 +415,8 @@
 "ux.growthNext": "{n} tarjetas hasta ahora: faltan {need} para crecer a «{stage}»",
 "ux.growthMax": "¡El Árbol del Mundo ha crecido del todo! {n} tarjetas",
 "ux.monthTitle": "Forma de este mes",
-"ux.monthDays": "Días {a}–{b}"
+"ux.monthDays": "Días {a}–{b}",
+"err.blockShort": "Contiene un enlace corto ({msg}). Para evitar el phishing no se permiten enlaces cortos en las tarjetas: escribe la dirección completa o elimínalo.",
+"err.blockPhish": "Contiene un sitio conocido de phishing / estafa ({msg}) y no se puede enviar.",
+"err.blockAddr": "Contiene una dirección de billetera marcada como estafa y no se puede enviar."
 }

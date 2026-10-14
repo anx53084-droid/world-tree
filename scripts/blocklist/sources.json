@@ -1,0 +1,6 @@
+[
+  { "name": "metamask-eth-phishing-detect", "url": "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/main/src/config.json", "format": "metamask", "target": "domains" },
+  { "name": "scamsniffer-domains", "url": "https://raw.githubusercontent.com/scamsniffer/scam-database/main/blacklist/domains.json", "format": "json-array", "target": "domains" },
+  { "name": "scamsniffer-addresses", "url": "https://raw.githubusercontent.com/scamsniffer/scam-database/main/blacklist/address.json", "format": "json-array", "target": "addresses" },
+  { "name": "local-extra", "file": "scripts/blocklist/extra.txt", "format": "text", "target": "domains", "optional": true }
+]

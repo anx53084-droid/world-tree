@@ -3,7 +3,7 @@ const C = 'wt-static-v1';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
-  const u = new URL(e.request.url); if (e.request.method !== 'GET' || u.origin !== location.origin || u.pathname.startsWith('/api/')) return;
+  const u = new URL(e.request.url); if (e.request.method !== 'GET' || u.origin !== location.origin || u.pathname.startsWith('/api/') || u.pathname.startsWith('/blocklist')) return; // 黑名单由页面自行用 ETag + Cache Storage 管理
   const key = e.request.mode === 'navigate' ? new Request('/') : e.request; // 页面统一用首页壳（单页应用，hash 路由）
   e.respondWith(caches.open(C).then(async c => {
     const hit = await c.match(key, { ignoreSearch: e.request.mode === 'navigate' });

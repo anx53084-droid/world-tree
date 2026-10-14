@@ -415,5 +415,8 @@
 "ux.growthNext": "{n} cartes pour l'instant — encore {need} pour devenir « {stage} »",
 "ux.growthMax": "L'Arbre-Monde a fini de grandir ! {n} cartes",
 "ux.monthTitle": "Forme du mois",
-"ux.monthDays": "Jours {a}–{b}"
+"ux.monthDays": "Jours {a}–{b}",
+"err.blockShort": "Contient un lien raccourci ({msg}). Pour éviter l'hameçonnage, les liens raccourcis sont interdits sur les cartes : écrivez l'adresse complète ou supprimez-le.",
+"err.blockPhish": "Contient un site d'hameçonnage / d'arnaque connu ({msg}) : envoi impossible.",
+"err.blockAddr": "Contient une adresse de wallet signalée comme arnaque : envoi impossible."
 }

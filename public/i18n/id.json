@@ -415,5 +415,8 @@
 "ux.growthNext": "Sudah {n} kartu — {need} lagi untuk tumbuh menjadi “{stage}”",
 "ux.growthMax": "Pohon Dunia sudah tumbuh penuh! {n} kartu",
 "ux.monthTitle": "Wujud bulan ini",
-"ux.monthDays": "Hari {a}–{b}"
+"ux.monthDays": "Hari {a}–{b}",
+"err.blockShort": "Berisi tautan pendek ({msg}). Untuk mencegah phishing, tautan pendek tidak diizinkan di kartu harapan — tulis alamat lengkap atau hapus.",
+"err.blockPhish": "Berisi situs phishing / penipuan yang dikenal ({msg}) dan tidak dapat dikirim.",
+"err.blockAddr": "Berisi alamat dompet yang ditandai sebagai penipuan dan tidak dapat dikirim."
 }

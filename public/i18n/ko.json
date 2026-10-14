@@ -415,5 +415,8 @@
 "ux.growthNext": "현재 {n}장 — {need}장 더 모이면 「{stage}」(으)로 성장",
 "ux.growthMax": "세계수가 다 자랐어요! 총 {n}장",
 "ux.monthTitle": "이번 달 모습",
-"ux.monthDays": "{a}–{b}일"
+"ux.monthDays": "{a}–{b}일",
+"err.blockShort": "단축 링크({msg})가 포함되어 있습니다. 피싱 방지를 위해 소원 카드에는 단축 링크를 쓸 수 없습니다. 전체 주소로 바꾸거나 삭제하세요.",
+"err.blockPhish": "알려진 피싱/사기 사이트({msg})가 포함되어 제출할 수 없습니다.",
+"err.blockAddr": "사기로 신고된 지갑 주소가 포함되어 제출할 수 없습니다."
 }

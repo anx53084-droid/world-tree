@@ -249,3 +249,4 @@ body.home #fab { bottom: calc(76px + env(safe-area-inset-bottom)) }
 ul.bul { margin: 6px 0; padding-inline-start: 1.2em } ul.bul li { margin: 4px 0 }
 @media (max-width: 700px) { .card p, .card li, .notice { line-height: 1.75 } .card li + li { margin-top: 6px } .card h3 { margin-bottom: 10px } .gold-title { font-size: 27px } }
 .card.sample { padding-top: 26px } .samples { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)) } @media (min-width: 1024px) { .samples { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) } .cta button { flex: 0 1 240px } }
+.blkwarn { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: #ff4d4d1a; border: 1px solid #ff6b6b66; color: #ffb3b3; font-size: 13px; line-height: 1.6 }

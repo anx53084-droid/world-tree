@@ -124,14 +124,28 @@ async function loadWishes(force) {
   S.loadedAt = Date.now(); aggregate();
 }
 const clientBlocked = t => S.words && Object.values(S.words).flat().some(w => t.toLowerCase().includes(w.toLowerCase())); // 前端二次过滤：链上无法删除，但前端不展示
+// ---------- 钓鱼 / 短链黑名单：常驻小表（短链+地址+签名）+ 按需懒加载完整域名表；服务器端为权威 ----------
+S.block = WTBlock.make(null); let blkCore = null, blkFull = null, blkFullP = null;
+function blkMerge() { S.block = WTBlock.make({ ...(blkCore || {}), domains: blkFull?.domains || [] }); }
+async function blkFetch(file, store) { // ETag 条件请求；小表存 localStorage，大表存 Cache Storage
+  const key = 'wt_blk_' + file; let old = null;
+  try { if (store === 'ls') old = JSON.parse(localStorage[key] || 'null'); else { const c = await caches.open('wt-blocklist'), m = await c.match(file); if (m) old = { etag: m.headers.get('x-etag'), data: await m.json() }; } } catch {}
+  try { const r = await fetch(file, { headers: old?.etag ? { 'if-none-match': old.etag } : {}, cache: 'no-cache' }); if (r.status === 304 && old) return old.data; if (!r.ok) throw 0;
+    const txt = await r.text(), data = JSON.parse(txt), etag = r.headers.get('etag');
+    try { if (store === 'ls') localStorage[key] = JSON.stringify({ etag, data }); else await (await caches.open('wt-blocklist')).put(file, new Response(txt, { headers: { 'content-type': 'application/json', 'x-etag': etag || '' } })); } catch {}
+    return data; } catch { return old?.data || null; } }
+async function loadBlocklist(full) { if (!blkCore) { blkCore = await blkFetch('blocklist-core.json', 'ls'); blkMerge(); }
+  if (full && !blkFull) { blkFullP ||= blkFetch('blocklist.json', 'cache').then(d => { blkFull = d; blkMerge(); return d; }); await blkFullP; } return S.block; }
+const blkHit = (sig, author, text) => S.block.sigs.has(sig) || WTBlock.addrHit(S.block, author) || !!WTBlock.checkText(S.block, text);
+let blkNeedFull = false;
 function aggregate() {
   const all = [...S.txs, ...S.pending.filter(p => !S.txs.some(t => t.sig === p.sig))].sort((a, b) => (a.time || 9e9) - (b.time || 9e9));
   const W = {}, likes = [], bless = []; let hidden = 0;
   for (const t of all) { const f = t.memo.split('|');
-    if (f[1] === 'W') { if (!t.verified || clientBlocked(f[6])) { hidden++; continue; }
+    if (f[1] === 'W') { if (!t.verified || clientBlocked(f[6]) || blkHit(t.sig, t.author, f[6])) { hidden++; continue; } if (!blkFull && WTBlock.maybeHasHost(f[6])) blkNeedFull = true;
       const o = parseOpt(f[5]), priv = o.priv && /^E1:/.test(f[6]); if (!priv && [...f[6]].length > 140) { hidden++; continue; }
       W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], inside: o.inside, cimg: o.cimg, nimg: o.nimg, priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
-    else if (f[1] === 'L') likes.push([f[2], t]); else if (f[1] === 'B' && t.verified && !clientBlocked(f[6])) bless.push([f[5], t, f[6]]); }
+    else if (f[1] === 'L') likes.push([f[2], t]); else if (f[1] === 'B' && t.verified && !clientBlocked(f[6]) && !blkHit(t.sig, t.author, f[6])) bless.push([f[5], t, f[6]]); }
   for (const [ws, t] of likes) W[ws]?.likers.add(t.author); // 每地址对每愿望只计 1 赞
   for (const [ws, t, text] of bless) W[ws]?.blessings.push({ author: t.author, text, time: t.time, sig: t.sig, pending: t.pending });
   S.hidden = hidden;
@@ -162,7 +176,7 @@ function memoTx(payer, memo, lamports) {
 }
 async function moderateThenMemo(kind, prefix, text, cipher) { // 先审核（上链/付款之前），得到审核证明；私密卡：审核明文，证明绑定上链的密文
   const r = await fetch('/api/moderate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, prefix, cipher }) }).then(r => r.json());
-  if (!r.pass) { const msg = r.category ? `${esc(t('mod.reject'))}<br><span class=reject>${esc(t('mod.hitCategory', { cat: modCat(r.category) }))}</span>` : esc(tErr(r.code, r.message) || t('mod.reject')); throw Object.assign(new Error(msg), { html: true }); }
+  if (!r.pass) { const msg = r.category ? `${esc(t('mod.reject'))}<br><span class=reject>${esc(t('mod.hitCategory', { cat: modCat(r.category) }))}</span>` : esc(tErr(r.code, r.domain || r.message) || t('mod.reject')); throw Object.assign(new Error(msg), { html: true }); }
   const a = r.attestation; return `WTREE1|${kind}|${a.hash}|${a.ts}|${a.sig}|${prefix}|${cipher || text}`;
 }
 async function submit(memo, lk, lamports = 0, extra = {}) { const label = t('label.' + lk);
@@ -631,6 +645,10 @@ async function route() {
   0 && document.querySelectorAll('.mw').forEach(b => b.onclick = () => { const w = S.wishes.find(x => x.sig === b.dataset.sig); if (w) openCardPopup(w); });
   $('#mkbtn')?.addEventListener('click', () => { location.hash = '#/wish/make'; });
   const ta = $('#wt'); if (ta) {
+    loadBlocklist(true); // 制作页：预加载完整域名表，用于输入时提示
+    const bw = document.createElement('div'); bw.id = 'blkwarn'; bw.className = 'blkwarn'; bw.hidden = true; ta.after(bw);
+    const blkCheck = () => { const h = WTBlock.checkText(S.block, ta.value); bw.hidden = !h; if (h) bw.textContent = '⛔ ' + t(h.type === 'shortener' ? 'err.blockShort' : h.type === 'address' ? 'err.blockAddr' : 'err.blockPhish', { msg: h.domain }); return h; };
+    ta.addEventListener('input', blkCheck); blkFullP?.then(blkCheck); window.__blkCheck = blkCheck;
     const catSel = $('#wc2');
     const syncShip = () => { const on = catSel?.value === MATERIAL; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
     const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.cover === i));
@@ -662,6 +680,7 @@ async function route() {
     $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = $('#wc2').value;
       const shippingNote = cat === MATERIAL ? ($('#ship')?.value || '').trim() : '';
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
+      { await loadBlocklist(true); const h = window.__blkCheck?.(); if (h) return toast(esc($('#blkwarn').textContent), 'err'); } // 付款前拦截（服务器审核同样强制）
       if (!($('#pv')?.value === 'evm') && !(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
       const folded = $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null;
@@ -722,4 +741,5 @@ if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.host
   // 首屏立即渲染：先用上次缓存的链上数据（localStorage）画出世界树，链上读取在后台进行，完成后无感刷新
   try { if (localStorage.wt_sigs != null) { const sigs = JSON.parse(localStorage.wt_sigs); S.txs = sigs.map(x => txCache[x]).filter(Boolean); S.hadReal = true; } } catch {} aggregate(); S.syncing = true; route(); syncChip(true);
   (async () => { await loadWishes(); syncChip(false); await hydrateFulfillments(); refreshView(); })();
+  (async () => { await loadBlocklist(false); aggregate(); refreshView(); if (blkNeedFull) { await loadBlocklist(true); aggregate(); refreshView(); } })(); // 黑名单到达后原地过滤（不重建场景）
 })();
