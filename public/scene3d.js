@@ -342,8 +342,9 @@ export function setSeason(s) { if (!SEASONS[s]) return; season = s; seasonV = SE
 // ---------- 几何：节点位置只由相对路径决定（以当前焦点为根重建坐标，避免千亿级深度的浮点精度问题） ----------
 const V = (x, y, z) => new THREE.Vector3(x, y, z); let TRUNK = V(0, 6, 0);
 function dirOf(theta, el) { return V(Math.cos(el) * Math.cos(theta), Math.sin(el), Math.cos(el) * Math.sin(theta)); }
-function childEnd(reg, j) { const h = strHash(reg + A.HEX[j]), th = j / 16 * Math.PI * 2 + (h - .5) * .35, m = soft01(growthT - 1, .2), len = 5.5 + m * 5.5; return { th, p: TRUNK.clone().addScaledVector(dirOf(th, .42 + h * .4), len) }; }
-function grandEnd(reg, j, g) { const c = childEnd(reg, j), h = strHash(reg + A.HEX[j] + A.HEX[g]), th = c.th + (g / 15 - .5) * 2.4, m = soft01(growthT - 1, .2); return c.p.clone().addScaledVector(dirOf(th, .15 + h * .7), 2.2 + m * 2.2); }
+function childEnd(reg, j) { const h = strHash(reg + A.HEX[j]), th = j / 16 * Math.PI * 2 + (h - .5) * .35, m = soft01(growthT - 1, .2), len = 5.2 + m * 5.8;
+  return { th, p: TRUNK.clone().addScaledVector(dirOf(th, .28 + h * .5), len) }; }
+function grandEnd(reg, j, g) { const c = childEnd(reg, j), h = strHash(reg + A.HEX[j] + A.HEX[g]), th = c.th + (g / 15 - .5) * 2.4, m = soft01(growthT - 1, .2); return c.p.clone().addScaledVector(dirOf(th, .2 + h * .55), 2.0 + m * 2.4); }
 function slotOf(t, s) { return t.slots[Math.min(s, t.slots.length - 1)]; }
 function slotPos(P, sz, s) { const k = s >> 2, a = (s & 3) * Math.PI / 2 + k * .45, r = sz * 1.15; return V(P.x + Math.cos(a) * r, P.y - sz * (1.1 + k * 1.2), P.z + Math.sin(a) * r); } // 4 股流苏垂挂，每股 ≤16 张
 
@@ -404,16 +405,25 @@ function clearBranches() { pageGeo = null; treeGroup.children.filter(o => o.user
 let pageGeo = null; // 分页模式的枝干/花簇几何只建一次（与数据无关）；数据变化只重排吊卡，不重建场景
 function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal() - 1)); focus = '';
   const ids = pageIds(PAGE), hang = [], NB = 16, sz = ids.length <= 48 ? .5 : .4; // 小吊签
-  if (!pageGeo || !pageGeo.mesh.parent) { clearBranches(); window.__wtGeo = (window.__wtGeo || 0) + 1; const L = [], leafPts = [], thick = .4, segsAll = [];
+  const GP = growthParams(targetGrowth || growthT || 0), Hlive = GP.trunkH;
+  if (!pageGeo || !pageGeo.mesh.parent || pageGeo.gBin !== growthBin) { clearBranches(); window.__wtGeo = (window.__wtGeo || 0) + 1; const L = [], leafPts = [], segsAll = [];
     for (let j = 0; j < NB; j++) { const { p: ce, th } = childEnd('', j), r1 = 'pg' + j, h = strHash(r1);
-      // 主枝从树干顶部内侧长出（与树干顶面重叠，避免断层），先向上再外展
-      const st = V(Math.cos(th) * .35, 5.0 + h * .9, Math.sin(th) * .35), up = V(Math.cos(th) * 1.1, st.y + 1.3, Math.sin(th) * 1.1), mid = bend(up, ce, h, .9);
-      L.push({ pts: [st, up, mid, ce], rf: t => thick * (1.25 - t * .87), seg: 20, knot: j }); const pc = new THREE.CatmullRomCurve3([st, up, mid, ce]), segs = []; ramify(L, pc, thick * .5, 4.5, r1, 2, segs);
+      // 贴干着生：高度错落，先沿干上行再外展；粗细≈当地干径（与生长同步）
+      const tAtt = .58 + (j / NB) * .28 + (h - .5) * .04;
+      const y0 = -.35 + tAtt * Hlive, locR = trunkRadiusAt(GP, tAtt), thick = locR * (.7 + h * .15);
+      const st = V(Math.cos(th) * locR * .55, y0, Math.sin(th) * locR * .55);
+      const up = V(Math.cos(th) * locR * .85, y0 + (.9 + h * .7), Math.sin(th) * locR * .85);
+      const mid = bend(up, ce, h, 1.05);
+      L.push({ pts: [st, up, mid, ce], rf: t => thick * Math.pow(1 - t, 1.15) + .04, seg: 24, knot: j });
+      const pc = new THREE.CatmullRomCurve3([st, up, mid, ce]), segs = []; ramify(L, pc, thick * .45, 3.8 + soft01(targetGrowth - 1, .2) * 2.2, r1, 2, segs);
       segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce); segsAll.push({ ce, segs }); }
-    const mesh = new THREE.Mesh(tubes(L, 7), bark()); mesh.userData.branch = true; treeGroup.add(mesh);
-    const r = rng(7), bp = []; leafPts.forEach(t => { for (let k = 0; k < 40; k++) bp.push(t.x + (r() - .5) * 2.2, t.y + (r() - .3) * 1.4, t.z + (r() - .5) * 2.2, r(), .22 + r() * .25); });
-    const lb = blossomPoints(bp); for (let i = 0; i < lb.geometry.attributes.bs.count; i++) lb.geometry.attributes.bs.setW(i, .45 + r() * .5); lb.userData.branch = true; treeGroup.add(lb);
-    pageGeo = { mesh, lb, segsAll }; }
+    const mesh = new THREE.Mesh(tubes(L, 10), bark()); mesh.userData.branch = true; treeGroup.add(mesh);
+    const r = rng(7), bp = [];
+    leafPts.forEach(t => { const out = Math.min(1, Math.hypot(t.x, t.z) / (3 + GP.morph * 3));
+      const n = Math.round(28 + out * 36), sp = .35 + out * .7;
+      for (let k = 0; k < n; k++) bp.push(t.x + (r() - .5) * sp, t.y + (r() - .35) * sp * .7, t.z + (r() - .5) * sp, r(), .18 + r() * .2); });
+    const lb = blossomPoints(bp); for (let i = 0; i < lb.geometry.attributes.bs.count; i++) lb.geometry.attributes.bs.setW(i, .5 + r() * .45); lb.userData.branch = true; treeGroup.add(lb);
+    pageGeo = { mesh, lb, segsAll, gBin: growthBin }; }
   for (let j = 0; j < NB; j++) { const { ce, segs } = pageGeo.segsAll[j], mine = ids.filter((_, k) => k % NB === j); if (!mine.length) continue;
     const region = `P${PAGE}:${j}`, t = { region, P: ce, sz, count: mine.length }; t.slots = hangSlots(t, segs.slice(1)); hang.push(t);
     lruSet(tiles, key(region), mine.map(i => i < real.length ? toUI(null, i) : toUI(A.synth(i), i)), TILE_LRU); }
@@ -427,9 +437,13 @@ async function buildView(reg) {
   treeGroup.children.filter(o => o.userData.branch).forEach(o => { treeGroup.remove(o); o.geometry.dispose(); if (o.material !== barkMat && o.material !== blossomMat) o.material.dispose?.(); }); pageGeo = null;
   labels.forEach(l => { treeGroup.remove(l); l.material.map.dispose(); l.material.dispose(); }); labels = [];
   const L = [], hang = [], clus = [], leafPts = [], thick = .34 + Math.log10(N + 10) * .025;
-  c.children.forEach((cn, j) => { if (!cn) return; const { p: ce, th } = childEnd(reg, j), r1 = reg + A.HEX[j], h = strHash(r1), st = V(Math.cos(th) * .5, 5.3 + h * 1.2, Math.sin(th) * .5);
-    L.push({ pts: [st, bend(st, ce, h, .9), ce], rf: t => thick * (1 - t * .62), seg: 16, knot: j }); leafPts.push(ce);
-    if (cn <= A.HANG) { const pc = new THREE.CatmullRomCurve3([st, bend(st, ce, h, .9), ce]), segs = [], sz = N <= 256 ? 1.1 : .6; ramify(L, pc, thick * .5, 4.5, r1, 2, segs);
+  const GPv = growthParams(targetGrowth || growthT || 0);
+  c.children.forEach((cn, j) => { if (!cn) return; const { p: ce, th } = childEnd(reg, j), r1 = reg + A.HEX[j], h = strHash(r1);
+    const tAtt = .58 + (j / 16) * .28 + (h - .5) * .04, y0 = -.35 + tAtt * GPv.trunkH, locR = trunkRadiusAt(GPv, tAtt), tk = locR * (.65 + h * .15);
+    const st = V(Math.cos(th) * locR * .55, y0, Math.sin(th) * locR * .55);
+    const up = V(Math.cos(th) * locR * .9, y0 + (.85 + h * .65), Math.sin(th) * locR * .9);
+    L.push({ pts: [st, up, bend(up, ce, h, 1.0), ce], rf: t => tk * Math.pow(1 - t, 1.15) + .035, seg: 20, knot: j }); leafPts.push(ce);
+    if (cn <= A.HANG) { const pc = new THREE.CatmullRomCurve3([st, up, bend(up, ce, h, 1.0), ce]), segs = [], sz = N <= 256 ? 1.1 : .6; ramify(L, pc, tk * .45, 4.0, r1, 2, segs);
       segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); const t = { region: r1, P: ce, sz, count: cn }; t.slots = hangSlots(t, segs.filter((o, i) => i > 0)); hang.push(t); return; }
     labels.push(makeLabel(`${A.HEX[j]} · ${fmtN(cn)}`, ce, r1));
     for (let g = 0; g < 16; g++) { const gn = c.grand[j * 16 + g]; if (!gn) continue; const ge = grandEnd(reg, j, g), r2 = r1 + A.HEX[g];
@@ -617,6 +631,7 @@ function applyGrowth(n) { // 连续目标；几何按 log 分箱重建（约每 
   targetGrowth = growthOf(n);
   const bin = Math.floor(targetGrowth * 2); // log2 半档
   if (bin !== growthBin) { growthBin = bin; clearCore(); makeTrunk(targetGrowth); makeCanopy(targetGrowth);
+    pageGeo = null; // 挂卡枝随生长重建，避免固定 y≈5 平面扇
     if (bodyGroup) bodyGroup.scale.setScalar(.9);
     if (view) { dirty = true; show(focus); }
   }
