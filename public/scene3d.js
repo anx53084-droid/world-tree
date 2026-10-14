@@ -131,7 +131,7 @@ function tubes(list, radial = 8) { // 平行搬运标架：避免 Frenet 翻转�
       for (let j = 0; j <= radial; j++) {
         const a = j / radial * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
         const nx = ca * n.x + sa * _bin.x, ny = ca * n.y + sa * _bin.y, nz = ca * n.z + sa * _bin.z;
-        const k = 1 + (o.knot != null ? .1 * Math.sin(a * 3 + t * 17 + o.knot) : 0);
+        const k = 1 + (o.knot != null ? .05 * Math.sin(a * 3 + t * 17 + o.knot) : 0);
         P.push(p.x + nx * rr * k, p.y + ny * rr * k, p.z + nz * rr * k);
         Nn.push(nx, ny, nz); U.push(t * len, j / radial); } }
     for (let i = 0; i < seg; i++) for (let j = 0; j < radial; j++) {
@@ -193,11 +193,7 @@ function makeTrunk(g = 0) { const P = growthParams(g), r = rng(11), L = [], mrp 
     const wob = .04 * Math.sin(t * 7.2) * (1 - t);
     spinePts.push(V(wob, -.35 + t * H, .03 * Math.cos(t * 5.1) * (1 - t))); }
   L.push({ pts: spinePts, rf: t => trunkRadiusAt(P, t), seg: 64, knot: 0 });
-  // 浅表树皮脊：细、贴干表面，只作纹理，不抢主体
-  for (let i = 0; i < 6; i++) { const a0 = i / 6 * Math.PI * 2 + r() * .2, tw = .7 + r() * .5, pts = [];
-    for (let k = 0; k <= 14; k++) { const t = k / 14, rr = trunkRadiusAt(P, t) * .88, a = a0 + t * tw;
-      pts.push(V(Math.cos(a) * rr, -.35 + t * H, Math.sin(a) * rr)); }
-    L.push({ pts, rf: t => trunkRadiusAt(P, t) * (.14 + .04 * Math.sin(t * 14 + i)), seg: 36, knot: i + 1 }); }
+  // （树皮脊已去掉：避免近景竖条扇面）
   // 贴地扶根（仅近地）
   const buttN = Math.round(6 + mrp * 5);
   for (let i = 0; i < buttN; i++) { const a = i / buttN * Math.PI * 2 + r() * .2, len = (1.5 + mrp * 2.0) * (.6 + r() * .5), pts = [];
@@ -213,7 +209,7 @@ function makeTrunk(g = 0) { const P = growthParams(g), r = rng(11), L = [], mrp 
   // —— 主枝：贴干表面着生、先沿干上行再平滑外展；着生粗≈干径；黄金角错落 ——
   const primN = P.primaryN, GA = Math.PI * (3 - Math.sqrt(5));
   for (let i = 0; i < primN; i++) {
-    const tAttach = .38 + (i + .35) / primN * .5 + (r() - .5) * .03; // 38%～88%，避开干顶堆叠
+    const tAttach = .35 + (i + .35) / primN * .52 + (r() - .5) * .03; // 35%～87%，错落避开干顶堆叠
     const y0 = -.35 + tAttach * H;
     const localR = trunkRadiusAt(P, tAttach);
     const a = i * GA + r() * .2;
@@ -404,18 +400,18 @@ function clearBranches() { pageGeo = null; treeGroup.children.filter(o => o.user
   labels.forEach(l => { treeGroup.remove(l); l.material.map.dispose(); l.material.dispose(); }); labels = []; }
 let pageGeo = null; // 分页模式的枝干/花簇几何只建一次（与数据无关）；数据变化只重排吊卡，不重建场景
 function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal() - 1)); focus = '';
-  const ids = pageIds(PAGE), hang = [], NB = 16, sz = ids.length <= 48 ? .5 : .4; // 小吊签
+  const ids = pageIds(PAGE), hang = [], NB = 12, sz = ids.length <= 48 ? .5 : .4; // 小吊签
   const GP = growthParams(targetGrowth || growthT || 0), Hlive = GP.trunkH;
   if (!pageGeo || !pageGeo.mesh.parent || pageGeo.gBin !== growthBin) { clearBranches(); window.__wtGeo = (window.__wtGeo || 0) + 1; const L = [], leafPts = [], segsAll = [];
     for (let j = 0; j < NB; j++) { const { p: ce, th } = childEnd('', j), r1 = 'pg' + j, h = strHash(r1);
       // 贴干着生：高度错落，先沿干上行再外展；粗细≈当地干径（与生长同步）
-      const tAtt = .58 + (j / NB) * .28 + (h - .5) * .04;
+      const tAtt = .42 + (j / NB) * .46 + (h - .5) * .03;
       const y0 = -.35 + tAtt * Hlive, locR = trunkRadiusAt(GP, tAtt), thick = locR * (.7 + h * .15);
       const st = V(Math.cos(th) * locR * .55, y0, Math.sin(th) * locR * .55);
       const up = V(Math.cos(th) * locR * .85, y0 + (.9 + h * .7), Math.sin(th) * locR * .85);
       const mid = bend(up, ce, h, 1.05);
       L.push({ pts: [st, up, mid, ce], rf: t => thick * Math.pow(1 - t, 1.15) + .04, seg: 24, knot: j });
-      const pc = new THREE.CatmullRomCurve3([st, up, mid, ce]), segs = []; ramify(L, pc, thick * .45, 3.8 + soft01(targetGrowth - 1, .2) * 2.2, r1, 2, segs);
+      const pc = new THREE.CatmullRomCurve3([st, up, mid, ce]), segs = []; ramify(L, pc, thick * .42, 3.6 + soft01(targetGrowth - 1, .2) * 2.0, r1, 1, segs);
       segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce); segsAll.push({ ce, segs }); }
     const mesh = new THREE.Mesh(tubes(L, 10), bark()); mesh.userData.branch = true; treeGroup.add(mesh);
     const r = rng(7), bp = [];
@@ -439,7 +435,7 @@ async function buildView(reg) {
   const L = [], hang = [], clus = [], leafPts = [], thick = .34 + Math.log10(N + 10) * .025;
   const GPv = growthParams(targetGrowth || growthT || 0);
   c.children.forEach((cn, j) => { if (!cn) return; const { p: ce, th } = childEnd(reg, j), r1 = reg + A.HEX[j], h = strHash(r1);
-    const tAtt = .58 + (j / 16) * .28 + (h - .5) * .04, y0 = -.35 + tAtt * GPv.trunkH, locR = trunkRadiusAt(GPv, tAtt), tk = locR * (.65 + h * .15);
+    const tAtt = .42 + (j / 16) * .46 + (h - .5) * .03, y0 = -.35 + tAtt * GPv.trunkH, locR = trunkRadiusAt(GPv, tAtt), tk = locR * (.65 + h * .15);
     const st = V(Math.cos(th) * locR * .55, y0, Math.sin(th) * locR * .55);
     const up = V(Math.cos(th) * locR * .9, y0 + (.85 + h * .65), Math.sin(th) * locR * .9);
     L.push({ pts: [st, up, bend(up, ce, h, 1.0), ce], rf: t => tk * Math.pow(1 - t, 1.15) + .035, seg: 20, knot: j }); leafPts.push(ce);
