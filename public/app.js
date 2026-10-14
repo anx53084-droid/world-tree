@@ -31,11 +31,11 @@ const parseOpt = raw => { // 向后兼容：旧 memo 无 ~v/~A/~F-in-extras；�
   const rest = segs.filter(x => x !== foldTok && x !== kindTok);
   const m = foldTok && foldTok.match(/^F([0-9a-z]{2})(P?)$/);
   const g = k => (rest.find(x => new RegExp('^' + k + '[0-9a-f]{32}$').test(x)) || '').slice(1) || null;
-  const ii = (rest.find(x => /^I[0-9a-z]{2}$/.test(x)) || '');
+  const ii = (rest.find(x => /^I[0-9a-z]{2}$/.test(x)) || ''), kk = rest.find(x => /^K[0-9a-z]{2}$/.test(x)); // ~Kxx：单卡预设封面（新增，旧客户端忽略）
   const fx = p => { const x = rest.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
   const kind = kindTok === 'S' ? 'social' : kindTok === 'G' ? 'gift' : kindTok === 'H' || c === '物质类' ? 'goods' : 'wish';
   const VISM = { P: 'public', N: 'nearby', R: 'recent', I: 'invite', L: 'locked' }, DELM = { T: 'tree', O: 'off', B: 'both' };
-  return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : null, priv: !!(m && m[2]), cimg: m ? g('C') : null, nimg: m ? g('N') : null, inside: m && ii ? parseInt(ii.slice(1), 36) : null,
+  return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : kk ? parseInt(kk.slice(1), 36) : null, priv: !!(m && m[2]), cimg: g('C'), nimg: m ? g('N') : null, inside: m && ii ? parseInt(ii.slice(1), 36) : null,
     kind, vis: VISM[fx('v')] || 'public', deliver: kind === 'gift' ? (DELM[fx('d')] || 'tree') : 'tree',
     country: fx('A'), province: fx('B'), city: fx('Y'),
     tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' ? fx('T') : '', note: kind === 'gift' ? fx('M') : '', domain: kind === 'goods' ? fx('D') : '', pid: kind === 'goods' ? fx('P') : '', legacyGoods: kindTok !== 'H' && c === '物质类' }; };
@@ -44,6 +44,7 @@ const VISC = { public: 'P', nearby: 'N', recent: 'R', invite: 'I', locked: 'L' }
 const cleanLoc = x => String(x || '').trim().replace(/[~|]/g, '').slice(0, 20);
 const encLoc = K => `${K.country ? '~A' + cleanLoc(K.country) : ''}${K.province ? '~B' + cleanLoc(K.province) : ''}${K.city ? '~Y' + cleanLoc(K.city) : ''}`;
 const encFold = (folded, cover, priv, cimg, nimg, inside) => folded ? `~F${(cover | 0).toString(36).padStart(2, '0')}${priv ? 'P' : ''}${cimg ? '~C' + cimg : ''}${nimg ? '~N' + nimg : ''}${!nimg && inside != null ? '~I' + ((inside | 0).toString(36).padStart(2, '0')) : ''}` : '';
+const encSingle = (cover, cimg) => `${cover != null ? '~K' + (cover | 0).toString(36).padStart(2, '0') : ''}${cimg ? '~C' + cimg : ''}`; // 单卡封面：预设 ~Kxx / 自定义 ~C<hash>
 const encKind = (cat, K, fold = '') => {
   const v = '~v' + (VISC[K.vis] || 'P'), L = encLoc(K);
   if (K.kind === 'social') return `${cat}~S${v}${L}${K.tags.length ? '~t' + K.tags.join(',') : ''}${K.intro ? '~i' + K.intro : ''}${K.looking ? '~l' + K.looking : ''}${fold}`;
@@ -173,7 +174,7 @@ function aggregate() {
   for (const t of all) { const f = t.memo.split('|');
     if (f[1] === 'W') { if (!t.verified || clientBlocked(f[6]) || blkHit(t.sig, t.author, f[6])) { hidden++; continue; } if (!blkFull && WTBlock.maybeHasHost(f[6])) blkNeedFull = true;
       const o = parseOpt(f[5]), priv = o.priv && /^E1:/.test(f[6]); if (!priv && [...f[6]].length > 140) { hidden++; continue; }
-      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], kind: o.kind, vis: o.vis, deliver: o.deliver, country: o.country, province: o.province, city: o.city, tags: o.tags, intro: o.intro, looking: o.looking, to: o.to, note: o.note, folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], inside: o.inside, cimg: o.cimg, nimg: o.nimg, priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
+      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], kind: o.kind, vis: o.vis, deliver: o.deliver, country: o.country, province: o.province, city: o.city, tags: o.tags, intro: o.intro, looking: o.looking, to: o.to, note: o.note, folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], coverType: o.cimg ? 'custom' : 'preset', coverId: o.cover ?? WTCovers.forCat(o.cat)[0], customCoverUrl: o.cimg ? IMG(o.cimg) : null, inside: o.inside, cimg: o.cimg, nimg: o.nimg, priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
     else if (f[1] === 'L') likes.push([f[2], t]); else if (f[1] === 'B' && t.verified && !clientBlocked(f[6]) && !blkHit(t.sig, t.author, f[6])) bless.push([f[5], t, f[6]]); }
   for (const [ws, t] of likes) W[ws]?.likers.add(t.author); // 每地址对每愿望只计 1 赞
   for (const [ws, t, text] of bless) W[ws]?.blessings.push({ author: t.author, text, time: t.time, sig: t.sig, pending: t.pending });
@@ -354,7 +355,15 @@ function watchSol(a) { a.onChange?.(addr => { if (S.mode === 'self' && S.wallet 
 function watchEvm(p) { if (!p?.on || p.__wt) return; p.__wt = 1; // 钱包切换网络 / 账户
   p.on('chainChanged', h => { const c = parseInt(h, 16); if (EVM_KEYS[c]) localStorage.wt_chain = String(c); S.evmChain = c; });
   p.on('accountsChanged', a => { if (S.kind === 'evm' && (a[0] || '').toLowerCase() !== S.evmAddr) { toast(esc(t('wal.switched')), 'err'); logout(); } }); }
-function walletItem(w, kind) { return `<button type=button class="witem${w.installed ? '' : ' off'}" data-k=${kind} data-w="${esc(w.id)}">${w.icon ? `<img src="${esc(w.icon)}" alt="" width=24 height=24>` : '<i>◎</i>'}<b>${esc(w.name)}</b><span class=muted>${w.installed ? '' : WTW.mobile() ? E('wal.open') : E('wal.install')}</span></button>`; }
+// 钱包图标：已注入钱包用其自带图标；否则用本站自绘的简洁字母徽标（非官方 logo）
+const WICON = { phantom: ['#ab9ff2', 'P'], solflare: ['#fc7227', 'S'], backpack: ['#e33e3f', 'B'], okx: ['#111', 'O'], metamask: ['#f6851b', 'M'], coinbase: ['#0052ff', 'C'] };
+const wIcon = w => { if (w.icon) return `<img src="${esc(w.icon)}" alt="" width=28 height=28>`; const [c, l] = WICON[w.id] || ['#556', '◎']; return `<i aria-hidden=true style="background:${c}">${l}</i>`; };
+function walletItem(w, kind) { return `<button type=button class="witem${w.installed ? '' : ' off'}" data-k=${kind} data-w="${esc(w.id)}">${wIcon(w)}<b>${esc(w.name)}</b><span class=${w.installed ? 'wok' : 'muted'}>${w.installed ? E('wal.detected') : E('wal.notDetected')}</span></button>`; }
+function walletMissing(w, kind) { // 未检测到：安装链接 + 在钱包内置浏览器中打开（universal/deep link）
+  modal(`<h3 style="margin-top:0">${wIcon(w)} ${esc(w.name)}</h3><p>⚠️ ${E('wal.missing')}</p><p class=muted>${E('wal.missingHint')}</p>
+    <div class="row wmiss">${w.site ? `<a class="btn primary" href="${esc(w.site)}" target=_blank rel=noopener>⬇️ ${E('wal.install')}</a>` : ''}${w.deep ? `<a class=btn href="${esc(w.deep())}">📱 ${E('wal.openIn')}</a>` : ''}</div>
+    <div class=row style="justify-content:space-between;margin-top:12px"><button type=button id=wback>← ${E('wal.back')}</button><button data-close>${E('common.cancel')}</button></div>`);
+  $('#wback').onclick = () => connectWallet(kind); }
 function connectWallet(tab) {
   tab = tab || localStorage.wt_wtab || 'sol'; const ch = localStorage.wt_chain || '84532', C = evmChains();
   modal(`<h3 style="margin-top:0">${E('wal.title')}</h3><div class="row tabs"><button type=button data-tab=sol class="${tab === 'sol' ? 'on' : ''}">◎ Solana</button><button type=button data-tab=evm class="${tab === 'evm' ? 'on' : ''}">⬡ ${E('wal.evm')}</button></div>
@@ -368,7 +377,7 @@ function connectWallet(tab) {
 }
 const connectPhantom = () => connectWallet('sol');
 async function connectSol(id, given) { const w = WTW.solWallets().find(x => x.id === id); if (!w) return;
-  if (!w.installed) { if (WTW.mobile()) location.href = w.deep(); else window.open(w.site, '_blank'); return; }
+  if (!w.installed) return walletMissing(w, 'sol');
   const a = given || w.adapter(), np = getNonce(); let pk, signed = null;
   try { if (a.canSignIn) { const o = await a.signIn({ domain: location.host, statement: STMT, uri: location.origin, version: '1', nonce: await np, issuedAt: new Date().toISOString() }); // 一次点击：连接并签名
       pk = o.address; signed = { message: o.message, signature: WTW.b58(o.signature) }; } else pk = await a.connect(false); }
@@ -388,7 +397,7 @@ async function evmProvider() { if (S.evmProv) return S.evmProv; const w = WTW.ev
   if (a && a.toLowerCase() !== S.evmAddr) { toast(esc(t('wal.switched')), 'err'); await logout(); throw new Error(t('wal.switched')); } // 钱包当前账户与会话不一致：不沿用旧地址
   if ((a || '').toLowerCase() !== S.evmAddr) throw new Error(t('wish.evmNoWallet')); watchEvm(w.provider); return S.evmProv = w.provider; }
 async function connectEvm(id, pick = true) { const w = WTW.evmWallets().find(x => x.id === id); if (!w) return;
-  if (!w.installed) { if (WTW.mobile()) location.href = w.deep(); else window.open(w.site, '_blank'); return; }
+  if (!w.installed) return walletMissing(w, 'evm');
   const chain = $('#wch')?.value || localStorage.wt_chain || '84532', p = w.provider;
   const np = getNonce();
   const prev = S.evmPrev || ''; S.evmPrev = null;
@@ -424,7 +433,7 @@ async function loadBell() { if (!S.token) return paintBell(); try { const r = aw
 async function airdrop() { const tt = toast(esc(t('airdrop.req'))); try { const r = await api('/api/airdrop', {}); tt.update(esc(t('airdrop.ok', { sig: short(r.signature) })), 'ok'); } catch (e) { tt.update(esc(e.message), 'err'); } }
 function renderMode() {
   const m = { guest: `<span class="badge">${esc(t('mode.guest'))}</span>`, self: `<span class="badge b-self">${esc(t('mode.self', { wallet: S.wallet?.name || (WTW.solWallets().find(w => w.id === localStorage.wt_wallet)?.name) || 'Solana', addr: short(S.pubkey) }))}</span>`, host: `<span class="badge b-host">${esc(S.kind === 'evm' ? t('mode.evm', { addr: short(S.evmAddr || ''), sol: short(S.pubkey) }) : t('mode.host', { email: S.email, addr: short(S.pubkey) }))}</span>` }[S.mode];
-  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.wallet'))}</button><button id=be class=mlink>${esc(t('btn.email'))}</button>` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + (S.kind === 'evm' || S.mode === 'self' ? `<button id=bsw class=mlink>${esc(t('wal.switchAcct'))}</button>` : '') + `<button id=bo class=mlink>${esc(t('btn.logout'))}</button>`);
+  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.wallet'))}</button><button id=be class=mlink>${esc(t('btn.email'))}</button>` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + (S.kind === 'evm' || S.mode === 'self' ? `<button id=bsw class=mlink>${esc(t('wal.switchAcct'))}</button>` : '') + `<button id=bo class=mlink>${esc(t(S.mode === 'self' || S.kind === 'evm' ? 'wal.disconnect' : 'btn.logout'))}</button>`);
   $('#bp')?.addEventListener('click', () => connectWallet()); $('#be')?.addEventListener('click', () => emailLogin()); $('#bo')?.addEventListener('click', logout); $('#bsw')?.addEventListener('click', () => switchAccount().catch(e => toast(esc(walErr(e)), 'err'))); $('#ba')?.addEventListener('click', airdrop);
 }
 
@@ -733,7 +742,7 @@ function sparkle() { if (matchMedia('(prefers-reduced-motion: reduce)').matches)
   document.body.append(box); setTimeout(() => box.remove(), 1400); }
 const bul = h => { const parts = String(h).split(/(?<=[。！？])|(?<=[.!?])\s+(?=[A-Z\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF\u0900-\u097F\u0E00-\u0E7F])/).map(x => x.trim()).filter(Boolean); return parts.length > 2 && String(h).length > 90 && !/<(ul|ol|li|br)/i.test(h) ? `<ul class=bul>${parts.map(p => `<li>${p}</li>`).join('')}</ul>` : h; }; // 长段落拆为要点
 function mineBlock() { const mine = S.mode === 'guest' ? [] : S.wishes.filter(isMine);
-  const thumb = w => `<button type=button class="mw k-${w.kind || 'wish'}" data-sig="${esc(w.sig)}">${w.kind !== 'wish' && w.kind ? `<b class=mw-k>${kIcon(w)}</b>` : ''}<img alt="" src="${w.cimg ? IMG(w.cimg) : w.folded ? WTCovers.url(w.cover, 120, 160) : WTCovers.url(WTCovers.forCat(w.cat)[0], 120, 160)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover ?? 0, 120, 160)}'">${w.priv ? '<i>🔒</i>' : ''}<span dir=auto>${esc(w.priv && !w.plain ? t('card.privateShort') : (w.plain || w.text))}</span></button>`;
+  const thumb = w => `<button type=button class="mw k-${w.kind || 'wish'}" data-sig="${esc(w.sig)}">${w.kind !== 'wish' && w.kind ? `<b class=mw-k>${kIcon(w)}</b>` : ''}<img alt="" src="${w.cimg ? IMG(w.cimg) : WTCovers.url(w.cover ?? WTCovers.forCat(w.cat)[0], 120, 160)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover ?? 0, 120, 160)}'">${w.priv ? '<i>🔒</i>' : ''}<span dir=auto>${esc(w.priv && !w.plain ? t('card.privateShort') : (w.plain || w.text))}</span></button>`;
   if (S.mode !== 'guest' && !mine.length && (S.syncing || S.mineLoading)) return skel(2);
   if (S.mode === 'guest') return emptyArt(t('mine.guest'));
   const sent = mine.filter(w => w.kind === 'gift'), recv = S.wishes.filter(giftToMe), gl = (w, mineSide) => `<button type=button class="mw gl" data-sig="${esc(w.sig)}">🎁 <code>${esc(short(w.author))}</code> → <code>${esc(short(w.to))}</code> <span class=tag>${E(mineSide ? 'gift.sent' : 'gift.recv')}</span>${w.note ? ` <bdi>“${esc(w.note)}”</bdi>` : ''}</button>`;
@@ -763,19 +772,44 @@ async function evmPay(payKey, amount) { // EVM：全额转入该链单一收款�
   toast(esc(t('wish.evmSending', { i: 1 })));
   const h = await p.request({ method: 'eth_sendTransaction', params: [{ from, to: r.receive, value: '0x' + wei.toString(16) }] });
   toast(esc(t('wish.evmWaiting'))); await WTW.waitReceipt(p, h); return { chainId: +chainId, txs: [h], payKey: r.key }; }
+function coverGridHtml() { // 卡片封面设计：经典（原有分组）+ 自然 / 简约 / 情感预设 + 自定义上传
+  const btn = i => { const c = WTCovers.list[i], nm = WTCovers.GROUPS.classic.includes(c[0]) || c[0] === MATERIAL ? catName(c[0]) : t('cover.n.' + c[1]); return `<button type=button data-cover=${i} aria-pressed=false aria-label="${esc(nm)}" title="${esc(nm)}"><img alt="" src="${WTCovers.url(i)}"></button>`; };
+  const classic = WTCovers.list.map((c, i) => [c, i]).filter(([c]) => WTCovers.GROUPS.classic.includes(c[0]) || c[0] === MATERIAL).sort((a, b) => COVER_CATS.indexOf(a[0][0] === MATERIAL ? '经典' : a[0][0]) - COVER_CATS.indexOf(b[0][0] === MATERIAL ? '经典' : b[0][0]));
+  const grp = (k, inner) => `<div class=cg-sec><h4 class=cg-t>${E('cover.g.' + k)}</h4><div class=cover-grid>${inner}</div></div>`;
+  return `<div id=covers>${grp('classic', classic.map(([c, i], j, A) => (j === 0 || (A[j - 1][0][0] === MATERIAL ? '经典' : A[j - 1][0][0]) !== (c[0] === MATERIAL ? '经典' : c[0]) ? `<b class=cg-h>${esc(catName(c[0]))}</b>` : '') + btn(i)).join(''))}
+    ${['nature', 'minimal', 'emotion'].map(g => grp(g, WTCovers.ids(g).map(btn).join(''))).join('')}</div>
+    <div class=cg-sec><h4 class=cg-t>${E('cover.g.custom')}</h4><div class=up-row><label class=up-box sm><input type=file id=upC accept="image/*" class=sr-only><img id=upCi alt="" hidden><span>🖼️ ${E('wish.upCover')}</span></label><button type=button id=clrC class=link hidden>${E('wish.clearUp')}</button></div></div>`; }
+function previewAside() { return `<aside class=mk-prev aria-labelledby=pvh><div class=pv-head><h4 id=pvh>👁️ ${E('pv.title')}</h4>
+  <button type=button id=pvToggle class=pv-toggle aria-expanded=false aria-controls=pvPanel>${E('pv.show')}</button></div>
+  <div id=pvPanel class=pv-panel><div class=pv-modes role=group aria-label="${E('pv.mode')}"><button type=button data-pv=single aria-pressed=true>${E('wish.typeSingle')}</button><button type=button data-pv=folded aria-pressed=false>${E('wish.typeFolded')}</button></div>
+  <div id=pvBody class=pv-body aria-live=polite></div><p class="muted hint">${E('pv.note')}</p></div></aside>`; }
+function previewHtml(st) { // st：表单当前值；所有用户文本经 esc
+  const v = id => ($('#' + id)?.value || '').trim(), k = v('ckind') || 'wish';
+  const coverSrc = st.upC || WTCovers.url(st.cover, 300, 400), insideSrc = st.upN || WTInsides.url(st.inside, 300, 400);
+  const badge = `<span class=pv-sample>${E('ux.sampleTag')}</span>`, me = short(S.pubkey || '') || '—';
+  let body = '', img = coverSrc;
+  if (k === 'social') { const tags = v('stg').split(/[,，\s]+/).filter(Boolean).slice(0, 5), gsel = $('#sgen'), loc = [v('scountry'), v('sprov'), v('scity')].filter(Boolean).join(' · ');
+    const meta = [v('sage'), v('sgen') && gsel ? gsel.selectedOptions[0]?.textContent : '', v('sjob'), loc].filter(Boolean);
+    body = `<span class=tag>💬 ${E('kind.social')}</span>${tags.length ? `<div class=pv-tags>${tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}<p dir=auto>${esc(v('sin') || t('pv.introPh'))}</p><p class=pv-sub dir=auto>🔎 ${esc(v('slk') || t('pv.lookPh'))}</p>${meta.length ? `<p class=pv-meta dir=auto>${meta.map(esc).join(' · ')}</p>` : ''}`; }
+  else if (k === 'gift') body = `<span class="tag pv-gift">🎁 ${E('kind.gift')}</span><p dir=auto>${esc(v('gnt') || t('pv.notePh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gto')) || '—')}</p>`;
+  else if (k === 'goods') { const gi = $('#gimg'); if (gi && !gi.hidden && gi.src) img = gi.src; let dom = ''; try { dom = new URL(v('gurl')).hostname.replace(/^www\./, ''); } catch {}
+    body = `<span class=tag>🛍️ ${E('kind.goods')}</span><p dir=auto><b>${esc(v('gtitle') || t('pv.goodsPh'))}</b></p><p class=pv-price>${v('gprice') ? esc(v('gprice') + ' ' + v('gcur').toUpperCase()) : '—'}</p><p class=pv-meta>🔗 ${esc(dom || '—')}</p>`; }
+  else body = `<span class=tag>✨ ${E('kind.wish')}</span><p dir=auto>${esc(v('wt') || t('pv.textPh'))}</p>`;
+  const foot = `<p class=pv-meta>👤 ${esc(me)}</p>`;
+  if (st.mode === 'folded') return `<div class=pv-fold><figure class=pv-page><img alt="" src="${img}"><figcaption>${E('wish.cover')}</figcaption>${badge}</figure><figure class="pv-page pv-in" style="--bg:url('${insideSrc}')"><div class=pv-inbody>${body}${foot}</div><figcaption>${E('wish.inside')}</figcaption></figure></div>`;
+  return `<div class=pv-card><div class=pv-cover><img alt="" src="${img}">${badge}</div><div class=pv-text>${body}${foot}</div></div>`; }
 function wishPanel() {
   if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}${guestCta()}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
-  return `<h2>${E('wish.title')}</h2><div class=card>
+  return `<h2>${E('wish.title')}</h2><div class="card mk-grid"><div class=mk-form>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
   <div class=row><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option></select></label></div>
-  <div class=row><label>${E('wish.coverStyle')} <select id=wc2><optgroup label="${E('cat.classic')}">${COVER_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : esc(catName(c))}</option>`).join('')}</optgroup></select></label></div>
+  <div class=row><label>${E('wish.coverCat')} <select id=wc2><optgroup label="${E('cat.classic')}">${COVER_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : esc(catName(c))}</option>`).join('')}</optgroup></select></label></div>
   <div class=row><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
+  <fieldset class=cover-design id=coverDesign><legend>${E('wish.coverStyle')}</legend>${coverGridHtml()}</fieldset>
   <div id=coverWrap hidden>
-    <div class=muted>${E('wish.cover')}</div><div class=cover-grid id=covers>${WTCovers.list.map((c, i) => [c, i]).sort((a, b) => COVER_CATS.indexOf(a[0][0] === MATERIAL ? '经典' : a[0][0]) - COVER_CATS.indexOf(b[0][0] === MATERIAL ? '经典' : b[0][0])).map(([c, i], j, A) => (j === 0 || (A[j - 1][0][0] === MATERIAL ? '经典' : A[j - 1][0][0]) !== (c[0] === MATERIAL ? '经典' : c[0]) ? `<b class=cg-h>${esc(catName(c[0]))}</b>` : '') + `<button type=button data-cover=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTCovers.url(i)}"></button>`).join('')}</div>
-    <div class=up-row><label class=up-box sm><input type=file id=upC accept="image/*" hidden><img id=upCi alt="" hidden><span>🖼️ ${E('wish.upCover')}</span></label><button type=button id=clrC class=link hidden>${E('wish.clearUp')}</button></div>
     <div class=muted style="margin-top:10px">${E('wish.inside')}</div><div class=cover-grid id=insides>${WTInsides.list.map((c, i) => `<button type=button data-inside=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTInsides.url(i)}"></button>`).join('')}</div>
-    <div class=up-row><label class=up-box sm><input type=file id=upN accept="image/*" hidden><img id=upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label><button type=button id=clrN class=link hidden>${E('wish.clearUp')}</button></div>
+    <div class=up-row><label class=up-box sm><input type=file id=upN accept="image/*" class=sr-only><img id=upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label><button type=button id=clrN class=link hidden>${E('wish.clearUp')}</button></div>
     <p class=muted style="margin:4px 0">${E('wish.mixHint')}</p>
     <label class=agree><input type=checkbox id=priv> <span>🔒 ${E('wish.private')}</span></label><p class=muted style="margin:4px 0">${E('wish.privateHint')}${S.mode === 'host' ? ' ' + E('wish.privateHostNote') : ''} ${E('wish.upPrivNote')}</p></div>
   <div id=sharedVis class=kwrap>
@@ -812,7 +846,7 @@ function wishPanel() {
   <div class=notice>${E('mod.notice')}</div>
   ${agreedTerms ? '' : `<label class=agree><input type=checkbox id=ag2> <span>${E('wish.agreeTerms', { doc: '\u0001' }).replace('\u0001', `<a href="#/terms" target=_blank>${E('terms.title')}</a>`)}</span></label>`}
   <label class=agree><input type=checkbox id=ag> <span>${E('mod.agree')}</span></label>
-  <button id=ws class=primary disabled>✨ ${E('wish.submit')}</button></div>`;
+  <button id=ws class=primary disabled>✨ ${E('wish.submit')}</button></div>${previewAside()}</div>`;
 }
 function growth() { // 连续成长（无阶段上限）+ 本月形态；进度条为渐近美感，永不「满级」
   const n = S.stress ? S.total : S.wishes.length;
@@ -905,7 +939,7 @@ async function route() {
     ta.addEventListener('input', blkCheck); blkFullP?.then(blkCheck); window.__blkCheck = blkCheck;
     const catSel = $('#wc2');
     const syncShip = () => { const on = ($('#ckind')?.value || 'wish') === 'goods'; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
-    const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.cover === i));
+    const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => { b.classList.toggle('on', +b.dataset.cover === i); b.setAttribute('aria-pressed', +b.dataset.cover === i); });
     const syncCard = () => { const f = $('#ctype')?.value === 'folded'; if ($('#coverWrap')) $('#coverWrap').hidden = !f; const ta2 = $('#wt'); if (ta2) { ta2.maxLength = f && $('#priv')?.checked ? 100 : 140; $('#wc').textContent = [...ta2.value].length + '/' + ta2.maxLength; } };
     const D = S.draft ||= {}, up = D.up ||= { C: null, N: null };
     const pickInside = i => $('#insides')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.inside === i));
@@ -942,7 +976,15 @@ async function route() {
     saveD = () => { D.f = Object.fromEntries(Object.entries(F).filter(([id]) => $('#' + id)).map(([id, p]) => [id, $('#' + id)[p]])); D.cover = $('#covers .on')?.dataset.cover; D.inside = $('#insides .on')?.dataset.inside; D.auto = $('#covers')?.dataset.auto; D.iauto = $('#insides')?.dataset.auto; };
     if (D.f) { for (const [id, v] of Object.entries(D.f)) { const el = $('#' + id); if (el) el[F[id]] = v; }
       if (D.cover != null) pickCover(+D.cover); if (D.inside != null) pickInside(+D.inside); if (D.auto) $('#covers').dataset.auto = D.auto; if (D.iauto) $('#insides').dataset.auto = D.iauto; ['C', 'N'].forEach(k => showUp(k, up[k])); syncCard(); }
-    syncShip(); syncKind(); const fc = ta.closest('.card'); fc.addEventListener('input', saveD); fc.addEventListener('change', saveD); ['#covers', '#insides'].forEach(sel => $(sel)?.addEventListener('click', () => setTimeout(saveD)));
+    let pvMode = null; const pvUrl = {}; const blobUrl = k => up[k] ? (pvUrl[k]?.b === up[k] ? pvUrl[k].u : (pvUrl[k] = { b: up[k], u: URL.createObjectURL(up[k]) }).u) : null;
+    const renderPreview = () => { const box = $('#pvBody'); if (!box) return; const mode = pvMode || ($('#ctype')?.value === 'folded' ? 'folded' : 'single');
+      document.querySelectorAll('[data-pv]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pv === mode));
+      box.innerHTML = previewHtml({ mode, cover: +($('#covers .on')?.dataset.cover ?? 0), inside: +($('#insides .on')?.dataset.inside ?? 0), upC: blobUrl('C'), upN: blobUrl('N') }); };
+    document.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => { pvMode = b.dataset.pv; renderPreview(); });
+    $('#ctype')?.addEventListener('change', () => { pvMode = null; });
+    $('#pvToggle')?.addEventListener('click', e => { const on = e.currentTarget.getAttribute('aria-expanded') !== 'true'; e.currentTarget.setAttribute('aria-expanded', on); e.currentTarget.textContent = t(on ? 'pv.hide' : 'pv.show'); $('.mk-prev').classList.toggle('open', on); });
+    { const s0 = saveD; saveD = () => { s0(); renderPreview(); }; }
+    syncShip(); syncKind(); const fc = ta.closest('.card'); fc.addEventListener('input', saveD); fc.addEventListener('change', saveD); ['#covers', '#insides'].forEach(sel => $(sel)?.addEventListener('click', () => setTimeout(saveD))); renderPreview();
     const upd = () => { const ok = $('#ag').checked && (!$('#ag2') || $('#ag2').checked); $('#ws').disabled = !ok; $('#ws').classList.toggle('breathe', ok);
       const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { amt: sol(l), dev: sol(l), tre: sol(l) }); };
     fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); const a = $('#amt'); if (a) { a.min = c.minLamports / 1e9; if (+a.value * 1e9 < c.minLamports) a.value = (Math.ceil(c.minLamports / 1e5) / 1e4).toFixed(4); upd(); } }).catch(() => {});
@@ -987,9 +1029,9 @@ async function route() {
       if (!($('#pv')?.value === 'evm') && !(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
       const folded = $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null;
-      if (folded && (up.C || up.N)) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (up.N) nimg = await uploadImg(up.N, k); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
+      if (up.C || (folded && up.N)) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (folded && up.N) nimg = await uploadImg(up.N, k); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
       if (priv) { if ([...txt].length > 100) return toast(E('wish.privateLen'), 'err'); try { cipher = await WTPriv.enc(txt, await WTPriv.key()); } catch (e) { return toast(esc(t('card.unlockFail')) + ' ' + esc(e.message || ''), 'err'); } }
-      const fold = encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside);
+      const fold = folded ? encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside) : (cimg || cover !== WTCovers.forCat(cat)[0] ? encSingle(cimg ? null : cover, cimg) : '');
       const prefix = encKind(cat, K || { kind: 'wish', vis: 'public' }, fold);
       if (new TextEncoder().encode(prefix + '|' + (cipher || txt)).length > 600) { $('#ws').disabled = false; return tt.update(E('err.memoSize'), 'err'); }
       let memo; try { memo = await moderateThenMemo('W', prefix, txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }
