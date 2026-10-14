@@ -324,7 +324,7 @@ img, video, canvas { max-width: 100% }
 
 /* ---------- 制作页：实时预览 + 卡片封面设计 ---------- */
 .mk-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 22px; align-items: start }
-.mk-prev { position: sticky; top: calc(var(--hdr, 60px) + 12px); border: 1px solid #ffffff1f; border-radius: 14px; padding: 12px; background: #0b0a24cc }
+.mk-prev { position: sticky; top: calc(var(--hdr, 60px) + 12px); border: 1px solid #ffffff1f; border-radius: 14px; padding: 12px; background: #0b0a24 }
 .pv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px } .pv-head h4 { margin: 0 }
 .pv-toggle { display: none }
 .pv-modes { display: flex; gap: 6px; margin: 8px 0 } .pv-modes button[aria-pressed=true] { background: #e8b85a; color: #1a1205 }
