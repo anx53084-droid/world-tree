@@ -135,43 +135,65 @@ function clearCore() { if (!bodyGroup) return;
 function growthOf(n) { // 无上限：log2(n+2)，随卡片数永远缓慢增长（不设封顶阶段）
   return Math.log2(Math.max(0, +n || 0) + 2); }
 function soft01(x, k = .22) { return 1 - Math.exp(-k * Math.max(0, x)); } // 0→1 渐近，永不真正封顶叙事
-function growthParams(g) { // g = log2(n+2)；形态随 g 变大，但粗细/密度用 soft01 软饱和，避免臃肿
-  const e = soft01(g - 1, .2), e2 = soft01(g - 1, .12); // e 偏快（高度），e2 偏慢（密度）
-  // 枝干半径相对高度的比例上限，保持修长
-  const trunkH = 4.0 + e * 7.5, trunkR = Math.min(trunkH * .14, .5 + e * .9), spineR = Math.min(trunkH * .18, .65 + e * 1.1);
+function growthParams(g) { // g = log2(n+2)；高度连续上涨，花冠锚定在树干顶端（消除断口），密度软饱和
+  const e = soft01(g - 1, .2), e2 = soft01(g - 1, .14);
+  const trunkH = 5.2 + e * 6.8; // 树干总高
+  const trunkR = Math.min(trunkH * .12, .48 + e * .72), spineR = Math.min(trunkH * .15, .62 + e * .95);
+  const canopyRY = 4.5 + e * 4.8, canopyRX = 8.0 + e * 10.5;
+  // 花冠中心紧贴树干顶：下缘盖住干顶，不再悬空
+  const canopyY = trunkH + canopyRY * .22;
   return {
     trunkH, trunkR, spineR,
-    rootN: Math.round(8 + e * 18), rootLen: 2.5 + e * 9, rootR: Math.min(.95, .3 + e * .5),
-    limbN: Math.round(7 + e * 20), limbLen: 2.5 + e * 8.5, limbR: Math.min(trunkR * .55, .28 + e * .32),
-    canopyY: 6.8 + e * 8, canopyRX: 6.5 + e * 14, canopyRY: 3.8 + e * 6.5,
-    canopyCl: Math.round(100 + e2 * 320),
-    canopyN: Math.round((MOBILE ? 5000 : 14000) + e2 * (MOBILE ? 22000 : 50000)), // 花瓣粒子软顶
-    canopySz: .17 + e2 * .13, rootDisc: 4.5 + e * 7, glow: .4 + e * .65,
-    morph: e // 0..~1 供着色器 / 子枝开关
+    rootN: Math.round(10 + e * 14), rootLen: 2.8 + e * 7.5, rootR: Math.min(.85, .32 + e * .42),
+    limbN: Math.round(8 + e * 12), limbLen: 2.2 + e * 4.5, limbR: Math.min(trunkR * .5, .26 + e * .28), // 低部撑枝
+    crownN: Math.round(10 + e * 18), crownLen: 3.2 + e * 5.5, // 冠部主枝：从干顶长出
+    canopyY, canopyRX, canopyRY,
+    canopyCl: Math.round(180 + e2 * 280),
+    canopyN: Math.round((MOBILE ? 14000 : 42000) + e2 * (MOBILE ? 16000 : 28000)),
+    canopySz: .22 + e2 * .12, rootDisc: 5 + e * 5.5, glow: .5 + e * .55,
+    morph: e
   };
 }
-function makeTrunk(g = 0) { const P = growthParams(g), r = rng(11), L = [], S = 12;
-  for (let i = 0; i < S; i++) { const a0 = i / S * Math.PI * 2 + r() * .3, tw = 1.5 + r() * .9, pts = [];
-    for (let k = 0; k <= 10; k++) { const t = k / 10, rr = (P.trunkR * .7) + P.trunkR * 1.5 * Math.pow(1 - t, 2.4) + .18 * Math.sin(t * 9 + i), sp = t > .78 ? (t - .78) * (2.5 + P.morph * 3) : 0, a = a0 + t * tw;
-      pts.push(V(Math.cos(a) * (rr * .72 + sp * 1.3), -.4 + t * P.trunkH + sp * .5, Math.sin(a) * (rr * .72 + sp * 1.3))); }
-    L.push({ pts, rf: t => P.trunkR * (.4 + .55 * Math.pow(1 - t, 2)) + .05 * Math.sin(t * 20 + i), seg: 44, knot: i }); }
-  L.push({ pts: [V(0, -.4, 0), V(.1, P.trunkH * .45, -.1), V(0, P.trunkH * .95, 0)], rf: t => P.spineR * (.5 + .7 * Math.pow(1 - t, 3)), seg: 14 });
-  const mrp = P.morph;
+function makeTrunk(g = 0) { const P = growthParams(g), r = rng(11), L = [], S = 12, mrp = P.morph, H = P.trunkH;
+  // 主干部：多股扭纹从根连续升到干顶（无中段断口）
+  for (let i = 0; i < S; i++) { const a0 = i / S * Math.PI * 2 + r() * .3, tw = 1.2 + r() * .7, pts = [];
+    for (let k = 0; k <= 14; k++) { const t = k / 14;
+      const rr = P.trunkR * (.55 + 1.35 * Math.pow(1 - t, 2.2)) + .12 * Math.sin(t * 9 + i);
+      // 顶部轻微外展，衔接到冠枝，不把中段掏空
+      const flare = t > .82 ? (t - .82) / .18 * (0.35 + mrp * 0.55) * P.trunkR : 0;
+      const a = a0 + t * tw;
+      pts.push(V(Math.cos(a) * (rr * .75 + flare), -.35 + t * H, Math.sin(a) * (rr * .75 + flare))); }
+    L.push({ pts, rf: t => P.trunkR * (.42 + .58 * Math.pow(1 - t, 1.85)) + .04 * Math.sin(t * 18 + i), seg: 48, knot: i }); }
+  // 中心脊干：一直顶到 H，保证视觉中轴不断
+  L.push({ pts: [V(0, -.35, 0), V(.05, H * .35, -.05), V(-.04, H * .7, .04), V(0, H, 0)], rf: t => P.spineR * (.55 + .55 * Math.pow(1 - t, 2.5)), seg: 18 });
+  // 低部撑枝 / 扶根（贴地附近）
   for (let i = 0; i < P.limbN; i++) { const a = i / P.limbN * Math.PI * 2 + r() * .3, len = P.limbLen * (.55 + r() * .7), pts = [];
-    for (let k = 0; k <= 8; k++) { const t = k / 8, d = (P.trunkR * 1.2) + t * len, w = Math.sin(t * 5 + i) * .35 * t;
-      pts.push(V(Math.cos(a + w) * d, P.trunkH * .14 * (1 - t) * (1 - t) - .12 - t * .18 + Math.sin(t * 7 + i) * .07, Math.sin(a + w) * d)); }
-    L.push({ pts, rf: t => P.limbR * Math.pow(1 - t, 1.3) + .03, seg: 30, knot: i + 3 });
-    if (mrp > .2) { const st = pts[3], dir = pts[4].clone().sub(pts[2]).normalize(), side = V(-dir.z, 0, dir.x).multiplyScalar(r() < .5 ? 1 : -1), sub = [];
-      for (let k = 0; k <= 4; k++) sub.push(st.clone().addScaledVector(dir, k * (.55 + mrp * .55)).addScaledVector(side, k * (.4 + mrp * .45) + Math.sin(k + i) * .2).setY(st.y * (1 - k / 4) - .15));
-      L.push({ pts: sub, rf: t => P.limbR * .45 * (1 - t) + .02, seg: 14, knot: i }); } }
+    for (let k = 0; k <= 8; k++) { const t = k / 8, d = P.trunkR * 1.05 + t * len, w = Math.sin(t * 5 + i) * .3 * t;
+      pts.push(V(Math.cos(a + w) * d, .55 * (1 - t) * (1 - t) - .1 - t * .12, Math.sin(a + w) * d)); }
+    L.push({ pts, rf: t => P.limbR * Math.pow(1 - t, 1.3) + .025, seg: 26, knot: i + 3 }); }
+  // 冠部主枝：从干顶内侧长出，伸入花冠（消除「花冠悬浮」）
+  for (let i = 0; i < P.crownN; i++) { const a = i / P.crownN * Math.PI * 2 + r() * .4, elev = .28 + r() * .55, len = P.crownLen * (.5 + r() * .7);
+    const y0 = H * (.72 + r() * .22); // 着生于干顶附近
+    const r0 = P.trunkR * (.15 + r() * .35); // 从树干内部长出
+    const pts = [], dir = V(Math.cos(a) * Math.cos(elev), Math.sin(elev), Math.sin(a) * Math.cos(elev));
+    for (let k = 0; k <= 10; k++) { const t = k / 10;
+      const bend = Math.sin(t * Math.PI) * (.4 + mrp * .5);
+      const side = V(-dir.z, 0, dir.x).multiplyScalar(bend * (r() < .5 ? 1 : -1));
+      pts.push(V(Math.cos(a) * r0, y0, Math.sin(a) * r0).addScaledVector(dir, t * len).add(side)); }
+    L.push({ pts, rf: t => P.limbR * (.85 * Math.pow(1 - t, 1.2) + .06), seg: 28, knot: i });
+    if (mrp > .15) { // 二级细枝
+      const st = pts[5], d2 = pts[8].clone().sub(pts[4]).normalize(), side = V(-d2.z, .2, d2.x).normalize(), sub = [];
+      for (let k = 0; k <= 5; k++) sub.push(st.clone().addScaledVector(d2, k * (.45 + mrp * .35)).addScaledVector(side, k * (.35 + mrp * .3)));
+      L.push({ pts: sub, rf: t => P.limbR * .4 * (1 - t) + .02, seg: 12, knot: i }); } }
+  // 深根
   for (let i = 0; i < P.rootN; i++) { const a = i / P.rootN * Math.PI * 2 + r() * .25, len = P.rootLen * (.5 + r() * .7), pts = [];
-    for (let k = 0; k <= 7; k++) { const t = k / 7, d = P.trunkR * .8 + t * len, dip = t * t * (1.0 + mrp * 1.5);
-      pts.push(V(Math.cos(a) * d * (1 + t * .15), -.15 - dip, Math.sin(a) * d * (1 + t * .15))); }
+    for (let k = 0; k <= 7; k++) { const t = k / 7, d = P.trunkR * .85 + t * len, dip = t * t * (1.0 + mrp * 1.4);
+      pts.push(V(Math.cos(a) * d * (1 + t * .12), -.12 - dip, Math.sin(a) * d * (1 + t * .12))); }
     L.push({ pts, rf: t => P.rootR * Math.pow(1 - t, 1.15) + .03, seg: 22, knot: i }); }
-  const m = new THREE.Mesh(tubes(L, 9), bark()); m.userData.core = true; trunkObj = m; bodyGroup.add(m);
+  const mesh = new THREE.Mesh(tubes(L, 9), bark()); mesh.userData.core = true; trunkObj = mesh; bodyGroup.add(mesh);
   const R = P.rootDisc;
-  const dg = new THREE.CircleGeometry(R, 64, 0, Math.PI * 2); dg.rotateX(-Math.PI / 2); const p = dg.attributes.position;
-  for (let i = 0; i < p.count; i++) { const d = Math.hypot(p.getX(i), p.getZ(i)); p.setY(i, (.55 + P.morph * .55) * Math.pow(Math.max(0, 1 - d / R), 2.2) - .25); } dg.computeVertexNormals();
+  const dg = new THREE.CircleGeometry(R, 64, 0, Math.PI * 2); dg.rotateX(-Math.PI / 2); const pp = dg.attributes.position;
+  for (let i = 0; i < pp.count; i++) { const d = Math.hypot(pp.getX(i), pp.getZ(i)); pp.setY(i, (.55 + mrp * .5) * Math.pow(Math.max(0, 1 - d / R), 2.2) - .25); } dg.computeVertexNormals();
   const disc = new THREE.Mesh(dg, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime, uGrowth: BU.uGrowth },
     vertexShader: `varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
     fragmentShader: `uniform float uTime,uGrowth; varying vec3 vP; ${NOISE} void main(){ float d=length(vP.xz), a=atan(vP.z,vP.x), Rmix=mix(5.,11.,uGrowth);
@@ -180,18 +202,18 @@ function makeTrunk(g = 0) { const P = growthParams(g), r = rng(11), L = [], S = 
       vec3 c=vec3(.03,.035,.09)+vec3(1.6,1.0,.35)*v*fall*(.85+.15*sin(uTime*1.3-d))+vec3(.4,.6,1.4)*sp*(1.-fall)+vec3(.8,.45,.12)*exp(-d*1.2)*.6;
       gl_FragColor=vec4(c, smoothstep(Rmix,Rmix*.55,d)*.96); }` }));
   disc.userData.core = true; bodyGroup.add(disc);
-  const g1 = addSprite(glowTex(), new THREE.Color(1.2, .85, .4), .55 * P.glow, V(0, .9, 0), 3.2 + P.morph * 3, bodyGroup); g1.userData.core = true;
-  const g2 = addSprite(glowTex(), new THREE.Color(.8, .45, .18), .25 * P.glow, V(0, .6, 0), 8 + P.morph * 8, bodyGroup); g2.userData.core = true;
-  TRUNK.set(0, P.trunkH * .9, 0);
+  const g1 = addSprite(glowTex(), new THREE.Color(1.2, .85, .4), .55 * P.glow, V(0, .9, 0), 3.2 + mrp * 3, bodyGroup); g1.userData.core = true;
+  const g2 = addSprite(glowTex(), new THREE.Color(.8, .45, .18), .25 * P.glow, V(0, .6, 0), 8 + mrp * 8, bodyGroup); g2.userData.core = true;
+  TRUNK.set(0, H * .88, 0); // 挂卡基准：干顶略下，冠枝从这里长出
 }
 // ---------- 樱花穹冠：数万个实例化花朵点（着色器绘制五瓣花形），季节由 uSeason 平滑过渡：0 新绿+花苞 / 1 盛放 / 2 飘落稀疏 ----------
 let blossomMat; const blossom = () => blossomMat || (blossomMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: BU,
   vertexShader: `attribute vec4 bs; uniform float uTime,uPR,uSeason,uGrowth; varying vec3 vC; varying float vA,vR;
     void main(){ float g=1.-clamp(uSeason,0.,1.), f=clamp(uSeason-1.,0.,1.), bud=step(bs.x,.16), grow=clamp(uGrowth,0.,1.);
       vec3 pink=mix(vec3(.74,.3,.55),vec3(1.,.84,.94),bs.w), green=mix(vec3(.12,.42,.18),vec3(.45,.85,.38),bs.w), budc=vec3(1.,.55,.75)*(.7+.3*bs.w);
-      vC=mix(pink, mix(green,budc,bud), g); vA = (bs.x > 1.-.5*f) ? 0. : (bs.x > .22+.78*grow ? 0. : 1.); vR=bs.y;
+      vC=mix(pink, mix(green,budc,bud), g); vA = (bs.x > 1.-.5*f) ? 0. : 1.; vR=bs.y; // 密度由几何决定，uGrowth 不再剔除花点
       vec3 p=position; p.x+=sin(uTime*.7+p.y*.35+bs.y*6.)*.06; p.z+=cos(uTime*.6+p.x*.3)*.05;
-      vec4 mv=modelViewMatrix*vec4(p,1.); gl_PointSize=bs.z*uPR*(300./-mv.z)*mix(1.,mix(.95,.55,bud),g)*mix(.75,1.15,grow); gl_Position=projectionMatrix*mv; }`,
+      vec4 mv=modelViewMatrix*vec4(p,1.); gl_PointSize=bs.z*uPR*(300./-mv.z)*mix(1.,mix(.95,.55,bud),g)*mix(.9,1.12,grow); gl_Position=projectionMatrix*mv; }`,
   fragmentShader: `varying vec3 vC; varying float vA,vR; void main(){ if(vA<=0.) discard; vec2 q=gl_PointCoord-.5; float r=length(q)*2., a=atan(q.y,q.x)+vR*6.;
     float pet=.62+.38*abs(cos(a*2.5)); if(r>pet) discard; vec3 c=mix(vC,vec3(1.05,.9,.7),smoothstep(.3,0.,r)*.45); gl_FragColor=vec4(c,.62*(1.-r/pet*.4)); }` }));
 function blossomPoints(pts) { const n = pts.length / 5, pos = new Float32Array(n * 3), bs = new Float32Array(n * 4);
@@ -199,14 +221,17 @@ function blossomPoints(pts) { const n = pts.length / 5, pos = new Float32Array(n
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('bs', new THREE.BufferAttribute(bs, 4));
   const p = new THREE.Points(g, blossom()); p.renderOrder = 1; return p; }
 function makeCanopy(g = 0) { const P = growthParams(g), r = rng(21), C = V(0, P.canopyY, 0), RX = P.canopyRX, RY = P.canopyRY, nC = P.canopyCl, cl = [], out = [], n = P.canopyN, gs = () => (r() + r() + r() - 1.5) / 1.5;
-  for (let i = 0; i < nC; i++) { const u = r(), ph = Math.acos(1 - u * 1.25), th = r() * Math.PI * 2, s = .72 + .3 * r();
-    cl.push([C.x + Math.sin(ph) * Math.cos(th) * RX * s, C.y + Math.cos(ph) * RY * s - (ph > 1.3 ? (ph - 1.3) * 3 : 0), C.z + Math.sin(ph) * Math.sin(th) * RX * s, 1.1 + r() * (1.1 + P.morph)]); }
-  for (let i = 0; i < n; i++) { const c = cl[i % nC], ox = gs() * c[3] * .8, oy = gs() * c[3] * .62, oz = gs() * c[3] * .8, y = c[1] + oy;
-    const sh = Math.min(1, Math.max(0, .18 + oy / c[3] * .55 + (y - (P.canopyY - 1.2)) / 9 + (r() - .5) * .35));
-    const rr = Math.hypot(c[0] + ox, c[2] + oz) / RX; if (y < C.y + 1.2 - rr * 1.5 && r() < .82) continue;
-    // 生长早期更稀疏：用 seed 丢弃（着色器 uGrowth 再淡入）
-    if (r() > .35 + P.morph * .65) continue;
-    out.push(c[0] + ox, y, c[2] + oz, r(), P.canopySz * (1 + r()) * (MOBILE ? 1.35 : 1)); tmpSh.push(sh); }
+  // 花团中心：半球压在干顶上（ph 偏向顶部），避免整团抬离树干
+  for (let i = 0; i < nC; i++) { const u = r() * .92, ph = Math.acos(1 - u * 1.15), th = r() * Math.PI * 2, s = .7 + .32 * r();
+    const cy = C.y + Math.cos(ph) * RY * s * .95 - (ph > 1.35 ? (ph - 1.35) * 1.6 : 0);
+    cl.push([C.x + Math.sin(ph) * Math.cos(th) * RX * s, Math.max(cy, P.trunkH * .78), C.z + Math.sin(ph) * Math.sin(th) * RX * s, 1.15 + r() * (1.0 + P.morph * .6)]); }
+  for (let i = 0; i < n; i++) { const c = cl[i % nC], ox = gs() * c[3] * .75, oy = gs() * c[3] * .55, oz = gs() * c[3] * .75, y = c[1] + oy;
+    const sh = Math.min(1, Math.max(0, .22 + oy / c[3] * .5 + (y - P.trunkH) / (RY + 2) * .45 + (r() - .5) * .3));
+    // 只轻微掏空最内侧，保留贴干的粉雾，杜绝「悬浮感」
+    const rr = Math.hypot(c[0] + ox, c[2] + oz) / RX; if (y < P.trunkH * .72 && rr < .2 && r() < .55) continue;
+    // 早期略稀，长大后保持浓密（几乎不丢点）
+    if (r() > .55 + P.morph * .5) continue;
+    out.push(c[0] + ox, y, c[2] + oz, r(), P.canopySz * (1 + r() * .9) * (MOBILE ? 1.4 : 1)); tmpSh.push(sh); }
   const p = blossomPoints(out); const bs = p.geometry.attributes.bs; tmpSh.forEach((v, i) => bs.setW(i, v)); tmpSh.length = 0;
   p.userData.core = true; canopyObj = p; bodyGroup.add(p);
 }
