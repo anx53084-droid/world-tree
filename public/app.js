@@ -194,9 +194,9 @@ async function addConfirmed(sig) { // 自己的交易确认后：只取这一笔
   mergeTxs([sig]); S.pending = S.pending.filter(p => !(p.sig === sig && txCache[sig])).map(p => p.sig === sig ? { ...p, pending: false } : p); aggregate(); softRefresh(); }
 let mineFor = null;
 async function loadMine() { // 我的星愿：按钱包地址查询自己的全部卡片（打开页面时一次）
-  if (!S.pubkey || mineFor === S.pubkey) return; mineFor = S.pubkey;
+  if (!S.pubkey || mineFor === S.pubkey) return; mineFor = S.pubkey; S.mineLoading = true;
   try { const sigs = (await rpc('getSignaturesForAddress', [S.pubkey, { limit: 1000 }])).filter(x => !x.err).map(x => x.signature);
-    await fetchTxs(sigs.filter(g => !(g in txCache))); if (mergeTxs(sigs)) { aggregate(); softRefresh(); } } catch { mineFor = null; } }
+    await fetchTxs(sigs.filter(g => !(g in txCache))); if (mergeTxs(sigs)) aggregate(); } catch { mineFor = null; } S.mineLoading = false; softRefresh(); }
 function bindMine() { document.querySelectorAll('.mw').forEach(b => b.onclick = () => { const w = S.wishes.find(x => x.sig === b.dataset.sig); if (w) openCardPopup(w); }); }
 function softRefresh() { // 原地更新：首页只更新 3D 实例；列表/我的星愿只替换数据区块；不调用 route()
   if ($('#scene') && window.WT3D) { WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); const bn = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; if ($('#banner').innerHTML !== bn) $('#banner').innerHTML = bn; return; }
@@ -268,7 +268,7 @@ async function connectSol(id, given) { const w = WTW.solWallets().find(x => x.id
   catch (e) { return toast(esc(walErr(e)), 'err'); }
   closeModal(); if (S.mode === 'host' && S.token) await logout(true);
   if (S.wantSwitch && S.solPrev && pk === S.solPrev) toast(esc(t('wal.oneAccount')), ''); S.wantSwitch = false; S.solPrev = null;
-  S.mode = 'self'; S.kind = 'sol'; S.pubkey = pk; S.email = null; S.wallet = a; localStorage.wt_wallet = id; watchSol(a); renderMode(); route(); toast(esc(t('wal.ok', { addr: short(pk) })), 'ok');
+  S.mode = 'self'; S.kind = 'sol'; S.pubkey = pk; S.email = null; S.wallet = a; localStorage.wt_wallet = id; watchSol(a); renderMode(); route(); toast(esc(t('wal.ok', { addr: short(pk) })), 'ok'); sparkle();
   try { if (signed) { const r = await walletLogin(signed); setSession(r); renderMode(); loadBell(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); }
     else { toast(esc(t('wal.signing'))); await siws(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); } }
   catch (e) { toast(esc(walErr(e)) + ' · ' + esc(t('wal.signLater')), 'err'); } }
@@ -291,13 +291,13 @@ async function connectEvm(id, pick = true) { const w = WTW.evmWallets().find(x =
     const m = siweMsg('Ethereum', addr, await np, cid);
     const sg = await p.request({ method: 'personal_sign', params: [WTW.hexOf(m), addr] });
     const r = await walletLogin({ message: m, signature: sg }); S.wallet = null; setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.evmProv = p; localStorage.wt_evm = id; if (EVM_KEYS[cid]) localStorage.wt_chain = String(cid); localStorage.removeItem('wt_wallet');
-    renderMode(); route(); loadBell(); tt.update(esc(t('wal.ok', { addr: short(addr) })), 'ok'); }
+    renderMode(); route(); loadBell(); tt.update(esc(t('wal.ok', { addr: short(addr) })), 'ok'); sparkle(); }
   catch (e) { toast(esc(walErr(e)), 'err'); } }
 function emailLogin(needTotp, em0) {
   modal(`<h3>${esc(t(needTotp ? 'login.totpTitle' : 'login.emailTitle'))}</h3>${needTotp ? '' : `<p class="notice">⚠️ ${esc(t('login.emailWarn'))}</p>`}
     <input id=em type=email placeholder="you@example.com" style="width:100%" dir=ltr value="${esc(em0 || '')}" ${needTotp ? 'hidden' : ''}>${needTotp ? `<input id=emt autocomplete=one-time-code maxlength=9 placeholder="${E('login.totpPh')}" style="width:100%">` : ''}
     <div class=row style="margin-top:12px"><button class=primary id=emok>${esc(t('login.btn'))}</button><button data-close>${esc(t('common.cancel'))}</button></div>`);
-  $('#emok').onclick = async () => { const email = $('#em').value.trim(); try { const r = await api('/api/login', { email, totp: $('#emt')?.value.trim() || undefined }); setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.wallet = null; closeModal(); renderMode(); route(); loadBell(); toast(esc(t('login.ok', { addr: short(r.pubkey) })), 'ok'); }
+  $('#emok').onclick = async () => { const email = $('#em').value.trim(); try { const r = await api('/api/login', { email, totp: $('#emt')?.value.trim() || undefined }); setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.wallet = null; closeModal(); renderMode(); route(); loadBell(); toast(esc(t('login.ok', { addr: short(r.pubkey) })), 'ok'); sparkle(); }
     catch (e) { if (e.code === 'totp') return emailLogin(true, email); toast(esc(t('login.fail', { msg: e.message })), 'err'); } };
 }
 async function logout(quiet) { if (S.token) await api('/api/logout', {}).catch(() => {}); if (S.wallet) S.wallet.disconnect?.(); // 退出：清除会话、钱包选择与缓存地址，并撤销 EVM 授权（支持时）
@@ -456,7 +456,7 @@ function list(q, only) {
   const kw = q.get('q') || '', sort = q.get('sort') || 'new', cat = q.get('cat') || '', days = +q.get('days') || 0, minHeat = +q.get('heat') || 0, now = Date.now() / 1000;
   let ws = S.wishes.filter(w => (!kw || (!w.priv && w.text.includes(kw)) || w.author.startsWith(kw) || (w.time && (ymd(w.time).startsWith(kw) || fmtT(w.time).includes(kw)))) && (!cat || w.cat === cat) && (!days || (w.time || now) > now - days * 86400) && w.heat >= minHeat);
   if (sort === 'hot') ws = [...ws].sort((a, b) => b.heat - a.heat); if (sort === 'old') ws = [...ws].reverse();
-  const body = () => `<p class=muted>${E('list.count', { n: num(ws.length) })}</p>${ws.map(wishCard).join('')}`; if (only) return body();
+  const body = () => !ws.length && S.syncing ? skel(3) : `<p class=muted>${E('list.count', { n: num(ws.length) })}</p>${ws.length ? ws.map(wishCard).join('') : `<div class=card><h3>🌟 ${E('ux.featured')}</h3><p class=muted>${E('ux.featuredHint')}</p>${sampleCards(3)}</div>`}`; if (only) return body();
   const opt = (arr, v) => arr.map(([k, l]) => `<option value="${k}" ${String(k) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('');
   return `<h2>${E('list.title')}</h2><form class=row id=lf><input name=q placeholder="${E('list.kwPh')}" value="${esc(kw)}">
   <select name=cat>${opt([['', t('list.allCats')], ...Object.keys(CATS).map(c => [c, catName(c)])], cat)}</select>
@@ -518,13 +518,27 @@ function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1
 function origin() { const lang = I18N.lang; fetch(`origin.${lang}.md`).then(r => r.ok ? r.text() : fetch('origin.md').then(r => r.text())).then(md => { const el = $('#origin'); if (el && el.lang === lang) el.innerHTML = mdRender(md); });
   return `<article id=origin class=origin lang="${lang}" dir="${document.documentElement.dir}"></article>`; }
 const MK = () => /^#\/wish\/make/.test(location.hash); // 制作页有独立路由，任何重渲染都保持打开
+// ---------- UX：示例卡 / 空状态 / 标签 / 骨架屏 / 星光反馈 ----------
+const SAMPLES = () => [{ cat: '经典', key: 'ux.sample1' }, { cat: '精神类', key: 'ux.sample2' }, { cat: '物质类', key: 'ux.sample3' }];
+function sampleCards(n = 2) { return `<div class=samples>${SAMPLES().slice(0, n).map(x => `<div class="card sample" data-cat="${esc(x.cat)}"><span class=sample-tag>${E('ux.sampleTag')}</span><img alt="" loading=lazy src="${WTCovers.url(WTCovers.forCat(x.cat)[0], 120, 160)}"><p dir=auto>${E(x.key)}</p></div>`).join('')}</div>`; }
+const emptyArt = msg => `<div class=empty><div class=seedling aria-hidden=true><i class=sd></i><i class=lf1></i><i class=lf2></i><b></b><b></b><b></b></div><p>${msg}</p></div>`;
+const chips = () => `<div class=chips>${['ux.chipMin', 'ux.chipSplit', 'ux.chipSbt', 'ux.chipImm'].map(k => `<a class=chip href="#/help">${E(k)}</a>`).join('')}</div>`;
+const skel = (n = 3) => `<div class=skel-wrap aria-busy=true>${Array.from({ length: n }, () => '<div class=skel><i></i><span></span><span></span></div>').join('')}<p class=muted style="text-align:center">${E('ux.chainLoading')}</p></div>`;
+const guestCta = () => `<div class="row cta"><button class="primary breathe" data-cta=wallet>🔗 ${E('ux.connect')}</button><button data-cta=email>✉️ ${E('ux.emailDemo')}</button></div>`;
+function bindCta() { document.querySelectorAll('[data-cta]').forEach(b => b.onclick = () => b.dataset.cta === 'wallet' ? connectWallet() : emailLogin()); }
+function sparkle() { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; const box = document.createElement('div'); box.className = 'sparkle'; // 登录成功：星光微反馈
+  for (let i = 0; i < 14; i++) { const st = document.createElement('i'), a = Math.random() * Math.PI * 2, d = 50 + Math.random() * 90; st.style.cssText = `--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d}px;--d:${(Math.random() * .3).toFixed(2)}s`; st.textContent = '✦'; box.append(st); }
+  document.body.append(box); setTimeout(() => box.remove(), 1400); }
+const bul = h => { const parts = String(h).split(/(?<=[。！？])|(?<=[.!?])\s+(?=[A-Z\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF\u0900-\u097F\u0E00-\u0E7F])/).map(x => x.trim()).filter(Boolean); return parts.length > 2 && String(h).length > 90 && !/<(ul|ol|li|br)/i.test(h) ? `<ul class=bul>${parts.map(p => `<li>${p}</li>`).join('')}</ul>` : h; }; // 长段落拆为要点
 function mineBlock() { const mine = S.mode === 'guest' ? [] : S.wishes.filter(isMine);
   const thumb = w => `<button type=button class=mw data-sig="${esc(w.sig)}"><img alt="" src="${w.cimg ? IMG(w.cimg) : w.folded ? WTCovers.url(w.cover, 120, 160) : WTCovers.url(WTCovers.forCat(w.cat)[0], 120, 160)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover ?? 0, 120, 160)}'">${w.priv ? '<i>🔒</i>' : ''}<span dir=auto>${esc(w.priv && !w.plain ? t('card.privateShort') : (w.plain || w.text))}</span></button>`;
-  return S.mode === 'guest' ? `<p class=muted>${t('mine.guest')}</p>` : mine.length ? `<div class=mw-grid>${mine.map(thumb).join('')}</div>` : `<p class=muted>${E('mine.empty')}</p>`; }
+  if (S.mode !== 'guest' && !mine.length && (S.syncing || S.mineLoading)) return skel(2);
+  return S.mode === 'guest' ? emptyArt(t('mine.guest')) : mine.length ? `<div class=mw-grid>${mine.map(thumb).join('')}</div>` : emptyArt(E('mine.empty')); }
 function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
   loadMine();
-  return `<h2>${E('nav.wish')}</h2><section class=card><h3>${E('mine.have')}</h3><div id=mine>${mineBlock()}</div></section>
-  <section class=card><h3>${E('mine.make')}</h3><button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}</div></section>`; }
+  const g = S.mode === 'guest';
+  return `<h2 class=gold-title>${E('nav.wish')}</h2><p class=tagline>✨ ${E('ux.tagline')}</p>${g ? guestCta() + `<h3 class=sub>${E('ux.samplesTitle')}</h3>` + sampleCards(2) : ''}<section class="card motif"><h3>${E('mine.have')}</h3><div id=mine>${mineBlock()}</div></section>
+  <section class="card motif"><h3>${E('mine.make')}</h3>${chips()}<button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}</div></section>`; }
 const evmMin = id => { const c = evmChains()[id], p = S.cfg.evm?.usd?.[c?.coin] || 0; return p ? Math.ceil((S.cfg.minUsd || 1) / p * 1.02 * 1e5) / 1e5 : 0; };
 function evmPayHtml() { if (S.kind !== 'evm' || !S.cfg.evm?.pay) return ''; const ch = localStorage.wt_chain || '84532', C = evmChains(); // 未配置 EVM 收款地址时隐藏（仅登录）
   return `<div class="card evpay"><label>${E('wish.payVia')} <select id=pv><option value=evm>⬡ ${E('wish.payEvm')}</option><option value=sol>◎ ${E('wish.paySol')}</option></select></label>
@@ -537,7 +551,7 @@ async function evmPay(chainId, amount) { // EVM 测试网原生币转账：20% �
     txs.push(await p.request({ method: 'eth_sendTransaction', params: [{ from, to, value: '0x' + v.toString(16) }] })); }
   toast(esc(t('wish.evmWaiting'))); for (const h of txs) await WTW.waitReceipt(p, h); return { chainId: +chainId, txs }; }
 function wishPanel() {
-  if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}</div>`;
+  if (S.mode === 'guest') return `<h2>${E('wish.title')}</h2><div class="card notice">${t('wish.guest')}${guestCta()}</div>`;
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
   return `<h2>${E('wish.title')}</h2><div class=card>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
@@ -562,10 +576,16 @@ function wishPanel() {
   <label class=agree><input type=checkbox id=ag> <span>${E('mod.agree')}</span></label>
   <button id=ws class=primary disabled>✨ ${E('wish.submit')}</button></div>`;
 }
+function growth() { // 世界树成长进度：树苗→幼树→繁盛→参天→世界树 + 本月形态
+  const n = S.wishes.length, st = stageOf(n), TH = [0, 10, 50, 200, 1000], nxt = TH[st + 1], seg = nxt ? (n - TH[st]) / (nxt - TH[st]) : 1, pct = Math.min(100, (st + seg) / (STAGE_N - 1) * 100), cur = S.season || autoSeason(), ICON = { green: '🌱', bloom: '🌸', fall: '🍂' };
+  return `<section class="card motif growth"><h3>🌳 ${E('ux.growthTitle')}</h3><div class=gbar role=progressbar aria-valuemin=0 aria-valuemax=100 aria-valuenow=${Math.round(pct)}><i style="width:${pct.toFixed(1)}%"></i></div>
+  <ol class=gstages>${Array.from({ length: STAGE_N }, (_, i) => `<li class="${i < st ? 'done' : i === st ? 'on' : ''}"><b></b><span>${esc(stageName(i))}</span></li>`).join('')}</ol>
+  <p class=muted>${nxt ? E('ux.growthNext', { n: num(n), need: num(nxt - n), stage: stageName(st + 1) }) : E('ux.growthMax', { n: num(n) })}</p>
+  <h3>🗓️ ${E('ux.monthTitle')}</h3><div class=months>${SEASON_KEYS.map((k, i) => `<div class="${k === cur ? 'on' : ''}"><em>${ICON[k]}</em><b>${esc(seasonName(k))}</b><span>${E('ux.monthDays', { a: [1, 11, 21][i], b: ['10', '20', '31'][i] })}</span></div>`).join('')}</div></section>`; }
 function me() {
-  if (S.mode === 'guest') return `<h2>${E('nav.me')}</h2><div class=card>${E('me.loginFirst')}</div>`;
+  if (S.mode === 'guest') return `<h2 class=gold-title>${E('nav.me')}</h2>${growth()}<div class=card>${E('me.loginFirst')}${guestCta()}</div>`;
   const mine = S.wishes.filter(w => w.author === S.pubkey), total = mine.reduce((s, w) => s + (w.paid || 0), 0);
-  return `<h2>${E('nav.me')}</h2><div class=card>${E('me.addr')} <code>${esc(S.pubkey)}</code><br>${E('me.mode')} ${S.mode === 'self' ? E('me.modeSelf') : E('me.modeHost', { email: S.email })}
+  return `<h2 class=gold-title>${E('nav.me')}</h2>${growth()}<div class=card>${E('me.addr')} <code>${esc(S.pubkey)}</code><br>${E('me.mode')} ${S.mode === 'self' ? E('me.modeSelf') : E('me.modeHost', { email: S.email })}
   <p>${E('me.stats', { n: mine.length, sum: sol(total) })}</p>
   ${S.mode === 'host' ? `<p class=muted>💡 ${E('me.tip')}</p>` : ''}</div>
   <h3>🌈 ${E('me.spectrum')}</h3><div class=row>${mine.map(w => `<a href="#/w/${encodeURIComponent(w.sig)}" title="${esc(w.text)}">${spectrum(w.sig, 72)}</a>`).join('') || `<span class=muted>${E('common.none')}</span>`}</div>
@@ -575,13 +595,13 @@ function me() {
 const RULES_LIST = () => `<ul>${[1, 2, 3, 4, 5].map(i => `<li>${E('rules.' + i)}</li>`).join('')}</ul>`;
 const help = () => `<h2>${E('nav.help')}</h2>${prevail()}
 <div class="card" data-cat="经典"><h3>${E('help.rulesTitle')}</h3>${RULES_LIST()}</div>
-<div class=card><h3>🔐 ${E('help.selfTitle')}</h3>${E('help.selfBody')}</div>
-<div class="card notice"><h3>⚠️ ${E('help.hostTitle')}</h3>${E('help.hostBody')}</div>
-<div class=card><h3>👀 ${E('help.guestTitle')}</h3>${E('help.guestBody')}</div>
+<div class=card><h3>🔐 ${E('help.selfTitle')}</h3>${bul(E('help.selfBody'))}</div>
+<div class="card notice"><h3>⚠️ ${E('help.hostTitle')}</h3>${bul(E('help.%s'))}</div>
+<div class=card><h3>👀 ${E('help.guestTitle')}</h3>${bul(E('help.%s'))}</div>
 <div class=card><h3>💰 ${E('help.feeTitle')}</h3>${E('help.feeBody')}<br><span class=muted>${E('help.developer')} ${esc(S.cfg.developer)}<br>${E('help.treasury')} ${esc(S.cfg.treasury)}</span></div>
-<div class=card><h3>🛡️ ${E('help.modTitle')}</h3>${E('help.modBody')} ${E('help.modPub')} <code style="word-break:break-all">${esc(S.cfg.moderator || '')}</code></div>
+<div class=card><h3>🛡️ ${E('help.modTitle')}</h3>${bul(E('help.%s'))} ${E('help.modPub')} <code style="word-break:break-all">${esc(S.cfg.moderator || '')}</code></div>
 <div class=card><h3>🌳 ${E('help.stageTitle')}</h3>${E('help.stageBody', { stages: Array.from({ length: STAGE_N }, (_, i) => `${stageName(i)} (≥${[0, 10, 50, 200, 1000][i]})`).join(' → '), green: seasonName('green'), bloom: seasonName('bloom'), fall: seasonName('fall') })}</div>
-<div class=card><h3>📜 ${E('help.riskTitle')}</h3>${E('help.riskBody')}</div>`;
+<div class=card><h3>📜 ${E('help.riskTitle')}</h3>${bul(E('help.%s'))}</div>`;
 const terms = () => `<h2>${E('terms.title')}</h2>${prevail()}<div class=card>
 <ol><li>${E('terms.1')}</li><li>${E('mod.notice')}</li><li>${E('terms.3')}${RULES_LIST()}</li>
 ${[4, 5, 6, 7, 8].map(i => `<li>${E('terms.' + i)}</li>`).join('')}</ol>
@@ -589,12 +609,14 @@ ${localStorage.wt_terms === '1' ? `<p class=muted>✅ ${E('terms.agreed')}</p>` 
 
 // ---------- 路由 ----------
 let ready3d = false;
+function paintFab(p) { let f = $('#fab'); if (!f) { f = document.createElement('a'); f.id = 'fab'; f.href = '#/wish/make'; document.body.append(f); }
+  f.innerHTML = `✨ <span>${E('ux.fab')}</span>`; f.hidden = S.mode === 'guest' || /^\/wish/.test(p) || !!$('#search-panel:not([hidden])'); } // 已登录才显示；制作页本身不显示
 async function route() {
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
   const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
-  document.body.classList.toggle('home', !!$('#scene')); document.querySelectorAll('#menu nav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
+  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });
@@ -680,7 +702,7 @@ function openSearch() { const pi = window.WT3D?.pageInfo?.() || { page: 0, pages
     out.querySelectorAll('[data-id]').forEach(b => b.onclick = () => open(+b.dataset.id)); };
   setTimeout(() => $('#qi')?.focus(), 50); }
 document.addEventListener('click', e => { if (e.target.closest('#qbtn')) openSearch(); });
-function syncChip(on) { let c = $('#sync'); if (!c) { c = document.createElement('div'); c.id = 'sync'; document.body.append(c); } c.textContent = '⏳ ' + t('route.loading'); c.hidden = !on; }
+function syncChip(on) { S.syncing = !!on; let c = $('#sync'); if (!c) { c = document.createElement('div'); c.id = 'sync'; document.body.append(c); } c.textContent = '⏳ ' + t('route.loading'); c.hidden = !on; }
 function refreshView() { // 后台数据到达：首页只更新 3D 数据，其他页面在用户未编辑时重渲染
   if ($('#scene') && window.WT3D) { WT3D.update(S.wishes, openCardPopup, { stress: S.stress, total: S.total }); const bn = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; if ($('#banner').innerHTML !== bn) $('#banner').innerHTML = bn; return; }
   softRefresh(); }
@@ -698,6 +720,6 @@ if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.host
     .catch(e => { if (e.status === 401) { localStorage.removeItem('wt_token'); S.token = null; } });
   else if (localStorage.wt_wallet) setTimeout(async () => { const c = await silentSol(); if (c && S.mode === 'guest') { S.mode = 'self'; S.kind = 'sol'; S.pubkey = c.pk; S.wallet = c.a; watchSol(c.a); renderMode(); route(); } }, 300); // Wallet Standard 钱包注册稍晚
   // 首屏立即渲染：先用上次缓存的链上数据（localStorage）画出世界树，链上读取在后台进行，完成后无感刷新
-  try { if (localStorage.wt_sigs != null) { const sigs = JSON.parse(localStorage.wt_sigs); S.txs = sigs.map(x => txCache[x]).filter(Boolean); S.hadReal = true; } } catch {} aggregate(); route(); syncChip(true);
+  try { if (localStorage.wt_sigs != null) { const sigs = JSON.parse(localStorage.wt_sigs); S.txs = sigs.map(x => txCache[x]).filter(Boolean); S.hadReal = true; } } catch {} aggregate(); S.syncing = true; route(); syncChip(true);
   (async () => { await loadWishes(); syncChip(false); await hydrateFulfillments(); refreshView(); })();
 })();
