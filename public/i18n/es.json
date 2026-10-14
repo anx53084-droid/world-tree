@@ -174,8 +174,8 @@
 "help.modTitle": "Moderación y certificaciones",
 "help.modBody": "El servicio de moderación revisa el contenido antes del pago / registro en cadena (filtro de palabras clave + interfaz de revisión semántica por IA + cola de revisión manual). Si se aprueba, el servicio firma con ed25519 «hash del contenido + resultado + marca de tiempo», y la firma se registra en cadena junto con el contenido. El frontend la vuelve a verificar al leer; el contenido sin certificación o con certificación no válida no se muestra.",
 "help.modPub": "Clave pública del moderador:",
-"help.stageTitle": "Etapas de crecimiento y estados mensuales del árbol",
-"help.stageBody": "La etapa de crecimiento depende del total de tarjetas de deseo: {stages}. Cada mes cambia automáticamente (hora de Pekín): días 1–10 {green}; días 11–20 {bloom}; del día 21 a fin de mes {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "Aviso de riesgos",
 "help.riskBody": "Este proyecto es una demo MVP que funciona en Solana devnet; los tokens de prueba no tienen valor. El contenido en cadena es público y no puede eliminarse; este sitio puede ocultar en el frontend el contenido infractor, pero no borrarlo de la cadena.",
 "terms.title": "Acuerdo de usuario / Condiciones de compra",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

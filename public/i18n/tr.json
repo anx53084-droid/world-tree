@@ -174,8 +174,8 @@
 "help.modTitle": "Moderasyon ve onaylar",
 "help.modBody": "İçerik, ödeme / zincire yazma öncesinde moderasyon hizmeti tarafından denetlenir (anahtar kelime filtresi + yapay zekâ anlamsal inceleme arayüzü + manuel inceleme kuyruğu). Onaylanırsa hizmet “içerik hash'i + sonuç + zaman damgası” üzerine ed25519 imzası atar ve imza içerikle birlikte zincire yazılır. Ön yüz okurken yeniden doğrular; onayı eksik veya geçersiz olan içerik gösterilmez.",
 "help.modPub": "Moderatör açık anahtarı:",
-"help.stageTitle": "Büyüme aşamaları ve aylık ağaç durumları",
-"help.stageBody": "Büyüme aşaması toplam dilek kartı sayısına göre belirlenir: {stages}. Ağaç her ay otomatik olarak değişir (Pekin saati): 1–10. günler {green}; 11–20. günler {bloom}; 21. günden ay sonuna {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "Risk bildirimi",
 "help.riskBody": "Bu proje Solana devnet üzerinde çalışan bir MVP demosudur; test tokenlerinin değeri yoktur. Zincir üstü içerik herkese açıktır ve silinemez; bu site kural dışı içeriği ön yüzde gizleyebilir ancak zincirden silemez.",
 "terms.title": "Kullanıcı Sözleşmesi / Satın Alma Koşulları",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

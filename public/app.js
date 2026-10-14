@@ -593,7 +593,7 @@ function home() {
   <div class=home-spacer></div>
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
 </form>
-  <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.stage', { stage: stageName(stageOf(S.stress ? S.total : S.wishes.length)) })}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
+  <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.growing')}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
   <div class=scene-hint>${E('home.hint')} <span class=debug-only>· <a href="#lists" onclick="document.getElementById('lists').scrollIntoView({behavior:'smooth'});return false">⌄ ${E('home.rank')}</a></span></div></div>
   <div class="cols home-lists debug-only" id=lists><div class=glass><h2>🔥 ${E('home.hot')}</h2>${hot.map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div><div class=glass><h2>🆕 ${E('home.new')}</h2>${visibleWishes().slice(0, 5).map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div></div>`;
 }
@@ -763,11 +763,13 @@ function wishPanel() {
   <label class=agree><input type=checkbox id=ag> <span>${E('mod.agree')}</span></label>
   <button id=ws class=primary disabled>✨ ${E('wish.submit')}</button></div>`;
 }
-function growth() { // 世界树成长进度：树苗→幼树→繁盛→参天→世界树 + 本月形态
-  const n = S.stress ? S.total : S.wishes.length, st = stageOf(n), TH = [0, 10, 50, 200, 1000], nxt = TH[st + 1], seg = nxt ? (n - TH[st]) / (nxt - TH[st]) : 1, pct = Math.min(100, (st + seg) / (STAGE_N - 1) * 100), cur = S.season || autoSeason(), ICON = { green: '🌱', bloom: '🌸', fall: '🍂' }; // n 与首页 3D 树 / WT3D.growthProgress 同源
-  return `<section class="card motif growth"><h3>🌳 ${E('ux.growthTitle')}</h3><div class=gbar role=progressbar aria-valuemin=0 aria-valuemax=100 aria-valuenow=${Math.round(pct)}><i style="width:${pct.toFixed(1)}%"></i></div>
-  <ol class=gstages>${Array.from({ length: STAGE_N }, (_, i) => `<li class="${i < st ? 'done' : i === st ? 'on' : ''}"><b></b><span>${esc(stageName(i))}</span></li>`).join('')}</ol>
-  <p class=muted>${nxt ? E('ux.growthNext', { n: num(n), need: num(nxt - n), stage: stageName(st + 1) }) : E('ux.growthMax', { n: num(n) })}</p>
+function growth() { // 连续成长（无阶段上限）+ 本月形态；进度条为渐近美感，永不「满级」
+  const n = S.stress ? S.total : S.wishes.length;
+  const fill = window.WT3D?.growthFill ? WT3D.growthFill(n) : (1 - Math.exp(-0.18 * Math.log2(n + 2)));
+  const pct = Math.min(99.5, fill * 100), cur = S.season || autoSeason(), ICON = { green: '🌱', bloom: '🌸', fall: '🍂' };
+  return `<section class="card motif growth"><h3>🌳 ${E('ux.growthTitle')}</h3>
+  <div class=gbar role=progressbar aria-valuemin=0 aria-valuemax=100 aria-valuenow=${Math.round(pct)} title="${esc(E('ux.growthLive', { n: num(n) }))}"><i style="width:${pct.toFixed(1)}%"></i></div>
+  <p class="muted growth-live">${E('ux.growthLive', { n: num(n) })}</p>
   <h3>🗓️ ${E('ux.monthTitle')}</h3><div class=months>${SEASON_KEYS.map((k, i) => `<div class="${k === cur ? 'on' : ''}"><em>${ICON[k]}</em><b>${esc(seasonName(k))}</b><span>${E('ux.monthDays', { a: [1, 11, 21][i], b: ['10', '20', '31'][i] })}</span></div>`).join('')}</div></section>`; }
 function me() {
   if (S.mode === 'guest') return `<h2 class=gold-title>${E('nav.me')}</h2>${growth()}<div class=card>${E('me.loginFirst')}${guestCta()}</div>`;
@@ -790,7 +792,7 @@ const help = () => `<h2>${E('nav.help')}</h2>${prevail()}
 <div class="card k-gift"><h3>🎁 ${E('help.giftTitle')}</h3>${bul(E('help.giftBody'))}<p class=muted>${E('help.giftVis')}</p></div>
 <div class="card k-goods"><h3>🛍️ ${E('help.goodsTitle')}</h3>${bul(E('help.goodsBody'))}</div>
 <div class=card><h3>🛡️ ${E('help.modTitle')}</h3>${bul(E('help.%s'))} ${E('help.modPub')} <code style="word-break:break-all">${esc(S.cfg.moderator || '')}</code></div>
-<div class=card><h3>🌳 ${E('help.stageTitle')}</h3>${E('help.stageBody', { stages: Array.from({ length: STAGE_N }, (_, i) => `${stageName(i)} (≥${[0, 10, 50, 200, 1000][i]})`).join(' → '), green: seasonName('green'), bloom: seasonName('bloom'), fall: seasonName('fall') })}</div>
+<div class=card><h3>🌳 ${E('help.stageTitle')}</h3>${E('help.stageBody', { green: seasonName('green'), bloom: seasonName('bloom'), fall: seasonName('fall') })}</div>
 <div class=card><h3>📜 ${E('help.riskTitle')}</h3>${bul(E('help.%s'))}</div>`;
 const terms = () => `<h2>${E('terms.title')}</h2>${prevail()}<div class=card>
 <ol><li>${E('terms.1')}</li><li>${E('mod.notice')}</li><li>${E('terms.3')}${RULES_LIST()}</li>

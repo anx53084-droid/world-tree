@@ -174,8 +174,8 @@
 "help.modTitle": "การตรวจสอบและหลักฐานการตรวจสอบ",
 "help.modBody": "เนื้อหาจะถูกตรวจสอบโดยบริการตรวจสอบก่อนชำระเงิน / บันทึกบนเชน (ตัวกรองคำสำคัญ + อินเทอร์เฟซตรวจสอบความหมายด้วย AI + คิวตรวจสอบโดยมนุษย์) เมื่อผ่าน บริการจะลงนาม ed25519 บน «แฮชเนื้อหา + ผลลัพธ์ + เวลา» และบันทึกลายเซ็นบนเชนพร้อมเนื้อหา ฝั่งหน้าเว็บจะตรวจสอบซ้ำเมื่ออ่าน เนื้อหาที่ไม่มีหรือมีหลักฐานไม่ถูกต้องจะไม่แสดง",
 "help.modPub": "คีย์สาธารณะของผู้ตรวจสอบ:",
-"help.stageTitle": "ระยะการเติบโตและสภาพต้นไม้รายเดือน",
-"help.stageBody": "ระยะการเติบโตขึ้นกับจำนวนการ์ดคำอธิษฐานทั้งหมด: {stages} ทุกเดือนจะเปลี่ยนอัตโนมัติตามเวลาปักกิ่ง: วันที่ 1–10 {green}; วันที่ 11–20 {bloom}; วันที่ 21 ถึงสิ้นเดือน {fall}",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "คำเตือนความเสี่ยง",
 "help.riskBody": "โครงการนี้เป็นเดโม MVP ที่ทำงานบน Solana devnet เหรียญทดสอบไม่มีมูลค่า เนื้อหาบนเชนเป็นสาธารณะและลบไม่ได้ เว็บไซต์นี้ซ่อนเนื้อหาที่ละเมิดได้ที่หน้าเว็บ แต่ไม่สามารถลบออกจากเชนได้",
 "terms.title": "ข้อตกลงผู้ใช้ / ข้อควรทราบในการซื้อ",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

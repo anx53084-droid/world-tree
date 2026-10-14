@@ -174,8 +174,8 @@
 "help.modTitle": "Модерация и подтверждения",
 "help.modBody": "Контент проверяется сервисом модерации до оплаты / записи в блокчейн (фильтр ключевых слов + интерфейс семантической ИИ-проверки + очередь ручной проверки). При одобрении сервис подписывает ed25519 «хеш контента + результат + метку времени», и подпись записывается в блокчейн вместе с контентом. Фронтенд повторно проверяет её при чтении; контент без подтверждения или с недействительным подтверждением не отображается.",
 "help.modPub": "Открытый ключ модератора:",
-"help.stageTitle": "Стадии роста и ежемесячные состояния дерева",
-"help.stageBody": "Стадия роста зависит от общего числа карточек желаний: {stages}. Каждый месяц дерево меняется автоматически (по пекинскому времени): 1–10 число — {green}; 11–20 — {bloom}; с 21-го до конца месяца — {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "Предупреждение о рисках",
 "help.riskBody": "Проект — MVP-демо, работающее в Solana devnet; тестовые токены ничего не стоят. Контент в блокчейне публичен и не может быть удалён; сайт может скрыть нарушающий контент во фронтенде, но не может стереть его из блокчейна.",
 "terms.title": "Пользовательское соглашение / Условия покупки",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

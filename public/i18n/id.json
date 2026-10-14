@@ -174,8 +174,8 @@
 "help.modTitle": "Moderasi & bukti moderasi",
 "help.modBody": "Konten diperiksa layanan moderasi sebelum pembayaran / pencatatan on-chain (filter kata kunci + antarmuka peninjauan semantik AI + antrean tinjauan manual). Jika lolos, layanan menandatangani “hash konten + hasil + stempel waktu” dengan ed25519, dan tanda tangan dicatat on-chain bersama konten. Frontend memverifikasi ulang saat membaca; konten tanpa bukti atau dengan bukti tidak valid tidak ditampilkan.",
 "help.modPub": "Kunci publik moderator:",
-"help.stageTitle": "Tahap pertumbuhan & keadaan pohon bulanan",
-"help.stageBody": "Tahap pertumbuhan ditentukan oleh total kartu harapan: {stages}. Setiap bulan berganti otomatis (waktu Beijing): tanggal 1–10 {green}; tanggal 11–20 {bloom}; tanggal 21 hingga akhir bulan {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "Pemberitahuan risiko",
 "help.riskBody": "Proyek ini adalah demo MVP yang berjalan di Solana devnet; token uji tidak bernilai. Konten on-chain bersifat publik dan tidak dapat dihapus; situs ini dapat menyembunyikan konten yang melanggar di frontend, tetapi tidak dapat menghapusnya dari chain.",
 "terms.title": "Perjanjian Pengguna / Ketentuan Pembelian",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

@@ -174,8 +174,8 @@
 "help.modTitle": "समीक्षा और समीक्षा प्रमाण",
 "help.modBody": "भुगतान / ऑन-चेन दर्ज होने से पहले समीक्षा सेवा सामग्री की जाँच करती है (कीवर्ड फ़िल्टर + AI अर्थ-समीक्षा इंटरफ़ेस + मानव पुनरीक्षण कतार)। पास होने पर सेवा «सामग्री हैश + परिणाम + टाइमस्टैम्प» पर ed25519 हस्ताक्षर करती है, और हस्ताक्षर सामग्री के साथ ऑन-चेन दर्ज होता है। फ़्रंटएंड पढ़ते समय फिर से सत्यापित करता है; प्रमाण-रहित या अमान्य प्रमाण वाली सामग्री नहीं दिखाई जाती।",
 "help.modPub": "समीक्षा सार्वजनिक कुंजी:",
-"help.stageTitle": "विकास चरण और मासिक वृक्ष अवस्था",
-"help.stageBody": "विकास चरण कुल मनोकामना कार्डों पर आधारित है: {stages}। हर माह बीजिंग समय के अनुसार स्वतः बदलता है: 1–10 तारीख {green}; 11–20 तारीख {bloom}; 21 तारीख से माह अंत तक {fall}।",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "जोखिम सूचना",
 "help.riskBody": "यह परियोजना Solana devnet पर चलने वाला MVP डेमो है; परीक्षण टोकन का कोई मूल्य नहीं है। ऑन-चेन सामग्री सार्वजनिक है और हटाई नहीं जा सकती; यह साइट फ़्रंटएंड पर उल्लंघनकारी सामग्री छिपा सकती है, पर चेन से मिटा नहीं सकती।",
 "terms.title": "उपयोगकर्ता अनुबंध / खरीद शर्तें",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

@@ -174,8 +174,8 @@
 "help.modTitle": "심사 및 심사 증명",
 "help.modBody": "콘텐츠는 결제/온체인 기록 전에 심사 서비스가 검사합니다(키워드 필터 + AI 의미 심사 인터페이스 + 수동 재검토 대기열). 통과하면 심사 서비스가 「콘텐츠 해시 + 결과 + 타임스탬프」에 ed25519 서명을 하고, 서명은 콘텐츠와 함께 온체인에 기록됩니다. 프런트엔드는 읽을 때 다시 검증하며, 증명이 없거나 유효하지 않은 콘텐츠는 표시하지 않습니다.",
 "help.modPub": "심사 공개 키:",
-"help.stageTitle": "성장 단계 및 월별 나무 상태",
-"help.stageBody": "성장 단계는 소원 카드 총수에 따라 결정됩니다: {stages}. 매월 베이징 시간 기준으로 자동 전환됩니다: 1–10일 {green}, 11–20일 {bloom}, 21일–월말 {fall}.",
+"help.stageTitle": "연속 성장과 월별 형태",
+"help.stageBody": "세계수는 소원 카드 수에 따라 끝없이 자랍니다. 베이징 시간 기준 매월 형태가 바뀝니다: 1–10일 {green}; 11–20일 {bloom}; 21일–월말 {fall}.",
 "help.riskTitle": "위험 고지",
 "help.riskBody": "본 프로젝트는 Solana devnet에서 운영되는 MVP 데모이며 테스트 코인은 가치가 없습니다. 온체인 콘텐츠는 공개되며 삭제할 수 없습니다. 본 사이트는 프런트엔드에서 위반 콘텐츠를 숨길 수 있지만 체인에서 지울 수는 없습니다.",
 "terms.title": "이용약관 / 구매 안내",
@@ -533,5 +533,7 @@
 "soc.g.X": "기타",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "소원 카드 {n}장. 세계수는 끝없이 자랍니다.",
+"home.growing": "🌱 계속 성장 중"
 }

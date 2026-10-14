@@ -174,8 +174,8 @@
 "help.modTitle": "審査と審査証明",
 "help.modBody": "内容は支払い・オンチェーン記録の前に審査サービスによってチェックされます（キーワードフィルター + AI 意味審査インターフェース + 人による再審査キュー）。通過すると、審査サービスが「内容ハッシュ + 結果 + タイムスタンプ」に ed25519 署名を行い、署名は内容とともにオンチェーンに記録されます。フロントエンドは読み込み時に再検証し、証明がない、または無効な内容は表示しません。",
 "help.modPub": "審査公開鍵：",
-"help.stageTitle": "成長段階と月ごとの樹の姿",
-"help.stageBody": "成長段階は願いカードの総数で決まります：{stages}。毎月北京時間で自動的に切り替わります：1～10 日 {green}、11～20 日 {bloom}、21 日～月末 {fall}。",
+"help.stageTitle": "連続成長と月ごとの姿",
+"help.stageBody": "世界樹は願い札の数とともに終わりなく成長します。北京時間で毎月姿が変わります：1–10日 {green}；11–20日 {bloom}；21日～月末 {fall}。",
 "help.riskTitle": "リスクに関する注意",
 "help.riskBody": "本プロジェクトは Solana devnet 上で動作する MVP デモであり、テスト用トークンに価値はありません。オンチェーンの内容は公開され削除できません。当サイトはフロントエンドで違反内容を非表示にできますが、チェーン上から消去することはできません。",
 "terms.title": "利用規約 / 購入に関する注意事項",
@@ -533,5 +533,7 @@
 "soc.g.X": "その他",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "願い札 {n} 枚。世界樹は終わりなく育ち続けます。",
+"home.growing": "🌱 育ち続けています"
 }

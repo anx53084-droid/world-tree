@@ -174,8 +174,8 @@
 "help.modTitle": "المراجعة وشهادات المراجعة",
 "help.modBody": "تفحص خدمة المراجعة المحتوى قبل الدفع / التسجيل على السلسلة (فلترة بالكلمات المفتاحية + واجهة مراجعة دلالية بالذكاء الاصطناعي + قائمة انتظار للمراجعة اليدوية). عند الموافقة، توقّع الخدمة «تجزئة المحتوى + النتيجة + الطابع الزمني» بتوقيع ed25519، ويُسجَّل التوقيع على السلسلة مع المحتوى. تعيد الواجهة الأمامية التحقق عند القراءة، ولا يُعرض المحتوى الذي تنقصه شهادة صالحة.",
 "help.modPub": "المفتاح العام للمراجعة:",
-"help.stageTitle": "مراحل النمو وحالات الشجرة الشهرية",
-"help.stageBody": "تعتمد مرحلة النمو على إجمالي بطاقات الأمنيات: {stages}. تتغير الشجرة تلقائيًا كل شهر (بتوقيت بكين): الأيام 1–10 {green}؛ الأيام 11–20 {bloom}؛ من اليوم 21 حتى نهاية الشهر {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "تنبيه بشأن المخاطر",
 "help.riskBody": "هذا المشروع عرض تجريبي MVP يعمل على Solana devnet، والعملات التجريبية بلا قيمة. المحتوى على السلسلة علني ولا يمكن حذفه؛ يمكن لهذا الموقع إخفاء المحتوى المخالف في الواجهة الأمامية، لكنه لا يستطيع محوه من السلسلة.",
 "terms.title": "اتفاقية المستخدم / شروط الشراء",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

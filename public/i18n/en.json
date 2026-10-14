@@ -174,8 +174,8 @@
 "help.modTitle": "Moderation & attestations",
 "help.modBody": "Content is checked by the moderation service before payment / on-chain writing (keyword filter + AI semantic review interface + manual review queue). On approval, the service signs “content hash + result + timestamp” with ed25519, and the signature is written on-chain together with the content. The frontend re-verifies it when reading; content with a missing or invalid attestation is not displayed.",
 "help.modPub": "Moderator public key:",
-"help.stageTitle": "Growth stages & monthly tree states",
-"help.stageBody": "Growth stage is based on the total number of wish cards: {stages}. The tree changes automatically each month (Beijing time): days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "Risk notice",
 "help.riskBody": "This project is an MVP demo running on Solana devnet; test tokens have no value. On-chain content is public and cannot be deleted; this site can hide violating content in the frontend but cannot erase it from the chain.",
 "terms.title": "User Agreement / Purchase Terms",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

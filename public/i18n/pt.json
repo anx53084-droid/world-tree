@@ -174,8 +174,8 @@
 "help.modTitle": "Moderação e atestados",
 "help.modBody": "O conteúdo é verificado pelo serviço de moderação antes do pagamento / registro on-chain (filtro de palavras-chave + interface de revisão semântica por IA + fila de revisão manual). Se aprovado, o serviço assina com ed25519 “hash do conteúdo + resultado + carimbo de data/hora”, e a assinatura é registrada on-chain junto com o conteúdo. O frontend a verifica novamente na leitura; conteúdo sem atestado ou com atestado inválido não é exibido.",
 "help.modPub": "Chave pública do moderador:",
-"help.stageTitle": "Fases de crescimento e estados mensais da árvore",
-"help.stageBody": "A fase de crescimento depende do total de cartões de desejo: {stages}. A árvore muda automaticamente todo mês (horário de Pequim): dias 1–10 {green}; dias 11–20 {bloom}; do dia 21 ao fim do mês {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "Aviso de riscos",
 "help.riskBody": "Este projeto é uma demo MVP executada na Solana devnet; os tokens de teste não têm valor. O conteúdo on-chain é público e não pode ser excluído; este site pode ocultar conteúdo infrator no frontend, mas não apagá-lo da cadeia.",
 "terms.title": "Acordo do usuário / Termos de compra",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

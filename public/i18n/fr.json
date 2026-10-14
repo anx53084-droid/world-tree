@@ -174,8 +174,8 @@
 "help.modTitle": "Modération et attestations",
 "help.modBody": "Le contenu est vérifié par le service de modération avant le paiement / l'inscription on-chain (filtre par mots-clés + interface d'analyse sémantique IA + file de révision manuelle). En cas d'approbation, le service signe en ed25519 « hash du contenu + résultat + horodatage », et la signature est inscrite on-chain avec le contenu. Le frontend la revérifie à la lecture ; un contenu sans attestation ou avec une attestation invalide n'est pas affiché.",
 "help.modPub": "Clé publique du modérateur :",
-"help.stageTitle": "Stades de croissance et états mensuels de l'arbre",
-"help.stageBody": "Le stade de croissance dépend du nombre total de cartes de vœux : {stages}. L'arbre change automatiquement chaque mois (heure de Pékin) : jours 1–10 {green} ; jours 11–20 {bloom} ; du 21 à la fin du mois {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "Avertissement sur les risques",
 "help.riskBody": "Ce projet est une démo MVP fonctionnant sur Solana devnet ; les jetons de test n'ont aucune valeur. Le contenu on-chain est public et ne peut être supprimé ; ce site peut masquer un contenu contrevenant dans le frontend, mais ne peut pas l'effacer de la chaîne.",
 "terms.title": "Conditions d'utilisation / Conditions d'achat",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }

@@ -174,8 +174,8 @@
 "help.modTitle": "Kiểm duyệt & chứng nhận kiểm duyệt",
 "help.modBody": "Nội dung được dịch vụ kiểm duyệt kiểm tra trước khi thanh toán / ghi lên chuỗi (lọc từ khóa + giao diện kiểm duyệt ngữ nghĩa AI + hàng đợi duyệt thủ công). Khi đạt, dịch vụ ký ed25519 lên «mã băm nội dung + kết quả + dấu thời gian», chữ ký được ghi lên chuỗi cùng nội dung; giao diện kiểm tra lại khi đọc, nội dung thiếu hoặc sai chứng nhận sẽ không được hiển thị.",
 "help.modPub": "Khóa công khai kiểm duyệt:",
-"help.stageTitle": "Giai đoạn phát triển & trạng thái cây theo tháng",
-"help.stageBody": "Giai đoạn phát triển dựa trên tổng số thẻ điều ước: {stages}. Mỗi tháng tự động chuyển theo giờ Bắc Kinh: ngày 1–10 {green}; ngày 11–20 {bloom}; ngày 21 đến cuối tháng {fall}.",
+"help.stageTitle": "Continuous growth & monthly form",
+"help.stageBody": "The World Tree grows continuously with the number of wish cards (no final stage). Each month (Beijing time) it shifts form: days 1–10 {green}; days 11–20 {bloom}; day 21 to month end {fall}.",
 "help.riskTitle": "Cảnh báo rủi ro",
 "help.riskBody": "Dự án là bản demo MVP chạy trên Solana devnet; token thử nghiệm không có giá trị. Nội dung on-chain công khai và không thể xóa; trang này có thể ẩn nội dung vi phạm trên giao diện nhưng không thể xóa khỏi chuỗi.",
 "terms.title": "Thỏa thuận người dùng / Lưu ý khi mua",
@@ -533,5 +533,7 @@
 "soc.g.X": "Other",
 "soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
-"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags.",
+"ux.growthLive": "With {n} wish cards, the World Tree keeps growing — no final stage.",
+"home.growing": "🌱 Growing continuously"
 }
