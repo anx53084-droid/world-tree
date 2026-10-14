@@ -410,7 +410,7 @@
 "ux.chainLoading": "체인에서 소원을 읽는 중…",
 "ux.featured": "추천 예시",
 "ux.featuredHint": "조건에 맞는 소원이 아직 없어요. 예시를 보며 영감을 얻어 보세요(예시는 실제 온체인 데이터가 아닙니다).",
-"ux.fab": "소원 카드 만들기",
+"ux.fab": "카드 만들기",
 "ux.growthTitle": "세계수 성장",
 "ux.growthNext": "현재 {n}장 — {need}장 더 모이면 「{stage}」(으)로 성장",
 "ux.growthMax": "세계수가 다 자랐어요! 총 {n}장",

@@ -410,7 +410,7 @@
 "ux.chainLoading": "チェーンから願いを読み込み中…",
 "ux.featured": "おすすめの例",
 "ux.featuredHint": "条件に合う願いはまだありません。例を見てヒントにしてください（例は実際のオンチェーンデータではありません）。",
-"ux.fab": "願いカードを作る",
+"ux.fab": "カードを作る",
 "ux.growthTitle": "世界樹の成長",
 "ux.growthNext": "現在 {n} 枚、あと {need} 枚で「{stage}」に成長",
 "ux.growthMax": "世界樹が完成しました！合計 {n} 枚",

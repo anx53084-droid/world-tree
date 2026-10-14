@@ -410,7 +410,7 @@
 "ux.chainLoading": "Dilekler zincirden okunuyor…",
 "ux.featured": "Öne çıkan örnekler",
 "ux.featuredHint": "Henüz eşleşen dilek yok — ilham için bu örneklere göz at (örnekler gerçek zincir verisi değildir).",
-"ux.fab": "Dilek kartı yap",
+"ux.fab": "Kart oluştur",
 "ux.growthTitle": "Dünya Ağacı büyümesi",
 "ux.growthNext": "Şu ana kadar {n} kart — «{stage}» olmak için {need} kart daha",
 "ux.growthMax": "Dünya Ağacı tamamen büyüdü! {n} kart",

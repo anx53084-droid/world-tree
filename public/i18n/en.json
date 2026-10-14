@@ -410,7 +410,7 @@
 "ux.chainLoading": "Reading wishes from the chain…",
 "ux.featured": "Featured examples",
 "ux.featuredHint": "No wishes match yet — browse these examples for inspiration (examples, not real on-chain data).",
-"ux.fab": "Make a wish card",
+"ux.fab": "Make a card",
 "ux.growthTitle": "World Tree growth",
 "ux.growthNext": "{n} wish cards so far — {need} more to grow into “{stage}”",
 "ux.growthMax": "The World Tree is fully grown! {n} wish cards",
