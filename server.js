@@ -127,6 +127,14 @@ function applyMeta(st, sig, owner, K, b) { // 写入链下可见性元数据；�
   if (vis === 'invite') meta.invite = invite;
   if (vis === 'locked') { const h = Soc.hashPass(b.password, prev.passSalt); meta.passHash = h.hash; meta.passSalt = h.salt; }
   else if (prev.passHash && b.keepPass) { meta.passHash = prev.passHash; meta.passSalt = prev.passSalt; }
+  // 交友卡可选资料（链下）：年龄段 / 性别 / 职业 — 仅详情可见
+  if (K.kind === 'social') {
+    const age = String(b.age || '').trim(), gender = String(b.gender || '').trim(), job = String(b.job || '').trim().replace(/[~|<>]/g, '').slice(0, 20);
+    if (age && !/^(18-24|25-34|35-44|45-54|55\+)$/.test(age)) return { error: 'bad age', code: 'field' };
+    if (gender && !/^[MFX]$/.test(gender)) return { error: 'bad gender', code: 'field' };
+    if ([...job].length > 20) return { error: 'bad job', code: 'field' };
+    if (age) meta.age = age; if (gender) meta.gender = gender; if (job) meta.job = job;
+  }
   st.meta[sig] = meta; return null; }
 async function txInfo(sig) { // 读取自己刚上链的交易（最多重试 4 次）：作者 + memo
   for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
@@ -240,7 +248,8 @@ async function api(req, res, url) {
       const cardLoc = { country: m.country, province: m.province, city: m.city };
       out[sig] = { vis: m.vis || 'public', deliver: m.deliver || 'tree', country: m.country || '', province: m.province || '', city: m.city || '',
         cityMatch: !!(viewerLoc && Soc.locMatch(viewerLoc, cardLoc)), locked: !!m.passHash, unlocked: !!unlocked || !!mine,
-        invite: !!(m.invite && m.invite.length), invited, inv: mine ? (m.invite || []) : undefined, hasPass: !!m.passHash, offTree: m.deliver === 'off' }; }
+        invite: !!(m.invite && m.invite.length), invited, inv: mine ? (m.invite || []) : undefined, hasPass: !!m.passHash, offTree: m.deliver === 'off',
+        age: m.age || '', gender: m.gender || '', job: m.job || '' }; }
     return send(res, 200, { meta: out }); }
   if (url === '/api/gift-sent' && req.method === 'POST') { // 礼品卡上链后登记 + 可选链下元数据（密码/邀请/城市）；投递 both/off 时通知收礼人
     const b = await body(req), sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
@@ -259,7 +268,9 @@ async function api(req, res, url) {
     const b = await body(req), a = auth(req, db); if (!a) return send(res, 401, { error: '未登录', code: 'auth' });
     const sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
     const ti = await txInfo(sig); if (!ti || ti.author !== a.user.pubkey || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
-    const K = Soc.parseKind(ti.memo.split('|')[5]); if (K.kind !== 'social' && K.kind !== 'gift') return send(res, 400, { error: 'param', code: 'param' });
+    const K = Soc.parseKind(ti.memo.split('|')[5]); // 四类卡均可登记可见性/位置；交友卡另含年龄/性别/职业
+    if (!['social', 'gift', 'wish', 'goods'].includes(K.kind)) return send(res, 400, { error: 'param', code: 'param' });
+    if (K.kind === 'social') { const job = String(b.job || '').trim().slice(0, 20); if (job) { const bh = Block.check(job); if (bh) return send(res, 400, { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : 'blockPhish' }); const mr = await moderate(job); if (!mr.pass) return send(res, 400, { error: REJECT, code: 'reject' }); } }
     const st = Soc.load(), err = applyMeta(st, sig, a.user.pubkey, K, b); if (err) return send(res, 400, err); Soc.save(st); return send(res, 200, { ok: true }); }
   if (url === '/api/wish-paid' && req.method === 'POST') { // 付款成功后登记记账 +（物质类）可选收货/联系备注（永不入链）
     const b = await body(req);

@@ -523,5 +523,15 @@
 "err.goodsPreview": "Fetch the product preview first",
 "err.goodsField": "Check the product name (≤80 chars) and price",
 "help.goodsTitle": "위시 카드(상품 링크)",
-"help.goodsBody": "Paste a product link (https); we show its image, name and price snapshot\nOn-chain only the shop domain and a compact product id are stored; name/price/image live off-chain\nPrices are a snapshot from fetch time; the merchant is authoritative\nNo affiliate links and no purchasing flow; links open externally with a warning"
+"help.goodsBody": "Paste a product link (https); we show its image, name and price snapshot\nOn-chain only the shop domain and a compact product id are stored; name/price/image live off-chain\nPrices are a snapshot from fetch time; the merchant is authoritative\nNo affiliate links and no purchasing flow; links open externally with a warning",
+"soc.age": "나이(선택)",
+"soc.ageSkip": "비공개",
+"soc.gender": "성별(선택)",
+"soc.g.skip": "비공개",
+"soc.g.M": "남",
+"soc.g.F": "여",
+"soc.g.X": "기타",
+"soc.job": "직업(선택, ≤20)",
+"soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
+"soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
 }

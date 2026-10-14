@@ -18,14 +18,17 @@ const len = s => [...String(s || '')].length;
 const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 40);
 const cleanLoc = s => String(s || '').trim().replace(/[~|]/g, '').slice(0, 20);
 // 分类字段：~S/~G + ~v可见性 + ~d投递(礼品) + ~A国家~B省~Y市(交友，可选) + 既有字段
-function parseKind(prefix) {
-  const [, o = '', ...ex] = String(prefix || '').split('~'), f = p => { const x = ex.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
+function parseKind(prefix) { // 与前端 parseOpt 对齐：~S/~G/~H 可与 ~F 折页段并存；星语星愿亦可带 ~v/~A/~B/~Y
+  const [, ...segs] = String(prefix || '').split('~');
+  const kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H');
+  const rest = segs.filter(x => x !== kindTok && !/^F[0-9a-z]{2}P?$/.test(x));
+  const f = p => { const x = rest.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
   const vis = VIS[f('v')] || 'public', deliver = DEL[f('d')] || 'tree';
   const loc = { country: cleanLoc(f('A')), province: cleanLoc(f('B')), city: cleanLoc(f('Y')) };
-  if (o === 'S') return { kind: 'social', vis, deliver: 'tree', tags: f('t') ? f('t').split(',').filter(Boolean).slice(0, 5) : [], intro: f('i'), looking: f('l'), ...loc };
-  if (o === 'H') return { kind: 'goods', vis: 'public', deliver: 'tree', domain: f('D').slice(0, 40), pid: f('P').slice(0, 24) };
-  if (o === 'G') return { kind: 'gift', vis, deliver, to: f('T'), note: f('M'), ...loc };
-  return { kind: 'wish', vis: 'public', deliver: 'tree' };
+  if (kindTok === 'S') return { kind: 'social', vis, deliver: 'tree', tags: f('t') ? f('t').split(',').filter(Boolean).slice(0, 5) : [], intro: f('i'), looking: f('l'), ...loc };
+  if (kindTok === 'H') return { kind: 'goods', vis, deliver: 'tree', domain: f('D').slice(0, 40), pid: f('P').slice(0, 24), ...loc };
+  if (kindTok === 'G') return { kind: 'gift', vis, deliver, to: f('T'), note: f('M'), ...loc };
+  return { kind: 'wish', vis, deliver: 'tree', ...loc };
 }
 function validate(K) {
   if (K.kind === 'social') {
@@ -39,6 +42,11 @@ function validate(K) {
     if (len(K.note) > 50) return 'field';
     if (!['public', 'nearby', 'recent', 'invite', 'locked'].includes(K.vis || 'public')) return 'vis';
     if (!['tree', 'off', 'both'].includes(K.deliver || 'tree')) return 'vis';
+  }
+  if (K.kind === 'wish' || K.kind === 'goods') {
+    if (!['public', 'nearby', 'recent'].includes(K.vis || 'public')) return 'vis';
+    if (len(K.country || '') > 20 || len(K.province || '') > 20 || len(K.city || '') > 20) return 'field';
+    if (K.vis === 'nearby' && !(K.city || K.province || K.country)) return 'cityNeed';
   }
   return null;
 }

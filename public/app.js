@@ -25,23 +25,31 @@ const sol = l => (l / 1e9).toFixed(4) + ' SOL';
 const hex2b = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
 // 卡片选项编码在分类字段后（向后兼容：旧客户端把未知分类当「经典」显示正文）：分类~F<封面2位36进制>[P]   F=折页卡  P=私密（正文为 E1: 密文）
 // 自定义图片：~C<封面哈希32hex> ~N<内页哈希32hex>（图片存链下 /api/img/<hash>；旧客户端忽略多余段，显示内置封面）
-const parseOpt = raw => { const [c, o = '', ...ex] = String(raw).split('~'), m = o.match(/^F([0-9a-z]{2})(P?)$/), g = k => (ex.find(x => new RegExp('^' + k + '[0-9a-f]{32}$').test(x)) || '').slice(1) || null,
-  ii = (ex.find(x => /^I[0-9a-z]{2}$/.test(x)) || '');
-  const fx = p => { const x = ex.find(s => s[0] === p); return x == null ? '' : x.slice(1); }, kind = o === 'S' ? 'social' : o === 'G' ? 'gift' : o === 'H' ? 'goods' : c === '物质类' ? 'goods' : 'wish';
+const parseOpt = raw => { // 向后兼容：旧 memo 无 ~v/~A/~F-in-extras；折页可出现在任意卡类型的附加段
+  const [c, ...segs] = String(raw).split('~');
+  const foldTok = segs.find(x => /^F[0-9a-z]{2}P?$/.test(x)), kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H');
+  const rest = segs.filter(x => x !== foldTok && x !== kindTok);
+  const m = foldTok && foldTok.match(/^F([0-9a-z]{2})(P?)$/);
+  const g = k => (rest.find(x => new RegExp('^' + k + '[0-9a-f]{32}$').test(x)) || '').slice(1) || null;
+  const ii = (rest.find(x => /^I[0-9a-z]{2}$/.test(x)) || '');
+  const fx = p => { const x = rest.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
+  const kind = kindTok === 'S' ? 'social' : kindTok === 'G' ? 'gift' : kindTok === 'H' || c === '物质类' ? 'goods' : 'wish';
   const VISM = { P: 'public', N: 'nearby', R: 'recent', I: 'invite', L: 'locked' }, DELM = { T: 'tree', O: 'off', B: 'both' };
   return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : null, priv: !!(m && m[2]), cimg: m ? g('C') : null, nimg: m ? g('N') : null, inside: m && ii ? parseInt(ii.slice(1), 36) : null,
     kind, vis: VISM[fx('v')] || 'public', deliver: kind === 'gift' ? (DELM[fx('d')] || 'tree') : 'tree',
     country: fx('A'), province: fx('B'), city: fx('Y'),
-    tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' ? fx('T') : '', note: kind === 'gift' ? fx('M') : '', domain: o === 'H' ? fx('D') : '', pid: o === 'H' ? fx('P') : '', legacyGoods: o !== 'H' && c === '物质类' }; };
+    tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' ? fx('T') : '', note: kind === 'gift' ? fx('M') : '', domain: kind === 'goods' ? fx('D') : '', pid: kind === 'goods' ? fx('P') : '', legacyGoods: kindTok !== 'H' && c === '物质类' }; };
 // 交友卡 / 礼品卡：~S/~G + ~v可见性 + ~d投递(礼品) + ~A国家~B省~Y市(交友可选) + 既有字段
 const VISC = { public: 'P', nearby: 'N', recent: 'R', invite: 'I', locked: 'L' }, DELC = { tree: 'T', off: 'O', both: 'B' };
 const cleanLoc = x => String(x || '').trim().replace(/[~|]/g, '').slice(0, 20);
 const encLoc = K => `${K.country ? '~A' + cleanLoc(K.country) : ''}${K.province ? '~B' + cleanLoc(K.province) : ''}${K.city ? '~Y' + cleanLoc(K.city) : ''}`;
-const encKind = (cat, K) => {
-  const v = '~v' + (VISC[K.vis] || 'P');
-  if (K.kind === 'social') return `${cat}~S${v}${encLoc(K)}${K.tags.length ? '~t' + K.tags.join(',') : ''}${K.intro ? '~i' + K.intro : ''}${K.looking ? '~l' + K.looking : ''}`;
-  if (K.kind === 'goods') return `${cat}~H~D${K.domain}~P${K.pid}`;
-  return `${cat}~G${v}~d${DELC[K.deliver] || 'T'}${encLoc(K)}~T${K.to}${K.note ? '~M' + K.note : ''}`;
+const encFold = (folded, cover, priv, cimg, nimg, inside) => folded ? `~F${(cover | 0).toString(36).padStart(2, '0')}${priv ? 'P' : ''}${cimg ? '~C' + cimg : ''}${nimg ? '~N' + nimg : ''}${!nimg && inside != null ? '~I' + ((inside | 0).toString(36).padStart(2, '0')) : ''}` : '';
+const encKind = (cat, K, fold = '') => {
+  const v = '~v' + (VISC[K.vis] || 'P'), L = encLoc(K);
+  if (K.kind === 'social') return `${cat}~S${v}${L}${K.tags.length ? '~t' + K.tags.join(',') : ''}${K.intro ? '~i' + K.intro : ''}${K.looking ? '~l' + K.looking : ''}${fold}`;
+  if (K.kind === 'goods') return `${cat}~H${v}${L}~D${K.domain}~P${K.pid}${fold}`;
+  if (K.kind === 'gift') return `${cat}~G${v}~d${DELC[K.deliver] || 'T'}${L}~T${K.to}${K.note ? '~M' + K.note : ''}${fold}`;
+  return `${cat}${fold || ''}${(K.vis && K.vis !== 'public') || L ? v : ''}${L}`; // 星语星愿：仅在非公开或有位置时写 ~v
 };
 const locLabel = w => [w.country, w.province, w.city].filter(Boolean).join(' · ');
 const locCorner = w => { const L = locLabel(w); return L ? `<span class=loc-corner title="${esc(L)}">📍 ${esc(L)}</span>` : ''; };
@@ -197,9 +205,10 @@ function nearbyMatch(w) {
   if (C.country && V.country && locEq(C.country, V.country) && !C.city && !V.city && !C.province && !V.province) return true;
   return false;
 }
-function canViewCard(w) { // 可见性：自己/收礼人始终可见；不上树仅双方；上锁需解锁；附近=同城字符串；最近=7 日互动
-  if (!w || w.kind === 'wish' || !w.kind) return true;
+function canViewCard(w) { // 可见性（四类卡通用）：自己/收礼人始终可见；不上树仅双方；上锁需解锁；附近=同城字符串；最近=7 日互动
+  if (!w) return true;
   if (isMine(w) || giftToMe(w)) return true;
+  if (!w.vis || w.vis === 'public') { if (w.deliver === 'off') return false; return true; }
   if (w.deliver === 'off') return false;
   const meta = S.cardMeta[w.sig] || {};
   if (w.vis === 'public' || !w.vis) return true;
@@ -213,7 +222,7 @@ function visibleWishes(list) { return (list || S.wishes).filter(w => canViewCard
 function treeWishes() { return S.wishes.filter(w => (w.deliver !== 'off' || isMine(w) || giftToMe(w)) && (canViewCard(w) || (w.vis === 'locked' && w.deliver !== 'off') || (w.vis === 'nearby' && w.deliver !== 'off'))); } // 上锁/附近：树上可见剪影或锁定态
 let metaFor = '';
 async function loadCardMeta(list) {
-  const need = (list || S.wishes).filter(w => (w.kind === 'social' || w.kind === 'gift') && (w.vis && w.vis !== 'public') && !/^SAMPLE/.test(w.sig)).map(w => w.sig);
+  const need = (list || S.wishes).filter(w => ((w.vis && w.vis !== 'public') || w.kind === 'social') && !/^SAMPLE/.test(w.sig)).map(w => w.sig);
   if (!need.length) return; const key = need.slice().sort().join(','); if (metaFor === key) return; metaFor = key;
   try { const r = await fetch('/api/card-meta/batch', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') }, body: JSON.stringify({ sigs: need }) }).then(x => x.json());
     Object.assign(S.cardMeta, r.meta || {}); softRefresh(); } catch { metaFor = ''; }
@@ -522,7 +531,9 @@ const KICON = { social: '💬 ', gift: '🎁 ', goods: '🛍️ ' }, kIcon = w =
 const giftToMe = w => w.kind === 'gift' && !!w.to && ((S.pubkey && w.to === S.pubkey) || (S.evmAddr && w.to.toLowerCase() === S.evmAddr));
 const kindTag = w => w.kind !== 'gift' ? '' : isMine(w) ? `<span class="tag k-gift">${E('gift.sent')}</span>` : giftToMe(w) ? `<span class="tag k-gift">${E('gift.recv')}</span>` : '';
 function kindHtml(w, full) { // 交友卡 / 礼品卡附加信息（全部转义）
-  if (w.kind === 'social') return `${w.tags.length ? `<div class=soc-tags>${w.tags.map(x => `<span class="tag soc">#${esc(x)}</span>`).join('')}</div>` : ''}${w.intro ? `<p class=soc-intro dir=auto>${esc(w.intro)}</p>` : ''}${w.looking ? `<p class=muted dir=auto>${E('soc.lookingL')} ${esc(w.looking)}</p>` : ''}`;
+  if (w.kind === 'social') { const m = S.cardMeta[w.sig] || {}, gLab = m.gender && (I18N.dict['soc.g.' + m.gender] ? t('soc.g.' + m.gender) : m.gender);
+    const prof = full ? [m.age && `${E('soc.age')}: ${esc(m.age)}`, gLab && `${E('soc.gender')}: ${esc(gLab)}`, m.job && `${E('soc.job')}: ${esc(m.job)}`].filter(Boolean) : [];
+    return `${w.tags.length ? `<div class=soc-tags>${w.tags.map(x => `<span class="tag soc">#${esc(x)}</span>`).join('')}</div>` : ''}${w.intro ? `<p class=soc-intro dir=auto>${esc(w.intro)}</p>` : ''}${w.looking ? `<p class=muted dir=auto>${E('soc.lookingL')} ${esc(w.looking)}</p>` : ''}${prof.length ? `<p class="muted soc-prof">${prof.join(' · ')}</p>` : ''}`; }
   if (w.kind === 'gift') return `<p class=gift-ft>🎁 <code>${esc(short(w.author))}</code> → <code>${esc(short(w.to))}</code></p>${w.note ? `<p class=gift-note dir=auto>“${esc(w.note)}”</p>` : ''}${full ? `<p class="muted hint">${E('gift.hint')}</p>` : ''}`;
   if (w.kind === 'goods') { const g = S.goods[w.sig]; if (!g) return w.domain ? `<p class="muted goods-dom">🛍️ ${esc(w.domain)}</p>` : '';
     const pr = g.price ? `<b class=goods-price>${esc(g.currency || '')} ${esc(g.price)}</b>` : '';
@@ -708,25 +719,6 @@ function wishPanel() {
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
   <div class=row><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option></select></label></div>
   <div class=row><label>${E('wish.coverStyle')} <select id=wc2><optgroup label="${E('cat.classic')}">${COVER_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : esc(catName(c))}</option>`).join('')}</optgroup></select></label></div>
-  <div id=goodsWrap class=kwrap hidden>
-    <label>${E('goods.url')}<input id=gurl type=url inputmode=url maxlength=1000 autocomplete=off spellcheck=false placeholder="https://" style="width:100%"></label>
-    <button type=button id=gfetch>🔎 ${E('goods.fetch')}</button><p class="muted hint">${E('goods.hint')}</p>
-    <div id=gprev hidden class=goods><img id=gimg class=goods-img alt="" hidden><div class=goods-info><label>${E('goods.title')}<input id=gtitle maxlength=80 dir=auto style="width:100%"></label>
-      <div class=row><label>${E('goods.price')}<input id=gprice inputmode=decimal maxlength=12 style="width:110px"></label><label>${E('goods.currency')}<input id=gcur maxlength=3 style="width:70px;text-transform:uppercase"></label></div><p class="muted hint" id=gnote></p></div></div></div>
-  <div id=socWrap class=kwrap hidden>
-    <label>${E('vis.label')} <select id=svis><option value=public>${E('vis.public')}</option><option value=nearby>${E('vis.nearby')}</option><option value=recent>${E('vis.recent')}</option></select></label>
-    <div class=loc-row><label>${E('loc.country')}<input id=scountry maxlength=20 dir=auto></label><label>${E('loc.province')}<input id=sprov maxlength=20 dir=auto></label><label>${E('loc.city')}<input id=scity maxlength=20 dir=auto></label></div>
-    <p class="muted hint">${E('loc.hint')}</p>
-    <label>${E('soc.tags')}<input id=stg maxlength=60 dir=auto style="width:100%"></label><label>${E('soc.intro')}<input id=sin maxlength=80 dir=auto style="width:100%"></label><label>${E('soc.looking')}<input id=slk maxlength=30 dir=auto style="width:100%"></label>
-    <label>${E('soc.contact')}<input id=sct maxlength=60 dir=auto style="width:100%"></label><label class=agree><input type=checkbox id=ssh> <span>${E('soc.show')}</span></label><p class="muted hint">${E('soc.hint')}</p></div>
-  <div id=giftWrap class=kwrap hidden>
-    <label>${E('gift.to')}<input id=gto maxlength=44 autocomplete=off spellcheck=false style="width:100%"></label><label>${E('gift.note')}<input id=gnt maxlength=50 dir=auto style="width:100%"></label>
-    <label>${E('gift.deliver')} <select id=gdel><option value=tree>${E('gift.delTree')}</option><option value=tree_partial>${E('gift.delTreePartial')}</option><option value=locked>${E('gift.delLocked')}</option><option value=off>${E('gift.delOff')}</option><option value=both_partial>${E('gift.delBothPartial')}</option></select></label>
-    <div id=gvisBox hidden><label>${E('vis.label')} <select id=gvis><option value=nearby>${E('vis.nearby')}</option><option value=recent>${E('vis.recent')}</option><option value=invite>${E('vis.invite')}</option></select></label>
-      <div id=gcityBox class=loc-row hidden><label>${E('loc.country')}<input id=gcountry maxlength=20></label><label>${E('loc.province')}<input id=gprov maxlength=20></label><label>${E('loc.city')}<input id=gcity maxlength=20></label></div>
-      <div id=ginvBox hidden><label>${E('vis.inviteList')}<textarea id=ginv rows=2 maxlength=800 style="width:100%" placeholder="${E('vis.invitePh')}"></textarea></label></div></div>
-    <div id=gpassBox hidden><label>${E('vis.password')}<input id=gpass type=password maxlength=64 autocomplete=new-password style="width:100%"></label><p class="muted hint">${E('vis.passHint')}</p></div>
-    <p class="muted hint">${E('gift.hint')}</p></div>
   <div class=row><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
   <div id=coverWrap hidden>
     <div class=muted>${E('wish.cover')}</div><div class=cover-grid id=covers>${WTCovers.list.map((c, i) => [c, i]).sort((a, b) => COVER_CATS.indexOf(a[0][0] === MATERIAL ? '经典' : a[0][0]) - COVER_CATS.indexOf(b[0][0] === MATERIAL ? '经典' : b[0][0])).map(([c, i], j, A) => (j === 0 || (A[j - 1][0][0] === MATERIAL ? '经典' : A[j - 1][0][0]) !== (c[0] === MATERIAL ? '经典' : c[0]) ? `<b class=cg-h>${esc(catName(c[0]))}</b>` : '') + `<button type=button data-cover=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTCovers.url(i)}"></button>`).join('')}</div>
@@ -735,7 +727,31 @@ function wishPanel() {
     <div class=up-row><label class=up-box sm><input type=file id=upN accept="image/*" hidden><img id=upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label><button type=button id=clrN class=link hidden>${E('wish.clearUp')}</button></div>
     <p class=muted style="margin:4px 0">${E('wish.mixHint')}</p>
     <label class=agree><input type=checkbox id=priv> <span>🔒 ${E('wish.private')}</span></label><p class=muted style="margin:4px 0">${E('wish.privateHint')}${S.mode === 'host' ? ' ' + E('wish.privateHostNote') : ''} ${E('wish.upPrivNote')}</p></div>
-  <div id=shipWrap hidden><label>${E('wish.shipping')}<textarea id=ship maxlength=500 dir=auto placeholder="${E('wish.shippingPh')}" rows=2 style="width:100%;margin-top:4px"></textarea></label>
+  <div id=sharedVis class=kwrap>
+    <label>${E('vis.label')} <select id=svis><option value=public>${E('vis.public')}</option><option value=nearby>${E('vis.nearby')}</option><option value=recent>${E('vis.recent')}</option></select></label>
+    <div class=loc-row><label>${E('loc.country')}<input id=scountry maxlength=20 dir=auto></label><label>${E('loc.province')}<input id=sprov maxlength=20 dir=auto></label><label>${E('loc.city')}<input id=scity maxlength=20 dir=auto></label></div>
+    <p class="muted hint">${E('loc.hint')}</p></div>
+  <div id=goodsWrap class=kwrap hidden>
+    <label>${E('goods.url')}<input id=gurl type=url inputmode=url maxlength=1000 autocomplete=off spellcheck=false placeholder="https://" style="width:100%"></label>
+    <button type=button id=gfetch>🔎 ${E('goods.fetch')}</button><p class="muted hint">${E('goods.hint')}</p>
+    <div id=gprev hidden class=goods><img id=gimg class=goods-img alt="" hidden><div class=goods-info><label>${E('goods.title')}<input id=gtitle maxlength=80 dir=auto style="width:100%"></label>
+      <div class=row><label>${E('goods.price')}<input id=gprice inputmode=decimal maxlength=12 style="width:110px"></label><label>${E('goods.currency')}<input id=gcur maxlength=3 style="width:70px;text-transform:uppercase"></label></div><p class="muted hint" id=gnote></p></div></div></div>
+  <div id=socWrap class=kwrap hidden>
+    <label>${E('soc.age')} <select id=sage><option value="">${E('soc.ageSkip')}</option><option>18-24</option><option>25-34</option><option>35-44</option><option>45-54</option><option>55+</option></select></label>
+    <label>${E('soc.gender')} <select id=sgen><option value="">${E('soc.g.skip')}</option><option value=M>${E('soc.g.M')}</option><option value=F>${E('soc.g.F')}</option><option value=X>${E('soc.g.X')}</option></select></label>
+    <label>${E('soc.job')}<input id=sjob maxlength=20 dir=auto style="width:100%"></label>
+    <label>${E('soc.tags')}<input id=stg maxlength=60 dir=auto style="width:100%" placeholder="${E('soc.tagsPh')}"></label>
+    <label>${E('soc.intro')}<input id=sin maxlength=80 dir=auto style="width:100%"></label><label>${E('soc.looking')}<input id=slk maxlength=30 dir=auto style="width:100%"></label>
+    <label>${E('soc.contact')}<input id=sct maxlength=60 dir=auto style="width:100%"></label><label class=agree><input type=checkbox id=ssh> <span>${E('soc.show')}</span></label>
+    <p class="muted hint">${E('soc.profHint')}</p><p class="muted hint">${E('soc.hint')}</p></div>
+  <div id=giftWrap class=kwrap hidden>
+    <label>${E('gift.to')}<input id=gto maxlength=44 autocomplete=off spellcheck=false style="width:100%"></label><label>${E('gift.note')}<input id=gnt maxlength=50 dir=auto style="width:100%"></label>
+    <label>${E('gift.deliver')} <select id=gdel><option value=tree>${E('gift.delTree')}</option><option value=tree_partial>${E('gift.delTreePartial')}</option><option value=locked>${E('gift.delLocked')}</option><option value=off>${E('gift.delOff')}</option><option value=both_partial>${E('gift.delBothPartial')}</option></select></label>
+    <div id=gvisBox hidden><label>${E('vis.label')} <select id=gvis><option value=nearby>${E('vis.nearby')}</option><option value=recent>${E('vis.recent')}</option><option value=invite>${E('vis.invite')}</option></select></label>
+      <div id=ginvBox hidden><label>${E('vis.inviteList')}<textarea id=ginv rows=2 maxlength=800 style="width:100%" placeholder="${E('vis.invitePh')}"></textarea></label></div></div>
+    <div id=gpassBox hidden><label>${E('vis.password')}<input id=gpass type=password maxlength=64 autocomplete=new-password style="width:100%"></label><p class="muted hint">${E('vis.passHint')}</p></div>
+    <p class="muted hint">${E('gift.hint')}</p></div>
+    <div id=shipWrap hidden><label>${E('wish.shipping')}<textarea id=ship maxlength=500 dir=auto placeholder="${E('wish.shippingPh')}" rows=2 style="width:100%;margin-top:4px"></textarea></label>
   <p class=muted style="margin:4px 0">${E('wish.shippingHint')}</p></div>
   <textarea id=wt maxlength=140 dir=auto placeholder="${E('wish.ph')}"></textarea><div class=muted id=wc>0/140</div>
   <div class=row style="margin:8px 0"><label>${E('wish.amount')} <input id=amt type=number step=0.0001 min="${min / 1e9}" value="${(min / 1e9).toFixed(4)}"></label>
@@ -828,10 +844,12 @@ async function route() {
     pickCover(WTCovers.forCat(catSel?.value || '经典')[0]); pickInside(WTInsides.forCat(catSel?.value || '经典')[0]); syncCard();
     catSel?.addEventListener('change', syncShip);
     // 表单草稿：后台刷新/语言切换/钱包事件会重新渲染页面，这里把用户的选择写入 S.draft 并在重渲染后恢复
-    const F = { ckind: 'value', wc2: 'value', ctype: 'value', priv: 'checked', wt: 'value', amt: 'value', ship: 'value', ag: 'checked', ag2: 'checked', stg: 'value', sin: 'value', slk: 'value', sct: 'value', ssh: 'checked', gto: 'value', gnt: 'value', svis: 'value', scountry: 'value', sprov: 'value', scity: 'value', gdel: 'value', gvis: 'value', gcountry: 'value', gprov: 'value', gcity: 'value', ginv: 'value', gurl: 'value', gtitle: 'value', gprice: 'value', gcur: 'value' };
+    const F = { ckind: 'value', wc2: 'value', ctype: 'value', priv: 'checked', wt: 'value', amt: 'value', ship: 'value', ag: 'checked', ag2: 'checked', stg: 'value', sin: 'value', slk: 'value', sct: 'value', ssh: 'checked', sage: 'value', sgen: 'value', sjob: 'value', gto: 'value', gnt: 'value', svis: 'value', scountry: 'value', sprov: 'value', scity: 'value', gdel: 'value', gvis: 'value', ginv: 'value', gurl: 'value', gtitle: 'value', gprice: 'value', gcur: 'value' };
     const syncGiftDel = () => { const d = $('#gdel')?.value || 'tree', part = d === 'tree_partial' || d === 'both_partial';
       if ($('#gvisBox')) $('#gvisBox').hidden = !part; if ($('#gpassBox')) $('#gpassBox').hidden = d !== 'locked';
-      const gv = $('#gvis')?.value; if ($('#gcityBox')) $('#gcityBox').hidden = !part || gv !== 'nearby'; if ($('#ginvBox')) $('#ginvBox').hidden = !part || gv !== 'invite'; };
+      const gv = $('#gvis')?.value; if ($('#ginvBox')) $('#ginvBox').hidden = !part || gv !== 'invite';
+      // 礼品部分可见时：共享位置区仍显示；邀请名单在 gvisBox
+      if ($('#sharedVis')) $('#sharedVis').hidden = false; };
     let gp = null; // 商品预览（服务器抓取）
     $('#gfetch')?.addEventListener('click', async () => { const u = ($('#gurl').value || '').trim(); if (!/^https:\/\//i.test(u)) return toast(E('err.goodsHttps'), 'err');
       const b = $('#gfetch'); b.disabled = true; b.textContent = '⏳ ' + t('goods.fetching');
@@ -840,7 +858,10 @@ async function route() {
         $('#gnote').textContent = gp.failed ? t('goods.failed') : !gp.title || !gp.price ? t('goods.partial') : t('goods.priceAt', { time: fmtMs(gp.fetchedAt) }); saveD(); }
       catch (e) { gp = null; toast(esc(e.message), 'err'); }
       b.disabled = false; b.textContent = '🔎 ' + t('goods.fetch'); });
-    const syncKind = () => { const k = $('#ckind')?.value || 'wish', ct = $('#ctype'); $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if ($('#goodsWrap')) $('#goodsWrap').hidden = k !== 'goods'; syncShip(); if (ct) { if (k !== 'wish') ct.value = 'single'; ct.closest('.row').hidden = k !== 'wish'; } syncGiftDel(); syncCard(); };
+    const syncKind = () => { const k = $('#ckind')?.value || 'wish';
+      $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if ($('#goodsWrap')) $('#goodsWrap').hidden = k !== 'goods';
+      if ($('#sharedVis')) $('#sharedVis').hidden = k === 'gift' && (($('#gdel')?.value || 'tree') === 'off'); // 不上树时仍可填位置，但可见性由投递决定
+      syncShip(); syncGiftDel(); syncCard(); };
     $('#ckind')?.addEventListener('change', syncKind); $('#gdel')?.addEventListener('change', syncGiftDel); $('#gvis')?.addEventListener('change', syncGiftDel);
     saveD = () => { D.f = Object.fromEntries(Object.entries(F).filter(([id]) => $('#' + id)).map(([id, p]) => [id, $('#' + id)[p]])); D.cover = $('#covers .on')?.dataset.cover; D.inside = $('#insides .on')?.dataset.inside; D.auto = $('#covers')?.dataset.auto; D.iauto = $('#insides')?.dataset.auto; };
     if (D.f) { for (const [id, v] of Object.entries(D.f)) { const el = $('#' + id); if (el) el[F[id]] = v; }
@@ -857,38 +878,43 @@ async function route() {
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
       const kind = $('#ckind')?.value || 'wish', bad = x => /[~|]/.test(x); let K = null, contact = '', showCt = false;
       let metaPayload = {};
-      if (kind === 'social') { const tags = ($('#stg').value || '').split(/[,，、\s]+/).map(x => x.trim()).filter(Boolean), intro = $('#sin').value.trim(), looking = $('#slk').value.trim(), vis = $('#svis')?.value || 'public';
-        const country = cleanLoc($('#scountry')?.value), province = cleanLoc($('#sprov')?.value), city = cleanLoc($('#scity')?.value);
-        if (tags.length > 5 || tags.some(x => [...x].length > 10) || [...intro].length > 80 || [...looking].length > 30 || [intro, looking, ...tags].some(bad)) return toast(E('err.field'), 'err');
-        if (vis === 'nearby' && !(city || province || country)) return toast(E('err.cityNeed'), 'err');
-        K = { kind, tags, intro, looking, vis, country, province, city }; contact = $('#sct').value.trim(); showCt = $('#ssh').checked; if ([...contact].length > 60) return toast(E('err.contactLen'), 'err');
-        if (contact) try { await api('/api/contact/check', { contact }); } catch (e) { return toast(esc(e.message), 'err'); }
-        metaPayload = { country, province, city }; }
-      if (kind === 'gift') { const to = $('#gto').value.trim(), note = $('#gnt').value.trim(), mode = $('#gdel')?.value || 'tree';
-        if (!(solAddrOk(to) || evmAddrOk(to))) return toast(E('err.giftTo'), 'err');
-        await loadBlocklist(true); if (WTBlock.addrHit(S.block, to)) return toast(E('err.giftBlocked'), 'err'); if ([...note].length > 50 || bad(note)) return toast(E('err.field'), 'err');
-        let vis = 'public', deliver = 'tree';
+      const country = cleanLoc($('#scountry')?.value), province = cleanLoc($('#sprov')?.value), city = cleanLoc($('#scity')?.value);
+      let vis = $('#svis')?.value || 'public', deliver = 'tree';
+      if (kind === 'gift') { const mode = $('#gdel')?.value || 'tree';
         if (mode === 'tree') { vis = 'public'; deliver = 'tree'; }
         else if (mode === 'off') { vis = 'public'; deliver = 'off'; }
         else if (mode === 'locked') { vis = 'locked'; deliver = 'tree'; const pw = $('#gpass')?.value || ''; if (pw.length < 4 || pw.length > 64) return toast(E('err.passNeed'), 'err'); metaPayload.password = pw; }
         else { vis = $('#gvis')?.value || 'nearby'; deliver = mode === 'both_partial' ? 'both' : 'tree';
-          const country = cleanLoc($('#gcountry')?.value), province = cleanLoc($('#gprov')?.value), city = cleanLoc($('#gcity')?.value);
-          if (vis === 'nearby' && !(city || province || country)) return toast(E('err.cityNeed'), 'err');
-          if (vis === 'invite') { const inv = ($('#ginv')?.value || '').split(/[\s,，;；]+/).map(x => x.trim()).filter(Boolean); if (!inv.length || inv.some(a => !(solAddrOk(a) || evmAddrOk(a)))) return toast(E('err.inviteNeed'), 'err'); metaPayload.invite = inv; }
-          metaPayload = { ...metaPayload, country, province, city }; }
-        K = { kind, to, note, vis, deliver, country: metaPayload.country || '', province: metaPayload.province || '', city: metaPayload.city || '' }; }
-      if (kind === 'goods') { const u = ($('#gurl').value || '').trim(); if (!gp || gp.url !== (() => { try { return new URL(u).href; } catch { return ''; } })()) return toast(E('err.goodsPreview'), 'err');
+          if (vis === 'invite') { const inv = ($('#ginv')?.value || '').split(/[\s,，;；]+/).map(x => x.trim()).filter(Boolean); if (!inv.length || inv.some(a => !(solAddrOk(a) || evmAddrOk(a)))) return toast(E('err.inviteNeed'), 'err'); metaPayload.invite = inv; } }
+      }
+      if (vis === 'nearby' && !(city || province || country)) return toast(E('err.cityNeed'), 'err');
+      metaPayload = { ...metaPayload, country, province, city };
+      if (kind === 'social') { const tags = ($('#stg').value || '').split(/[,，、\s]+/).map(x => x.trim()).filter(Boolean), intro = $('#sin').value.trim(), looking = $('#slk').value.trim();
+        const age = ($('#sage')?.value || '').trim(), gender = ($('#sgen')?.value || '').trim(), job = ($('#sjob')?.value || '').trim();
+        if (tags.length > 5 || tags.some(x => [...x].length > 10) || [...intro].length > 80 || [...looking].length > 30 || [...job].length > 20 || [intro, looking, job, ...tags].some(bad)) return toast(E('err.field'), 'err');
+        if (age && !/^(18-24|25-34|35-44|45-54|55\+)$/.test(age)) return toast(E('err.field'), 'err');
+        if (gender && !/^[MFX]$/.test(gender)) return toast(E('err.field'), 'err');
+        K = { kind, tags, intro, looking, vis, country, province, city }; contact = $('#sct').value.trim(); showCt = $('#ssh').checked; if ([...contact].length > 60) return toast(E('err.contactLen'), 'err');
+        if (contact) try { await api('/api/contact/check', { contact }); } catch (e) { return toast(esc(e.message), 'err'); }
+        metaPayload = { ...metaPayload, age, gender, job }; }
+      else if (kind === 'gift') { const to = $('#gto').value.trim(), note = $('#gnt').value.trim();
+        if (!(solAddrOk(to) || evmAddrOk(to))) return toast(E('err.giftTo'), 'err');
+        await loadBlocklist(true); if (WTBlock.addrHit(S.block, to)) return toast(E('err.giftBlocked'), 'err'); if ([...note].length > 50 || bad(note)) return toast(E('err.field'), 'err');
+        K = { kind, to, note, vis, deliver, country, province, city }; }
+      else if (kind === 'goods') { const u = ($('#gurl').value || '').trim(); if (!gp || gp.url !== (() => { try { return new URL(u).href; } catch { return ''; } })()) return toast(E('err.goodsPreview'), 'err');
         const title = $('#gtitle').value.trim(), price = $('#gprice').value.trim(), cur = $('#gcur').value.trim().toUpperCase();
         if (!title || [...title].length > 80 || bad(title) || (price && !/^\d{1,9}(\.\d{1,2})?$/.test(price)) || (cur && !/^[A-Z]{3}$/.test(cur))) return toast(E('err.goodsField'), 'err');
         if (/[~|]/.test(gp.domain + gp.pid)) return toast(E('err.goodsUrl'), 'err');
-        K = { kind, domain: gp.domain, pid: gp.pid }; metaPayload = { url: gp.url, title, price, currency: cur, image: gp.image }; }
+        K = { kind, domain: gp.domain, pid: gp.pid, vis, country, province, city }; metaPayload = { ...metaPayload, url: gp.url, title, price, currency: cur, image: gp.image }; }
+      else { K = { kind: 'wish', vis, country, province, city }; }
       { await loadBlocklist(true); const h = window.__blkCheck?.(); if (h) return toast(esc($('#blkwarn').textContent), 'err'); } // 付款前拦截（服务器审核同样强制）
       if (!($('#pv')?.value === 'evm') && !(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
-      const folded = kind === 'wish' && $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null;
+      const folded = $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null;
       if (folded && (up.C || up.N)) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (up.N) nimg = await uploadImg(up.N, k); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
       if (priv) { if ([...txt].length > 100) return toast(E('wish.privateLen'), 'err'); try { cipher = await WTPriv.enc(txt, await WTPriv.key()); } catch (e) { return toast(esc(t('card.unlockFail')) + ' ' + esc(e.message || ''), 'err'); } }
-      const prefix = K ? encKind(cat, K) : encOpt(cat, folded, cover, priv, cimg, nimg, nimg ? null : inside);
+      const fold = encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside);
+      const prefix = encKind(cat, K || { kind: 'wish', vis: 'public' }, fold);
       if (new TextEncoder().encode(prefix + '|' + (cipher || txt)).length > 600) { $('#ws').disabled = false; return tt.update(E('err.memoSize'), 'err'); }
       let memo; try { memo = await moderateThenMemo('W', prefix, txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }
       if ($('#ag2')) localStorage.wt_terms = '1';
@@ -904,11 +930,11 @@ async function route() {
         // 链下登记：记账 +（物质类）收货/联系备注；备注永不入链
         fetch('/api/wish-paid', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') },
           body: JSON.stringify({ sig, cat: K?.kind === 'goods' ? MATERIAL : cat, text: priv ? '🔒' : txt, author: S.pubkey, lamports: lam, shippingNote, source: S.mode }) }).catch(() => {});
-        if (K?.kind === 'social') { if (contact) api('/api/contact', { sig, contact, show: showCt }).catch(e => toast(esc(e.message), 'err'));
-          api('/api/card-meta', { sig, ...metaPayload }).catch(() => {});
-          if (metaPayload.city || metaPayload.province || metaPayload.country) { S.myLoc = { country: metaPayload.country, province: metaPayload.province, city: metaPayload.city }; localStorage.wt_loc = JSON.stringify(S.myLoc); api('/api/me/loc', S.myLoc).catch(() => {}); } }
+        if (K?.kind === 'social' && contact) api('/api/contact', { sig, contact, show: showCt }).catch(e => toast(esc(e.message), 'err'));
         if (K?.kind === 'goods') { S.goods[sig] = { ...metaPayload, domain: K.domain, fetchedAt: gp.fetchedAt }; api('/api/goods-meta', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err')); }
         if (K?.kind === 'gift') api('/api/gift-sent', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err'));
+        else if (metaPayload && (metaPayload.country || metaPayload.province || metaPayload.city || metaPayload.age || metaPayload.gender || metaPayload.job || K?.vis !== 'public')) api('/api/card-meta', { sig, ...metaPayload }).catch(() => {});
+        if (metaPayload.city || metaPayload.province || metaPayload.country) { S.myLoc = { country: metaPayload.country, province: metaPayload.province, city: metaPayload.city }; localStorage.wt_loc = JSON.stringify(S.myLoc); api('/api/me/loc', S.myLoc).catch(() => {}); }
         S.draft = null; location.hash = '#/';
       } else $('#ws').disabled = false;
     });
