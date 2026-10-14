@@ -347,3 +347,4 @@ img, video, canvas { max-width: 100% }
   .pv-toggle { display: inline-block } .mk-prev:not(.open) .pv-panel { display: none } .mk-prev .pv-body { max-height: 55vh; overflow: auto }
 }
 .pv-modes button { font-size: 13px; padding: 6px 10px } .pv-toggle { font-size: 13px; padding: 6px 10px }
+.card.motif:has(.mk-grid) { overflow: clip }
