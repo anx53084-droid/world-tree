@@ -102,14 +102,47 @@ function makeGalaxy() { // 蓝金螺旋星河：根部旋涡盘（差速旋转�
   galaxy = new THREE.Points(g, m); scene.add(galaxy);
 }
 // ---------- 树干/树根：多股扭转的管状枝干（自定义 tube），树皮着色器内含金色发光裂纹（根部最亮） ----------
-function tubes(list, radial = 8) { const P = [], Nn = [], U = [], I = []; let base = 0;
-  for (const o of list) { const c = new THREE.CatmullRomCurve3(o.pts), seg = o.seg || 12, fr = c.computeFrenetFrames(seg, false), len = c.getLength();
-    for (let i = 0; i <= seg; i++) { const t = i / seg, p = c.getPointAt(t), rr = o.rf(t), n = fr.normals[i], b = fr.binormals[i];
-      for (let j = 0; j <= radial; j++) { const a = j / radial * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a), nx = ca * n.x + sa * b.x, ny = ca * n.y + sa * b.y, nz = ca * n.z + sa * b.z, k = 1 + (o.knot != null ? .14 * Math.sin(a * 3 + t * 17 + o.knot) : 0);
-        P.push(p.x + nx * rr * k, p.y + ny * rr * k, p.z + nz * rr * k); Nn.push(nx, ny, nz); U.push(t * len, j / radial); } }
-    for (let i = 0; i < seg; i++) for (let j = 0; j < radial; j++) { const a = base + i * (radial + 1) + j, b2 = a + radial + 1; I.push(a, b2, a + 1, b2, b2 + 1, a + 1); }
+function tubes(list, radial = 8) { // 平行搬运标架：避免 Frenet 翻转造成的扁带/扇面断口
+  const P = [], Nn = [], U = [], I = []; let base = 0;
+  const _q = new THREE.Quaternion(), _axis = new THREE.Vector3(), _bin = new THREE.Vector3(), _n = new THREE.Vector3();
+  for (const o of list) {
+    if (!o.pts || o.pts.length < 2) continue;
+    const c = new THREE.CatmullRomCurve3(o.pts), seg = o.seg || 12, len = Math.max(c.getLength(), 1e-4);
+    const pts = [], tans = [];
+    for (let i = 0; i <= seg; i++) { const t = i / seg; pts.push(c.getPointAt(t)); tans.push(c.getTangentAt(t).normalize()); }
+    // 初始法线：与首切线正交
+    const ref = Math.abs(tans[0].y) > .9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const norms = [new THREE.Vector3().crossVectors(tans[0], ref).normalize()];
+    for (let i = 1; i <= seg; i++) {
+      _axis.crossVectors(tans[i - 1], tans[i]);
+      const al = _axis.length();
+      if (al < 1e-5) norms.push(norms[i - 1].clone());
+      else {
+        _axis.multiplyScalar(1 / al);
+        const ang = Math.acos(Math.min(1, Math.max(-1, tans[i - 1].dot(tans[i]))));
+        _q.setFromAxisAngle(_axis, ang);
+        norms.push(norms[i - 1].clone().applyQuaternion(_q).normalize()); }
+      // 再正交化一次，抑制漂移
+      _n.copy(norms[i]).addScaledVector(tans[i], -norms[i].dot(tans[i])).normalize();
+      norms[i].copy(_n); }
+    for (let i = 0; i <= seg; i++) {
+      const t = i / seg, p = pts[i], rr = Math.max(.006, o.rf(t)), n = norms[i];
+      _bin.crossVectors(tans[i], n).normalize();
+      for (let j = 0; j <= radial; j++) {
+        const a = j / radial * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+        const nx = ca * n.x + sa * _bin.x, ny = ca * n.y + sa * _bin.y, nz = ca * n.z + sa * _bin.z;
+        const k = 1 + (o.knot != null ? .1 * Math.sin(a * 3 + t * 17 + o.knot) : 0);
+        P.push(p.x + nx * rr * k, p.y + ny * rr * k, p.z + nz * rr * k);
+        Nn.push(nx, ny, nz); U.push(t * len, j / radial); } }
+    for (let i = 0; i < seg; i++) for (let j = 0; j < radial; j++) {
+      const a = base + i * (radial + 1) + j, b2 = a + radial + 1;
+      I.push(a, b2, a + 1, b2, b2 + 1, a + 1); }
     base += (seg + 1) * (radial + 1); }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(Nn, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); g.setIndex(I); return g; }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(Nn, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2));
+  g.setIndex(I); g.computeBoundingSphere(); return g; }
 const WIND = `vec3 wnd(vec3 p,float t){ float ax=smoothstep(.6,2.2,length(p.xz)); float k=smoothstep(5.2,9.5,p.y)*(.18+length(p.xz)*.07)*ax; return k*vec3(.055*sin(t*.55+p.x*.21+p.y*.13),.014*sin(t*.83+p.z*.27),.04*cos(t*.47+p.z*.23+p.y*.09)); }
   vec3 swing(vec3 a,vec3 p,float ph,float t){ vec3 r=p-a; float L=length(r), w=1.7/sqrt(L+.35), g=.13*sin(t*w+ph*6.283)+.045*sin(t*w*1.73+ph*3.1)+.05*sin(t*.55+a.x*.21);
     vec2 d=vec2(cos(ph*6.283),sin(ph*6.283)); return a+wnd(a,t)+vec3(d.x*sin(g)*L,-cos(g)*L,d.y*sin(g)*L); }`;
@@ -235,7 +268,7 @@ function makeTrunk(g = 0) { const P = growthParams(g), r = rng(11), L = [], mrp 
     for (let k = 0; k <= 7; k++) { const t = k / 7, d = P.trunkR * .85 + t * len, dip = t * t * (1.0 + mrp * 1.4);
       pts.push(V(Math.cos(a) * d * (1 + t * .12), -.12 - dip, Math.sin(a) * d * (1 + t * .12))); }
     L.push({ pts, rf: t => P.rootR * Math.pow(1 - t, 1.15) + .03, seg: 22, knot: i }); }
-  const mesh = new THREE.Mesh(tubes(L, 12), bark()); mesh.userData.core = true; trunkObj = mesh; bodyGroup.add(mesh);
+  const mesh = new THREE.Mesh(tubes(L, 14), bark()); mesh.userData.core = true; trunkObj = mesh; bodyGroup.add(mesh);
   const R = P.rootDisc;
   const dg = new THREE.CircleGeometry(R, 64, 0, Math.PI * 2); dg.rotateX(-Math.PI / 2); const pp = dg.attributes.position;
   for (let i = 0; i < pp.count; i++) { const d = Math.hypot(pp.getX(i), pp.getZ(i)); pp.setY(i, (.55 + mrp * .5) * Math.pow(Math.max(0, 1 - d / R), 2.2) - .25); } dg.computeVertexNormals();
