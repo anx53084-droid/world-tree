@@ -214,18 +214,18 @@ function makeTrunk(g = 0) { const P = growthParams(g), r = rng(11), L = [], mrp 
     const localR = trunkRadiusAt(P, tAttach);
     const a = i * GA + r() * .2;
     const len = P.primaryLen * (.65 + r() * .45);
-    const baseR = localR * (.85 + r() * .1); // 着生几乎满干径
+    const baseR = localR * (.42 + r() * .12); // 贴表着生，避免与实心干 z-fight
     const tipR = .025 + .015 * r();
     const sideSign = (i & 1) ? 1 : -1;
     const upF = .52 + r() * .12, outF = .68 + r() * .18, swirlA = .35 + mrp * .4;
     const pts = [];
     // 分段：0–25% 贴干上行（几乎垂直），25–100% 平滑外展上扬（参数每枝固定，避免点间抖动）
     for (let k = 0; k <= 16; k++) { const t = k / 16;
-      const climb = Math.min(1, t / .25);
-      const flare = Math.max(0, (t - .25) / .75);
+      const climb = Math.min(1, t / .22);
+      const flare = Math.max(0, (t - .22) / .78);
       const flareS = flare * flare * (3 - 2 * flare);
-      const yy = y0 + climb * Math.min(len * .35, H * .12) + flareS * len * upF;
-      const rad = localR * (.92 - .08 * climb) + flareS * len * (outF + .12 * Math.sin(i * 1.7 + t * 3.2));
+      const yy = y0 + climb * Math.min(len * .28, H * .1) + flareS * len * upF;
+      const rad = localR * (.98 - .05 * climb) + flareS * len * (outF + .1 * Math.sin(i * 1.7 + t * 3.2));
       const swirl = sideSign * flareS * swirlA * Math.sin(t * Math.PI);
       const aa = a + swirl;
       pts.push(V(Math.cos(aa) * rad, yy, Math.sin(aa) * rad)); }
@@ -407,10 +407,10 @@ function buildPage() { ++viewSeq; PAGE = Math.max(0, Math.min(PAGE, pagesTotal()
       // 贴干着生：高度错落，先沿干上行再外展；粗细≈当地干径（与生长同步）
       const tAtt = .42 + (j / NB) * .46 + (h - .5) * .03;
       const y0 = -.35 + tAtt * Hlive, locR = trunkRadiusAt(GP, tAtt), thick = locR * (.7 + h * .15);
-      const st = V(Math.cos(th) * locR * .55, y0, Math.sin(th) * locR * .55);
-      const up = V(Math.cos(th) * locR * .85, y0 + (.9 + h * .7), Math.sin(th) * locR * .85);
+      const st = V(Math.cos(th) * locR * .98, y0, Math.sin(th) * locR * .98);
+      const up = V(Math.cos(th) * (locR * 1.15 + .35), y0 + (.7 + h * .55), Math.sin(th) * (locR * 1.15 + .35));
       const mid = bend(up, ce, h, 1.05);
-      L.push({ pts: [st, up, mid, ce], rf: t => thick * Math.pow(1 - t, 1.15) + .04, seg: 24, knot: j });
+      L.push({ pts: [st, up, mid, ce], rf: t => (locR * (.4 + h * .1)) * Math.pow(1 - t, 1.2) + .035, seg: 24, knot: j });
       const pc = new THREE.CatmullRomCurve3([st, up, mid, ce]), segs = []; ramify(L, pc, thick * .42, 3.6 + soft01(targetGrowth - 1, .2) * 2.0, r1, 1, segs);
       segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); leafPts.push(ce); segsAll.push({ ce, segs }); }
     const mesh = new THREE.Mesh(tubes(L, 10), bark()); mesh.userData.branch = true; treeGroup.add(mesh);
@@ -436,9 +436,9 @@ async function buildView(reg) {
   const GPv = growthParams(targetGrowth || growthT || 0);
   c.children.forEach((cn, j) => { if (!cn) return; const { p: ce, th } = childEnd(reg, j), r1 = reg + A.HEX[j], h = strHash(r1);
     const tAtt = .42 + (j / 16) * .46 + (h - .5) * .03, y0 = -.35 + tAtt * GPv.trunkH, locR = trunkRadiusAt(GPv, tAtt), tk = locR * (.65 + h * .15);
-    const st = V(Math.cos(th) * locR * .55, y0, Math.sin(th) * locR * .55);
-    const up = V(Math.cos(th) * locR * .9, y0 + (.85 + h * .65), Math.sin(th) * locR * .9);
-    L.push({ pts: [st, up, bend(up, ce, h, 1.0), ce], rf: t => tk * Math.pow(1 - t, 1.15) + .035, seg: 20, knot: j }); leafPts.push(ce);
+    const st = V(Math.cos(th) * locR * .98, y0, Math.sin(th) * locR * .98);
+    const up = V(Math.cos(th) * (locR * 1.15 + .3), y0 + (.7 + h * .5), Math.sin(th) * (locR * 1.15 + .3));
+    L.push({ pts: [st, up, bend(up, ce, h, 1.0), ce], rf: t => (locR * (.38 + h * .1)) * Math.pow(1 - t, 1.2) + .03, seg: 20, knot: j }); leafPts.push(ce);
     if (cn <= A.HANG) { const pc = new THREE.CatmullRomCurve3([st, up, bend(up, ce, h, 1.0), ce]), segs = [], sz = N <= 256 ? 1.1 : .6; ramify(L, pc, tk * .45, 4.0, r1, 2, segs);
       segs.slice(1).forEach(o => leafPts.push(o.curve.getPointAt(1))); const t = { region: r1, P: ce, sz, count: cn }; t.slots = hangSlots(t, segs.filter((o, i) => i > 0)); hang.push(t); return; }
     labels.push(makeLabel(`${A.HEX[j]} · ${fmtN(cn)}`, ce, r1));
