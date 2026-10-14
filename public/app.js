@@ -688,7 +688,7 @@ function sharePng(w) { // 生成分享图（本地 canvas → PNG）+ 链接
   x.fillStyle = '#fff'; x.font = '44px "Noto Sans CJK SC",sans-serif'; let line = '', y = 260;
   for (const ch of w.text) { if (x.measureText(line + ch).width > 620) { x.fillText(line, 50, y); y += 64; line = ''; } line += ch; } x.fillText(line, 50, y);
   x.font = '26px sans-serif'; x.fillStyle = '#bbc'; x.fillText(`${t('card.author', { addr: short(w.author) })} · 💖 ${w.likes} · 🙏 ${w.blessings.length}`, 50, 860); x.fillText(location.origin + '/#/w/' + short(w.sig), 50, 905);
-  const url = location.origin + '/#/w/' + encodeURIComponent(w.sig);
+  const url = shareUrl('/w/' + encodeURIComponent(w.sig));
   modal(`<h3>${E('detail.share')}</h3><img src="${c.toDataURL('image/png')}" style="width:100%;border-radius:12px"><div class=row style="margin-top:10px">
     <a class="btn primary" download="world-tree-${w.sig.slice(0, 8)}.png" href="${c.toDataURL('image/png')}">${E('share.download')}</a><button id=cp>${E('share.copy')}</button><button data-close>${E('common.close')}</button></div>`, w.cat);
   $('#cp').onclick = () => navigator.clipboard?.writeText(url).then(() => toast(E('share.copied'), 'ok'), () => toast(esc(url)));
@@ -864,12 +864,17 @@ const SEO = {
   '/origin': ['光栖起源', '让光有处可栖', 'Origin of Guangqi', 'A place for light to dwell'] };
 function setMeta(sel, attr, val) { let m = document.head.querySelector(sel); if (!m) { m = document.createElement('meta'); const [k, v] = sel.match(/\[(\w+(?::\w+)?)="([^"]+)"\]/).slice(1); m.setAttribute(k, v); document.head.append(m); } m.setAttribute(attr, val); }
 window.WT_applySeo = () => { const raw = (location.hash.slice(1) || '/').split('?')[0] || '/'; applySeo(raw || '/'); };
+let OGM = {}; fetch('/og/meta.json').then(r => r.json()).then(j => { OGM = j; window.WT_applySeo?.(); }).catch(() => {});
+const shareUrl = path => location.origin + '/?lang=' + encodeURIComponent(window.I18N?.lang || 'zh-CN') + '#' + path;
 function applySeo(p) {
   const r = SEO[p] || SEO['/'], zh = /^zh/.test(window.I18N?.lang || 'zh-CN'), title = zh ? r[0] : r[2], desc = zh ? r[1] : r[3];
   const url = 'https://world-tree.pages.dev/' + (p && p !== '/' ? '#' + p : '');
   document.title = title; setMeta('meta[name="description"]', 'content', desc);
   setMeta('meta[property="og:title"]', 'content', title); setMeta('meta[property="og:description"]', 'content', desc); setMeta('meta[property="og:url"]', 'content', url);
-  setMeta('meta[property="og:locale"]', 'content', zh ? 'zh_CN' : 'en_US');
+  const L = window.I18N?.lang || 'zh-CN', om = OGM[L]; setMeta('meta[property="og:locale"]', 'content', om?.loc || (zh ? 'zh_CN' : 'en_US'));
+  if (om && p === '/' && !/^(zh-CN|en)$/.test(L)) { const tt = om.b + ' · ' + om.t; document.title = tt; for (const s of ['meta[property="og:title"]', 'meta[name="twitter:title"]']) setMeta(s, 'content', tt); for (const s of ['meta[property="og:description"]', 'meta[name="twitter:description"]', 'meta[name="description"]']) setMeta(s, 'content', om.d); }
+  const img = `https://world-tree.pages.dev/og/og-${OGM[L] ? L : 'zh-CN'}.png`; for (const s of ['meta[property="og:image"]', 'meta[property="og:image:secure_url"]', 'meta[name="twitter:image"]']) setMeta(s, 'content', img);
+  setMeta('meta[property="og:url"]', 'content', url.replace('/#', '/?lang=' + L + '#').replace(/\/$/, '/?lang=' + L));
   setMeta('meta[name="twitter:title"]', 'content', title); setMeta('meta[name="twitter:description"]', 'content', desc);
   const can = document.head.querySelector('link[rel="canonical"]'); if (can) can.href = 'https://world-tree.pages.dev/'; }
 async function route() {

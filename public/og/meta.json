@@ -1,0 +1,18 @@
+{
+"zh-CN":{"b":"光栖","s":"Guangqi","t":"世界树许愿树","u":"写下正向心愿 · 永久上链","m":"钱包签名 · 不托管资产","d":"在世界树上留下你的正向心愿，永久上链","loc":"zh_CN","f":"Noto Sans CJK SC"},
+"zh-TW":{"b":"光棲","s":"Guangqi","t":"世界樹許願樹","u":"寫下正向心願 · 永久上鏈","m":"錢包簽名 · 不託管資產","d":"在世界樹上留下你的正向心願，永久上鏈","loc":"zh_TW","f":"Noto Sans CJK TC"},
+"en":{"b":"Guangqi","s":"","t":"World Wish Tree","u":"Write a positive wish · On-chain forever","m":"Wallet-signed · No custody","d":"Leave a positive wish on the World Tree—recorded on-chain forever","loc":"en_US","f":"Noto Sans"},
+"ja":{"b":"光栖","s":"Guangqi","t":"世界樹の願いの木","u":"前向きな願いを · 永遠にオンチェーン","m":"ウォレット署名 · 資産を預からない","d":"世界樹に前向きな願いを残そう。永遠にオンチェーンに記録されます","loc":"ja_JP","f":"Noto Sans CJK JP"},
+"ko":{"b":"광서","s":"Guangqi","t":"세계수 소원나무","u":"긍정의 소원을 · 영원히 온체인에","m":"지갑 서명 · 자산 비보관","d":"세계수에 긍정의 소원을 남기세요. 영원히 온체인에 기록됩니다","loc":"ko_KR","f":"Noto Sans CJK KR"},
+"es":{"b":"Guangqi","s":"","t":"Árbol de los Deseos","u":"Escribe un deseo positivo · En cadena para siempre","m":"Firmado con billetera · Sin custodia","d":"Deja un deseo positivo en el Árbol del Mundo, registrado en cadena para siempre","loc":"es_ES","f":"Noto Sans"},
+"fr":{"b":"Guangqi","s":"","t":"L'Arbre à vœux du monde","u":"Écrivez un vœu positif · Sur la chaîne pour toujours","m":"Signé par portefeuille · Sans garde","d":"Laissez un vœu positif sur l'Arbre-Monde, inscrit sur la chaîne pour toujours","loc":"fr_FR","f":"Noto Sans"},
+"de":{"b":"Guangqi","s":"","t":"Weltenbaum der Wünsche","u":"Schreib einen positiven Wunsch · Für immer on-chain","m":"Wallet-signiert · Keine Verwahrung","d":"Hinterlasse einen positiven Wunsch am Weltenbaum – für immer on-chain","loc":"de_DE","f":"Noto Sans"},
+"pt":{"b":"Guangqi","s":"","t":"Árvore dos Desejos","u":"Escreva um desejo positivo · Na blockchain para sempre","m":"Assinado na carteira · Sem custódia","d":"Deixe um desejo positivo na Árvore do Mundo, registrado na blockchain para sempre","loc":"pt_BR","f":"Noto Sans"},
+"ru":{"b":"Гуанци","s":"Guangqi","t":"Мировое древо желаний","u":"Загадай доброе желание · Навсегда в блокчейне","m":"Подпись кошельком · Без хранения средств","d":"Оставьте доброе желание на Мировом древе — навсегда в блокчейне","loc":"ru_RU","f":"Noto Sans"},
+"ar":{"b":"قوانغتشي","s":"Guangqi","t":"شجرة أمنيات العالم","u":"اكتب أمنية إيجابية · على السلسلة إلى الأبد","m":"توقيع بالمحفظة · بلا حفظ للأصول","d":"اترك أمنية إيجابية على شجرة العالم، مسجّلة على السلسلة إلى الأبد","loc":"ar_AR","f":"Noto Sans Arabic","rtl":1},
+"hi":{"b":"ग्वांगछी","s":"Guangqi","t":"विश्व इच्छा वृक्ष","u":"एक सकारात्मक इच्छा लिखें · हमेशा के लिए ऑन-चेन","m":"वॉलेट-हस्ताक्षरित · कोई कस्टडी नहीं","d":"विश्व वृक्ष पर अपनी सकारात्मक इच्छा छोड़ें—हमेशा के लिए ऑन-चेन","loc":"hi_IN","f":"Noto Sans Devanagari"},
+"id":{"b":"Guangqi","s":"","t":"Pohon Harapan Dunia","u":"Tulis harapan positif · Selamanya on-chain","m":"Ditandatangani dompet · Tanpa kustodi","d":"Tinggalkan harapan positif di Pohon Dunia—tercatat on-chain selamanya","loc":"id_ID","f":"Noto Sans"},
+"th":{"b":"กวางฉี","s":"Guangqi","t":"ต้นไม้แห่งคำอธิษฐาน","u":"เขียนคำอธิษฐานเชิงบวก · บนบล็อกเชนตลอดไป","m":"ลงนามด้วยวอลเล็ต · ไม่ดูแลทรัพย์สิน","d":"ฝากคำอธิษฐานเชิงบวกไว้บนต้นไม้โลก บันทึกบนบล็อกเชนตลอดไป","loc":"th_TH","f":"Sarabun"},
+"tr":{"b":"Guangqi","s":"","t":"Dünya Dilek Ağacı","u":"Olumlu bir dilek yaz · Sonsuza dek zincirde","m":"Cüzdanla imzalı · Emanet yok","d":"Dünya Ağacı'na olumlu bir dilek bırak—sonsuza dek zincire kaydedilir","loc":"tr_TR","f":"Noto Sans"},
+"vi":{"b":"Guangqi","s":"","t":"Cây Điều Ước Thế Giới","u":"Viết điều ước tích cực · Mãi mãi trên chuỗi","m":"Ký bằng ví · Không lưu ký","d":"Để lại điều ước tích cực trên Cây Thế Giới—ghi trên chuỗi mãi mãi","loc":"vi_VN","f":"Noto Sans"}
+}
