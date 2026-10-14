@@ -837,12 +837,30 @@ ${localStorage.wt_terms === '1' ? `<p class=muted>✅ ${E('terms.agreed')}</p>` 
 let ready3d = false;
 function paintFab(p) { let f = $('#fab'); if (!f) { f = document.createElement('a'); f.id = 'fab'; f.href = '#/wish/make'; document.body.append(f); }
   f.innerHTML = `✨ <span>${E('ux.fab')}</span>`; f.hidden = S.mode === 'guest' || /^\/wish/.test(p) || !!$('#search-panel:not([hidden])'); } // 已登录才显示；制作页本身不显示
+// ---------- SEO / 分享 meta：随路由更新 title、description、og/twitter ----------
+const SEO = {
+  '/': ['光栖 · 世界树许愿树', '在世界树上留下你的正向心愿，永久上链', 'Guangqi · World Wish Tree', 'Leave a positive wish on the World Tree—recorded on-chain forever'],
+  '/list': ['星愿星语 · 光栖', '浏览大家挂在世界树上的心愿', 'Star Wishes · Guangqi', 'Browse the wishes everyone has hung on the World Tree'],
+  '/wish': ['我的星愿 · 光栖', '创建并管理你的链上心愿卡', 'My Wishes · Guangqi', 'Create and manage your on-chain wish cards'],
+  '/wish/make': ['制作卡片 · 光栖', '写下正向心愿，审核后永久上链', 'Make a Card · Guangqi', 'Write a positive wish—permanently on-chain after review'],
+  '/help': ['规则与说明 · 光栖', '了解心愿卡内容规范、费用与安全说明', 'Rules & Guide · Guangqi', 'Card content rules, fees and safety notes'],
+  '/origin': ['光栖起源', '让光有处可栖', 'Origin of Guangqi', 'A place for light to dwell'] };
+function setMeta(sel, attr, val) { let m = document.head.querySelector(sel); if (!m) { m = document.createElement('meta'); const [k, v] = sel.match(/\[(\w+(?::\w+)?)="([^"]+)"\]/).slice(1); m.setAttribute(k, v); document.head.append(m); } m.setAttribute(attr, val); }
+window.WT_applySeo = () => { const raw = (location.hash.slice(1) || '/').split('?')[0] || '/'; applySeo(raw || '/'); };
+function applySeo(p) {
+  const r = SEO[p] || SEO['/'], zh = /^zh/.test(window.I18N?.lang || 'zh-CN'), title = zh ? r[0] : r[2], desc = zh ? r[1] : r[3];
+  const url = 'https://world-tree.pages.dev/' + (p && p !== '/' ? '#' + p : '');
+  document.title = title; setMeta('meta[name="description"]', 'content', desc);
+  setMeta('meta[property="og:title"]', 'content', title); setMeta('meta[property="og:description"]', 'content', desc); setMeta('meta[property="og:url"]', 'content', url);
+  setMeta('meta[property="og:locale"]', 'content', zh ? 'zh_CN' : 'en_US');
+  setMeta('meta[name="twitter:title"]', 'content', title); setMeta('meta[name="twitter:description"]', 'content', desc);
+  const can = document.head.querySelector('link[rel="canonical"]'); if (can) can.href = 'https://world-tree.pages.dev/'; }
 async function route() {
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
   const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
-  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
+  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });

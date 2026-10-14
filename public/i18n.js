@@ -15,7 +15,7 @@
     return v ? s.replace(/\{(\w+)\}/g, (m, n) => v[n] != null ? v[n] : m) : s; };
   window.t = I.t;
   const load = l => fetch('i18n/' + l + '.json').then(r => { if (!r.ok) throw new Error(l); return r.json(); });
-  I.apply = function () { const h = document.documentElement; h.lang = I.lang; h.dir = RTL.includes(I.lang) ? 'rtl' : 'ltr'; document.title = I.t('meta.title');
+  I.apply = function () { const h = document.documentElement; h.lang = I.lang; h.dir = RTL.includes(I.lang) ? 'rtl' : 'ltr'; document.title = I.t('meta.title'); try { window.WT_applySeo?.(); } catch {}
     document.querySelectorAll('[data-i18n]').forEach(e => e.textContent = I.t(e.dataset.i18n));
     document.querySelectorAll('[data-i18n-title]').forEach(e => { e.title = I.t(e.dataset.i18nTitle); e.setAttribute('aria-label', e.title); });
     renderSwitcher(); };
