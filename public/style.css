@@ -266,3 +266,11 @@ ul.bul { margin: 6px 0; padding-inline-start: 1.2em } ul.bul li { margin: 4px 0 
 .mw.gl { display: block; width: 100%; padding: 8px 10px; margin: 6px 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .gsec { margin: 14px 0 4px }
 .mw.gl span.tag { display: inline-block; padding: 1px 8px; margin: 0 4px }
+.card { position: relative }
+.loc-corner { position: absolute; top: 8px; right: 10px; font-size: 11px; color: #9ec5ff; max-width: 46%; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; pointer-events: none }
+.loc-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px }
+@media (max-width: 420px) { .loc-row { grid-template-columns: 1fr } }
+.tag.ktype { background: #6a5acd33; border-color: #6a5acd77 }
+.tag.kvis { background: #2a4a6a55; border-color: #5a8ababa; font-size: 11px }
+.locked-card { opacity: .92; border-style: dashed }
+.card.k-gift { border-left: 3px solid #e0a84a }

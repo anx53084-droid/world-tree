@@ -403,7 +403,7 @@ function ornament(x, x0, y, w) { // 顶/底部金色纹饰带：细线 + 菱形�
   x.restore(); }
 const UIMG = new Map(); function uimg(h) { if (!h) return null; if (!UIMG.has(h)) { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { im.ok = 1; dirty = true; }; im.src = (window.apiUrl || (x => x))('/api/img/' + h); UIMG.set(h, im); } const im = UIMG.get(h); return im.ok ? im : null; } // 用户自定义封面
 function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私密卡加锁）；哑光无发光
-  const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : '') + (uimg(w.cimg) ? 'U' : '') + (w.kind || ''); if (texCache.has(key)) return lruGet(texCache, key);
+  const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : '') + (uimg(w.cimg) ? 'U' : '') + (w.kind || '') + (w.city || '') + (w.province || '') + (w.country || ''); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
   if (w.folded && window.WTCovers) { x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
     x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); x.translate(X0, Y0); const ui = uimg(w.cimg); if (ui) { const k = Math.max(W / ui.width, H / ui.height); x.drawImage(ui, (W - ui.width * k) / 2, (H - ui.height * k) / 2, ui.width * k, ui.height * k); } else WTCovers.draw(x, w.cover, W, H); x.restore();
@@ -423,7 +423,8 @@ function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私
   x.fillStyle = `hsl(${hue},55%,48%)`; x.fillRect(X0 + 50, Y0 + 30, W - 100, 3);
   x.fillStyle = '#4a2a08'; x.font = 'bold 19px "Noto Sans CJK SC",sans-serif'; let line = '', y = Y0 + 56;
   for (const ch of (w.kind === 'social' ? '💬 ' : w.kind === 'gift' ? '🎁 ' : '') + w.text) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 170) { line = '…'; break; } } line += ch; }
-  x.fillText(line, X0 + 18, y); x.font = '14px sans-serif'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.time && window.WTfmtT) x.fillText(window.WTfmtT(w.time), X0 + 18, Y0 + H - 16);
+  x.fillText(line, X0 + 18, y); const loc = [w.country, w.province, w.city].filter(Boolean).join('·'); if (loc) { x.font = '11px sans-serif'; x.fillStyle = '#4a6a9a'; const tw = x.measureText('📍' + loc).width; x.fillText('📍' + (tw > 110 ? loc.slice(0, 8) + '…' : loc), X0 + W - 14 - Math.min(tw, 110), Y0 + 22); }
+  x.font = '14px sans-serif'; x.fillStyle = '#4a2a08'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.time && window.WTfmtT) x.fillText(window.WTfmtT(w.time), X0 + 18, Y0 + H - 16);
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex);
   if (texCache.size > NEAR_CAP * 2) { const used = new Set(nearPool.map(s => s.material.map)); for (const [k, v] of texCache) { if (texCache.size <= NEAR_CAP * 2) break; if (!used.has(v)) { v.dispose(); texCache.delete(k); } } } // GPU 纹理 LRU 释放
   return tex;

@@ -93,7 +93,7 @@ function auth(req, db) { const t = (req.headers.authorization || '').replace('Be
   if (Date.now() - (s.last || 0) > 300000) { s.last = Date.now(); s.ua = String(req.headers['user-agent'] || s.ua || '').slice(0, 200); save(db); } // 最近活跃（5 分钟粒度）
   return { email: s.uid, uid: s.uid, user: db.users[s.uid], token: t, sess: s }; }
 const kindOf = uid => uid.startsWith('evm:') ? 'evm' : uid.startsWith('sol:') ? 'sol' : 'email';
-const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'email' ? uid : null, pubkey: u.pubkey, evm: u.evm || null, verified: !!u.verified, totp: !!u.totp?.on, custodial: !!u.secret, largeUsd: u.largeUsd || 20 });
+const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'email' ? uid : null, pubkey: u.pubkey, evm: u.evm || null, verified: !!u.verified, totp: !!u.totp?.on, custodial: !!u.secret, largeUsd: u.largeUsd || 20, country: u.country || '', province: u.province || '', city: u.city || '' });
 function allowHost(req) { const hs = new Set([req.headers.host]); const o = req.headers.origin; if (o && (CORS_RE.test(o) || ALLOWED.includes(o))) try { hs.add(new URL(o).host); } catch {} return d => hs.has(d); }
 const fail = (res, e, code = 400) => send(res, code, { error: e.message, code: e.code || 'err' });
 
@@ -101,6 +101,18 @@ async function checkContact(c) { // 联系方式：1–60 字，审核 + 钓鱼/
   if (typeof c !== 'string' || !c.trim() || Soc.len(c.trim()) > 60) return { error: 'bad contact', code: 'contactLen' };
   const bh = Block.check(c); if (bh) return { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', detail: bh.domain };
   const r = await moderate(c); return r.pass ? null : { error: REJECT, code: 'reject' }; }
+function applyMeta(st, sig, owner, K, b) { // 写入链下可见性元数据；密码仅存 scrypt 哈希；位置优先用链上字段
+  const vis = K.vis || 'public', deliver = K.deliver || 'tree';
+  const country = Soc.cleanLoc(b.country || K.country), province = Soc.cleanLoc(b.province || K.province), city = Soc.cleanLoc(b.city || K.city);
+  let invite = []; if (Array.isArray(b.invite)) invite = [...new Set(b.invite.map(a => String(a).trim()).filter(a => Soc.solOk(a) || Soc.evmOk(a)).map(Soc.addrKey))].slice(0, 30);
+  if (vis === 'nearby' && !(city || province || country)) return { error: 'location required', code: 'cityNeed' };
+  if (vis === 'invite' && !invite.length) return { error: 'invite list required', code: 'inviteNeed' };
+  if (vis === 'locked' && !(typeof b.password === 'string' && b.password.length >= 4 && b.password.length <= 64)) return { error: 'password 4–64', code: 'passNeed' };
+  const prev = st.meta[sig] || {}, meta = { owner, vis, deliver, country, province, city, at: Date.now() };
+  if (vis === 'invite') meta.invite = invite;
+  if (vis === 'locked') { const h = Soc.hashPass(b.password, prev.passSalt); meta.passHash = h.hash; meta.passSalt = h.salt; }
+  else if (prev.passHash && b.keepPass) { meta.passHash = prev.passHash; meta.passSalt = prev.passSalt; }
+  st.meta[sig] = meta; return null; }
 async function txInfo(sig) { // 读取自己刚上链的交易（最多重试 4 次）：作者 + memo
   for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
     if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], author = k.pubkey?.toBase58?.() || String(k.pubkey || k);
@@ -175,22 +187,44 @@ async function api(req, res, url) {
     const sig = decodeURIComponent(url.slice('/api/fulfillments/'.length).split('/')[0] || '');
     const v = Fulfill.publicView(sig); return v ? send(res, 200, v) : send(res, 404, { error: 'not found', code: 'nf' });
   }
-  // —— 交友卡联系方式（链下）/ 礼品卡索引 ——
+  // —— 交友卡 / 礼品卡：联系方式、可见性元数据、礼品索引 ——
   if (url === '/api/contact/check' && req.method === 'POST') { const { contact } = await body(req); const r = await checkContact(contact); return send(res, r ? 400 : 200, r || { ok: true }); }
   if (url.startsWith('/api/contact/') && req.method === 'GET') { const sig = decodeURIComponent(url.slice(13)); const c = Soc.load().contacts[sig]; if (!c) return send(res, 200, {});
     const me = auth(req, db); if (me && me.user.pubkey === c.owner) return send(res, 200, { contact: c.contact, show: !!c.show, mine: true });
     return send(res, 200, c.show ? { contact: c.contact } : {}); }
   if (url === '/api/gifts' && req.method === 'GET') { const to = new URL(req.url, 'http://x').searchParams.get('to') || ''; if (!(Soc.solOk(to) || Soc.evmOk(to))) return send(res, 400, { error: 'bad address', code: 'giftTo' });
     return send(res, 200, { sigs: (Soc.load().gifts[Soc.addrKey(to)] || []).slice(-500) }); }
-  if (url === '/api/gift-sent' && req.method === 'POST') { // 礼品卡上链后登记：服务器从链上读取并校验 memo，索引接收方并发站内信（无资产转移）
-    const { sig } = await body(req); if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
-    const st = Soc.load(); if (st.giftSeen[sig]) return send(res, 200, { ok: true, already: true });
-    const ti = await txInfo(sig); if (!ti || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 400, { error: 'not found', code: 'nf' });
+  if (url === '/api/card-meta/batch' && req.method === 'POST') { // 批量取链下可见性元数据（城市哈希、是否上锁/邀请，不含密码）
+    const { sigs } = await body(req), list = Array.isArray(sigs) ? sigs.slice(0, 200) : [], st = Soc.load(), me = auth(req, db), out = {};
+    for (const sig of list) { if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig)) continue; const m = st.meta[sig]; if (!m) continue;
+      const mine = me && me.user.pubkey === m.owner, unlocked = me && !!(st.unlocks[sig] && st.unlocks[sig][me.user.pubkey]);
+      const addrs = me ? [me.user.pubkey, me.user.evm].filter(Boolean).map(Soc.addrKey) : [];
+      const invited = !!(m.invite && addrs.some(a => m.invite.includes(a)));
+      const viewerLoc = me ? { country: me.user.country, province: me.user.province, city: me.user.city } : null;
+      const cardLoc = { country: m.country, province: m.province, city: m.city };
+      out[sig] = { vis: m.vis || 'public', deliver: m.deliver || 'tree', country: m.country || '', province: m.province || '', city: m.city || '',
+        cityMatch: !!(viewerLoc && Soc.locMatch(viewerLoc, cardLoc)), locked: !!m.passHash, unlocked: !!unlocked || !!mine,
+        invite: !!(m.invite && m.invite.length), invited, inv: mine ? (m.invite || []) : undefined, hasPass: !!m.passHash, offTree: m.deliver === 'off' }; }
+    return send(res, 200, { meta: out }); }
+  if (url === '/api/gift-sent' && req.method === 'POST') { // 礼品卡上链后登记 + 可选链下元数据（密码/邀请/城市）；投递 both/off 时通知收礼人
+    const b = await body(req), sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
+    const st = Soc.load(), ti = await txInfo(sig); if (!ti || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 400, { error: 'not found', code: 'nf' });
     const parts = ti.memo.split('|'), K = Soc.parseKind(parts[5]); if (K.kind !== 'gift' || Soc.validate(K)) return send(res, 400, { error: 'not a gift', code: 'param' });
-    const key = Soc.addrKey(K.to); st.gifts[key] = [...(st.gifts[key] || []).filter(x => x !== sig), sig]; st.giftSeen[sig] = Date.now(); Soc.save(st);
-    const tos = Soc.evmOk(K.to) ? Object.values(db.users).filter(u => u.evm === key).map(u => u.pubkey) : [K.to];
-    let n = 0; for (const pk of new Set(tos)) { const owners = Object.values(db.users).filter(u => u.pubkey === pk); if (owners.length && owners.every(u => !Acc.prefs(u).system)) continue; Acc.pushMsg(db, pk, { kind: 'gift', sig, from: ti.author, note: K.note.slice(0, 50) }); n++; }
-    if (n) save(db); return send(res, 200, { ok: true, notified: n }); }
+    const me = auth(req, db); if (me && me.user.pubkey !== ti.author) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
+    const metaErr = applyMeta(st, sig, ti.author, K, b); if (metaErr) return send(res, 400, metaErr);
+    const key = Soc.addrKey(K.to); st.gifts[key] = [...(st.gifts[key] || []).filter(x => x !== sig), sig];
+    let n = 0; if (!st.giftSeen[sig] && (K.deliver === 'off' || K.deliver === 'both' || true)) { // 始终索引；通知：off/both 必发，tree 也发（收礼人可在「收到的礼物」看到）
+      const tos = Soc.evmOk(K.to) ? Object.values(db.users).filter(u => u.evm === key).map(u => u.pubkey) : [K.to];
+      for (const pk of new Set(tos)) { const owners = Object.values(db.users).filter(u => u.pubkey === pk); if (owners.length && owners.every(u => !Acc.prefs(u).system)) continue;
+        Acc.pushMsg(db, pk, { kind: 'gift', sig, from: ti.author, note: K.note.slice(0, 50), deliver: K.deliver }); n++; }
+      if (n) save(db); }
+    st.giftSeen[sig] = Date.now(); Soc.save(st); return send(res, 200, { ok: true, notified: n, already: false }); }
+  if (url === '/api/card-meta' && req.method === 'POST') { // 交友卡上链后登记链下可见性（城市等）
+    const b = await body(req), a = auth(req, db); if (!a) return send(res, 401, { error: '未登录', code: 'auth' });
+    const sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
+    const ti = await txInfo(sig); if (!ti || ti.author !== a.user.pubkey || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
+    const K = Soc.parseKind(ti.memo.split('|')[5]); if (K.kind !== 'social' && K.kind !== 'gift') return send(res, 400, { error: 'param', code: 'param' });
+    const st = Soc.load(), err = applyMeta(st, sig, a.user.pubkey, K, b); if (err) return send(res, 400, err); Soc.save(st); return send(res, 200, { ok: true }); }
   if (url === '/api/wish-paid' && req.method === 'POST') { // 付款成功后登记记账 +（物质类）可选收货/联系备注（永不入链）
     const b = await body(req);
     const r = Fulfill.registerWish({ wishSig: b.sig || b.wishSig, cat: b.cat, text: b.text, author: b.author, lamports: b.lamports, shippingNote: b.shippingNote, source: b.source || 'client' });
@@ -269,6 +303,14 @@ async function api(req, res, url) {
     const sr = new Set(U.sysRead || []); for (const m of db.sys || []) if (!want || want.has(m.id)) sr.add(m.id); U.sysRead = [...sr].slice(-300); save(db); return send(res, 200, Acc.inboxOf(db, U)); }
   if (url === '/api/notify') { if (req.method === 'POST') { const b = await body(req); U.notify = { fulfil: b.fulfil !== false, system: b.system !== false }; save(db); } return send(res, 200, Acc.prefs(U)); }
   if (url === '/api/logout' && req.method === 'POST') { delete db.sessions[a.token]; save(db); return send(res, 200, { ok: true }); } // 只退出当前设备；其他设备在安全设置中退出
+  if (url === '/api/me/loc' && req.method === 'POST') { // 查看者位置（国家/省/市自由填写，用于「附近」匹配；非 GPS）
+    const b = await body(req); U.country = Soc.cleanLoc(b.country); U.province = Soc.cleanLoc(b.province); U.city = Soc.cleanLoc(b.city); save(db);
+    return send(res, 200, { ok: true, country: U.country, province: U.province, city: U.city }); }
+  if (url === '/api/card-unlock' && req.method === 'POST') { // 礼品卡密码解锁（scrypt 校验；仅 UI 层，链上 memo 仍公开可读）
+    const { sig, password } = await body(req), st = Soc.load(), m = st.meta[sig];
+    if (!m?.passHash) return send(res, 400, { error: 'not locked', code: 'param' });
+    if (!Soc.checkPass(password, m.passSalt, m.passHash)) return send(res, 401, { error: 'bad password', code: 'passBad' });
+    st.unlocks[sig] = st.unlocks[sig] || {}; st.unlocks[sig][U.pubkey] = Date.now(); Soc.save(st); return send(res, 200, { ok: true, unlocked: true }); }
   if (url === '/api/contact' && req.method === 'POST') { // 设置/修改交友卡联系方式：仅卡片作者；审核 + 黑名单
     const { sig, contact, show } = await body(req); if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
     const bad = await checkContact(contact); if (bad) return send(res, 400, bad);

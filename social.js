@@ -1,20 +1,63 @@
-// 交友卡联系方式（仅链下，按卡片签名 + 所有者存储，可随时修改/删除）与礼品卡索引（接收方 → 卡片签名）。持久化经 persist.js 写回 D1。
-const fs = require('fs'), path = require('path'), bs58 = require('bs58');
+// 交友卡 / 礼品卡：链下元数据（联系方式、邀请、密码哈希、礼品索引、粗粒度位置备份）。持久化经 persist.js → D1。
+const fs = require('fs'), path = require('path'), crypto = require('crypto'), bs58 = require('bs58');
 const b58 = bs58.default || bs58;
 const F = path.join(__dirname, 'data', 'social.json');
-function load() { try { const d = JSON.parse(fs.readFileSync(F)); return { contacts: d.contacts || {}, gifts: d.gifts || {}, giftSeen: d.giftSeen || {} }; } catch { return { contacts: {}, gifts: {}, giftSeen: {} }; } }
+const VIS = { P: 'public', N: 'nearby', R: 'recent', I: 'invite', L: 'locked' };
+const DEL = { T: 'tree', O: 'off', B: 'both' };
+function load() {
+  try {
+    const d = JSON.parse(fs.readFileSync(F));
+    return { contacts: d.contacts || {}, gifts: d.gifts || {}, giftSeen: d.giftSeen || {}, meta: d.meta || {}, unlocks: d.unlocks || {} };
+  } catch { return { contacts: {}, gifts: {}, giftSeen: {}, meta: {}, unlocks: {} }; }
+}
 function save(d) { fs.mkdirSync(path.dirname(F), { recursive: true }); fs.writeFileSync(F, JSON.stringify(d), { mode: 0o600 }); }
 const solOk = a => { if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a || '')) return false; try { return b58.decode(a).length === 32; } catch { return false; } };
 const evmOk = a => /^0x[0-9a-fA-F]{40}$/.test(a || '');
 const addrKey = a => evmOk(a) ? a.toLowerCase() : a;
 const len = s => [...String(s || '')].length;
-// 分类字段：分类~S~t标签,标签~i简介~l想认识   或   分类~G~T地址~M赠言   （旧客户端忽略未知段，按普通心愿显示）
-function parseKind(prefix) { const [, o = '', ...ex] = String(prefix || '').split('~'), f = p => { const x = ex.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
-  if (o === 'S') return { kind: 'social', tags: f('t') ? f('t').split(',') : [], intro: f('i'), looking: f('l') };
-  if (o === 'G') return { kind: 'gift', to: f('T'), note: f('M') };
-  return { kind: 'wish' }; }
-function validate(K) { // → 错误码或 null
-  if (K.kind === 'social') { if (K.tags.length > 5 || K.tags.some(t => !t.trim() || len(t) > 10) || len(K.intro) > 80 || len(K.looking) > 30) return 'field'; }
-  if (K.kind === 'gift') { if (!(solOk(K.to) || evmOk(K.to))) return 'giftTo'; if (len(K.note) > 50) return 'field'; }
-  return null; }
-module.exports = { load, save, solOk, evmOk, addrKey, parseKind, validate, len };
+const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 40);
+const cleanLoc = s => String(s || '').trim().replace(/[~|]/g, '').slice(0, 20);
+// 分类字段：~S/~G + ~v可见性 + ~d投递(礼品) + ~A国家~B省~Y市(交友，可选) + 既有字段
+function parseKind(prefix) {
+  const [, o = '', ...ex] = String(prefix || '').split('~'), f = p => { const x = ex.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
+  const vis = VIS[f('v')] || 'public', deliver = DEL[f('d')] || 'tree';
+  const loc = { country: cleanLoc(f('A')), province: cleanLoc(f('B')), city: cleanLoc(f('Y')) };
+  if (o === 'S') return { kind: 'social', vis, deliver: 'tree', tags: f('t') ? f('t').split(',').filter(Boolean).slice(0, 5) : [], intro: f('i'), looking: f('l'), ...loc };
+  if (o === 'G') return { kind: 'gift', vis, deliver, to: f('T'), note: f('M'), ...loc };
+  return { kind: 'wish', vis: 'public', deliver: 'tree' };
+}
+function validate(K) {
+  if (K.kind === 'social') {
+    if (!['public', 'nearby', 'recent'].includes(K.vis || 'public')) return 'vis';
+    if (K.tags.length > 5 || K.tags.some(t => !t.trim() || len(t) > 10) || len(K.intro) > 80 || len(K.looking) > 30) return 'field';
+    if (len(K.country) > 20 || len(K.province) > 20 || len(K.city) > 20) return 'field';
+    if (K.vis === 'nearby' && !(K.city || K.province || K.country)) return 'cityNeed';
+  }
+  if (K.kind === 'gift') {
+    if (!(solOk(K.to) || evmOk(K.to))) return 'giftTo';
+    if (len(K.note) > 50) return 'field';
+    if (!['public', 'nearby', 'recent', 'invite', 'locked'].includes(K.vis || 'public')) return 'vis';
+    if (!['tree', 'off', 'both'].includes(K.deliver || 'tree')) return 'vis';
+  }
+  return null;
+}
+function locMatch(a, b) { // 优先同城，其次同省，再次同国家
+  if (!a || !b) return false;
+  if (a.city && b.city && norm(a.city) === norm(b.city)) return true;
+  if (a.province && b.province && norm(a.province) === norm(b.province) && !a.city && !b.city) return true;
+  if (a.country && b.country && norm(a.country) === norm(b.country) && !a.city && !b.city && !a.province && !b.province) return true;
+  return false;
+}
+function hashPass(password, salt) {
+  const s = salt || crypto.randomBytes(16).toString('hex');
+  const h = crypto.scryptSync(String(password), s, 32, { N: 16384, r: 8, p: 1 }).toString('hex');
+  return { salt: s, hash: h };
+}
+function checkPass(password, salt, hash) {
+  if (!salt || !hash || typeof password !== 'string' || !password) return false;
+  try {
+    const a = Buffer.from(hash, 'hex'), b = crypto.scryptSync(password, salt, 32, { N: 16384, r: 8, p: 1 });
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch { return false; }
+}
+module.exports = { load, save, solOk, evmOk, addrKey, parseKind, validate, len, norm, normCity: norm, cleanLoc, locMatch, hashPass, checkPass, VIS, DEL };
