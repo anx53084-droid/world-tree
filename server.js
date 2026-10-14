@@ -1,6 +1,7 @@
 // 世界树许愿树 —— 本地服务：静态文件 + RPC 中继 + 【演示用】托管模式后端
 // ⚠️ 托管模式仅限 devnet 演示：私钥明文存于 data/users.json。生产环境必须使用 KMS/HSM，且涉及合规问题。
 const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
+require('./persist').init(); // D1 持久化：先拉取数据到 data/，再加载各模块
 const web3 = require('@solana/web3.js');
 const PORT = +process.env.PORT || 8080;
 const RPC = process.env.SOLANA_RPC || process.env.RPC_URL || 'https://api.devnet.solana.com';

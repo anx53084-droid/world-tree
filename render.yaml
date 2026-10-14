@@ -24,6 +24,12 @@ services:
         sync: false
       - key: R2_PUBLIC_URL
         sync: false
+      - key: D1_API_TOKEN
+        sync: false
+      - key: D1_ACCOUNT_ID
+        sync: false
+      - key: D1_DATABASE_ID
+        sync: false
       - key: ADMIN_KEY # 星愿大使后台（x-admin-key）
         sync: false
       - key: EVM_DEV_ADDRESS # EVM 测试网收款：开发者 20%（与 EVM_TREASURY_ADDRESS 都设置后才显示 EVM 支付）

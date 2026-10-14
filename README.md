@@ -153,3 +153,6 @@ server.js · moderation.js · fulfillment.js（星愿大使还愿 + 内部记账
 - **EVM 支付**：设置 `EVM_DEV_ADDRESS` 与 `EVM_TREASURY_ADDRESS` 后开启；用户钱包直接发送两笔原生币转账（20% / 80%），服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、比例、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
 - **安全设置** `#/security`：已登录设备列表、单独退出 / 退出其他所有设备；邮箱验证（需 `RESEND_API_KEY` + `MAIL_FROM`）；邮箱账户可选 TOTP（Google Authenticator，RFC 6238）；大额支付确认（默认 ≥ 20 美元，开启 2FA 时需验证码，服务器同样校验）。
 - **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记还愿时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（`GET /api/admin/notice` 列表、`POST /api/admin/notice/delete {id}` 删除）（均需 `x-admin-key`）。
+
+## 持久化（Cloudflare D1）
+设置 `D1_API_TOKEN`（Account › D1 › Edit）、`D1_ACCOUNT_ID`、`D1_DATABASE_ID` 后，服务启动时从 D1（库 `guangqi-db`，表 `kv`）拉取账户、会话、两步验证、恢复码、站内信、通知设置、还愿记录与资金账本、审核密钥等到 `data/`，之后每次写入按条目差量写回 D1（内存缓存 + write-through）。拉取失败则拒绝启动，避免用空数据覆盖。一次性 nonce 与登录票据（≤10 分钟）仅存内存。未设置时只用本地文件（Render 重新部署会清空）。图片仍需配置 R2 才能持久保存。
