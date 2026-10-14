@@ -125,7 +125,7 @@
 "share.download": "Baixar imagem",
 "share.copy": "Copiar link",
 "share.copied": "Link copiado",
-"wish.title": "Fazer um desejo · Cartão personalizado",
+"wish.title": "Desejo estelar · Cartão personalizado",
 "wish.guest": "Visitantes só podem ler. Use <b>Conectar Phantom / Solflare / Backpack / OKX / MetaMask</b> (recomendado, autocustódia) ou <b>E-mail (demo custodial)</b> no topo para fazer um desejo.",
 "wish.mode": "Modo atual:",
 "wish.modeSelf": "Autocustódia —— assinado pela sua carteira Phantom / Solflare / Backpack / OKX / MetaMask; os fundos vão diretamente da sua carteira para os endereços recebedores",

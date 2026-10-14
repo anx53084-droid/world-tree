@@ -125,7 +125,7 @@
 "share.download": "画像をダウンロード",
 "share.copy": "リンクをコピー",
 "share.copied": "リンクをコピーしました",
-"wish.title": "願いを書く · カスタム願いカード",
+"wish.title": "星願 · カスタムカード",
 "wish.guest": "ゲストは閲覧のみです。上部の <b>Phantom / Solflare / Backpack / OKX / MetaMask を接続</b>（推奨、セルフカストディ）または <b>メールでログイン（デモ）</b> から願いを書いてください。",
 "wish.mode": "現在のモード：",
 "wish.modeSelf": "セルフカストディ —— Phantom / Solflare / Backpack / OKX / MetaMask ウォレットで署名し、資金はあなたのウォレットから受取アドレスへ直接送金されます",
