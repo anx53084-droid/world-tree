@@ -524,14 +524,14 @@
 "err.goodsField": "请检查商品名称（≤80 字）和价格",
 "help.goodsTitle": "心愿卡（商品链接）",
 "help.goodsBody": "粘贴 https 商品链接，展示商品图、名称与价格快照\n链上只存店铺域名与紧凑商品 ID；名称/价格/图片存链下\n价格为抓取时快照，以商家为准\n不含返利链接、无购买流程；外链打开前会提示",
-"soc.age": "年龄（可选）",
+"soc.age": "年龄",
 "soc.ageSkip": "不透露",
-"soc.gender": "性别（可选）",
+"soc.gender": "性别",
 "soc.g.skip": "不透露",
 "soc.g.M": "男",
 "soc.g.F": "女",
 "soc.g.X": "其他",
-"soc.job": "职业（可选，≤20 字）",
+"soc.job": "职业（≤20 字）",
 "soc.tagsPh": "爱好，最多 5 个标签，逗号分隔",
 "soc.profHint": "年龄、性别、职业仅存链下，只在详情页展示；爱好作为标签上链。"
 }

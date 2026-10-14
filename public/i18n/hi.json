@@ -524,14 +524,14 @@
 "err.goodsField": "Check the product name (≤80 chars) and price",
 "help.goodsTitle": "Wish Card (product link)",
 "help.goodsBody": "Paste a product link (https); we show its image, name and price snapshot\nOn-chain only the shop domain and a compact product id are stored; name/price/image live off-chain\nPrices are a snapshot from fetch time; the merchant is authoritative\nNo affiliate links and no purchasing flow; links open externally with a warning",
-"soc.age": "Age (optional)",
+"soc.age": "Age",
 "soc.ageSkip": "Prefer not to say",
-"soc.gender": "Gender (optional)",
+"soc.gender": "Gender",
 "soc.g.skip": "Prefer not to say",
 "soc.g.M": "Male",
 "soc.g.F": "Female",
 "soc.g.X": "Other",
-"soc.job": "Occupation (optional, ≤20)",
+"soc.job": "Occupation (≤20)",
 "soc.tagsPh": "Hobbies, up to 5 tags, comma-separated",
 "soc.profHint": "Age, gender and occupation are stored off-chain and shown only on the card detail. Hobbies are on-chain as tags."
 }
