@@ -760,5 +760,15 @@
   "ads.redoing": "Wird nachgebucht…",
   "ads.ok": "Aufstockung erfolgreich – Rang aktualisiert",
   "ads.okNew": "Neuer Rang: Platz {rank} · Score {score} · kumuliertes Gebot {total} SOL",
-  "ads.okView": "Wirkung auf dem Home-Feed ansehen"
+  "ads.okView": "Wirkung auf dem Home-Feed ansehen",
+  "dom.aria": "Hinweis zum Domainwechsel",
+  "dom.suggest": "Das ist nicht die Hauptdomain. Für eine zuverlässigere Verbindung empfehlen wir {host}.",
+  "dom.blocked": "Diese Domain wird möglicherweise von Browsern oder Wallets markiert. Weiterleitung zu {host} in {sec} s.",
+  "dom.unreach": "{host} ist vorübergehend nicht erreichbar. Versuche es später erneut oder klicke auf „Jetzt wechseln“.",
+  "dom.go": "Jetzt wechseln",
+  "dom.stay": "Hier bleiben",
+  "dom.cancel": "Weiterleitung abbrechen",
+  "dom.note": "Sprache und andere lokale Einstellungen werden übernommen; auf der neuen Domain musst du dich erneut per Wallet-Signatur anmelden.",
+  "dom.arrived": "Du bist jetzt auf {host}. Die Anmeldung gilt nicht domainübergreifend – bitte Wallet neu verbinden und signieren.",
+  "dom.dismiss": "Verstanden"
 }

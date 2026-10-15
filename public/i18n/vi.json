@@ -760,5 +760,15 @@
   "ads.redoing": "Đang đối soát…",
   "ads.ok": "Nạp thêm thành công — đã cập nhật thứ hạng",
   "ads.okNew": "Thứ hạng mới: #{rank} · điểm {score} · tổng giá thầu {total} SOL",
-  "ads.okView": "Xem hiệu quả trên trang chủ"
+  "ads.okView": "Xem hiệu quả trên trang chủ",
+  "dom.aria": "Thông báo đổi tên miền",
+  "dom.suggest": "Đây không phải tên miền chính. Nên dùng {host} để kết nối ổn định hơn.",
+  "dom.blocked": "Tên miền này có thể bị trình duyệt hoặc ví gắn cờ. Sẽ chuyển đến {host} sau {sec} giây.",
+  "dom.unreach": "{host} tạm thời không truy cập được. Hãy thử lại sau hoặc bấm Đi ngay.",
+  "dom.go": "Đi ngay",
+  "dom.stay": "Ở lại đây",
+  "dom.cancel": "Hủy chuyển hướng",
+  "dom.note": "Ngôn ngữ và cài đặt cục bộ khác sẽ được mang theo; trên tên miền mới bạn cần đăng nhập lại bằng chữ ký ví.",
+  "dom.arrived": "Bạn đang ở {host}. Phiên đăng nhập không giữ giữa các tên miền — hãy kết nối lại ví và ký lại.",
+  "dom.dismiss": "Đã hiểu"
 }

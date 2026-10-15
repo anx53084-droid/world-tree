@@ -413,3 +413,6 @@ svg.gface { height: auto }
 .tu-err { color: #ffb59c; margin: 4px 0; font-size: 13px } .tu-prev { margin: 8px 0; padding: 8px 10px; border-radius: 10px; background: #ffffff0d } .tu-prev small { display: block; margin-top: 4px }
 .tu-recv { font-size: 13px; word-break: break-all } .tu-state { min-height: 1.4em; margin: 6px 0; font-size: 14px } .tu-state.err { color: #ffb59c } .tu-state.wait { color: #e8c87a }
 .tu-ok { border: 1px solid #5ad1a0aa; border-radius: 10px; padding: 10px 12px; margin: 8px 0 } .ad-up { margin-inline-start: 8px }
+/* 域名切换提示条 */
+#dombar { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 8px 12px; font-size: 14px; background: #2b2410; color: #ffe3a0; border-bottom: 1px solid #f6d38a88 }
+#dombar.blocked { background: #3a1410; color: #ffd0c4; border-color: #ff8a70aa } #dombar.info { background: #10301f; color: #c4f5da; border-color: #5ad1a0aa } #dombar small { display: block; opacity: .85 }

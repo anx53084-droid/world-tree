@@ -760,5 +760,15 @@
   "ads.redoing": "Merekonsiliasi…",
   "ads.ok": "Top-up berhasil — peringkat diperbarui",
   "ads.okNew": "Peringkat baru: #{rank} · skor {score} · total tawaran {total} SOL",
-  "ads.okView": "Lihat efeknya di beranda"
+  "ads.okView": "Lihat efeknya di beranda",
+  "dom.aria": "Pemberitahuan pergantian domain",
+  "dom.suggest": "Ini bukan domain utama. Kami sarankan {host} agar koneksi lebih andal.",
+  "dom.blocked": "Domain ini mungkin ditandai oleh peramban atau dompet. Dialihkan ke {host} dalam {sec} dtk.",
+  "dom.unreach": "{host} sementara tidak dapat diakses. Coba lagi nanti atau tekan Pergi untuk mencoba lagi.",
+  "dom.go": "Pergi sekarang",
+  "dom.stay": "Tetap di sini",
+  "dom.cancel": "Batalkan pengalihan",
+  "dom.note": "Bahasa dan pengaturan lokal lainnya ikut dibawa; di domain baru Anda harus masuk lagi dengan tanda tangan dompet.",
+  "dom.arrived": "Anda kini di {host}. Sesi masuk tidak terbawa antar domain — hubungkan ulang dompet dan tanda tangani lagi.",
+  "dom.dismiss": "Mengerti"
 }

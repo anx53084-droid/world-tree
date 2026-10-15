@@ -760,5 +760,15 @@
   "ads.redoing": "补单中…",
   "ads.ok": "追加成功，排名已更新",
   "ads.okNew": "新排名：第 {rank} 名 · 得分 {score} · 累计出价 {total} SOL",
-  "ads.okView": "查看首页效果"
+  "ads.okView": "查看首页效果",
+  "dom.aria": "域名切换提示",
+  "dom.suggest": "当前域名不是主域名。建议前往 {host}，访问更稳定。",
+  "dom.blocked": "当前域名可能被浏览器或钱包标记为有问题，{sec} 秒后将自动前往新域名 {host}。",
+  "dom.unreach": "新域名 {host} 暂时无法访问，请稍后再试，或点击前往重试。",
+  "dom.go": "立即前往",
+  "dom.stay": "留在此处",
+  "dom.cancel": "取消自动跳转",
+  "dom.note": "语言等本地设置会一并带过去；登录需要在新域名重新用钱包签名。",
+  "dom.arrived": "你已来到新域名 {host}。登录状态不会跨域保留，请重新连接钱包并签名。",
+  "dom.dismiss": "知道了"
 }

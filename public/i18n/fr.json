@@ -760,5 +760,15 @@
   "ads.redoing": "Rapprochement…",
   "ads.ok": "Complément réussi : rang mis à jour",
   "ads.okNew": "Nouveau rang : n° {rank} · score {score} · mise cumulée {total} SOL",
-  "ads.okView": "Voir l’effet sur l’accueil"
+  "ads.okView": "Voir l’effet sur l’accueil",
+  "dom.aria": "Avis de changement de domaine",
+  "dom.suggest": "Ce n’est pas le domaine principal. Nous recommandons {host} pour une connexion plus fiable.",
+  "dom.blocked": "Ce domaine peut être signalé par les navigateurs ou portefeuilles. Redirection vers {host} dans {sec} s.",
+  "dom.unreach": "{host} est momentanément inaccessible. Réessayez plus tard ou appuyez sur Y aller.",
+  "dom.go": "Y aller",
+  "dom.stay": "Rester ici",
+  "dom.cancel": "Annuler la redirection",
+  "dom.note": "La langue et d’autres réglages locaux sont repris ; sur le nouveau domaine, reconnectez-vous en signant avec votre portefeuille.",
+  "dom.arrived": "Vous êtes sur {host}. La connexion n’est pas conservée entre domaines : reconnectez votre portefeuille et signez à nouveau.",
+  "dom.dismiss": "Compris"
 }

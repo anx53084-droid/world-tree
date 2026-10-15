@@ -760,5 +760,15 @@
   "ads.redoing": "Mutabakat yapılıyor…",
   "ads.ok": "Ekleme başarılı — sıra güncellendi",
   "ads.okNew": "Yeni sıra: #{rank} · puan {score} · toplam teklif {total} SOL",
-  "ads.okView": "Ana sayfadaki etkiyi gör"
+  "ads.okView": "Ana sayfadaki etkiyi gör",
+  "dom.aria": "Alan adı değişikliği bildirimi",
+  "dom.suggest": "Bu ana alan adı değil. Daha güvenilir bağlantı için {host} önerilir.",
+  "dom.blocked": "Bu alan adı tarayıcılar veya cüzdanlar tarafından işaretlenmiş olabilir. {sec} sn içinde {host} adresine yönlendirilecek.",
+  "dom.unreach": "{host} geçici olarak erişilemiyor. Daha sonra deneyin veya Git’e basın.",
+  "dom.go": "Hemen git",
+  "dom.stay": "Burada kal",
+  "dom.cancel": "Yönlendirmeyi iptal et",
+  "dom.note": "Dil ve diğer yerel ayarlar taşınır; yeni alan adında cüzdanla yeniden imzalayarak giriş yapmalısınız.",
+  "dom.arrived": "{host} adresindesiniz. Oturum alan adları arasında taşınmaz — cüzdanı yeniden bağlayıp imzalayın.",
+  "dom.dismiss": "Anladım"
 }

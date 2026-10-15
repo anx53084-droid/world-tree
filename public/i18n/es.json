@@ -760,5 +760,15 @@
   "ads.redoing": "Conciliando…",
   "ads.ok": "Ampliación correcta: posición actualizada",
   "ads.okNew": "Nueva posición: n.º {rank} · puntuación {score} · puja acumulada {total} SOL",
-  "ads.okView": "Ver el efecto en el inicio"
+  "ads.okView": "Ver el efecto en el inicio",
+  "dom.aria": "Aviso de cambio de dominio",
+  "dom.suggest": "Este no es el dominio principal. Recomendamos {host} para una conexión más fiable.",
+  "dom.blocked": "Este dominio podría estar marcado por navegadores o carteras. Redirigiendo a {host} en {sec} s.",
+  "dom.unreach": "{host} no está disponible por ahora. Inténtalo más tarde o pulsa Ir para reintentar.",
+  "dom.go": "Ir ahora",
+  "dom.stay": "Quedarme aquí",
+  "dom.cancel": "Cancelar redirección",
+  "dom.note": "El idioma y otros ajustes locales se trasladan; en el nuevo dominio debes volver a iniciar sesión firmando con tu cartera.",
+  "dom.arrived": "Estás en {host}. La sesión no se conserva entre dominios: vuelve a conectar tu cartera y firma de nuevo.",
+  "dom.dismiss": "Entendido"
 }

@@ -1114,15 +1114,15 @@ let OGM = {}; fetch('/og/meta.json').then(r => r.json()).then(j => { OGM = j; wi
 const shareUrl = path => location.origin + '/?lang=' + encodeURIComponent(window.I18N?.lang || 'zh-CN') + '#' + path;
 function applySeo(p) {
   const r = SEO[p] || SEO['/'], zh = /^zh/.test(window.I18N?.lang || 'zh-CN'), title = zh ? r[0] : r[2], desc = zh ? r[1] : r[3];
-  const url = 'https://world-tree.pages.dev/' + (p && p !== '/' ? '#' + p : '');
+  const url = location.origin + '/' + (p && p !== '/' ? '#' + p : '');
   document.title = title; setMeta('meta[name="description"]', 'content', desc);
   setMeta('meta[property="og:title"]', 'content', title); setMeta('meta[property="og:description"]', 'content', desc); setMeta('meta[property="og:url"]', 'content', url);
   const L = window.I18N?.lang || 'zh-CN', om = OGM[L]; setMeta('meta[property="og:locale"]', 'content', om?.loc || (zh ? 'zh_CN' : 'en_US'));
   if (om && p === '/' && !/^(zh-CN|en)$/.test(L)) { const tt = om.b + ' · ' + om.t; document.title = tt; for (const s of ['meta[property="og:title"]', 'meta[name="twitter:title"]']) setMeta(s, 'content', tt); for (const s of ['meta[property="og:description"]', 'meta[name="twitter:description"]', 'meta[name="description"]']) setMeta(s, 'content', om.d); }
-  const img = `https://world-tree.pages.dev/og/og-${OGM[L] ? L : 'zh-CN'}.png`; for (const s of ['meta[property="og:image"]', 'meta[property="og:image:secure_url"]', 'meta[name="twitter:image"]']) setMeta(s, 'content', img);
+  const img = `${location.origin}/og/og-${OGM[L] ? L : 'zh-CN'}.png`; for (const s of ['meta[property="og:image"]', 'meta[property="og:image:secure_url"]', 'meta[name="twitter:image"]']) setMeta(s, 'content', img);
   setMeta('meta[property="og:url"]', 'content', url.replace('/#', '/?lang=' + L + '#').replace(/\/$/, '/?lang=' + L));
   setMeta('meta[name="twitter:title"]', 'content', title); setMeta('meta[name="twitter:description"]', 'content', desc);
-  const can = document.head.querySelector('link[rel="canonical"]'); if (can) can.href = 'https://world-tree.pages.dev/'; }
+  const can = document.head.querySelector('link[rel="canonical"]'); if (can) can.href = location.origin + '/'; }
 async function route() {
   S.curPos = (new URLSearchParams((location.hash.split('?')[1] || ''))).has('i') ? +(new URLSearchParams(location.hash.split('?')[1])).get('i') : null;
   S.swAC?.abort(); S.swAC = null; $('#view').classList.remove('sw-loading', 'sw-nudge'); // 切换页面即关闭详情：清理滑动监听

@@ -760,5 +760,15 @@
   "ads.redoing": "Reconciling…",
   "ads.ok": "Top-up successful — rank updated",
   "ads.okNew": "New rank: #{rank} · score {score} · cumulative bid {total} SOL",
-  "ads.okView": "See the effect on the home feed"
+  "ads.okView": "See the effect on the home feed",
+  "dom.aria": "Domain switch notice",
+  "dom.suggest": "This is not the main domain. We recommend {host} for a more reliable connection.",
+  "dom.blocked": "This domain may be flagged by browsers or wallets. Redirecting to {host} in {sec}s.",
+  "dom.unreach": "{host} is temporarily unreachable. Try again later, or press Go to retry.",
+  "dom.go": "Go now",
+  "dom.stay": "Stay here",
+  "dom.cancel": "Cancel redirect",
+  "dom.note": "Language and other local settings are carried over; you need to sign in again with your wallet on the new domain.",
+  "dom.arrived": "You are now on {host}. Sign-in does not carry across domains — please reconnect your wallet and sign again.",
+  "dom.dismiss": "Got it"
 }

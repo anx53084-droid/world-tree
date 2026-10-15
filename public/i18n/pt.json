@@ -760,5 +760,15 @@
   "ads.redoing": "Conciliando…",
   "ads.ok": "Reforço concluído — posição atualizada",
   "ads.okNew": "Nova posição: nº {rank} · pontuação {score} · lance acumulado {total} SOL",
-  "ads.okView": "Ver o efeito na página inicial"
+  "ads.okView": "Ver o efeito na página inicial",
+  "dom.aria": "Aviso de mudança de domínio",
+  "dom.suggest": "Este não é o domínio principal. Recomendamos {host} para uma conexão mais confiável.",
+  "dom.blocked": "Este domínio pode estar sinalizado por navegadores ou carteiras. Redirecionando para {host} em {sec} s.",
+  "dom.unreach": "{host} está temporariamente inacessível. Tente mais tarde ou toque em Ir para tentar de novo.",
+  "dom.go": "Ir agora",
+  "dom.stay": "Ficar aqui",
+  "dom.cancel": "Cancelar redirecionamento",
+  "dom.note": "Idioma e outras configurações locais são levados junto; no novo domínio você precisa entrar de novo assinando com a carteira.",
+  "dom.arrived": "Você está em {host}. O login não é mantido entre domínios — reconecte a carteira e assine novamente.",
+  "dom.dismiss": "Entendi"
 }

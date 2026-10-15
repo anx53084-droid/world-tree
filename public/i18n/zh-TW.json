@@ -760,5 +760,15 @@
   "ads.redoing": "補單中…",
   "ads.ok": "追加成功，排名已更新",
   "ads.okNew": "新排名：第 {rank} 名 · 得分 {score} · 累計出價 {total} SOL",
-  "ads.okView": "查看首頁效果"
+  "ads.okView": "查看首頁效果",
+  "dom.aria": "網域切換提示",
+  "dom.suggest": "目前網域不是主網域。建議前往 {host}，連線更穩定。",
+  "dom.blocked": "目前網域可能被瀏覽器或錢包標記為有問題，{sec} 秒後將自動前往新網域 {host}。",
+  "dom.unreach": "新網域 {host} 暫時無法連線，請稍後再試，或點擊前往重試。",
+  "dom.go": "立即前往",
+  "dom.stay": "留在此處",
+  "dom.cancel": "取消自動跳轉",
+  "dom.note": "語言等本機設定會一併帶過去；登入需要在新網域重新用錢包簽名。",
+  "dom.arrived": "你已來到新網域 {host}。登入狀態不會跨網域保留，請重新連接錢包並簽名。",
+  "dom.dismiss": "知道了"
 }

@@ -3,7 +3,7 @@
 (function () {
   const C = window.WT_CONFIG || {}, BASE = (C.apiBase || '').replace(/\/$/, '');
   window.WT_API = BASE; window.apiUrl = p => (BASE && typeof p === 'string' && p.startsWith('/api/') ? BASE + p : p);
-  const NO_RETRY = /^\/api\/(memo|airdrop|wish-paid|logout|login|2fa|email|sessions|inbox\/read|notify|security)\b/; // 有副作用的写请求不重试
+  const NO_RETRY = /^\/api\/(memo|airdrop|wish-paid|logout|login|2fa|email|sessions|inbox\/read|notify|security|domains)\b/; // 有副作用的写请求不重试
   const of = window.fetch.bind(window); let slow = 0, chipT = null;
   const chip = on => { slow += on ? 1 : -1; let c = document.getElementById('waking');
     if (slow > 0 && !c) { c = document.createElement('div'); c.id = 'waking'; document.body && document.body.append(c); }

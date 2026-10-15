@@ -13,7 +13,23 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: node scripts/build-pages.js
+        env:
+          WT_DOMAINS: ${{ vars.WT_DOMAINS }}
       - run: npx -y wrangler@3 pages deploy public --project-name world-tree --branch main --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # 可选：把同一份构建同时部署到其它 Cloudflare Pages 项目（多域名备份）。
+      # 在仓库 Variables 里设置 WT_EXTRA_PAGES_PROJECTS=proj-b,proj-c（逗号分隔）；未设置则跳过，不报错。
+      - name: Deploy to extra Pages projects (optional)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECTS: ${{ vars.WT_EXTRA_PAGES_PROJECTS }}
+        run: |
+          if [ -z "$PROJECTS" ]; then echo "WT_EXTRA_PAGES_PROJECTS not set — skipping extra projects"; exit 0; fi
+          for p in $(echo "$PROJECTS" | tr ',' ' '); do
+            case "$p" in *[!a-z0-9-]*|"") echo "skip invalid project name: $p"; continue;; esac
+            echo "deploying to $p"
+            npx -y wrangler@3 pages deploy public --project-name "$p" --branch main --commit-dirty=true || echo "::warning::deploy to $p failed (does the project exist?)"
+          done

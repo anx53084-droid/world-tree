@@ -12,7 +12,7 @@ const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
-const Gate = require('./gate'), Ads = require('./ads'); const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
+const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'); const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
@@ -95,7 +95,7 @@ function auth(req, db) { const t = (req.headers.authorization || '').replace('Be
   return { email: s.uid, uid: s.uid, user: db.users[s.uid], token: t, sess: s }; }
 const kindOf = uid => uid.startsWith('evm:') ? 'evm' : uid.startsWith('sol:') ? 'sol' : 'email';
 const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'email' ? uid : null, pubkey: u.pubkey, evm: u.evm || null, verified: !!u.verified, totp: !!u.totp?.on, custodial: !!u.secret, largeUsd: u.largeUsd || 20, country: u.country || '', province: u.province || '', city: u.city || '' });
-function allowHost(req) { const hs = new Set([req.headers.host]); const o = req.headers.origin; if (o && (CORS_RE.test(o) || ALLOWED.includes(o))) try { hs.add(new URL(o).host); } catch {} return d => hs.has(d); }
+function allowHost(req) { const hs = new Set([req.headers.host]); const o = req.headers.origin; if (o && Domains.originOk(o)) try { hs.add(new URL(o).host); } catch {} return d => hs.has(d); }
 const fail = (res, e, code = 400) => send(res, code, { error: e.message, code: e.code || 'err' });
 
 const goodsCache = new Map(), goodsRate = new Map(); // 预览缓存（10 分钟）与每用户限速（20 次/10 分钟）
@@ -412,6 +412,16 @@ async function api(req, res, url) {
     }
     return send(res, 404, { error: 'not found' });
   }
+  if (url === '/api/domains' && req.method === 'GET') { res.setHeader('cache-control', 'public, max-age=30'); return send(res, 200, Domains.list()); } // 公开：域名清单（前端启动时读取）
+  if (url.startsWith('/api/admin/domains')) { if (!Fulfill.ADMIN_KEY || !Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' });
+    const dErr = e => send(res, 400, { error: e.code || 'param', code: e.code || 'param' });
+    try { if (req.method === 'GET') return send(res, 200, url === '/api/admin/domains/check' ? { checks: await Domains.check(), ...Domains.list() } : Domains.list());
+      if (req.method !== 'POST') return send(res, 405, { error: 'method' }); const b = await body(req, 2000), host = String(b.host || '');
+      if (url === '/api/admin/domains/failover') { const probes = Object.fromEntries((await Domains.check()).map(x => [x.host, x.ok])); return send(res, 200, Domains.failover(h => probes[h] !== false)); } // 一键故障转移：主域不通 / 被标 blocked → 切到健康的备用域
+      if (url === '/api/admin/domains/check') return send(res, 200, { checks: await Domains.check(), ...Domains.list() });
+      const act = String(b.action || ''); if (act === 'add') return send(res, 200, Domains.add(host, b.status || 'standby', b.note));
+      if (act === 'primary') return send(res, 200, Domains.setPrimary(host)); if (act === 'status') return send(res, 200, Domains.setStatus(host, String(b.status || ''))); if (act === 'remove') return send(res, 200, Domains.remove(host));
+      return send(res, 400, { error: 'action', code: 'action' }); } catch (e) { return dErr(e); } }
   if (url === '/api/ads' && req.method === 'GET') { const q = new URL(req.url, 'http://x').searchParams, now = Math.floor(Date.now() / 1000); // 公开：不含得分；单个广告 ?id=，分页广告位 ?page=n
     if (q.get('id')) { const ad = Ads.one(String(q.get('id')), now); return ad ? send(res, 200, { ad }) : send(res, 404, { error: 'nf', code: 'nf' }); }
     return send(res, 200, { ...Ads.pageSlots(+q.get('page') || 1, now), per: Ads.PAGE, step: Ads.STEP }); }
@@ -547,12 +557,12 @@ async function api(req, res, url) {
   send(res, 404, { error: 'not found' });
 }
 
-const CORS_RE = new RegExp(process.env.CORS_ORIGIN_RE || '^https://([a-z0-9]+\\.)?world-tree\\.pages\\.dev$'), ALLOWED = (process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean);
+// CORS 白名单由 domains.js 动态生成（域名清单 + ALLOWED_ORIGINS + CORS_ORIGIN_RE），增删域名无需重新部署
 http.createServer(async (req, res) => {
   const url = req.url.split('?')[0];
   if (url.startsWith('/api/')) { // CORS：允许 Cloudflare Pages 前端（*.pages.dev 的 world-tree 项目及预览）与 ALLOWED_ORIGINS（自定义域名）；鉴权用 Bearer token，不用 cookie
-    const o = req.headers.origin; if (o && (CORS_RE.test(o) || ALLOWED.includes(o))) { res.setHeader('access-control-allow-origin', o); res.setHeader('vary', 'origin'); res.setHeader('access-control-allow-headers', 'content-type, authorization'); res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS'); res.setHeader('access-control-max-age', '86400'); }
-    else if (url.startsWith('/api/img/')) res.setHeader('access-control-allow-origin', '*'); // 公开图片（私密卡内页为密文）
+    const o = req.headers.origin; if (o && Domains.originOk(o)) { res.setHeader('access-control-allow-origin', o); res.setHeader('vary', 'origin'); res.setHeader('access-control-allow-headers', 'content-type, authorization'); res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS'); res.setHeader('access-control-max-age', '86400'); }
+    else if (url.startsWith('/api/img/') || url === '/api/domains') res.setHeader('access-control-allow-origin', '*'); // 公开图片（私密卡内页为密文）
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     return api(req, res, url).catch(e => send(res, 500, { error: e.message })); }
   let f = path.normalize(path.join(__dirname, 'public', url === '/' ? 'index.html' : url));

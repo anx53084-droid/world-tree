@@ -1,6 +1,7 @@
 // Cloudflare Pages 中间件：社交爬虫不执行 JS，按 ?lang= → Accept-Language → zh-CN 服务端改写 <head> 的 og/twitter/lang
 import META from '../public/og/meta.json';
-const LANGS = Object.keys(META), ORIGIN = 'https://world-tree.pages.dev';
+const LANGS = Object.keys(META); // 域名取当前请求的 origin（多域名部署，不写死）
+const DEFAULT_ORIGIN = 'https://world-tree.pages.dev';
 function match(l) { if (!l) return null; l = l.trim().toLowerCase();
   if (l.startsWith('zh')) return /tw|hk|mo|hant/.test(l) ? 'zh-TW' : 'zh-CN';
   return LANGS.find(k => k.toLowerCase() === l) || LANGS.find(k => k.toLowerCase() === l.split('-')[0]) || null; }
@@ -12,7 +13,8 @@ const attr = (v) => ({ element(e) { e.setAttribute('content', v); } });
 export async function onRequest(ctx) {
   const res = await ctx.next(), url = new URL(ctx.request.url);
   if (!(res.headers.get('content-type') || '').includes('text/html') || !(url.pathname === '/' || url.pathname === '/index.html')) return res;
-  const lang = pick(url, ctx.request.headers.get('accept-language')), m = META[lang];
+  const ORIGIN = url.origin, lang = pick(url, ctx.request.headers.get('accept-language')), m = META[lang];
+  const rehost = { element(e) { const h = e.getAttribute('href'); if (h && h.startsWith(DEFAULT_ORIGIN)) e.setAttribute('href', ORIGIN + h.slice(DEFAULT_ORIGIN.length)); } };
   const title = `${m.b} · ${m.t}`, img = `${ORIGIN}/og/og-${lang}.png`, page = `${ORIGIN}/?lang=${lang}`;
   const out = new HTMLRewriter()
     .on('html', { element(e) { e.setAttribute('lang', lang); e.setAttribute('dir', m.rtl ? 'rtl' : 'ltr'); } })
@@ -22,6 +24,7 @@ export async function onRequest(ctx) {
     .on('meta[property="og:description"]', attr(m.d)).on('meta[name="twitter:description"]', attr(m.d))
     .on('meta[property="og:image"]', attr(img)).on('meta[property="og:image:secure_url"]', attr(img)).on('meta[name="twitter:image"]', attr(img))
     .on('meta[property="og:image:alt"]', attr(`${title} — ${m.u}`)).on('meta[name="twitter:image:alt"]', attr(title))
+    .on('link[rel="canonical"]', { element(e) { e.setAttribute('href', ORIGIN + '/'); } }).on('link[rel="alternate"][hreflang]', rehost)
     .on('meta[property="og:locale"]', attr(m.loc)).on('meta[property="og:url"]', attr(page))
     .transform(res);
   const h = new Headers(out.headers); h.append('vary', 'Accept-Language'); h.set('cache-control', 'public, max-age=0, must-revalidate');
