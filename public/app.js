@@ -677,8 +677,8 @@ function ensureFeed() { if (!S.fp) initFeed('', visibleWishes(S.wishes)); }
 const hasMore = () => !!S.fp && S.fp.pages * FEED_PAGE < S.fp.ws.length;
 function loadNextPage() { const F = S.fp; if (!F) return Promise.resolve(false); if (F.pr) return F.pr; if (!hasMore()) return Promise.resolve(false); // 单飞：防重复触发
   F.loading = true; F.err = false; paintSw(); paintFeedMore();
-  F.pr = (async () => { try { const r = await fetch('/api/ads?page=' + (F.pages + 1)); if (!r.ok) throw 0; const j = await r.json(); S.ads = j.ads || S.ads; F.pages++; rebuildFeed(); return true; }
-    catch { F.err = true; return false; } finally { F.loading = false; F.pr = null; paintSw(); paintFeedMore(); if (!F.err && $('#wl')) softRefresh(); } })(); return F.pr; }
+  F.pr = (async () => { try { const r = await fetch('/api/ads?page=' + (F.pages + 1)); if (!r.ok) throw 0; const j = await r.json(); S.ads = j.ads || S.ads; F.pages++; rebuildFeed(); if ($('#view').classList.contains('sw-loading')) await sleep(180); return true; } // 动画可见时多停 ~180ms；预取完成则不延迟
+    catch { F.err = true; setTimeout(() => { if (S.fp === F && F.err) { F.err = false; paintSw(); paintFeedMore(); } }, 1500); return false; } finally { F.loading = false; F.pr = null; paintSw(); paintFeedMore(); if (!F.err && $('#wl')) softRefresh(); } })(); return F.pr; }
 const adCover = a => a.image ? esc(a.image) : WTCovers.url(a.cover || 0, 300, 400);
 const adCard = (a, pos) => `<div class="card hover ad ad-r${a.rank || 0}" data-cid="AD:${esc(a.id)}" data-pos="${pos}" data-rank="${a.rank || 0}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
   <div class=ad-row><img class=ad-cover alt="" loading=lazy src="${adCover(a)}"><div class=ad-main>${a.brand ? `<span class="muted ad-brand" dir=auto>${esc(a.brand)}</span>` : ''}<b dir=auto>${esc(a.title)}</b><p dir=auto>${esc(a.text)}</p></div></div>
@@ -710,18 +710,21 @@ function adDetail(id) { const a = S.ads.find(x => x.id === id); if (!a) { loadAd
   ${a.mode === 'external' && a.url ? `<div class=row><button type=button class=primary data-adgo>↗ ${E('ad.visit')}</button></div>` : ''}<p class="muted hint">${E('ad.disc')}</p></div>`; }
 // 详情滑动：沿用 feed 顺序
 function resolveIdx(sig) { const i = S.curPos; S.swIdx = i != null && S.feed[i] && feedKey(S.feed[i]) === sig ? i : S.feed.findIndex(it => feedKey(it) === sig); }
-function swBar() { if (S.swIdx < 0 || S.feed.length < 2) return ''; return `<div class=sw-bar id=swbar role=group aria-label="${E('sw.aria')}">${swBarInner()}</div>`; }
+function swBar() { if (S.swIdx < 0 || S.feed.length < 2) return ''; return `<div class=sw-bar id=swbar role=group aria-label="${E('sw.aria')}">${swBarInner()}</div><div class=sw-loader id=swloader aria-hidden=true><i></i><i></i><i></i></div>`; }
 function swBarInner() { const i = S.swIdx, n = S.feed.length, first = i <= 0, last = i >= n - 1, more = hasMore(), F = S.fp || {};
-  const nxt = last && more ? (F.loading ? `<span class="sw-btn sw-load" role=status>${E('sw.loading')}</span>` : `<button type=button class="sw-btn${F.err ? ' sw-err' : ''}" data-sw=1>${F.err ? E('sw.retry') : E('sw.nextPage')}</button>`)
+  const nxt = last && more ? (F.loading ? `<span class="sw-btn sw-load" role=status><span class=sw-sr>${E('sw.loading')}</span></span>` : `<button type=button class="sw-btn${F.err ? ' sw-err' : ''}" data-sw=1>${F.err ? E('sw.retry') : E('sw.nextPage')}</button>`)
     : `<button type=button class="sw-btn${last ? ' dim' : ''}" data-sw=1 ${last ? 'aria-disabled=true' : ''} aria-label="${E('sw.next')}">${last ? E('sw.end') : '›'}</button>`;
   return `<button type=button class="sw-btn${first ? ' dim' : ''}" data-sw=-1 ${first ? 'aria-disabled=true' : ''} aria-label="${E('sw.prev')}">‹</button><span class=sw-pos aria-live=polite>${E('sw.pos', { i: i + 1, n: n + (more ? '+' : '') })}</span>${nxt}`; }
-function paintSw() { const b = $('#swbar'); if (b) b.innerHTML = swBarInner(); }
+function paintSw() { const b = $('#swbar'); if (!b) return; b.innerHTML = swBarInner(); const F = S.fp || {}, on = !!F.loading && S.swIdx >= S.feed.length - 1 && hasMore(); // 光栖风格加载动画：仅在最后一张等待下一页时显示
+  b.setAttribute('aria-busy', on); $('#swloader')?.classList.toggle('on', on); $('#view').classList.toggle('sw-loading', on); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function swNudge() { const v = $('#view'); v.classList.remove('sw-nudge'); void v.offsetWidth; v.classList.add('sw-nudge'); setTimeout(() => v.classList.remove('sw-nudge'), 260); }
 function swTo(idx, dir) { const it = S.feed[idx]; if (!it) return; S.swLock = true; S.swDir = dir; track('card_view', feedKey(it), idx, it.t === 'ad' ? it.ad.rank || 0 : 0);
   S.curPos = idx; location.hash = '#/w/' + encodeURIComponent(feedKey(it)) + '?i=' + idx; setTimeout(() => S.swLock = false, 300); } // 动画锁
 async function swGo(dir) { if (S.swLock) return; const i = S.swIdx, n = S.feed.length;
   if (dir < 0) return i > 0 ? swTo(i - 1, -1) : undefined;
   if (i < n - 1) return swTo(i + 1, 1);
-  if (!hasMore() || S.swWait) return; S.swWait = true; const ok = await loadNextPage(); S.swWait = false; if (ok && S.swIdx === i && S.feed.length > i + 1) swTo(i + 1, 1); } // 最后一张：自动加载下一页并无缝继续
+  if (!hasMore() || S.swWait) return; if (!S.fp.loading) swNudge(); S.swWait = true; const ok = await loadNextPage(); S.swWait = false; if (ok && S.swIdx === i && S.feed.length > i + 1) swTo(i + 1, 1); } // 最后一张：自动加载下一页并无缝继续
 function bindSwiper(p) { const ac = S.swAC = new AbortController(), sg = { signal: ac.signal }, v = $('#view');
   if (S.swDir && !matchMedia('(prefers-reduced-motion: reduce)').matches) { v.classList.add(S.swDir > 0 ? 'sw-in-r' : 'sw-in-l'); setTimeout(() => v.classList.remove('sw-in-r', 'sw-in-l'), 320); } S.swDir = 0;
   $('#swbar')?.addEventListener('click', e => { const b = e.target.closest('[data-sw]'); if (b && b.getAttribute('aria-disabled') !== 'true') swGo(+b.dataset.sw); }, sg);
@@ -730,7 +733,7 @@ function bindSwiper(p) { const ac = S.swAC = new AbortController(), sg = { signa
   v.addEventListener('touchstart', e => { x0 = e.target.closest('textarea,input,select') ? null : e.touches[0].clientX; y0 = e.touches[0].clientY; }, { ...sg, passive: true });
   v.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.5) swGo(dx < 0 ? 1 : -1); }, sg); // 50px 阈值
   document.addEventListener('keydown', e => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; if (!$('#modal').hidden || e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input,textarea,select,[contenteditable]')) return; swGo(e.key === 'ArrowRight' ? 1 : -1); }, sg);
-  if (S.swIdx >= S.feed.length - 10 && hasMore()) loadNextPage(); } // 距末尾 ~10 张时预取下一页
+  paintSw(); if (S.swIdx >= S.feed.length - 10 && hasMore()) loadNextPage(); } // 距末尾 ~10 张时预取下一页
 function list(q, only) {
   const kw = q.get('q') || '', sort = q.get('sort') || 'new', cat = q.get('cat') || '', type = q.get('type') || '', days = +q.get('days') || 0, minHeat = +q.get('heat') || 0, now = Date.now() / 1000, kql = kw.toLowerCase();
   loadCardMeta(); loadGoodsMeta();
@@ -1058,7 +1061,7 @@ function applySeo(p) {
   const can = document.head.querySelector('link[rel="canonical"]'); if (can) can.href = 'https://world-tree.pages.dev/'; }
 async function route() {
   S.curPos = (new URLSearchParams((location.hash.split('?')[1] || ''))).has('i') ? +(new URLSearchParams(location.hash.split('?')[1])).get('i') : null;
-  S.swAC?.abort(); S.swAC = null; // 切换页面即关闭详情：清理滑动监听
+  S.swAC?.abort(); S.swAC = null; $('#view').classList.remove('sw-loading', 'sw-nudge'); // 切换页面即关闭详情：清理滑动监听
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
   const pages = { '/treehole': treeholePage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };

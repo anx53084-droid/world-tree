@@ -392,3 +392,13 @@ svg.gface { height: auto }
 .sw-btn.dim { opacity: .45; cursor: default } .sw-btn.sw-err { border-color: #ff9a7a; color: #ffb59c } .sw-load { cursor: default; opacity: .85 }
 .sw-pos { font-variant-numeric: tabular-nums; color: #cfd6ff; font-size: 13px }
 .ad-main > * { display: block }
+/* 下一页加载动画（光栖风格：三颗金色圆点呼吸） */
+.sw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
+.sw-loader { animation: none; position: fixed; inset-inline-end: 12px; top: 50%; display: flex; gap: 6px; opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 5 }
+.sw-loader.on { opacity: 1 } .sw-loader i { width: 9px; height: 9px; border-radius: 50%; background: #e8c87a; box-shadow: 0 0 8px #e8c87a99; opacity: .5 }
+@media (prefers-reduced-motion: no-preference) {
+  .sw-loader.on i { animation: swpulse 1.2s ease-in-out infinite } .sw-loader i:nth-child(2) { animation-delay: .2s !important } .sw-loader i:nth-child(3) { animation-delay: .4s !important }
+  #view > *:not(.sw-loader) { transition: translate .22s ease } #view.sw-loading > *:not(.sw-loader) { translate: -12px 0 }
+  #view.sw-nudge > *:not(.sw-loader) { animation: swnudge .24s ease-out } }
+@keyframes swpulse { 0%, 100% { transform: scale(.6); opacity: .35 } 50% { transform: scale(1.15); opacity: 1 } }
+@keyframes swnudge { 0%, 100% { translate: 0 0 } 40% { translate: -8px 0 } }
