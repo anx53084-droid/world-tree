@@ -8,7 +8,7 @@ services:
     envVars:
       - key: MODERATOR_SECRET
         sync: false
-      - key: RECEIVE_PUBKEY # Solana 单一收款地址（全额）
+      - key: RECEIVE_PUBKEY # 已弃用：收款地址见 receive-config.js；此变量只会被当作“历史收款地址”（仅校验旧记录）
         sync: false
       - key: DEV_PUBKEY # 兼容旧名；未设 RECEIVE_PUBKEY 时可用
         sync: false
@@ -34,15 +34,15 @@ services:
         sync: false
       - key: ADMIN_KEY # 星愿大使后台（x-admin-key）
         sync: false
-      - key: EVM_PAY_ETH # Ethereum/Sepolia 单一收款
+      - key: EVM_PAY_ETH # 已弃用：见 receive-config.js；只会被当作历史收款地址
         sync: false
-      - key: EVM_PAY_BSC # BNB/BSC 单一收款
+      - key: EVM_PAY_BSC # 已弃用：见 receive-config.js；只会被当作历史收款地址
         sync: false
-      - key: EVM_PAY_BASE # Base 单一收款
+      - key: EVM_PAY_BASE # 已弃用：见 receive-config.js；只会被当作历史收款地址
         sync: false
-      - key: EVM_PAY_ARB # Arbitrum 单一收款
+      - key: EVM_PAY_ARB # 已弃用：见 receive-config.js；只会被当作历史收款地址
         sync: false
-      - key: EVM_PAY_UNI # UNI：Unichain 未实现时经以太坊路径，地址标 UNI
+      - key: EVM_PAY_UNI # 已弃用：见 receive-config.js；只会被当作历史收款地址
         sync: false
       - key: RESEND_API_KEY # 邮箱验证码发送（可选，配合 MAIL_FROM）
         sync: false

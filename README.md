@@ -40,8 +40,8 @@ moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核�
 拒绝提示：「您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。」并显示命中类别。
 
 ### 支付
-金额自由填写，最低 1 美元等值 SOL（价格优先取 CoinGecko，失败用常量 `SOL_USD`，默认 150）。全额转入单一收款地址（`RECEIVE_PUBKEY`）。**不实现**任何 LP 收益、分红、循环返利。
-收款地址由环境变量 `RECEIVE_PUBKEY` 配置（本地未设时生成 `data/payees.json`）。
+金额自由填写，最低 1 美元等值 SOL（价格优先取 CoinGecko，失败用常量 `SOL_USD`，默认 150）。全额转入各链单一收款地址（多签金库，见 `receive-config.js`）。**不实现**任何 LP 收益、分红、循环返利。
+收款地址集中配置在 `receive-config.js`（Solana：Squads 金库；ETH / BSC：Safe；其余链暂用原地址），说明见 `docs/receive-addresses.md`。旧的 `RECEIVE_PUBKEY` / `EVM_PAY_*` 环境变量不再决定当前地址，只会被当作历史地址（仅用于校验已有记录）。
 
 
 ### 星愿大使 · 物质类心愿实现（惊喜）
@@ -150,7 +150,7 @@ server.js · moderation.js · fulfillment.js（心愿实现 + 内部记账） ·
 ## 多链钱包 · 安全设置 · 站内信
 - **钱包**（非托管，只请求签名）：Solana — Phantom / Solflare / Backpack / OKX（Wallet Standard 优先，注入式回退）；EVM — MetaMask / OKX / Coinbase / 任意 EIP-6963 钱包，可切换 BSC Testnet、Base Sepolia、Sepolia、Arbitrum Sepolia、Unichain Sepolia。移动端未检测到钱包时用各钱包深链接在其内置浏览器打开本站。
 - **登录**：EIP-4361 风格消息（一次性 nonce，5 分钟有效，校验域名）。EVM 用 `personal_sign`（服务器 secp256k1 恢复地址），Solana 用 `signMessage`（ed25519）。愿望仍以 Solana devnet 为唯一事实来源：EVM 账户由服务器托管一个 devnet 密钥签 memo（演示）。
-- **EVM 支付**：按链设置 `EVM_PAY_ETH` / `EVM_PAY_BSC` / `EVM_PAY_BASE` / `EVM_PAY_ARB`（及可选 `EVM_PAY_UNI`）后开启；用户钱包发送**一笔**原生币转账至该链收款地址。含 Unichain Sepolia（chainId 1301，`EVM_PAY_UNI`）。服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
+- **EVM 支付**：各链收款地址在 `receive-config.js`（ETH / BSC 为 Safe 多签，Base / Arb / UNI 暂用原地址）；用户钱包发送**一笔**原生币转账至该链收款地址。含 Unichain Sepolia（chainId 1301，`uni`）。服务器经各链 RPC（`EVM_RPC_<chainId>` 可覆盖）核验发送者、收款方、金额 ≥ 1 美元且未被重复使用后再上链。未设置时只显示 EVM 登录。
 - **安全设置** `#/security`：已登录设备列表、单独退出 / 退出其他所有设备；邮箱验证（需 `RESEND_API_KEY` + `MAIL_FROM`）；邮箱账户可选 TOTP（Google Authenticator，RFC 6238）；大额支付确认（默认 ≥ 20 美元，开启 2FA 时需验证码，服务器同样校验）。
 - **站内信** `#/inbox` / **消息设置** `#/notify`：打开页面或菜单时获取，不轮询。星愿大使通过 `POST /api/admin/fulfillments/fulfill` 标记心愿实现时给愿望主人发站内信；`POST /api/admin/notice {title, body}` 发系统通知（`GET /api/admin/notice` 列表、`POST /api/admin/notice/delete {id}` 删除）（均需 `x-admin-key`）。
 

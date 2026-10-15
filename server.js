@@ -34,12 +34,8 @@ function verifyWishMemo(memo) { // WTREE1|W|hash|ts|sig|分类|正文  或  WTRE
   const m = memo.match(/^WTREE1\|[WB]\|([0-9a-f]{64})\|(\d{10})\|([0-9a-f]{128})\|([^|]{1,400}\|[^|]{1,600})$/u); if (!m) return false;
   return sha256hex(m[4]) === m[1] && nacl.sign.detached.verify(attMsg(m[1], m[2]), Buffer.from(m[3], 'hex'), MODKEY.publicKey);
 }
-const PAYEES_F = path.join(DATA_DIR, 'payees.json'); let PAYEES = null; try { PAYEES = JSON.parse(fs.readFileSync(PAYEES_F)); } catch {}
-if (!PAYEES) { const r = web3.Keypair.generate(); PAYEES = { receive: { pubkey: r.publicKey.toBase58(), secret: Array.from(r.secretKey) }, developer: { pubkey: r.publicKey.toBase58() }, treasury: { pubkey: r.publicKey.toBase58() } };
-  if (!process.env.RECEIVE_PUBKEY && !process.env.TREASURY_PUBKEY && !process.env.DEV_PUBKEY) { fs.writeFileSync(PAYEES_F, JSON.stringify(PAYEES, null, 2), { mode: 0o600 }); console.warn('⚠️  generated new devnet receive keypair in data/payees.json (set RECEIVE_PUBKEY)'); } }
-// 单一 Solana 收款地址（全额）；优先 RECEIVE_PUBKEY，其次 TREASURY_PUBKEY / DEV_PUBKEY / 本地 payees
-const recvStr = process.env.RECEIVE_PUBKEY || process.env.TREASURY_PUBKEY || process.env.DEV_PUBKEY || PAYEES.receive?.pubkey || PAYEES.treasury?.pubkey || PAYEES.developer?.pubkey;
-PAYEES.receive = { pubkey: recvStr }; PAYEES.developer = { pubkey: recvStr }; PAYEES.treasury = { pubkey: recvStr };
+// Solana 收款地址来自 receive-config.js（Squads 金库，off-curve PDA：System Program 转账与 PublicKey 构造均不要求在曲线上）；历史地址仅用于校验已有记录
+const RC = Acc.RC, recvStr = RC.sol.address;
 const RECEIVE = new web3.PublicKey(recvStr), DEV = RECEIVE, TREASURY = RECEIVE;
 const MIN_USD = 1, SOL_USD_FALLBACK = +process.env.SOL_USD || 150; let priceCache = { usd: SOL_USD_FALLBACK, src: 'fallback', at: 0 };
 const COIN_FB = { ethereum: +process.env.ETH_USD || 3000, binancecoin: +process.env.BNB_USD || 600 }; priceCache.coins = { ...COIN_FB };
@@ -151,7 +147,7 @@ async function verifySolPay(sig, signer) { // 核验：交易成功、签名者 
   if (ADS_MOCK) { const m = adsMockRead('ads-mock-pay.json')[sig]; return m && m.signer === signer ? { lamports: m.lamports, time: Math.floor(Date.now() / 1000) } : null; }
   for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
     if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], from = k.pubkey?.toBase58?.() || String(k.pubkey || k); if (from !== signer) return null;
-      let lam = 0; for (const ix of tx.transaction.message.instructions) { const p = ix.parsed; if (ix.program === 'system' && p?.type === 'transfer' && p.info.destination === RECEIVE.toBase58() && p.info.source === signer) lam += +p.info.lamports; }
+      let lam = 0; for (const ix of tx.transaction.message.instructions) { const p = ix.parsed; if (ix.program === 'system' && p?.type === 'transfer' && RC.isSolRecv(p.info.destination) && p.info.source === signer) lam += +p.info.lamports; }
       return lam > 0 ? { lamports: lam, time: tx.blockTime || Math.floor(Date.now() / 1000) } : null; } } catch {} await new Promise(r => setTimeout(r, 1500)); } return null; }
 Ads.setVerifier(verifySolPay);
 async function creditEvm(db, U, id, evm, now) { // EVM 链：原生币转入该链收款地址；折算为 SOL 等值计入（服务端核验：收款方 / 发送者 / 金额 / 一笔交易只能用一次）
@@ -302,11 +298,11 @@ async function api(req, res, url) {
     return send(res, 200, url === '/api/tiles' ? { total: N, level, tiles: regs.map(one) } : { total: N, level, ...one(regs[0]) });
   }
   if (url === '/api/config') { const p = await solPrice();
-    const chains = Object.fromEntries(Object.entries(Acc.CHAINS).map(([id, c]) => [id, { key: c.key, name: c.name, sym: c.sym, coin: c.coin, exp: c.exp, rpc: c.rpc, receive: Acc.EVM_RECV[c.key] || null }]));
+    const chains = Object.fromEntries(Object.entries(Acc.CHAINS).map(([id, c]) => [id, { key: c.key, name: c.name, sym: c.sym, coin: c.coin, exp: c.exp, rpc: c.rpc, receive: Acc.EVM_RECV_DISPLAY[c.key] || null }]));
     const routes = {};
-    for (const [id, c] of Object.entries(Acc.CHAINS)) if (Acc.EVM_RECV[c.key]) routes[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: Acc.EVM_RECV[c.key] };
-    return send(res, 200, { receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, minLamports: minLamports(p.usd), moderator: MOD_PUB,
-    evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV }, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20 }); }
+    for (const [id, c] of Object.entries(Acc.CHAINS)) if (Acc.EVM_RECV[c.key]) routes[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: Acc.EVM_RECV_DISPLAY[c.key] };
+    return send(res, 200, { receiveLegacy: RC.legacy.sol, receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, minLamports: minLamports(p.usd), moderator: MOD_PUB,
+    evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV_DISPLAY }, legacy: RC.legacy.evm, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20 }); }
   if (url === '/api/nonce') return send(res, 200, { nonce: Acc.nonce() });
   if (url === '/api/login/wallet' && req.method === 'POST') { // 钱包签名登录：EVM（personal_sign，EIP-4361 格式）或 Solana（signMessage）；不涉及私钥、不发交易
     const lb = await body(req); let v; try { v = Acc.verifyLogin(lb, allowHost(req)); } catch (e) { return fail(res, e, 401); }

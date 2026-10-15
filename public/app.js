@@ -136,7 +136,7 @@ async function parseTx(sig, tx) {
   const k0 = tx.transaction.message.accountKeys[0], author = k0.pubkey || k0;
   const recv = S.cfg.receive || S.cfg.treasury || S.cfg.developer; let paid = 0, devPaid = 0;
   for (const i of ins) if (i.program === 'system' && i.parsed?.type === 'transfer') { const d = i.parsed.info.destination;
-    if (d === recv) { paid += i.parsed.info.lamports; } }
+    if (d === recv || S.cfg.receiveLegacy?.includes(d)) { paid += i.parsed.info.lamports; } }
   return { sig, author, memo, time: tx.blockTime, paid, devPaid, verified: memo.startsWith(TAG + 'L|') || await verifyAtt(memo) };
 }
 async function loadWishes(force) {
@@ -994,6 +994,7 @@ function wishPanel() {
   ${evmPayHtml()}
   <span class=muted id=solmin>${E('wish.min', { min: sol(min), usd: S.cfg.solUsd, src: t(S.cfg.priceSource === 'fallback' ? 'wish.srcFallback' : 'wish.srcLive') })}</span></div>
   <p class=muted id=split></p>
+  <p class="muted recvline">${E('help.receive')} <code id=recvaddr dir=ltr>${esc(S.cfg.receive || '')}</code></p>
   <div class=notice>${E('mod.notice')}</div>
   ${agreedTerms ? '' : `<label class=agree><input type=checkbox id=ag2> <span>${E('wish.agreeTerms', { doc: '\u0001' }).replace('\u0001', `<a href="#/terms" target=_blank>${E('terms.title')}</a>`)}</span></label>`}
   <label class=agree><input type=checkbox id=ag> <span>${E('mod.agree')}</span></label>
@@ -1204,10 +1205,11 @@ async function route() {
     syncShip(); syncKind(); const fc = ta.closest('.card'); fc.addEventListener('input', saveD); fc.addEventListener('change', saveD); ['#covers', '#insides'].forEach(sel => $(sel)?.addEventListener('click', () => setTimeout(saveD))); renderPreview();
     const upd = () => { const ok = $('#ag').checked && (!$('#ag2') || $('#ag2').checked); $('#ws').disabled = !ok; $('#ws').classList.toggle('breathe', ok);
       const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { amt: sol(l), dev: sol(l), tre: sol(l) }); };
-    fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); const a = $('#amt'); if (a) { a.min = c.minLamports / 1e9; if (+a.value * 1e9 < c.minLamports) a.value = (Math.ceil(c.minLamports / 1e5) / 1e4).toFixed(4); upd(); } }).catch(() => {});
+    fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); if (typeof paintRecv === 'function') paintRecv(); const a = $('#amt'); if (a) { a.min = c.minLamports / 1e9; if (+a.value * 1e9 < c.minLamports) a.value = (Math.ceil(c.minLamports / 1e5) / 1e4).toFixed(4); upd(); } }).catch(() => {});
     ta.addEventListener('input', () => $('#wc').textContent = [...ta.value].length + '/' + ta.maxLength); ['#ag', '#ag2', '#amt'].forEach(s => $(s)?.addEventListener('input', upd)); upd();
-    $('#evc')?.addEventListener('change', e => { const key = e.target.value, r = evmRoutes()[key]; localStorage.wt_pay = key; localStorage.wt_chain = String(r.chainId); $('#eva').value = evmMinByRoute(key); $('#evaL').textContent = t('wish.evmAmt', { sym: r.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMinByRoute(key), sym: r.sym }); });
-    const pvSync = () => { const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
+    $('#evc')?.addEventListener('change', e => { const key = e.target.value, r = evmRoutes()[key]; paintRecv(); localStorage.wt_pay = key; localStorage.wt_chain = String(r.chainId); $('#eva').value = evmMinByRoute(key); $('#evaL').textContent = t('wish.evmAmt', { sym: r.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMinByRoute(key), sym: r.sym }); });
+    const paintRecv = () => { const ev = $('#pv')?.value === 'evm', R = evmRoutes(), r = ev && R[$('#evc')?.value]; if ($('#recvaddr')) $('#recvaddr').textContent = (r ? r.receive : S.cfg.receive) || ''; }; // 当前支付链的收款地址（Solana 金库 / 各链 Safe）
+    const pvSync = () => { paintRecv(); const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
     $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = $('#wc2').value;
       const shippingNote = ($('#ckind')?.value || 'wish') === 'goods' ? ($('#ship')?.value || '').trim() : '';
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');

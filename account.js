@@ -13,13 +13,10 @@ const CHAINS = { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB',
   1301: { key: 'uni', name: 'Unichain Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia.unichain.org', exp: 'https://sepolia.uniscan.xyz' } };
 for (const id in CHAINS) if (process.env['EVM_RPC_' + id]) CHAINS[id].rpc = process.env['EVM_RPC_' + id];
 const isAddr = a => /^0x[0-9a-fA-F]{40}$/.test(a || '');
-// 每链单一收款地址（无 20/80 拆分）。UNI 链未实现：经以太坊路径支付，地址标为 UNI。
-const PAY_ENV = { bsc: 'EVM_PAY_BSC', base: 'EVM_PAY_BASE', eth: 'EVM_PAY_ETH', arb: 'EVM_PAY_ARB', uni: 'EVM_PAY_UNI' };
-const EVM_RECV = {};
-for (const [k, env] of Object.entries(PAY_ENV)) { const a = process.env[env]; if (isAddr(a)) EVM_RECV[k] = a.toLowerCase(); }
-// 兼容旧双地址：若未设 EVM_PAY_* 但设了旧变量，则各链共用金库地址
-if (!Object.keys(EVM_RECV).length) { const legacy = isAddr(process.env.EVM_TREASURY_ADDRESS) ? process.env.EVM_TREASURY_ADDRESS.toLowerCase() : (isAddr(process.env.EVM_DEV_ADDRESS) ? process.env.EVM_DEV_ADDRESS.toLowerCase() : '');
-  if (legacy) for (const k of ['bsc', 'base', 'eth', 'arb']) EVM_RECV[k] = legacy; }
+// 每链单一收款地址（无 20/80 拆分）：来自 receive-config.js（当前地址 + 历史地址）。UNI 链未实现：经以太坊路径支付，地址标为 UNI。
+const RC = require('./receive-config');
+const EVM_RECV = {}; for (const [k, v] of Object.entries(RC.evm)) EVM_RECV[k] = v.lower; // 小写，用于比对
+const EVM_RECV_DISPLAY = Object.fromEntries(Object.entries(RC.evm).map(([k, v]) => [k, v.address])); // EIP-55 校验和，用于显示与交易 to
 const EVM_PAY = Object.keys(EVM_RECV).length > 0;
 const UNI_CHAIN_IMPLEMENTED = true; // Unichain Sepolia (1301)
 const EVM_DEV = EVM_RECV.eth || '', EVM_TREASURY = EVM_RECV.eth || ''; // 兼容旧导出字段
@@ -28,6 +25,7 @@ function recvFor(chainId, payKey) {
   const key = payKey && EVM_RECV[payKey] ? payKey : c.key;
   return EVM_RECV[key] || EVM_RECV[c.key] || '';
 }
+const recvKeyFor = (chainId, payKey) => { const c = CHAINS[chainId]; return c && payKey && EVM_RECV[payKey] ? payKey : c?.key; }
 
 // ---- 签名登录 ----
 const EVM_LOGIN_CHAINS = new Set([56, 97, 8453, 84532, 1, 11155111, 42161, 421614, 130, 1301]); // BSC / Base / Ethereum / Arbitrum / Unichain 主网与测试网
@@ -113,9 +111,9 @@ async function verifyEvmPay(db, { chainId, txs, payKey }, from, usdPer, minUsd) 
   if (!tx || !rc || rc.status !== '0x1') throw Object.assign(new Error('tx not confirmed'), { code: 'evmPending' });
   if ((tx.from || '').toLowerCase() !== from || (tx.chainId && +tx.chainId !== chainId)) throw Object.assign(new Error('tx sender mismatch'), { code: 'evmTx' });
   const to = (tx.to || '').toLowerCase(), tot = BigInt(tx.value);
-  if (to !== recv) throw Object.assign(new Error('wrong recipient'), { code: 'evmTx' });
+  if (to !== recv && !RC.isEvmRecv(recvKeyFor(chainId, payKey), to)) throw Object.assign(new Error('wrong recipient'), { code: 'evmTx' });
   if (!tot) throw Object.assign(new Error('amount below minimum'), { code: 'amount' });
   const usd = Number(tot) / 1e18 * usdPer; if (!(usd >= minUsd * 0.98)) throw Object.assign(new Error('amount below minimum'), { code: 'amount' });
   db.usedEvm[k] = Date.now(); return { usd, wei: tot.toString(), sym: CHAINS[chainId].sym, recv, payKey: payKey || CHAINS[chainId].key }; }
 
-module.exports = { genRecovery, check2fa, issueTicket, peekTicket, useTicket, CHAINS, EVM_DEV, EVM_TREASURY, EVM_PAY, EVM_RECV, UNI_CHAIN_IMPLEMENTED, recvFor, MAIL_ON, ECHO, nonce, verifyLogin, evmRecover, parseSiwe, b32enc, totpNow, totpOk, sendMail, tokHash, normSessions, newSession, pushMsg, prefs, inboxOf, notifyFulfil, verifyEvmPay };
+module.exports = { genRecovery, check2fa, issueTicket, peekTicket, useTicket, CHAINS, EVM_DEV, EVM_TREASURY, EVM_PAY, EVM_RECV, EVM_RECV_DISPLAY, RC, UNI_CHAIN_IMPLEMENTED, recvFor, MAIL_ON, ECHO, nonce, verifyLogin, evmRecover, parseSiwe, b32enc, totpNow, totpOk, sendMail, tokHash, normSessions, newSession, pushMsg, prefs, inboxOf, notifyFulfil, verifyEvmPay };

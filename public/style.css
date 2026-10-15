@@ -416,3 +416,4 @@ svg.gface { height: auto }
 /* 域名切换提示条 */
 #dombar { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 8px 12px; font-size: 14px; background: #2b2410; color: #ffe3a0; border-bottom: 1px solid #f6d38a88 }
 #dombar.blocked { background: #3a1410; color: #ffd0c4; border-color: #ff8a70aa } #dombar.info { background: #10301f; color: #c4f5da; border-color: #5ad1a0aa } #dombar small { display: block; opacity: .85 }
+.recvline code { word-break: break-all; overflow-wrap: anywhere; user-select: all }
