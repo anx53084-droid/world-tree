@@ -12,7 +12,7 @@ const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
-const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
+const Gate = require('./gate'); const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
@@ -141,6 +141,104 @@ async function txInfo(sig) { // 读取自己刚上链的交易（最多重试 4 
     if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], author = k.pubkey?.toBase58?.() || String(k.pubkey || k);
       const ix = tx.transaction.message.instructions.find(x => x.program === 'spl-memo' || x.programId?.toBase58?.() === MEMO.toBase58()); return { author, memo: typeof ix?.parsed === 'string' ? ix.parsed : null }; } } catch {}
     await new Promise(r => setTimeout(r, 1500)); } return null; }
+
+// ================= 门卡（Gate Card）=================
+const GATE_MOCK = process.env.GATE_MOCK_STATS === '1'; // 仅测试：从 data/gate-mock-stats.json 读取统计，不读链
+const statsCache = new Map();
+async function chainStats(addr, user) { // 条件统计：心愿数 / 收到的有效祝福 / 账号天数 / 本月新心愿。链上数据 5 分钟缓存
+  const now = Math.floor(Date.now() / 1000);
+  if (GATE_MOCK) { let m = {}; try { m = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'gate-mock-stats.json')))[addr] || {}; } catch {} return { wishes: m.wishes || 0, blessings: m.blessings || 0, ageDays: m.ageDays || 0, monthWishes: m.monthWishes || 0 }; }
+  const hit = statsCache.get(addr); if (hit && Date.now() - hit.at < 300000) return hit.v;
+  const v = { wishes: 0, blessings: 0, ageDays: 0, monthWishes: 0 }; let first = 0;
+  try { const pk = new web3.PublicKey(addr), sigs = (await conn.getSignaturesForAddress(pk, { limit: 200 })).filter(x => !x.err), mine = new Set();
+    for (let i = 0; i < sigs.length; i += 25) { const txs = await conn.getParsedTransactions(sigs.slice(i, i + 25).map(x => x.signature), { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+      txs.forEach((tx, j) => { if (!tx) return; const k = tx.transaction.message.accountKeys[0], au = k.pubkey?.toBase58?.() || String(k.pubkey || k); if (au !== addr) return;
+        const ix = tx.transaction.message.instructions.find(x => x.program === 'spl-memo'), memo = typeof ix?.parsed === 'string' ? ix.parsed : ''; if (!/^WTREE1\|W\|/.test(memo) || !verifyWishMemo(memo)) return;
+        const bt = sigs[i + j].blockTime || 0; mine.add(sigs[i + j].signature); v.wishes++; if (bt >= Gate.monthStart(now)) v.monthWishes++; if (!first || bt < first) first = bt; }); }
+    if (mine.size) { const ts = (await conn.getSignaturesForAddress(TREE, { limit: 300 })).filter(x => !x.err); const who = new Set();
+      for (let i = 0; i < ts.length; i += 25) { const txs = await conn.getParsedTransactions(ts.slice(i, i + 25).map(x => x.signature), { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+        for (const tx of txs) { if (!tx) continue; const ix = tx.transaction.message.instructions.find(x => x.program === 'spl-memo'), memo = typeof ix?.parsed === 'string' ? ix.parsed : ''; const f = memo.split('|');
+          if (f[1] === 'B' && mine.has(f[5]) && verifyWishMemo(memo)) { const k = tx.transaction.message.accountKeys[0], au = k.pubkey?.toBase58?.() || String(k.pubkey || k); if (au !== addr) v.blessings++; } } } }
+  } catch (e) { console.error('gate stats:', e.message); if (hit) return hit.v; }
+  const created = Math.floor((user?.created || 0) / 1000), t0 = [first, created].filter(Boolean).sort((a, b) => a - b)[0] || now; v.ageDays = Math.floor((now - t0) / 86400);
+  statsCache.set(addr, { at: Date.now(), v }); return v; }
+const gateAddrs = U => [U.pubkey, U.evm].filter(Boolean);
+const gateNotice = (db, pk, m) => { const owners = Object.values(db.users).filter(u => u.pubkey === pk); if (owners.length && owners.every(u => !Acc.prefs(u).gate)) return 0; Acc.pushMsg(db, pk, m); return 1; };
+const gateRecip = (db, owner) => Soc.evmOk(owner) ? [...new Set(Object.values(db.users).filter(u => u.evm === owner.toLowerCase()).map(u => u.pubkey))] : [owner];
+function gateSweep(db, G) { const now = Math.floor(Date.now() / 1000); let n = 0; for (const { card, kind } of Gate.sweep(G, now)) for (const pk of gateRecip(db, card.owner)) n += gateNotice(db, pk, { kind, cardId: card.id, gateId: card.gateId, name: card.name, expireAt: card.expireAt }); return n; }
+const gateLoad = () => Gate.seed(Gate.load());
+const TH_MAX = 140, TH_DAY_LIMIT = 10; // 树洞：仅持有效成就门卡的地址可读写；内容存服务端（链下），读取接口逐次校验门卡
+const achOf = (G, k, st) => Object.values(G.rules).filter(r => r.enabled && !G.claims[k]?.[r.id]).map(r => ({ rule: pubRuleOf(r), ...Gate.evalRule(r, st), claimable: !!G.claimable[k]?.[r.id] }));
+const pubRuleOf = r => ({ id: r.id, name: r.name, benefit: r.benefit, cond: r.cond, validity: r.validity, claimDays: r.claimDays, enabled: r.enabled, unlocks: r.unlocks || [] });
+async function gateApi(req, res, url, db) { // 返回 true 表示已处理
+  const q = new URL(req.url, 'http://x').searchParams, now = Math.floor(Date.now() / 1000), admin = Fulfill.ADMIN_KEY && Fulfill.adminOk(req);
+  const A = () => auth(req, db), deny = (st, code, extra = {}) => send(res, st, { error: code, code, ...extra });
+  const pubRule = pubRuleOf;
+  if (url === '/api/gate/rules' && req.method === 'GET') { const G = gateLoad(); return send(res, 200, { rules: Object.values(G.rules).filter(r => r.enabled).map(pubRule) }), true; }
+  if (url === '/api/gate/me' && req.method === 'GET') { const a = A(); if (!a) return deny(401, 'NOT_LOGIN'), true; const U = a.user, G = gateLoad(); let changed = false;
+    const st = await chainStats(U.pubkey, U); const created = Gate.scan(G, U.pubkey, st, now);
+    for (const r of created) { gateNotice(db, U.pubkey, { kind: 'gate_claimable', gateId: r.id, name: r.name }); changed = true; }
+    if (gateSweep(db, G)) changed = true;
+    const k = Gate.addrKey(U.pubkey), cl = Object.values(G.claimable[k] || {}).map(c => ({ ...c, rule: pubRule(G.rules[c.ruleId]) }));
+    const progress = achOf(G, k, st);
+    const cooldownUntil = G.claims[k]?._last ? G.claims[k]._last + Gate.COOL : 0;
+    if (created.length || changed) { Gate.save(G); save(db); }
+    return send(res, 200, { cards: Gate.cardsOf(G, gateAddrs(U)).map(c => Gate.view(c, now)).sort((x, y) => y.issuedAt - x.issuedAt), claimable: cl, progress, unlocked: Gate.check(G, gateAddrs(U), Gate.unlockIds(G, 'treehole'), now).ok, stats: st, cooldownUntil, now }), true; }
+  if (url === '/api/gate/claim' && req.method === 'POST') { const a = A(); if (!a) return deny(401, 'NOT_LOGIN'), true; const U = a.user, { ruleId } = await body(req), G = gateLoad();
+    statsCache.delete(U.pubkey); const st2 = await chainStats(U.pubkey, U); // 领取前强制重新读取并复核
+    const r = Gate.claim(G, U.pubkey, String(ruleId || ''), st2, now); Gate.save(G);
+    if (r.error) return send(res, 400, r), true;
+    // 链上记录：演示/托管模式下由服务端发行记录（recipient=当前用户）；真实 memo 锚定走 anchor 钩子（一期未开启）
+    gateNotice(db, U.pubkey, { kind: 'gate_received', cardId: r.card.id, gateId: r.card.gateId, name: r.card.name, expireAt: r.card.expireAt }); save(db);
+    return send(res, 200, { ok: true, card: Gate.view(r.card, now) }), true; }
+  if (url === '/api/gate/check' && req.method === 'GET') { const gate = String(q.get('gate') || ''); const a = A(); if (!a) return deny(401, 'NOT_LOGIN'), true;
+    const G = gateLoad(), ids = G.rules[gate] ? gate : Gate.unlockIds(G, gate), r = Gate.check(G, gateAddrs(a.user), ids, now, q.get('card') || ''), rule = G.rules[gate];
+    const out = { ok: r.ok, code: r.code, gate, name: r.card?.name || rule?.name || gate, card: r.card ? Gate.view(r.card, now) : null, rule: rule ? pubRule(rule) : null };
+    if (r.code === 'NO_GATE' && rule) { out.progress = Gate.evalRule(rule, await chainStats(a.user.pubkey, a.user)).progress; }
+    if (r.code === 'REVOKED' || r.code === 'EXPIRED') out.issuer = r.card.issuer;
+    return send(res, 200, out), true; }
+  if (url.startsWith('/api/treehole')) { const a = A(); if (!a) return deny(401, 'NOT_LOGIN'), true; const U = a.user, G = gateLoad(), ids = Gate.unlockIds(G, 'treehole'); // 后端强制：每次读写都校验地址持有有效门卡
+    const r = Gate.check(G, gateAddrs(U), ids, now, q.get('card') || ''), me = gateAddrs(U).map(Gate.addrKey);
+    if (!r.ok) { const st = await chainStats(U.pubkey, U); return send(res, 403, { error: r.code, code: r.code, gateId: r.card?.gateId, name: r.card?.name, issuer: r.card?.issuer, achievements: achOf(G, Gate.addrKey(U.pubkey), st) }), true; }
+    const mineSet = new Set(me), view = p => ({ id: p.id, text: p.text, at: p.at, author: p.author.slice(0, 4) + '…' + p.author.slice(-4), mine: mineSet.has(Gate.addrKey(p.author)), likes: p.likes.length, liked: p.likes.some(x => mineSet.has(x)) });
+    if (url === '/api/treehole' && req.method === 'GET') { const sort = q.get('sort') || 'new'; let L = Object.values(G.posts).filter(p => !p.hidden); if (sort === 'mine') L = L.filter(p => mineSet.has(Gate.addrKey(p.author)));
+      L.sort(sort === 'hot' ? (x, y) => y.likes.length - x.likes.length || y.at - x.at : (x, y) => y.at - x.at);
+      const cards = Gate.cardsOf(G, gateAddrs(U)).filter(c => ids.includes(c.gateId) && Gate.statusOf(c, now) === 'valid').map(c => Gate.view(c, now));
+      return send(res, 200, { ok: true, cards, posts: L.slice(0, 100).map(view) }), true; }
+    if (url === '/api/treehole/post' && req.method === 'POST') { const b = await body(req), text = String(b.text || '').trim(); if (!text || [...text].length > TH_MAX || text.includes('|')) return deny(400, 'len'), true;
+      const day = Object.values(G.posts).filter(p => Gate.addrKey(p.author) === Gate.addrKey(U.pubkey) && now - p.at < 86400).length; if (day >= TH_DAY_LIMIT) return deny(429, 'rate'), true;
+      const bh = Block.check(text); if (bh) return send(res, 400, { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', detail: bh.domain }), true;
+      const mr = await moderate(text); if (!mr.pass) return send(res, 400, { error: REJECT, code: 'reject' }), true; // 与上链卡片同一套正向内容审核
+      const id = 'th_' + crypto.randomBytes(6).toString('hex'); G.posts[id] = { id, author: U.pubkey, text, at: now, likes: [] }; Gate.save(G); return send(res, 200, { ok: true, post: view(G.posts[id]) }), true; }
+    if (url === '/api/treehole/like' && req.method === 'POST') { const b = await body(req), p = G.posts[String(b.id || '')]; if (!p || p.hidden) return deny(404, 'nf'), true; const k = Gate.addrKey(U.pubkey), i = p.likes.indexOf(k); if (i >= 0) p.likes.splice(i, 1); else p.likes.push(k); Gate.save(G); return send(res, 200, { ok: true, likes: p.likes.length, liked: i < 0 }), true; }
+    if (url === '/api/treehole/delete' && req.method === 'POST') { const b = await body(req), p = G.posts[String(b.id || '')]; if (!p || Gate.addrKey(p.author) !== Gate.addrKey(U.pubkey)) return deny(403, 'forbidden'), true; delete G.posts[p.id]; Gate.save(G); return send(res, 200, { ok: true }), true; }
+    return deny(404, 'nf'), true; }
+  if (url === '/api/gate-sent' && req.method === 'POST') { const b = await body(req), sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return deny(400, 'param'), true; // 用户经 memo 上链发行后登记
+    const ti = await txInfo(sig); if (!ti || !ti.memo || !verifyWishMemo(ti.memo)) return deny(400, 'nf'), true;
+    const parts = ti.memo.split('|'), K = Soc.parseKind(parts[5]); if (K.kind !== 'gate' || Soc.validate(K)) return deny(400, 'param'), true;
+    const a = A(); if (a && a.user.pubkey !== ti.author) return deny(403, 'forbidden'), true;
+    const benefit = parts.slice(6).join('|'); if (Gate.sha16(Gate.clean(benefit, 140)) !== K.hash && Gate.sha16(benefit) !== K.hash) return deny(400, 'hash'), true; // 链上哈希必须匹配权益说明（即 memo 正文）
+    const G = gateLoad(), had = !!G.cards[sig]; Gate.issue(G, { id: sig, gateId: K.gateId, name: K.name, owner: K.to, issuer: ti.author, expireAt: K.expireAt, benefit, source: 'user', sig }, now); Gate.save(G);
+    let n = 0; if (!had) { for (const pk of gateRecip(db, K.to)) n += gateNotice(db, pk, { kind: 'gate_received', cardId: sig, gateId: K.gateId, name: K.name, expireAt: K.expireAt, from: ti.author }); if (n) save(db); }
+    return send(res, 200, { ok: true, notified: n }), true; }
+  if (url === '/api/gate/revoke' && req.method === 'POST') { const b = await body(req), a = A(); if (!admin && !a) return deny(401, 'NOT_LOGIN'), true; const G = gateLoad();
+    const r = Gate.revoke(G, String(b.id || ''), admin ? 'admin' : a.user.pubkey, b.reason, now); if (r.error) return send(res, r.code === 'forbidden' ? 403 : 400, r), true; Gate.save(G);
+    for (const pk of gateRecip(db, r.card.owner)) gateNotice(db, pk, { kind: 'gate_revoked', cardId: r.card.id, gateId: r.card.gateId, name: r.card.name, reason: r.card.reason }); save(db); return send(res, 200, { ok: true, card: Gate.view(r.card, now) }), true; }
+  if (url.startsWith('/api/admin/gate/')) { if (!Fulfill.ADMIN_KEY) return deny(403, 'admin'), true; if (!admin) return deny(403, 'admin'), true; const G = gateLoad(), sub = url.slice(16);
+    if (sub === 'rules' && req.method === 'GET') return send(res, 200, { rules: Object.values(G.rules) }), true;
+    if (sub === 'rules' && req.method === 'POST') { const r = Gate.normRule(await body(req)); if (r.error) return send(res, 400, r), true; G.rules[r.rule.id] = { ...(G.rules[r.rule.id] || {}), ...r.rule }; Gate.save(G); return send(res, 200, { ok: true, rule: G.rules[r.rule.id] }), true; }
+    if (sub === 'issue' && req.method === 'POST') { const b = await body(req), gid = String(b.gateId || '').toLowerCase(), list = Array.isArray(b.addresses) ? b.addresses.map(x => String(x).trim()).filter(Boolean) : []; // 批量发放：地址列表 + 共用参数
+      if (!Gate.ID_RE.test(gid) || !list.length || list.length > 500) return deny(400, 'param'), true; const rule = G.rules[gid], nm = Gate.clean(b.name || rule?.name, 20); if (!nm) return deny(400, 'param'), true;
+      const exp = b.expireAt ? Math.floor(+b.expireAt) : b.days ? now + Math.floor(+b.days) * 86400 : rule ? Gate.expireFor(rule, now) : 0; if (exp && exp <= now) return deny(400, 'gateExp'), true;
+      const bad = list.filter(x => !(Soc.solOk(x) || Soc.evmOk(x))); if (bad.length) return send(res, 400, { error: 'bad address', code: 'giftTo', bad: bad.slice(0, 10) }), true;
+      const out = { issued: 0, skipped: 0, ids: [] }; for (const ad of new Set(list.map(Soc.addrKey))) { const has = Gate.cardsOf(G, [ad]).some(c => c.gateId === gid && Gate.statusOf(c, now) === 'valid'); if (has) { out.skipped++; continue; }
+        const c = Gate.issue(G, { gateId: gid, name: nm, owner: ad, issuer: 'admin', expireAt: exp, benefit: b.benefit || rule?.benefit, source: 'admin', ruleId: rule?.id }, now); out.issued++; out.ids.push(c.id);
+        for (const pk of gateRecip(db, ad)) gateNotice(db, pk, { kind: 'gate_received', cardId: c.id, gateId: gid, name: nm, expireAt: exp }); }
+      Gate.save(G); save(db); return send(res, 200, { ok: true, ...out }), true; }
+    if (sub === 'sweep' && req.method === 'POST') { const n = gateSweep(db, G); Gate.save(G); save(db); return send(res, 200, { ok: true, notices: n }), true; }
+    return deny(404, 'nf'), true; }
+  return false; }
+setInterval(() => { try { const db = load(), G = gateLoad(); if (gateSweep(db, G)) { Gate.save(G); save(db); } else Gate.save(G); } catch (e) { console.error('gate sweep', e.message); } }, 3600000).unref?.(); // 每小时到期提醒
 const RPCC = new Map();
 async function api(req, res, url) {
   const db = load(); Acc.normSessions(db);
@@ -165,8 +263,8 @@ async function api(req, res, url) {
     if ((K.kind !== 'wish') && priv) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
     const ve = Soc.validate(K); if (ve) return send(res, 400, { pass: false, message: '参数无效', code: ve });
     if (Buffer.byteLength(prefix + '|' + (priv ? cipher : text), 'utf8') > 600) return send(res, 400, { pass: false, message: '内容过长', code: 'memoSize' });
-    if (K.kind === 'gift' && Block.addrBlocked(K.to)) return send(res, 200, { pass: false, code: 'giftBlocked', message: '该地址已被拦截' });
-    const extra = K.kind === 'social' ? [...K.tags, K.intro, K.looking].join('\n') : K.kind === 'gift' ? K.note : K.kind === 'goods' ? 'https://' + K.domain + '/' : '';
+    if ((K.kind === 'gift' || K.kind === 'gate') && Block.addrBlocked(K.to)) return send(res, 200, { pass: false, code: 'giftBlocked', message: '该地址已被拦截' });
+    const extra = K.kind === 'social' ? [...K.tags, K.intro, K.looking].join('\n') : K.kind === 'gift' ? K.note : K.kind === 'goods' ? 'https://' + K.domain + '/' : K.kind === 'gate' ? K.name : '';
     const bh = Block.check(extra ? text + '\n' + extra : text); if (bh) return send(res, 200, { pass: false, type: bh.type, code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', domain: bh.domain, message: '内容包含被拦截的链接或地址：' + bh.domain }); // 在审核证明之前拦截
     const r = await moderate(extra ? text + '\n' + extra : text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
@@ -297,6 +395,8 @@ async function api(req, res, url) {
     }
     return send(res, 404, { error: 'not found' });
   }
+  if ((url.startsWith('/api/gate') || url.startsWith('/api/treehole')) && (await gateApi(req, res, url, db))) return;
+  if (url.startsWith('/api/admin/gate/') && (await gateApi(req, res, url, db))) return;
   if (url === '/api/admin/notice' && req.method === 'GET') { if (!Fulfill.ADMIN_KEY || !Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' }); return send(res, 200, { items: db.sys || [] }); }
   if (url === '/api/admin/notice/delete' && req.method === 'POST') { if (!Fulfill.ADMIN_KEY || !Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' });
     const { id } = await body(req), n = (db.sys || []).length; db.sys = (db.sys || []).filter(m => m.id !== id); save(db); return send(res, 200, { ok: true, deleted: n - db.sys.length }); }
@@ -348,7 +448,7 @@ async function api(req, res, url) {
   if (url === '/api/inbox/read' && req.method === 'POST') { const { ids, all } = await body(req), want = all ? null : new Set(Array.isArray(ids) ? ids : []);
     for (const m of db.inbox?.[U.pubkey] || []) if (!want || want.has(m.id)) m.read = true;
     const sr = new Set(U.sysRead || []); for (const m of db.sys || []) if (!want || want.has(m.id)) sr.add(m.id); U.sysRead = [...sr].slice(-300); save(db); return send(res, 200, Acc.inboxOf(db, U)); }
-  if (url === '/api/notify') { if (req.method === 'POST') { const b = await body(req); U.notify = { fulfil: b.fulfil !== false, system: b.system !== false }; save(db); } return send(res, 200, Acc.prefs(U)); }
+  if (url === '/api/notify') { if (req.method === 'POST') { const b = await body(req); U.notify = { fulfil: b.fulfil !== false, system: b.system !== false, gate: b.gate !== false }; save(db); } return send(res, 200, Acc.prefs(U)); }
   if (url === '/api/logout' && req.method === 'POST') { delete db.sessions[a.token]; save(db); return send(res, 200, { ok: true }); } // 只退出当前设备；其他设备在安全设置中退出
   if (url === '/api/me/loc' && req.method === 'POST') { // 查看者位置（国家/省/市自由填写，用于「附近」匹配；非 GPS）
     const b = await body(req); U.country = Soc.cleanLoc(b.country); U.province = Soc.cleanLoc(b.province); U.city = Soc.cleanLoc(b.city); save(db);

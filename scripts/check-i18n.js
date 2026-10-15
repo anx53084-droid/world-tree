@@ -33,7 +33,14 @@ while ((m = reAttr.exec(blob))) keys.add(m[1]);
 
 // Dynamic key families used in app.js
 for (let i = 1; i <= 5; i++) keys.add(`rules.${i}`);
-for (let i = 1; i <= 8; i++) if (i !== 2) keys.add(`terms.${i}`); // terms.2 unused (mod.notice in slot)
+for (let i = 1; i <= 9; i++) if (i !== 2) keys.add(`terms.${i}`);
+for (const c of ['NOT_LOGIN', 'NO_GATE', 'EXPIRED', 'REVOKED', 'NOT_OWNER']) { keys.add(`gate.d.${c}.t`); keys.add(`gate.d.${c}.b`); }
+for (const k of ['valid', 'expired', 'revoked']) keys.add(`gate.s.${k}`);
+for (const k of ['all', 'valid', 'inactive']) keys.add(`gate.f.${k}`);
+for (const k of ['wishes', 'blessings', 'ageDays', 'monthWishes']) keys.add(`gate.cond.${k}`);
+for (const k of ['COOLDOWN', 'NOT_MET']) keys.add(`gate.err.${k}`);
+for (const k of ['first_light', 'growth', 'resonance', 'monthly', 'event']) keys.add(`gate.rule.${k}`);
+for (const k of ['claimable', 'received', 'expiring', 'expiring0', 'expired', 'revoked']) { keys.add(`inbox.gate_${k}T`); keys.add(`inbox.gate_${k}B`); } // terms.2 unused (mod.notice in slot)
 for (const s of ['green', 'bloom', 'fall']) keys.add(`season.${s}`);
 // Drop false positives ending with bare prefix or underscore stubs
 for (const k of [...keys]) if (k.endsWith('.') || k.endsWith('_')) keys.delete(k);

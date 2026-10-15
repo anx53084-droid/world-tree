@@ -20,11 +20,12 @@ const cleanLoc = s => String(s || '').trim().replace(/[~|]/g, '').slice(0, 20);
 // 分类字段：~S/~G + ~v可见性 + ~d投递(礼品) + ~A国家~B省~Y市(交友，可选) + 既有字段
 function parseKind(prefix) { // 与前端 parseOpt 对齐：~S/~G/~H 可与 ~F 折页段并存；星语星愿亦可带 ~v/~A/~B/~Y
   const [, ...segs] = String(prefix || '').split('~');
-  const kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H');
+  const kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H' || x === 'Q');
   const rest = segs.filter(x => x !== kindTok && !/^F[0-9a-z]{2}P?$/.test(x));
   const f = p => { const x = rest.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
   const vis = VIS[f('v')] || 'public', deliver = DEL[f('d')] || 'tree';
   const loc = { country: cleanLoc(f('A')), province: cleanLoc(f('B')), city: cleanLoc(f('Y')) };
+  if (kindTok === 'Q') return { kind: 'gate', vis: 'public', deliver: 'tree', gateId: f('g'), name: f('n'), to: f('T'), expireAt: parseInt(f('e'), 10) || 0, hash: f('h') }; // 门卡：~Q ~g编号 ~n名称 ~T持有人 ~e到期秒(0/缺省=永久) ~h权益哈希
   if (kindTok === 'S') return { kind: 'social', vis, deliver: 'tree', tags: f('t') ? f('t').split(',').filter(Boolean).slice(0, 5) : [], intro: f('i'), looking: f('l'), ...loc };
   if (kindTok === 'H') return { kind: 'goods', vis, deliver: 'tree', domain: f('D').slice(0, 40), pid: f('P').slice(0, 24), ...loc };
   if (kindTok === 'G') return { kind: 'gift', vis, deliver, to: f('T'), note: f('M'), ...loc };
@@ -36,6 +37,13 @@ function validate(K) {
     if (K.tags.length > 5 || K.tags.some(t => !t.trim() || len(t) > 10) || len(K.intro) > 80 || len(K.looking) > 30) return 'field';
     if (len(K.country) > 20 || len(K.province) > 20 || len(K.city) > 20) return 'field';
     if (K.vis === 'nearby' && !(K.city || K.province || K.country)) return 'cityNeed';
+  }
+  if (K.kind === 'gate') {
+    if (!/^[a-z0-9][a-z0-9_-]{0,23}$/.test(K.gateId || '')) return 'gateId';
+    if (!(solOk(K.to) || evmOk(K.to))) return 'giftTo';
+    if (!K.name || len(K.name) > 20 || /[<>]/.test(K.name)) return 'field';
+    if (!/^[0-9a-f]{16}$/.test(K.hash || '')) return 'field';
+    if (K.expireAt && K.expireAt < Date.now() / 1000) return 'gateExp';
   }
   if (K.kind === 'gift') {
     if (!(solOk(K.to) || evmOk(K.to))) return 'giftTo';

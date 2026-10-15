@@ -27,18 +27,18 @@ const hex2b = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
 // 自定义图片：~C<封面哈希32hex> ~N<内页哈希32hex>（图片存链下 /api/img/<hash>；旧客户端忽略多余段，显示内置封面）
 const parseOpt = raw => { // 向后兼容：旧 memo 无 ~v/~A/~F-in-extras；折页可出现在任意卡类型的附加段
   const [c, ...segs] = String(raw).split('~');
-  const foldTok = segs.find(x => /^F[0-9a-z]{2}P?$/.test(x)), kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H');
+  const foldTok = segs.find(x => /^F[0-9a-z]{2}P?$/.test(x)), kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H' || x === 'Q');
   const rest = segs.filter(x => x !== foldTok && x !== kindTok);
   const m = foldTok && foldTok.match(/^F([0-9a-z]{2})(P?)$/);
   const g = k => (rest.find(x => new RegExp('^' + k + '[0-9a-f]{32}$').test(x)) || '').slice(1) || null;
   const ii = (rest.find(x => /^I[0-9a-z]{2}$/.test(x)) || ''), kk = rest.find(x => /^K[0-9a-z]{2}$/.test(x)); // ~Kxx：单卡预设封面（新增，旧客户端忽略）
   const fx = p => { const x = rest.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
-  const kind = kindTok === 'S' ? 'social' : kindTok === 'G' ? 'gift' : kindTok === 'H' || c === '物质类' ? 'goods' : 'wish';
+  const kind = kindTok === 'S' ? 'social' : kindTok === 'G' ? 'gift' : kindTok === 'Q' ? 'gate' : kindTok === 'H' || c === '物质类' ? 'goods' : 'wish';
   const VISM = { P: 'public', N: 'nearby', R: 'recent', I: 'invite', L: 'locked' }, DELM = { T: 'tree', O: 'off', B: 'both' };
   return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : kk ? parseInt(kk.slice(1), 36) : null, priv: !!(m && m[2]), cimg: g('C'), nimg: m ? g('N') : null, inside: m && ii ? parseInt(ii.slice(1), 36) : null,
     kind, vis: VISM[fx('v')] || 'public', deliver: kind === 'gift' ? (DELM[fx('d')] || 'tree') : 'tree',
     country: fx('A'), province: fx('B'), city: fx('Y'),
-    tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' ? fx('T') : '', note: kind === 'gift' ? fx('M') : '', domain: kind === 'goods' ? fx('D') : '', pid: kind === 'goods' ? fx('P') : '', legacyGoods: kindTok !== 'H' && c === '物质类' }; };
+    tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' || kind === 'gate' ? fx('T') : '', gateId: kind === 'gate' ? fx('g') : '', gname: kind === 'gate' ? fx('n') : '', expireAt: kind === 'gate' ? parseInt(fx('e'), 10) || 0 : 0, ghash: kind === 'gate' ? fx('h') : '', note: kind === 'gift' ? fx('M') : '', domain: kind === 'goods' ? fx('D') : '', pid: kind === 'goods' ? fx('P') : '', legacyGoods: kindTok !== 'H' && c === '物质类' }; };
 // 交友卡 / 礼品卡：~S/~G + ~v可见性 + ~d投递(礼品) + ~A国家~B省~Y市(交友可选) + 既有字段
 const VISC = { public: 'P', nearby: 'N', recent: 'R', invite: 'I', locked: 'L' }, DELC = { tree: 'T', off: 'O', both: 'B' };
 const cleanLoc = x => String(x || '').trim().replace(/[~|]/g, '').slice(0, 20);
@@ -49,6 +49,7 @@ const encKind = (cat, K, fold = '') => {
   const v = '~v' + (VISC[K.vis] || 'P'), L = encLoc(K);
   if (K.kind === 'social') return `${cat}~S${v}${L}${K.tags.length ? '~t' + K.tags.join(',') : ''}${K.intro ? '~i' + K.intro : ''}${K.looking ? '~l' + K.looking : ''}${fold}`;
   if (K.kind === 'goods') return `${cat}~H${v}${L}~D${K.domain}~P${K.pid}${fold}`;
+  if (K.kind === 'gate') return `${cat}~Q~g${K.gateId}~n${K.name}~T${K.to}${K.expireAt ? '~e' + K.expireAt : ''}~h${K.hash}${fold}`; // 门卡：编号/名称/持有人/到期秒(缺省=永久)/权益哈希
   if (K.kind === 'gift') return `${cat}~G${v}~d${DELC[K.deliver] || 'T'}${L}~T${K.to}${K.note ? '~M' + K.note : ''}${fold}`;
   return `${cat}${fold || ''}${(K.vis && K.vis !== 'public') || L ? v : ''}${L}`; // 星语星愿：仅在非公开或有位置时写 ~v
 };
@@ -174,7 +175,7 @@ function aggregate() {
   for (const t of all) { const f = t.memo.split('|');
     if (f[1] === 'W') { if (!t.verified || clientBlocked(f[6]) || blkHit(t.sig, t.author, f[6])) { hidden++; continue; } if (!blkFull && WTBlock.maybeHasHost(f[6])) blkNeedFull = true;
       const o = parseOpt(f[5]), priv = o.priv && /^E1:/.test(f[6]); if (!priv && [...f[6]].length > 140) { hidden++; continue; }
-      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], kind: o.kind, vis: o.vis, deliver: o.deliver, country: o.country, province: o.province, city: o.city, tags: o.tags, intro: o.intro, looking: o.looking, to: o.to, note: o.note, folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], coverType: o.cimg ? 'custom' : 'preset', coverId: o.cover ?? WTCovers.forCat(o.cat)[0], customCoverUrl: o.cimg ? IMG(o.cimg) : null, inside: o.inside, cimg: o.cimg, nimg: o.nimg, priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
+      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], kind: o.kind, vis: o.vis, deliver: o.deliver, country: o.country, province: o.province, city: o.city, tags: o.tags, intro: o.intro, looking: o.looking, to: o.to, note: o.note, gateId: o.gateId, gname: o.gname, expireAt: o.expireAt, folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], coverType: o.cimg ? 'custom' : 'preset', coverId: o.cover ?? WTCovers.forCat(o.cat)[0], customCoverUrl: o.cimg ? IMG(o.cimg) : null, inside: o.inside, cimg: o.cimg, nimg: o.nimg, priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
     else if (f[1] === 'L') likes.push([f[2], t]); else if (f[1] === 'B' && t.verified && !clientBlocked(f[6]) && !blkHit(t.sig, t.author, f[6])) bless.push([f[5], t, f[6]]); }
   for (const [ws, t] of likes) W[ws]?.likers.add(t.author); // 每地址对每愿望只计 1 赞
   for (const [ws, t, text] of bless) W[ws]?.blessings.push({ author: t.author, text, time: t.time, sig: t.sig, pending: t.pending });
@@ -429,7 +430,7 @@ function confirmLarge0(usd, amt) {
     $('#lgok').onclick = () => { const c = $('#lgt')?.value.trim(); closeModal(); res({ confirmLarge: true, totp: c }); }; $('#lgno').onclick = () => { closeModal(); res(null); }; }); }
 // ---------- 站内信铃铛（打开页面与打开菜单时获取；不轮询）----------
 function paintBell() { const b = $('#bell'); if (!b) return; b.hidden = !S.token; const n = S.bell || 0, c = $('#bellN'); c.textContent = n > 99 ? '99+' : n; c.hidden = !n; b.title = t('inbox.bell', { n }); b.setAttribute('aria-label', b.title); }
-async function loadBell() { if (!S.token) return paintBell(); try { const r = await api('/api/inbox'); S.inbox = r.items; S.bell = r.unread; } catch {} paintBell(); }
+async function loadBell() { if (!S.token) { S.gate = null; paintGateDot(); return paintBell(); } try { const r = await api('/api/inbox'); S.inbox = r.items; S.bell = r.unread; } catch {} paintBell(); loadGateMe(); }
 async function airdrop() { const tt = toast(esc(t('airdrop.req'))); try { const r = await api('/api/airdrop', {}); tt.update(esc(t('airdrop.ok', { sig: short(r.signature) })), 'ok'); } catch (e) { tt.update(esc(e.message), 'err'); } }
 function renderMode() {
   const m = { guest: `<span class="badge">${esc(t('mode.guest'))}</span>`, self: `<span class="badge b-self">${esc(t('mode.self', { wallet: S.wallet?.name || (WTW.solWallets().find(w => w.id === localStorage.wt_wallet)?.name) || 'Solana', addr: short(S.pubkey) }))}</span>`, host: `<span class="badge b-host">${esc(S.kind === 'evm' ? t('mode.evm', { addr: short(S.evmAddr || ''), sol: short(S.pubkey) }) : t('mode.host', { email: S.email, addr: short(S.pubkey) }))}</span>` }[S.mode];
@@ -480,9 +481,9 @@ async function loadSec() { const box = $('#secbox'); if (!box) return bindSiws()
   $('#tdis')?.addEventListener('click', async () => { try { await api('/api/2fa/disable', { code: $('#tdc').value.trim() }); toast(E('sec.totpOff'), 'ok'); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } });
   $('#lgs')?.addEventListener('click', async () => { try { const r = await with2fa(code => api('/api/security/large', { usd: +$('#lgu').value, code })); if (r) { S.largeUsd = r.largeUsd; toast(E('sec.saved'), 'ok'); } } catch (e) { toast(esc(e.message), 'err'); } }); }
 const inboxPage = () => needSession(E('inbox.title')) || `<h2>🔔 ${E('inbox.title')}</h2><div class=row style="justify-content:space-between"><a href="#/notify">⚙️ ${E('ntf.title')}</a><button id=rdall>${E('inbox.readAll')}</button></div><div id=inbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
-function msgHtml(m) { const k = m.kind, T = k === 'gift' ? t('inbox.giftT') : k === 'fulfil' ? t('inbox.fulfilT') : k === 'login' ? t('inbox.loginT') : k === 'totpOn' ? t('inbox.totpOnT') : k === 'totpOff' ? t('inbox.totpOffT') : m.title || '';
-  const B = k === 'gift' ? t('inbox.giftB', { from: short(m.from || ''), note: m.note ? '“' + m.note + '”' : '' }) : k === 'fulfil' ? t('inbox.fulfilB', { text: m.text || '…', note: m.note ? ' · ' + m.note : '' }) : k === 'login' ? t('inbox.loginB', { ua: devName(m.ua) }) : k === 'system' ? m.body || '' : '';
-  return `<div class="card msg${m.read ? '' : ' unread'}" data-mid="${esc(m.id)}"><div class=row style="justify-content:space-between"><b dir=auto>${m.read ? '' : '<i class=dot></i>'}${esc(T)}</b><span class=muted style="font-size:12px">${k === 'system' ? `<span class=tag>${E('inbox.sysTag')}</span> ` : ''}${fmtMs(m.at)}</span></div>${B ? `<p dir=auto style="margin:.4em 0;white-space:pre-wrap">${esc(B)}</p>` : ''}${(k === 'fulfil' || k === 'gift') && m.sig ? `<a href="#/w/${encodeURIComponent(m.sig)}">${E('inbox.view')} →</a>` : ''}</div>`; }
+function msgHtml(m) { const k = m.kind, T = k === 'gift' ? t('inbox.giftT') : k === 'fulfil' ? t('inbox.fulfilT') : k === 'login' ? t('inbox.loginT') : k === 'totpOn' ? t('inbox.totpOnT') : k === 'totpOff' ? t('inbox.totpOffT') : /^gate_/.test(k) ? t('inbox.' + k + 'T') : m.title || '';
+  const B = k === 'gift' ? t('inbox.giftB', { from: short(m.from || ''), note: m.note ? '“' + m.note + '”' : '' }) : k === 'fulfil' ? t('inbox.fulfilB', { text: m.text || '…', note: m.note ? ' · ' + m.note : '' }) : k === 'login' ? t('inbox.loginB', { ua: devName(m.ua) }) : /^gate_/.test(k) ? t('inbox.' + k + 'B', { name: m.name || m.gateId || '', date: m.expireAt ? gateDate(m.expireAt) : '', why: m.reason ? ' · ' + m.reason : '' }) : k === 'system' ? m.body || '' : '';
+  return `<div class="card msg${m.read ? '' : ' unread'}" data-mid="${esc(m.id)}"><div class=row style="justify-content:space-between"><b dir=auto>${m.read ? '' : '<i class=dot></i>'}${esc(T)}</b><span class=muted style="font-size:12px">${k === 'system' ? `<span class=tag>${E('inbox.sysTag')}</span> ` : ''}${fmtMs(m.at)}</span></div>${B ? `<p dir=auto style="margin:.4em 0;white-space:pre-wrap">${esc(B)}</p>` : ''}${(k === 'fulfil' || k === 'gift') && m.sig ? `<a href="#/w/${encodeURIComponent(m.sig)}">${E('inbox.view')} →</a>` : ''}${/^gate_/.test(k) ? `<a href="${k === 'gate_claimable' ? '#/wish' : '#/treehole'}">${E('inbox.view')} →</a>` : ''}</div>`; }
 function paintInbox() { const box = $('#inbox'); if (!box) return; box.innerHTML = (S.inbox || []).length ? S.inbox.map(msgHtml).join('') : `<p class=muted>${E('inbox.empty')}</p>`;
   box.querySelectorAll('.msg.unread').forEach(el => el.onclick = async () => { const r = await api('/api/inbox/read', { ids: [el.dataset.mid] }).catch(() => null); if (r) { S.inbox = r.items; S.bell = r.unread; paintInbox(); paintBell(); } }); }
 async function loadInbox() { if (!$('#inbox')) return bindSiws(); await loadBell(); paintInbox();
@@ -490,7 +491,7 @@ async function loadInbox() { if (!$('#inbox')) return bindSiws(); await loadBell
 const notifyPage = () => needSession(E('ntf.title')) || `<h2>⚙️ ${E('ntf.title')}</h2><div id=ntfbox class=card><p class=muted>⏳ ${E('route.loading')}</p></div><p class=muted>${E('ntf.note')}</p>`;
 async function loadNotify() { const box = $('#ntfbox'); if (!box) return bindSiws(); let p; try { p = await api('/api/notify'); } catch (e) { box.innerHTML = esc(e.message); return; }
   const row = (k, h) => `<label class="agree ntf"><input type=checkbox data-n=${k} ${p[k] ? 'checked' : ''}> <span><b>${E('ntf.' + k)}</b><br><span class=muted>${E('ntf.' + k + 'Hint')}</span></span></label>`;
-  box.innerHTML = row('fulfil') + row('system');
+  box.innerHTML = row('fulfil') + row('system') + row('gate');
   box.querySelectorAll('[data-n]').forEach(c => c.onchange = async () => { const b = {}; box.querySelectorAll('[data-n]').forEach(x => b[x.dataset.n] = x.checked); try { await api('/api/notify', b); toast(E('sec.saved'), 'ok'); } catch (e) { toast(esc(e.message), 'err'); } }); }
 // ---------- 心愿实现徽章（公开；收货信息永不进入前端展示逻辑之外的公开文案） ----------
 async function loadFulfillment(sig) {
@@ -553,20 +554,23 @@ function spectrum(sig, size = 96) {
   return `<svg class=spectrum width=${size} height=${size} viewBox="0 0 100 100"><defs><radialGradient id="${id}"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="hsl(${hues[0]},100%,70%)"/><stop offset="1" stop-color="hsl(${hues[5]},80%,10%)"/></radialGradient></defs><circle cx=50 cy=50 r=50 fill="url(#${id})"/>${rings}</svg>`;
 }
 const likeBtn = w => `<button data-like="${esc(w.sig)}" ${w.pending || w.sample ? 'disabled' : ''}>${S.pubkey && w.likers.has(S.pubkey) ? '💖 ' + esc(t('card.liked')) : '🤍 ' + esc(t('label.like'))} ${w.likes}</button>`;
-const KICON = { social: '💬 ', gift: '🎁 ', goods: '🛍️ ' }, kIcon = w => KICON[w.kind] || '';
+const KICON = { social: '💬 ', gift: '🎁 ', goods: '🛍️ ', gate: '🎫 ' }, kIcon = w => KICON[w.kind] || '';
 const giftToMe = w => w.kind === 'gift' && !!w.to && ((S.pubkey && w.to === S.pubkey) || (S.evmAddr && w.to.toLowerCase() === S.evmAddr));
 const kindTag = w => w.kind !== 'gift' ? '' : isMine(w) ? `<span class="tag k-gift">${E('gift.sent')}</span>` : giftToMe(w) ? `<span class="tag k-gift">${E('gift.recv')}</span>` : '';
+const sha16 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+const gateDate = ts => new Date(ts * 1000).toLocaleDateString(I18N.lang);
 function kindHtml(w, full) { // 交友卡 / 礼品卡附加信息（全部转义）
   if (w.kind === 'social') { const m = S.cardMeta[w.sig] || {}, gLab = m.gender && (I18N.dict['soc.g.' + m.gender] ? t('soc.g.' + m.gender) : m.gender);
     const prof = full ? [m.age && `${E('soc.age')}: ${esc(m.age)}`, gLab && `${E('soc.gender')}: ${esc(gLab)}`, m.job && `${E('soc.job')}: ${esc(m.job)}`].filter(Boolean) : [];
     return `${w.tags.length ? `<div class=soc-tags>${w.tags.map(x => `<span class="tag soc">#${esc(x)}</span>`).join('')}</div>` : ''}${w.intro ? `<p class=soc-intro dir=auto>${esc(w.intro)}</p>` : ''}${w.looking ? `<p class=muted dir=auto>${E('soc.lookingL')} ${esc(w.looking)}</p>` : ''}${prof.length ? `<p class="muted soc-prof">${prof.join(' · ')}</p>` : ''}`; }
   if (w.kind === 'gift') return `<p class=gift-ft>🎁 <code>${esc(short(w.author))}</code> → <code>${esc(short(w.to))}</code></p>${w.note ? `<p class=gift-note dir=auto>“${esc(w.note)}”</p>` : ''}${full ? `<p class="muted hint">${E('gift.hint')}</p>` : ''}`;
+  if (w.kind === 'gate') return `<p class=gift-ft>🎫 <b dir=auto>${esc(w.gname || w.gateId)}</b> → <code>${esc(short(w.to))}</code></p><p class=muted>${w.expireAt ? E('gate.until', { date: gateDate(w.expireAt) }) : E('gate.forever')}</p>${full ? `<p class="muted hint">${E('gate.hint')}</p>` : ''}`;
   if (w.kind === 'goods') { const g = S.goods[w.sig]; if (!g) return w.domain ? `<p class="muted goods-dom">🛍️ ${esc(w.domain)}</p>` : '';
     const pr = g.price ? `<b class=goods-price>${esc(g.currency || '')} ${esc(g.price)}</b>` : '';
     return `<div class=goods>${g.image ? `<img class=goods-img alt="" loading=lazy src="${IMG(g.image)}">` : ''}<div class=goods-info><p class=goods-title dir=auto>${esc(g.title || g.domain)}</p>${pr}<p class="muted hint">${E('goods.priceAt', { time: fmtMs(g.fetchedAt) })}</p>
       <a class="goods-link" href="${esc(g.url)}" target=_blank rel="noopener noreferrer nofollow" data-ext="${esc(g.domain)}">↗ ${esc(g.domain)}</a></div></div>`; }
   return ''; }
-const typeTag = w => w.kind === 'social' || w.kind === 'gift' || w.kind === 'goods' ? `<span class="tag ktype">${esc(t('kind.' + w.kind))}</span>` : '';
+const typeTag = w => w.kind === 'social' || w.kind === 'gift' || w.kind === 'goods' || w.kind === 'gate' ? `<span class="tag ktype">${esc(t('kind.' + w.kind))}</span>` : '';
 const visBadge = w => w.vis && w.vis !== 'public' ? `<span class="tag kvis">${E('vis.' + w.vis)}</span>` : (w.deliver === 'off' ? `<span class="tag kvis">${E('vis.offTree')}</span>` : '');
 const wishCard = w => { const L = lockPaint(w); return `<div class="card hover k-${w.kind || 'wish'}${L.lockedView ? ' locked-card' : ''}" data-cat="${w.cat}">${locCorner(w)}<div>${w.pending ? '⏳ ' : ''}${kIcon(w)}${esc(L.text)} ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}</div>${L.lockedView ? `<p class=muted>${E('vis.unlockHint')}</p>` : kindHtml(w)}<div class="row muted" style="margin-top:6px">
   <span class=tag>${esc(catName(w.cat))}</span><span>${esc(t('card.author', { addr: short(w.author) }))}</span><span>${fmtT(w.time)}</span><span>🔥 ${w.heat}</span>${L.lockedView ? '' : likeBtn(w)}<a class=btn href="#/w/${encodeURIComponent(w.sig)}">${esc(t('card.details'))}</a></div></div>`; };
@@ -756,7 +760,7 @@ async function loadGifts() { // 收到的礼物：按本人地址（Solana / EVM
 function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
   loadMine(); if (S.mode !== 'guest') loadGifts();
   const g = S.mode === 'guest';
-  return `<h2 class=gold-title>${E('nav.wish')}</h2><p class=tagline>✨ ${E('ux.tagline')}</p>${g ? guestCta() + `<h3 class=sub>${E('ux.samplesTitle')}</h3>` + sampleCards(2) : ''}<section class="card motif"><h3>${E('mine.have')}</h3><div id=mine>${mineBlock()}</div></section>
+  return `<h2 class=gold-title>${E('nav.wish')}</h2><p class=tagline>✨ ${E('ux.tagline')}</p>${g ? guestCta() + `<h3 class=sub>${E('ux.samplesTitle')}</h3>` + sampleCards(2) : ''}${g ? '' : `<section class="card motif" aria-labelledby=gateh><h3 id=gateh>🎫 ${E('gate.sec')}</h3><div id=gatebox><p class=muted>⏳ ${E('route.loading')}</p></div></section>`}<section class="card motif"><h3>${E('mine.have')}</h3><div id=mine>${mineBlock()}</div></section>
   <section class="card motif"><h3>${E('mine.make')}</h3>${chips()}<button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}</div></section>`; }
 const evmMinByRoute = key => { const r = evmRoutes()[key], p = S.cfg.evm?.usd?.[r?.coin] || 0; return p ? Math.ceil((S.cfg.minUsd || 1) / p * 1.02 * 1e5) / 1e5 : 0; };
 const evmMin = id => { const c = evmChains()[id]; return evmMinByRoute(c?.key || id); };
@@ -792,6 +796,7 @@ function previewHtml(st) { // st：表单当前值；所有用户文本经 esc
     const meta = [v('sage'), v('sgen') && gsel ? gsel.selectedOptions[0]?.textContent : '', v('sjob'), loc].filter(Boolean);
     body = `<span class=tag>💬 ${E('kind.social')}</span>${tags.length ? `<div class=pv-tags>${tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}<p dir=auto>${esc(v('sin') || t('pv.introPh'))}</p><p class=pv-sub dir=auto>🔎 ${esc(v('slk') || t('pv.lookPh'))}</p>${meta.length ? `<p class=pv-meta dir=auto>${meta.map(esc).join(' · ')}</p>` : ''}`; }
   else if (k === 'gift') body = `<span class="tag pv-gift">🎁 ${E('kind.gift')}</span><p dir=auto>${esc(v('gnt') || t('pv.notePh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gto')) || '—')}</p>`;
+  else if (k === 'gate') { const d = v('gexp'); if (GFACE.has(v('gid').toLowerCase())) img = '/gate/' + v('gid').toLowerCase() + '.webp'; body = `<span class="tag pv-gift">🎫 ${E('gate.badge')}</span><p dir=auto><b>${esc(v('gname') || t('gate.name'))}</b></p><p dir=auto>${esc(v('wt') || t('gate.benefitPh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gato')) || '—')}</p><p class=pv-meta>${d ? E('gate.until', { date: new Date(d + 'T00:00').toLocaleDateString(I18N.lang) }) : E('gate.forever')} · ${E('gate.soul')}</p>`; }
   else if (k === 'goods') { const gi = $('#gimg'); if (gi && !gi.hidden && gi.src) img = gi.src; let dom = ''; try { dom = new URL(v('gurl')).hostname.replace(/^www\./, ''); } catch {}
     body = `<span class=tag>🛍️ ${E('kind.goods')}</span><p dir=auto><b>${esc(v('gtitle') || t('pv.goodsPh'))}</b></p><p class=pv-price>${v('gprice') ? esc(v('gprice') + ' ' + v('gcur').toUpperCase()) : '—'}</p><p class=pv-meta>🔗 ${esc(dom || '—')}</p>`; }
   else body = `<span class=tag>✨ ${E('kind.wish')}</span><p dir=auto>${esc(v('wt') || t('pv.textPh'))}</p>`;
@@ -803,7 +808,7 @@ function wishPanel() {
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
   return `<h2>${E('wish.title')}</h2><div class="card mk-grid"><div class=mk-form>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
-  <div class=row><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option></select></label></div>
+  <div class=row><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option><option value=gate>🎫 ${E('kind.gate')}</option></select></label></div>
   <div class=row><label>${E('wish.coverCat')} <select id=wc2><optgroup label="${E('cat.classic')}">${COVER_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : esc(catName(c))}</option>`).join('')}</optgroup></select></label></div>
   <div class=row><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
   <fieldset class=cover-design id=coverDesign><legend>${E('wish.coverStyle')}</legend>${coverGridHtml()}</fieldset>
@@ -836,6 +841,13 @@ function wishPanel() {
       <div id=ginvBox hidden><label>${E('vis.inviteList')}<textarea id=ginv rows=2 maxlength=800 style="width:100%" placeholder="${E('vis.invitePh')}"></textarea></label></div></div>
     <div id=gpassBox hidden><label>${E('vis.password')}<input id=gpass type=password maxlength=64 autocomplete=new-password style="width:100%"></label><p class="muted hint">${E('vis.passHint')}</p></div>
     <p class="muted hint">${E('gift.hint')}</p></div>
+    <div id=gateWrap class=kwrap hidden>
+    <label>${E('gate.name')}<input id=gname maxlength=20 dir=auto style="width:100%"></label>
+    <label>${E('gate.id')}<input id=gid maxlength=24 pattern="[a-z0-9_\-]+" autocapitalize=off spellcheck=false style="width:100%"></label>
+    <label>${E('gate.to')}<input id=gato maxlength=44 autocomplete=off spellcheck=false style="width:100%"></label>
+    <label>${E('gate.exp')}<input id=gexp type=date style="width:100%"></label>
+    <label class=agree><input type=checkbox id=gag> <span>${E('gate.agree')}</span></label>
+    <p class="muted hint">${E('gate.hint')}</p></div>
     <div id=shipWrap hidden><label>${E('wish.shipping')}<textarea id=ship maxlength=500 dir=auto placeholder="${E('wish.shippingPh')}" rows=2 style="width:100%;margin-top:4px"></textarea></label>
   <p class=muted style="margin:4px 0">${E('wish.shippingHint')}</p></div>
   <textarea id=wt maxlength=140 dir=auto placeholder="${E('wish.ph')}"></textarea><div class=muted id=wc>0/140</div>
@@ -873,6 +885,7 @@ const help = () => `<h2>${E('nav.help')}</h2>${prevail()}
 <div class="card notice"><h3>⚠️ ${E('help.hostTitle')}</h3>${bul(E('help.hostBody'))}</div>
 <div class=card><h3>👀 ${E('help.guestTitle')}</h3>${bul(E('help.guestBody'))}</div>
 <div class=card><h3>💰 ${E('help.feeTitle')}</h3>${E('help.feeBody')}<br><span class=muted>${E('help.receive')} ${esc(S.cfg.receive || S.cfg.treasury || S.cfg.developer)}</span></div>
+<div class=card id=gate-card><h3>🎫 ${E('help.gateTitle')}</h3>${bul(E('help.gateBody'))}${bul(E('help.treeholeBody'))}</div>
 <div class="card k-social"><h3>💬 ${E('help.socialTitle')}</h3>${bul(E('help.socialBody'))}<p class=muted>${E('help.socialVis')}</p></div>
 <div class="card k-gift"><h3>🎁 ${E('help.giftTitle')}</h3>${bul(E('help.giftBody'))}<p class=muted>${E('help.giftVis')}</p></div>
 <div class="card k-goods"><h3>🛍️ ${E('help.goodsTitle')}</h3>${bul(E('help.goodsBody'))}</div>
@@ -881,13 +894,73 @@ const help = () => `<h2>${E('nav.help')}</h2>${prevail()}
 <div class=card><h3>📜 ${E('help.riskTitle')}</h3>${bul(E('help.riskBody'))}</div>`;
 const terms = () => `<h2>${E('terms.title')}</h2>${prevail()}<div class=card>
 <ol><li>${E('terms.1')}</li><li>${E('mod.notice')}</li><li>${E('terms.3')}${RULES_LIST()}</li>
-${[4, 5, 6, 7, 8].map(i => `<li>${E('terms.' + i)}</li>`).join('')}</ol>
+${[4, 5, 6, 7, 8, 9].map(i => `<li>${E('terms.' + i)}</li>`).join('')}</ol>
 ${localStorage.wt_terms === '1' ? `<p class=muted>✅ ${E('terms.agreed')}</p>` : `<button id=agreeTerms class="primary breathe">${E('terms.agreeBtn')}</button>`}</div>`;
 
 // ---------- 路由 ----------
 let ready3d = false;
 function paintFab(p) { let f = $('#fab'); if (!f) { f = document.createElement('a'); f.id = 'fab'; f.href = '#/wish/make'; document.body.append(f); }
   f.innerHTML = `<span aria-hidden=true>✨</span> <span>${E('ux.fab')}</span>`; f.setAttribute('aria-label', t('a11y.fab')); f.hidden = S.mode === 'guest' || /^\/wish/.test(p) || !!$('#search-panel:not([hidden])'); } // 已登录才显示；制作页本身不显示
+// ---------- 门卡（Gate Card）：成就门卡 / 领取 / 树洞 ----------
+// 链上仅存最小记录（~Q memo）；状态（有效/过期/撤销）与领取资格以服务端记录为权威，前后端均按时间戳判定到期。树洞内容仅在服务端校验持卡后返回。
+const GFACE = new Set(['first_light', 'growth', 'resonance']); // 有官方卡面图的门卡；其余（月度等）用代码绘制卡面
+const gName = (id, fb) => I18N.dict['gate.rule.' + id] ? t('gate.rule.' + id) : (fb || id);
+const gDesc = r => gReq(r);
+const gReq = r => { if (!r) return ''; const c = r.cond || {}, p = ['wishes', 'blessings', 'ageDays', 'monthWishes'].filter(k => c[k] > 0).map(k => `${t('gate.cond.' + k)} ≥ ${c[k]}`); return p.join(c.mode === 'any' ? ' / ' : ' + '); };
+const gProg = list => (list || []).map(p => `${t('gate.cond.' + p.key)} ${Math.min(p.have, p.need)}/${p.need}`).join(' · ');
+const gState = c => c.expireAt > 0 && Date.now() / 1000 >= c.expireAt && c.status !== 'revoked' ? 'expired' : c.state || (c.status === 'revoked' ? 'revoked' : 'valid'); // 到期按时间戳在前端复判
+function gFace(id, name, cls = '') { const nm = gName(id, name);
+  if (GFACE.has(id)) return `<img class="gface ${cls}" src="/gate/${esc(id)}.webp" alt="${esc(nm)}" width=200 height=298 loading=lazy>`; // 卡面文字已在图片内，不再叠加标题
+  return `<svg class="gface ${cls}" viewBox="0 0 200 298" role=img aria-label="${esc(nm)}"><defs><linearGradient id=gfg x1=0 y1=0 x2=0 y2=1><stop offset=0 stop-color="#0f3d5e"/><stop offset=.55 stop-color="#2b3a8c"/><stop offset=1 stop-color="#5b2a86"/></linearGradient></defs><rect width=200 height=298 rx=12 fill="url(#gfg)"/><rect x=8 y=8 width=184 height=282 rx=8 fill=none stroke="#f6d38a" stroke-width=1.5 opacity=.8 /><circle cx=100 cy=120 r=46 fill="#fff1c4"/><circle cx=118 cy=108 r=40 fill="#2b3a8c"/><g fill="#fff" opacity=.8><circle cx=40 cy=60 r=1.6 /><circle cx=160 cy=48 r=1.2 /><circle cx=150 cy=190 r=1.4 /><circle cx=50 cy=200 r=1.2 /></g><text x=100 y=232 text-anchor=middle font-size=22 font-weight=700 fill="#ffe7a3" font-family="Noto Sans CJK SC,sans-serif">${esc(nm)}</text><text x=100 y=258 text-anchor=middle font-size=11 fill="#cbd5ff" font-family="Noto Sans,sans-serif">GATE CARD</text></svg>`; }
+async function loadGateMe(force) { if (!S.token) { S.gate = null; return paintGateDot(); }
+  if (!force && S.gate && Date.now() - S.gateAt < 300000) { paintGateDot(); return S.gate; } // 5 分钟缓存；领取/撤销/到期后清除
+  try { S.gate = await api('/api/gate/me'); S.gateAt = Date.now(); } catch { S.gate = null; } paintGateDot(); paintGate(); return S.gate; }
+function paintGateDot() { const n = S.gate?.claimable?.length || 0; document.querySelectorAll('#topnav a[href="#/wish"], #menu nav a[href="#/wish"]').forEach(x => { x.classList.toggle('gate-dot', !!n); if (n) x.setAttribute('data-gdot', n); else x.removeAttribute('data-gdot'); });
+  document.querySelectorAll('.th-lock').forEach(x => x.hidden = !!S.gate?.unlocked); } // 树洞入口：未持卡时显示锁
+async function doClaim(ruleId, btn) { if (btn) btn.disabled = true;
+  try { const r = await api('/api/gate/claim', { ruleId }); S.gate = null; sparkle(); loadBell();
+    modal(`<h3 style="margin-top:0">🎫 ${E('gate.claimed')}</h3><div class=gate-claimed>${gFace(r.card.gateId, r.card.name, 'big')}</div><p class=muted>${r.card.expireAt ? E('gate.until', { date: gateDate(r.card.expireAt) }) : E('gate.forever')}</p><div class=row style="justify-content:flex-end;gap:8px"><a class="btn primary" href="#/treehole" data-close>🌳 ${E('th.enter')}</a><button data-close>${E('common.close')}</button></div>`);
+    await loadGateMe(true); if ($('#thbox')) loadTreehole(); } // 领取后重新校验并刷新
+  catch (e) { if (btn) btn.disabled = false; toast(esc(I18N.dict['gate.err.' + e.code] ? t('gate.err.' + e.code) : t('gate.err.generic', { msg: e.message })), 'err'); if (e.code === 'NOT_MET' || e.code === 'CLAIM_EXPIRED') { await loadGateMe(true); if ($('#thbox')) loadTreehole(); } } }
+function achCard(a) { const r = a.rule, c = r.cond || {}, ratios = a.progress.map(p => Math.min(1, p.have / p.need)), pct = Math.round(100 * (ratios.length ? (c.mode === 'any' ? Math.max(...ratios) : Math.min(...ratios)) : 0));
+  return `<div class="ach-card${a.ok ? ' met' : ''}">${gFace(r.id, r.name, 'ach-face')}<div class=ach-body><b dir=auto>${esc(gName(r.id, r.name))}</b><p class=muted>${esc(gDesc(r))}</p>
+  <div class=ach-bar role=progressbar aria-valuemin=0 aria-valuemax=100 aria-valuenow=${pct} aria-label="${esc(gName(r.id, r.name))}"><i style="width:${pct}%"></i></div><p class=ach-n>${esc(gProg(a.progress))}</p>
+  ${a.claimable ? `<button type=button class=primary data-claim="${esc(r.id)}">${E('gate.claim')}</button>` : a.ok ? '' : `<a class=btn href="#/wish/make">✨ ${E('th.go')}</a>`}</div></div>`; }
+const bindClaims = root => root.querySelectorAll('[data-claim]').forEach(b => b.onclick = () => doClaim(b.dataset.claim, b));
+function paintGate() { const box = $('#gatebox'); if (!box) return; const G = S.gate; if (!G) { box.innerHTML = `<p class=muted>${E('route.loading')}</p>`; return; }
+  const f = S.gateF || 'all', now = Date.now() / 1000, cards = G.cards.filter(c => f === 'all' || (f === 'valid' ? gState(c) === 'valid' : gState(c) !== 'valid'));
+  const claim = G.claimable.map(c => `<div class="gate-claim" role=status><div><b>🎫 ${E('gate.claimable', { name: gName(c.rule.id, c.rule.name) })}</b><br><span class=muted>${E('gate.claimBy', { date: gateDate(c.expiresAt) })}</span></div><button type=button class=primary data-claim="${esc(c.ruleId)}">${E('gate.claim')}</button></div>`).join('');
+  const row = c => { const st = gState(c), why = st === 'expired' ? t('gate.reason.expired', { date: gateDate(c.expireAt) }) : st === 'revoked' ? t('gate.reason.revoked', { why: c.reason ? ' · ' + c.reason : '' }) : '';
+    return `<div class="gate-card st-${st}">${gFace(c.gateId, c.name, 'mini')}<div class=gc-body><div class=row style="justify-content:space-between"><b dir=auto>${esc(gName(c.gateId, c.name))}</b><span class="gate-st">${E('gate.s.' + st)}</span></div>
+    <p class=muted style="margin:.3em 0">${c.expireAt ? E('gate.until', { date: gateDate(c.expireAt) }) : E('gate.forever')}</p>${why ? `<p class=gate-why>${esc(why)}</p>` : ''}${st === 'valid' ? `<a class=btn href="#/treehole">🌳 ${E('th.enter')}</a>` : ''}</div></div>`; };
+  box.innerHTML = claim + `<h4 class=cg-t>${E('gate.ach')}</h4><div class=ach-grid>${G.progress.map(achCard).join('') || `<p class=muted>${E('gate.empty')}</p>`}</div>`
+    + `<h4 class=cg-t>${E('gate.sec')}</h4><div class="row gate-filter" role=group aria-label="${E('gate.sec')}">${['all', 'valid', 'inactive'].map(k => `<button type=button data-gf=${k} aria-pressed=${f === k}>${E('gate.f.' + k)}</button>`).join('')}</div>`
+    + (cards.length ? `<div class=gate-list>${cards.map(row).join('')}</div>` : `<p class=muted>${E('gate.empty')}</p>`) + (G.cooldownUntil > now ? `<p class="muted hint">${E('gate.cool', { t: new Date(G.cooldownUntil * 1000).toLocaleString(I18N.lang) })}</p>` : '');
+  box.querySelectorAll('[data-gf]').forEach(b => b.onclick = () => { S.gateF = b.dataset.gf; paintGate(); }); bindClaims(box); }
+function gateDeny(code, d) { const name = gName(d.gate || '', d.name), T = esc(t('gate.d.' + code + '.t', { name })), cta = { NOT_LOGIN: `<button type=button class=primary data-cta=wallet>🔗 ${E('ux.connect')}</button>`, NOT_OWNER: `<button type=button class=primary id=gsw>🔁 ${E('wal.switchAcct')}</button>` }[code] || '';
+  const body = code === 'REVOKED' ? `<p>${E('gate.d.REVOKED.b', { issuer: d.issuer === 'system' || d.issuer === 'admin' ? t('gate.issuerSys') : short(d.issuer || '') })}</p>` : `<p>${E('gate.d.' + code + '.b')}</p>`;
+  return `<div class="card gate-deny gd-${code}" role=alert><h3>🔒 ${T}</h3>${body}<div class="row">${cta}</div></div>`; }
+// ---------- 树洞（#/treehole）：持有效成就门卡才可进入；内容与读写均由服务端校验 ----------
+const treeholePage = () => `<h2 class=gold-title>🌳 ${E('th.title')}</h2><p class=tagline>${E('th.sub')}</p><div id=thbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
+const daysLeft = c => c.expireAt ? Math.max(0, Math.ceil((c.expireAt - Date.now() / 1000) / 86400)) : null;
+const thBar = cards => `<div class=th-bar><div class=th-badges>${cards.map(c => `<span class=th-badge>${gFace(c.gateId, c.name, 'badge')}<span><b dir=auto>${esc(gName(c.gateId, c.name))}</b><br><small class=muted>${c.expireAt ? E('th.daysLeft', { n: daysLeft(c) }) : E('gate.forever')}</small></span></span>`).join('')}</div><a class=btn href="#/wish">🏅 ${E('th.mine')}</a></div>`;
+async function loadTreehole() { const box = $('#thbox'); if (!box) return; const sort = S.thSort ||= 'new';
+  const locked = async d => { let ach = d.achievements; if (!ach) { try { ach = (await (await fetch('/api/gate/rules')).json()).rules.map(rule => ({ rule, progress: ['wishes', 'blessings', 'ageDays', 'monthWishes'].filter(k => rule.cond[k] > 0).map(k => ({ key: k, have: 0, need: rule.cond[k] })), ok: false, claimable: false })); } catch { ach = []; } }
+    ach = ach.filter(a => (a.rule.unlocks || []).includes('treehole'));
+    box.innerHTML = thBar([]) + (d.code && d.code !== 'NO_GATE' ? gateDeny(d.code, { ...d, gate: d.gateId || 'first_light' }) : '') + `<div class="card th-locked"><h3>🔒 ${E('th.locked')}</h3><p>${E('th.lockedHint')}</p></div><h4 class=cg-t>${E('gate.progress')}</h4><div class=ach-grid>${ach.map(achCard).join('')}</div>`;
+    bindCta(); bindClaims(box); $('#gsw')?.addEventListener('click', () => switchAccount().catch(e => toast(esc(walErr(e)), 'err'))); };
+  if (!S.token) return locked({ code: 'NOT_LOGIN' });
+  try { const cq = new URLSearchParams((location.hash.split('?')[1] || '')).get('card'); const r = await api('/api/treehole?sort=' + sort + (cq ? '&card=' + encodeURIComponent(cq) : '')); S.gate && (S.gate.unlocked = true); paintGateDot();
+    const row = p => `<div class="card th-post"><span class="tag th-mark">🌳 ${E('th.mark')}</span><p dir=auto>${esc(p.text)}</p><div class="row th-meta"><span class=muted>${esc(p.author)} · ${esc(new Date(p.at * 1000).toLocaleString(I18N.lang))}</span><span><button type=button class=th-like data-like="${esc(p.id)}" aria-pressed=${p.liked} aria-label="${E('th.like')}">👍 ${p.likes}</button>${p.mine ? ` <button type=button class=link data-del="${esc(p.id)}">${E('th.del')}</button>` : ''}</span></div></div>`;
+    box.innerHTML = thBar(r.cards) + `<div class="row th-filter" role=group aria-label="${E('th.title')}">${['new', 'hot', 'mine'].map(k => `<button type=button data-ts=${k} aria-pressed=${sort === k}>${E('th.sort.' + k)}</button>`).join('')}</div>
+      <div class="card th-compose"><textarea id=thtx maxlength=140 dir=auto rows=2 aria-label="${E('th.ph')}" placeholder="${E('th.ph')}"></textarea><div class=row style="justify-content:space-between"><span class=muted id=thc>0/140</span><button type=button id=thpost class=primary>${E('th.post')}</button></div></div>
+      ${r.posts.length ? r.posts.map(row).join('') : `<div class="card th-empty">🌱 ${E('th.empty')}</div>`}<p class="muted th-foot">🔐 ${E('th.footer')}</p>`;
+    const ta = $('#thtx'); ta.oninput = () => $('#thc').textContent = [...ta.value].length + '/140';
+    box.querySelectorAll('[data-ts]').forEach(b => b.onclick = () => { S.thSort = b.dataset.ts; loadTreehole(); });
+    $('#thpost').onclick = async () => { const b = $('#thpost'); if (!ta.value.trim()) return; b.disabled = true; try { await api('/api/treehole/post', { text: ta.value.trim() }); toast(E('th.posted'), 'ok'); loadTreehole(); } catch (e) { b.disabled = false; toast(esc(e.message), 'err'); if (e.status === 403) loadTreehole(); } };
+    box.querySelectorAll('[data-like]').forEach(b => b.onclick = async () => { try { const x = await api('/api/treehole/like', { id: b.dataset.like }); b.textContent = '👍 ' + x.likes; b.setAttribute('aria-pressed', x.liked); } catch (e) { if (e.status === 403) loadTreehole(); } });
+    box.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { try { await api('/api/treehole/delete', { id: b.dataset.del }); loadTreehole(); } catch (e) { toast(esc(e.message), 'err'); } }); }
+  catch (e) { if (e.status === 403 && e.data) { S.gate && (S.gate.unlocked = false); paintGateDot(); return locked(e.data); } if (e.status === 401) return locked({ code: 'NOT_LOGIN' }); box.innerHTML = `<div class=card role=alert>${esc(e.message)}</div>`; } }
 // ---------- SEO / 分享 meta：随路由更新 title、description、og/twitter ----------
 const SEO = {
   '/': ['光栖 · 世界树许愿树', '在世界树上留下你的正向心愿，永久上链', 'Guangqi · World Wish Tree', 'Leave a positive wish on the World Tree—recorded on-chain forever'],
@@ -914,9 +987,9 @@ function applySeo(p) {
 async function route() {
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
-  v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : (pages[p] || (() => '<p>404</p>'))();
-  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
+  const pages = { '/treehole': treeholePage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
+  v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
+  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });
@@ -954,7 +1027,7 @@ async function route() {
     pickCover(WTCovers.forCat(catSel?.value || '经典')[0]); pickInside(WTInsides.forCat(catSel?.value || '经典')[0]); syncCard();
     catSel?.addEventListener('change', syncShip);
     // 表单草稿：后台刷新/语言切换/钱包事件会重新渲染页面，这里把用户的选择写入 S.draft 并在重渲染后恢复
-    const F = { ckind: 'value', wc2: 'value', ctype: 'value', priv: 'checked', wt: 'value', amt: 'value', ship: 'value', ag: 'checked', ag2: 'checked', stg: 'value', sin: 'value', slk: 'value', sct: 'value', ssh: 'checked', sage: 'value', sgen: 'value', sjob: 'value', gto: 'value', gnt: 'value', svis: 'value', scountry: 'value', sprov: 'value', scity: 'value', gdel: 'value', gvis: 'value', ginv: 'value', gurl: 'value', gtitle: 'value', gprice: 'value', gcur: 'value' };
+    const F = { ckind: 'value', wc2: 'value', ctype: 'value', priv: 'checked', wt: 'value', amt: 'value', ship: 'value', ag: 'checked', ag2: 'checked', stg: 'value', sin: 'value', slk: 'value', sct: 'value', ssh: 'checked', sage: 'value', sgen: 'value', sjob: 'value', gto: 'value', gnt: 'value', svis: 'value', scountry: 'value', sprov: 'value', scity: 'value', gdel: 'value', gvis: 'value', ginv: 'value', gurl: 'value', gtitle: 'value', gprice: 'value', gcur: 'value', gname: 'value', gid: 'value', gato: 'value', gexp: 'value', gag: 'checked' };
     const syncGiftDel = () => { const d = $('#gdel')?.value || 'tree', part = d === 'tree_partial' || d === 'both_partial';
       if ($('#gvisBox')) $('#gvisBox').hidden = !part; if ($('#gpassBox')) $('#gpassBox').hidden = d !== 'locked';
       const gv = $('#gvis')?.value; if ($('#ginvBox')) $('#ginvBox').hidden = !part || gv !== 'invite';
@@ -969,9 +1042,9 @@ async function route() {
       catch (e) { gp = null; toast(esc(e.message), 'err'); }
       b.disabled = false; b.textContent = '🔎 ' + t('goods.fetch'); });
     const syncKind = () => { const k = $('#ckind')?.value || 'wish';
-      $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if ($('#goodsWrap')) $('#goodsWrap').hidden = k !== 'goods';
+      $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if ($('#gateWrap')) $('#gateWrap').hidden = k !== 'gate'; $('#wt').placeholder = t(k === 'gate' ? 'gate.benefitPh' : 'wish.ph'); if ($('#goodsWrap')) $('#goodsWrap').hidden = k !== 'goods';
       if ($('#sharedVis')) $('#sharedVis').hidden = k === 'gift' && (($('#gdel')?.value || 'tree') === 'off'); // 不上树时仍可填位置，但可见性由投递决定
-      syncShip(); syncGiftDel(); syncCard(); };
+      syncShip(); syncGiftDel(); if (k === 'gate' && $('#sharedVis')) $('#sharedVis').hidden = true; syncCard(); };
     $('#ckind')?.addEventListener('change', syncKind); $('#gdel')?.addEventListener('change', syncGiftDel); $('#gvis')?.addEventListener('change', syncGiftDel);
     saveD = () => { D.f = Object.fromEntries(Object.entries(F).filter(([id]) => $('#' + id)).map(([id, p]) => [id, $('#' + id)[p]])); D.cover = $('#covers .on')?.dataset.cover; D.inside = $('#insides .on')?.dataset.inside; D.auto = $('#covers')?.dataset.auto; D.iauto = $('#insides')?.dataset.auto; };
     if (D.f) { for (const [id, v] of Object.entries(D.f)) { const el = $('#' + id); if (el) el[F[id]] = v; }
@@ -1019,6 +1092,13 @@ async function route() {
         if (!(solAddrOk(to) || evmAddrOk(to))) return toast(E('err.giftTo'), 'err');
         await loadBlocklist(true); if (WTBlock.addrHit(S.block, to)) return toast(E('err.giftBlocked'), 'err'); if ([...note].length > 50 || bad(note)) return toast(E('err.field'), 'err');
         K = { kind, to, note, vis, deliver, country, province, city }; }
+      else if (kind === 'gate') { const nm = $('#gname').value.trim(), id = $('#gid').value.trim().toLowerCase(), to = $('#gato').value.trim(), d = $('#gexp').value;
+        if (!$('#gag').checked) return toast(E('gate.needAgree'), 'err');
+        if (!nm || [...nm].length > 20 || /[~|<>]/.test(nm) || !/^[a-z0-9][a-z0-9_-]{0,23}$/.test(id)) return toast(E('err.field'), 'err');
+        if (!(solAddrOk(to) || evmAddrOk(to))) return toast(E('err.giftTo'), 'err');
+        await loadBlocklist(true); if (WTBlock.addrHit(S.block, to)) return toast(E('err.giftBlocked'), 'err');
+        let exp = 0; if (d) { exp = Math.floor(new Date(d + 'T23:59:59').getTime() / 1000); if (exp <= Date.now() / 1000) return toast(E('gate.expPast'), 'err'); }
+        K = { kind, gateId: id, name: nm, to, expireAt: exp, hash: await sha16(txt), vis: 'public' }; }
       else if (kind === 'goods') { const u = ($('#gurl').value || '').trim(); if (!gp || gp.url !== (() => { try { return new URL(u).href; } catch { return ''; } })()) return toast(E('err.goodsPreview'), 'err');
         const title = $('#gtitle').value.trim(), price = $('#gprice').value.trim(), cur = $('#gcur').value.trim().toUpperCase();
         if (!title || [...title].length > 80 || bad(title) || (price && !/^\d{1,9}(\.\d{1,2})?$/.test(price)) || (cur && !/^[A-Z]{3}$/.test(cur))) return toast(E('err.goodsField'), 'err');
@@ -1051,6 +1131,7 @@ async function route() {
         if (K?.kind === 'social' && contact) api('/api/contact', { sig, contact, show: showCt }).catch(e => toast(esc(e.message), 'err'));
         if (K?.kind === 'goods') { S.goods[sig] = { ...metaPayload, domain: K.domain, fetchedAt: gp.fetchedAt }; api('/api/goods-meta', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err')); }
         if (K?.kind === 'gift') api('/api/gift-sent', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err'));
+        if (K?.kind === 'gate') api('/api/gate-sent', { sig }).then(() => { S.gate = null; }).catch(e => toast(esc(e.message), 'err'));
         else if (metaPayload && (metaPayload.country || metaPayload.province || metaPayload.city || metaPayload.age || metaPayload.gender || metaPayload.job || K?.vis !== 'public')) api('/api/card-meta', { sig, ...metaPayload }).catch(() => {});
         if (metaPayload.city || metaPayload.province || metaPayload.country) { S.myLoc = { country: metaPayload.country, province: metaPayload.province, city: metaPayload.city }; localStorage.wt_loc = JSON.stringify(S.myLoc); api('/api/me/loc', S.myLoc).catch(() => {}); }
         S.draft = null; location.hash = '#/';

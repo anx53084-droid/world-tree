@@ -91,8 +91,8 @@ function newSession(db, uid, req) { const token = crypto.randomBytes(24).toStrin
 // ---- 站内信（按收件人 Solana 地址归档：托管账户为其 devnet 地址，钱包账户为钱包地址）----
 function pushMsg(db, pubkey, m) { db.inbox = db.inbox || {}; const L = db.inbox[pubkey] = db.inbox[pubkey] || [];
   L.unshift({ id: crypto.randomBytes(6).toString('hex'), at: Date.now(), read: false, ...m }); if (L.length > 200) L.length = 200; }
-function prefs(u) { return { fulfil: u?.notify?.fulfil !== false, system: u?.notify?.system !== false }; }
-function inboxOf(db, u) { const p = prefs(u), own = (db.inbox?.[u.pubkey] || []).filter(m => (m.kind !== 'fulfil' || p.fulfil) && (m.kind !== 'gift' || p.system)), rd = new Set(u.sysRead || []);
+function prefs(u) { return { fulfil: u?.notify?.fulfil !== false, system: u?.notify?.system !== false, gate: u?.notify?.gate !== false }; }
+function inboxOf(db, u) { const p = prefs(u), own = (db.inbox?.[u.pubkey] || []).filter(m => (m.kind !== 'fulfil' || p.fulfil) && (m.kind !== 'gift' || p.system) && (!/^gate_/.test(m.kind) || p.gate)), rd = new Set(u.sysRead || []);
   const sys = p.system ? (db.sys || []).filter(m => m.at >= (u.created || 0) - 30 * 86400000).map(m => ({ ...m, kind: 'system', read: rd.has(m.id) })) : [];
   const items = [...own, ...sys].sort((a, b) => b.at - a.at).slice(0, 100); return { items, unread: items.filter(m => !m.read).length }; }
 function notifyFulfil(db, author, info) { // 标记心愿已实现 → 给愿望主人发站内信（尊重其消息设置）

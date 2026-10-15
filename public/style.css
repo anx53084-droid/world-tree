@@ -348,3 +348,31 @@ img, video, canvas { max-width: 100% }
 }
 .pv-modes button { font-size: 13px; padding: 6px 10px } .pv-toggle { font-size: 13px; padding: 6px 10px }
 .card.motif:has(.mk-grid) { overflow: clip }
+
+/* ---------- 门卡 ---------- */
+.gate-claim { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border: 1.5px solid #ffd36e; background: #ffd36e14; border-radius: 12px; padding: 10px 12px; margin: 8px 0 }
+.gate-filter { gap: 6px; margin: 8px 0 } .gate-filter button[aria-pressed=true] { background: #e8b85a; color: #1a1205 }
+.gate-list { display: grid; gap: 8px } .gate-card { border: 1px solid #ffffff22; border-radius: 12px; padding: 10px 12px }
+.gate-card.st-valid { border-color: #5ad1a0aa } .gate-card.st-expired { opacity: .85; border-color: #e8b85a88 } .gate-card.st-revoked { opacity: .85; border-color: #ff6b81aa }
+.gate-st { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: #ffffff1a } .st-valid .gate-st { background: #14532d; color: #bbf7d0 } .st-expired .gate-st { background: #713f12; color: #fde68a } .st-revoked .gate-st { background: #7f1d1d; color: #fecaca }
+.gate-why { color: #ffb4a8; margin: .3em 0 } .gate-prog { margin: 4px 0; padding-inline-start: 18px }
+.gate-dot { position: relative } .gate-dot::after { content: ''; position: absolute; top: 2px; inset-inline-end: -2px; width: 8px; height: 8px; border-radius: 50%; background: #ff4d6d; box-shadow: 0 0 0 2px #0b0a24 }
+.gate-deny { border-color: #ff9aa8aa } .gate-deny h3 { margin-top: 0 } .gate-deny .row { gap: 8px; flex-wrap: wrap; margin-top: 8px } .gate-prog-line { font-size: 18px; color: #ffe7a3 }
+/* 成就门卡 / 树洞 */
+.gface { display: block; height: auto; border-radius: 10px; object-fit: cover; aspect-ratio: 600/894; background: #0b1230 }
+.gface.mini { width: 56px; height: auto; flex: none } .gface.badge { width: 34px; height: auto; border-radius: 6px; flex: none } .gface.big { width: min(240px, 60vw); margin: 0 auto; box-shadow: 0 8px 30px #6aa8ff55 } .gface.ach-face { width: 88px; height: auto; flex: none }
+svg.gface { height: auto }
+.gate-card { display: flex; gap: 12px; align-items: flex-start } .gc-body { flex: 1; min-width: 0 }
+.gate-claimed { display: flex; justify-content: center; margin: 12px 0 }
+.cg-t { margin: 16px 0 8px }
+.ach-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) }
+.ach-card { display: flex; gap: 12px; border: 1px solid #ffffff22; border-radius: 14px; padding: 10px; background: #ffffff08 } .ach-card.met { border-color: #5ad1a0aa }
+.ach-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px } .ach-body p { margin: 0; font-size: 13px }
+.ach-bar { height: 8px; border-radius: 6px; background: #ffffff22; overflow: hidden } .ach-bar i { display: block; height: 100%; background: linear-gradient(90deg, #6aa8ff, #f6d38a) } .ach-n { color: #f6d38a; font-variant-numeric: tabular-nums }
+.th-bar { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 8px 0 12px }
+.th-badges { display: flex; gap: 8px; flex-wrap: wrap } .th-badge { display: inline-flex; gap: 8px; align-items: center; border: 1px solid #f6d38a88; border-radius: 10px; padding: 4px 10px 4px 6px; background: #f6d38a14 } .th-badge small { font-size: 11px }
+.th-locked { text-align: center } .th-filter { gap: 6px; margin: 8px 0 } .th-filter button[aria-pressed=true] { border-color: #f6d38a; color: #f6d38a }
+.th-compose textarea { width: 100%; box-sizing: border-box; resize: vertical } .th-post { position: relative } .th-mark { background: #2b6a4a; margin-bottom: 4px; display: inline-block }
+.th-meta { justify-content: space-between; font-size: 12px } .th-empty { text-align: center; padding: 28px 12px } .th-foot { text-align: center; font-size: 12px }
+.th-like[aria-pressed=true] { border-color: #f6d38a }
+#topnav .th-lock, #menu .th-lock { font-size: .85em }
