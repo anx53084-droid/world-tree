@@ -4,16 +4,16 @@ let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); };
 const SOL = 1e9, NOW = 1790000000;
 console.log('unit'); const tmpd = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-batu-')); fs.mkdirSync(path.join(tmpd, 'data'));
 for (const f of ['batch.js', 'gate.js']) fs.copyFileSync(path.join(__dirname, f), path.join(tmpd, f)); process.env.BATCH_BACKOFF = '5'; process.env.BATCH_SHARD = '500';
-const B = require(path.join(tmpd, 'batch.js')); const mk = (o = {}) => ({ blessing: '愿你被温柔以待', count: 1203, unitSol: 0.0067, gateName: '星光小屋', optPublic: false, optAnchor: false, ...o });
-ok(B.validate(mk()).ok.totalLam === 1203 * Math.round(0.0067 * SOL), '总额 = 数量 × 单价（按 lamports 精确计算）');
-for (const [o, e, m] of [[{ unitSol: 0.0066 }, 'amount', '低于最低 0.0067 SOL 被拒绝'], [{ unitSol: NaN }, 'amount', '非数字金额被拒绝'], [{ count: 0 }, 'count', '数量 0 被拒绝'], [{ count: 10001 }, 'count', '数量 10001 被拒绝'], [{ count: 1.5 }, 'count', '非整数数量被拒绝'], [{ blessing: '' }, 'blessing', '空祝福被拒绝'], [{ blessing: '字'.repeat(141) }, 'blessing', '祝福超过 140 字被拒绝'], [{ blessing: 'a|b' }, 'blessing', '祝福含 | 被拒绝'], [{ gateName: '  ' }, 'gate', '门卡名称为空被拒绝'], [{ unitSol: 5000 }, 'amount', '单价上限']]) ok(B.validate(mk(o)).error === e, m);
-ok(B.validate(mk({ blessing: '字'.repeat(140), count: 10000, unitSol: 0.0067 })).ok.count === 10000 && B.validate(mk({ count: 1 })).ok, '140 字 / 10000 张 / 1 张 边界通过');
+const B = require(path.join(tmpd, 'batch.js')); const mk = (o = {}) => ({ blessing: '愿你被温柔以待', count: 1203, coin: 'SOL', valueUsd: 50, redeemNote: '凭领取码到店出示，由创建者按约定兑换', feeUsd: 1, gateName: '星光小屋', optPublic: false, optAnchor: false, ...o });
+ok(B.validate(mk()).ok.feeTotalUsd === 1203 && B.validate(mk({ count: 100, valueUsd: 50 })).ok.feeTotalUsd === 100 && B.validate(mk({ count: 3, feeUsd: 1.5 })).ok.feeTotalUsd === 4.5, '平台费总额 = 数量 × max(1, 单张平台费USD)；示例 100 张 → 100 USD');
+for (const [o, e, m] of [[{ feeUsd: 0.99 }, 'amount', '单张平台费低于 1 美元被拒绝'], [{ feeUsd: NaN }, 'amount', '非数字平台费被拒绝'], [{ feeUsd: -1 }, 'amount', '负数平台费被拒绝'], [{ valueUsd: 0.99 }, 'value', '卡片价值低于 1 美元被拒绝'], [{ valueUsd: 'abc' }, 'value', '卡片价值非数字被拒绝'], [{ redeemNote: '' }, 'note', '兑换说明必填'], [{ redeemNote: '   ' }, 'note', '兑换说明全是空白被拒绝'], [{ redeemNote: '字'.repeat(201) }, 'note', '兑换说明超过 200 字被拒绝'], [{ coin: 'DOGE' }, 'coin', '币种仅限 SOL / ETH / BNB（DOGE 被拒）'], [{ coin: 'USDT' }, 'coin', '币种 USDT 被拒绝'], [{ coin: '' }, 'coin', '缺少币种被拒绝'], [{ redeemNote: '保证年化收益 30%，稳赚不赔' }, 'promise', '兑换说明含收益 / 回报承诺字样被拒绝'], [{ blessing: '参与分红' }, 'promise', '祝福含分红字样被拒绝'], [{ count: 0 }, 'count', '数量 0 被拒绝'], [{ count: 10001 }, 'count', '数量 10001 被拒绝'], [{ count: 1.5 }, 'count', '非整数数量被拒绝'], [{ blessing: '' }, 'blessing', '空祝福被拒绝'], [{ blessing: '字'.repeat(141) }, 'blessing', '祝福超过 140 字被拒绝'], [{ blessing: 'a|b' }, 'blessing', '祝福含 | 被拒绝'], [{ gateName: '  ' }, 'gate', '门卡名称为空被拒绝'], [{ feeUsd: 1e6 }, 'amount', '单张平台费上限']]) ok(B.validate(mk(o)).error === e, m);
+ok(B.validate(mk({ blessing: '字'.repeat(140), count: 10000 })).ok.count === 10000 && B.validate(mk({ count: 1 })).ok && B.validate(mk({ valueUsd: 1, feeUsd: 1, redeemNote: '字'.repeat(200) })).ok && B.validate(mk({ coin: 'eth' })).ok.coin === 'ETH' && B.validate(mk({ feeUsd: undefined })).ok.feeUsd === 1, '140 字 / 10000 张 / 1 张 / 价值 1 美元 / 说明 200 字 / ETH 小写 / 缺省平台费 = 1 美元 边界通过');
 ok(B.validate(mk({ gateName: '<b>门~卡|名称</b>很长很长很长很长很长很长很长很长' })).ok.gateName.length <= 20 && !/[<>~|]/.test(B.validate(mk({ gateName: '<b>门~卡|名称</b>' })).ok.gateName), '门卡名称清洗并截断到 20 字');
-const v = B.validate(mk()).ok; let r = B.create('OWN', v, { key: 'sigAAAA0001', lamports: v.totalLam }, NOW); const b = r.batch;
+const v = B.validate(mk()).ok; let r = B.create('OWN', v, { key: 'sigAAAA0001', usd: v.feeTotalUsd }, NOW); const b = r.batch;
 ok(r.ok && b.shards.length === 3 && b.shards[2].to === 1203 && b.status === 'queued', '创建批次：1203 张按 500 分片 → 3 片');
-console.log('replay / idempotency'); r = B.create('OWN', v, { key: 'sigAAAA0001', lamports: v.totalLam }, NOW + 1); ok(r.ok && r.dup && r.batch.id === b.id && Object.keys(B.load().batches).length === 1, '同一支付重复提交：返回同一批次，不重复创建');
-ok(B.create('EVIL', v, { key: 'sigAAAA0001', lamports: v.totalLam }, NOW).error === 'used', '他人拿同一支付签名创建批次 → used（防重放 / 冒用）');
-ok(B.create('OWN', v, { key: 'sigBBBB0002', lamports: v.totalLam - 1 }, NOW).error === 'amount', '到账金额不足（少 1 lamport）→ amount');
+console.log('replay / idempotency'); r = B.create('OWN', v, { key: 'sigAAAA0001', usd: v.feeTotalUsd }, NOW + 1); ok(r.ok && r.dup && r.batch.id === b.id && Object.keys(B.load().batches).length === 1, '同一支付重复提交：返回同一批次，不重复创建');
+ok(B.create('EVIL', v, { key: 'sigAAAA0001', usd: v.feeTotalUsd }, NOW).error === 'used', '他人拿同一支付签名创建批次 → used（防重放 / 冒用）');
+ok(B.create('OWN', v, { key: 'sigBBBB0002', usd: v.feeTotalUsd * 0.97 }, NOW).error === 'amount' && B.create('OWN', v, { key: 'sigBBBB0003', usd: v.feeTotalUsd * 0.985 }, NOW).ok && delete B.load().batches[Object.keys(B.load().batches).pop()], '到账低于应付 98% → amount；2% 滑点容差内（98.5%）通过');
 console.log('shards / retry / resume'); const fails = {}; B.hooks.shard = (bt, sh) => { if (sh.i === 1 && (fails.x = (fails.x || 0) + 1) <= 2) throw new Error('boom'); };
 let t0 = NOW + 10; ok(B.tick(t0, 10) === 3 && b.shards[0].state === 'done' && b.shards[1].state === 'queued' && b.shards[1].tries === 1 && b.shards[1].nextAt === t0 + 5 && b.shards[2].state === 'done', '分片 1 失败：其它分片继续；第 1 次重试退避 5 秒');
 ok(B.tick(t0 + 4, 10) === 0, '退避期内不重试'); ok(B.tick(t0 + 5, 10) === 1 && b.shards[1].tries === 2 && b.shards[1].nextAt === t0 + 5 + 10, '第 2 次失败：退避翻倍（10 秒）');
@@ -24,7 +24,7 @@ ok(b2.shards[1].state === 'running' && Object.keys(B.load().codes).length === co
 ok(B.tick(t0 + 20, 10) === 1 && b2.shards[1].state === 'done' && b2.status === 'done' && B.view(b2).issued === 1203 && Object.keys(B.load().codes).length === 1203, '续传：超时的 running 分片重新排队并完成，共 1203 个唯一码');
 const c0 = B.codeFor(b.id, 0); B.hooks.shard = null; const again = Object.keys(B.load().codes).length; ok(B.codeFor(b.id, 0) === c0 && /^[0-9A-HJKMNP-TV-Z]{5}(-[0-9A-HJKMNP-TV-Z]{5}){3}$/.test(c0) && again === 1203, '领取码确定性：重算相同（重试幂等）；格式 5-5-5-5，100 bit');
 const set = new Set(); for (let i = 0; i < 10000; i++) set.add(B.codeFor('b_perf', i)); ok(set.size === 10000, '10000 个码互不重复');
-B.hooks.shard = () => { throw new Error('always'); }; r = B.create('OWN', B.validate(mk({ count: 10 })).ok, { key: 'sigCCCC0003', lamports: 1e12 }, NOW); const bf = r.batch; let tt = NOW + 100; for (let i = 0; i < 8; i++) { B.tick(tt, 10); tt += 1000; }
+B.hooks.shard = () => { throw new Error('always'); }; r = B.create('OWN', B.validate(mk({ count: 10 })).ok, { key: 'sigCCCC0003', usd: 1e6 }, NOW); const bf = r.batch; let tt = NOW + 100; for (let i = 0; i < 8; i++) { B.tick(tt, 10); tt += 1000; }
 ok(bf.status === 'failed' && bf.shards[0].state === 'failed' && bf.shards[0].tries === 6 && B.load().alerts.some(a => a.batch === bf.id) && !JSON.stringify(B.load().alerts).includes(B.load().meta.secret), '重试 6 次仍失败：批次 failed + 告警日志（不含密钥）');
 B.hooks.shard = null; ok(B.retryFailed(bf.id) === 1 && B.tick(tt, 10) === 1 && bf.status === 'done', '管理员重新排队失败分片后完成');
 console.log('csv'); const csv = B.csv(b2, 'https://x.example'), lines = csv.split('\r\n').filter(Boolean); ok(csv.charCodeAt(0) === 0xFEFF && lines[0] === '\ufeff序号,领取码,领取链接,状态' && lines.length === 1204, 'CSV：UTF-8 BOM + 表头（序号,领取码,领取链接,状态）+ 1203 行');
@@ -37,49 +37,92 @@ ok(B.claim('AAAAA-AAAAA-AAAAA-AAAAA', 'U2', NOW).error === 'nf' && B.claim('shor
 let lim = 0; for (let i = 0; i < 25; i++) if (B.limited('claim|1.2.3.4', 20, 600000, 1000 + i)) lim++; ok(lim === 5 && !B.limited('claim|5.6.7.8', 20, 600000, 1000), '限速：同一 IP 10 分钟内超过 20 次被限（另一个 IP 不受影响）');
 console.log('anchor'); const am = B.anchorMemo(b2); ok(/^WTREE1\|BG\|b_[0-9a-f]{16}\|1203\|[0-9a-f]{32}$/.test(am) && Buffer.byteLength(am) < 120 && B.anchorMemo(b2) === am, '门内记录 memo：批次号 + 数量 + Merkle 根（确定性，< 120 字节）');
 ok(B.setAnchor(b.id, 'sigANCH0001').ok && B.setAnchor(b.id, 'sigANCH0001').dup && B.setAnchor(b.id, 'sigOTHER0002').error === 'exists', '锚定记录幂等；不能被另一笔覆盖');
-// ---------- 集成（真实服务进程 + 模拟支付）----------
+console.log('quote / lock / legacy'); const vq = B.validate(mk()).ok, qq = B.quote('OWN', vq, 150, NOW); ok(qq.coin === 'SOL' && qq.price === 150 && qq.amount === Math.ceil(1203 / 150 * 1e9) / 1e9 && qq.expiresAt === NOW + 600 && qq.slippage === 0.02, '报价：1203 USD ÷ 150 = 8.02 SOL，锁价 10 分钟，滑点容差 2%');
+const ck = B.checkQuote(qq.quote, 'OWN', vq, NOW + 10); ok(ck.ok && ck.price === 150 && Math.abs(ck.min - 1203 / 150 * 0.98) < 1e-9, '锁定报价通过校验，最低应付 = 应付额 × 98%');
+ok(B.checkQuote(qq.quote, 'EVIL', vq, NOW).error === 'quote', '他人的报价不能用（绑定账户）'); ok(B.checkQuote(qq.quote, 'OWN', { ...vq, feeUsd: 2, feeTotalUsd: 2406 }, NOW).error === 'quote' && B.checkQuote(qq.quote, 'OWN', { ...vq, feeUsd: 0.01, feeTotalUsd: 12.03 }, NOW).error === 'quote', '篡改单价（报价后改单张平台费）→ 与锁定订单不一致');
+ok(B.checkQuote(qq.quote, 'OWN', { ...vq, count: 1 }, NOW).error === 'quote' && B.checkQuote(qq.quote, 'OWN', { ...vq, coin: 'ETH' }, NOW).error === 'quote', '篡改数量 / 币种 → 与锁定订单不一致');
+const forged = qq.quote.replace(/^./, c => c === 'e' ? 'f' : 'e'); ok(B.checkQuote(forged, 'OWN', vq, NOW).error === 'quote' && B.checkQuote(qq.quote.split('.')[0] + '.' + 'x'.repeat(32), 'OWN', vq, NOW).error === 'quote' && B.checkQuote('', 'OWN', vq, NOW).error === 'quote', '伪造 / 篡改价格的报价令牌（HMAC 不符）→ 拒绝');
+ok(B.checkQuote(qq.quote, 'OWN', vq, NOW + 599).ok && B.checkQuote(qq.quote, 'OWN', vq, NOW + 601).expired === true, '报价 10 分钟后过期');
+ok(B.quote('OWN', B.validate(mk({ coin: 'ETH', count: 3 })).ok, 3000, NOW).amount === 0.001 && B.quote('OWN', B.validate(mk({ coin: 'BNB', count: 1 })).ok, 600, NOW).amount === Math.ceil(1 / 600 * 1e8) / 1e8, 'ETH / BNB 报价按各自币价换算（8 位小数向上取整）');
+// 旧批次（无价值 / 费用字段）兼容：按 0 显示，不报错
+{ const d = B.load(); d.batches.b_legacy000000001 = { id: 'b_legacy000000001', owner: 'OLD', blessing: '旧祝福', gateName: '旧门卡', count: 3, unitLam: 6700000, totalLam: 20100000, paidLam: 20100000, optPublic: false, optAnchor: false, payKey: 'oldsig', payChain: 'sol', status: 'done', createdAt: NOW - 9999, doneAt: NOW - 9990, anchor: null, shards: [{ i: 0, from: 0, to: 3, state: 'done', tries: 0, nextAt: 0, err: '' }] };
+  for (let i = 0; i < 3; i++) d.codes[B.idx(B.codeFor('b_legacy000000001', i))] = { b: 'b_legacy000000001', i, st: 'new' };
+  const lv = B.view(d.batches.b_legacy000000001), lp = B.peek(B.codeFor('b_legacy000000001', 1)); ok(lv.valueUsd === 0 && lv.valueTotalUsd === 0 && lv.redeemNote === '' && lv.legacy === true && lv.feeTotalUsd === 0 && lv.payAmount === 0.0201 && lv.issued === 3, '旧批次 view：无价值字段按 0、说明为空、标记 legacy，不报错');
+  ok(lp.ok && lp.valueUsd === 0 && lp.redeemNote === '' && B.claim(B.codeFor('b_legacy000000001', 1), 'U9', NOW).card.redeemNote === '' && B.csv(d.batches.b_legacy000000001, 'https://x.example').split('\r\n').length === 5, '旧批次领取页 / 领取 / CSV 仍可用（价值按 0）'); }
+const nb = B.create('OWN', B.validate(mk({ count: 4, valueUsd: 50, redeemNote: '到店出示' })).ok, { key: 'sigVALU0001', usd: 4, amount: 0.0267, price: 150, chain: 'sol' }, NOW); B.tick(NOW + 5000, 10); const nv = B.view(nb.batch); ok(nv.valueUsd === 50 && nv.valueTotalUsd === 200 && nv.feeTotalUsd === 4 && nv.payUsd === 4 && nv.redeemNote === '到店出示' && nv.legacy === false && B.peek(B.codeFor(nb.batch.id, 0)).valueUsd === 50, '新批次：卡片价值 / 总价值仅记录，平台费另计');
+delete B.load().batches[nb.batch.id];
+// ---------- 集成（真实服务进程 + 模拟支付 + 模拟币价）----------
 (async () => {
+  console.log('prices'); const Pr = require(path.join(__dirname, 'prices.js')); let calls = 0; const mkSrc = o => async () => { calls++; if (o === null) throw new Error('down'); return o; };
+  Pr.reset(); Pr.state.sources = { a: mkSrc({ SOL: 100, ETH: 3000, BNB: 600 }), b: mkSrc({ SOL: 102, ETH: 3010, BNB: 0 }), c: mkSrc({ SOL: 101, ETH: 2990, BNB: 610 }) }; let P = await Pr.get(1e6);
+  ok(P.prices.SOL === 101 && P.prices.ETH === 3000 && P.prices.BNB === 605 && !P.stale && P.sources.BNB.length === 2, '多源取中位数（3 源取中；某源缺币 / 为 0 时用其余源）');
+  const c0 = calls; await Pr.get(1e6 + 59000); ok(calls === c0, '60 秒内走缓存，不重复请求第三方'); await Pr.get(1e6 + 61000); ok(calls > c0, '超过 60 秒重新取价');
+  Pr.state.sources = { a: mkSrc(null), b: mkSrc(null), c: mkSrc(null) }; P = await Pr.get(1e6 + 200000); ok(P.stale === true && P.prices.SOL === 101 && P.staleCoins.length === 3 && Pr.usable(P, 'SOL', 1e6 + 200000) && !Pr.usable(P, 'SOL', 1e6 + 61000 + 20 * 60000), '全部失败：回退最近一次成功值并标记 stale；超过 15 分钟的旧价不可用于报价');
+  Pr.reset(); P = await Pr.get(5e6); ok(P.stale && !Pr.usable(P, 'ETH', 5e6), '从未取到真实价：只有兜底常量，永远不可用于报价');
   console.log('backend'); const D = __dirname, tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-batsrv-')), port = 18921, Bs = 'http://127.0.0.1:' + port;
   for (const f of fs.readdirSync(D)) if (/\.(js|json)$/.test(f) && !/^verify/.test(f) && f !== 'package-lock.json') fs.copyFileSync(path.join(D, f), path.join(tmp, f)); fs.symlinkSync(D + '/node_modules', tmp + '/node_modules'); fs.symlinkSync(D + '/public', tmp + '/public'); fs.mkdirSync(tmp + '/data');
-  const srv = cp.spawn('node', ['server.js'], { cwd: tmp, env: { ...process.env, PORT: port, ADMIN_KEY: 'k-test', D1_API_TOKEN: '', ADS_MOCK_PAY: '1', BATCH_SHARD: '500' }, stdio: 'ignore' });
+  fs.writeFileSync(tmp + '/data/prices-mock.json', JSON.stringify({ SOL: 150, ETH: 3000, BNB: 600 }));
+  const srv = cp.spawn('node', ['server.js'], { cwd: tmp, env: { ...process.env, PORT: port, ADMIN_KEY: 'k-test', D1_API_TOKEN: '', ADS_MOCK_PAY: '1', PRICE_MOCK: '1', BATCH_SHARD: '500' }, stdio: 'ignore' });
   const wr = (f, o) => fs.writeFileSync(path.join(tmp, 'data', f), JSON.stringify(o)), rd = f => { try { return JSON.parse(fs.readFileSync(path.join(tmp, 'data', f), 'utf8')); } catch { return {}; } };
   const call = async (p, body, h = {}) => { const x = await fetch(Bs + p, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...h }, body: body ? JSON.stringify(body) : undefined }); const ab = Buffer.from(await x.arrayBuffer()), tx = ab.toString('utf8'), bom = ab[0] === 0xEF && ab[1] === 0xBB && ab[2] === 0xBF; let j = {}; try { j = JSON.parse(tx); } catch {} return { s: x.status, j, text: tx, bom, h: x.headers }; };
-  try { for (let i = 0; i < 80; i++) { try { await fetch(Bs + '/api/nonce'); break; } catch { await new Promise(r => setTimeout(r, 250)); } }
+  try { for (let i = 0; i < 80; i++) { try { await fetch(Bs + '/api/nonce'); break } catch { await new Promise(r => setTimeout(r, 250)); } }
     const M = (await call('/api/login', { email: 'merchant@test.dev' })).j, O = (await call('/api/login', { email: 'other@test.dev' })).j, tk = u => ({ authorization: 'Bearer ' + u.token }), adm = { 'x-admin-key': 'k-test' };
-    const per = Math.round(0.0067 * SOL), body = (o = {}) => ({ blessing: '愿你被温柔以待', count: 1203, unitSol: 0.0067, gateName: '星光小屋', optPublic: false, optAnchor: false, ...o });
-    let x = await call('/api/batch/cfg'); ok(x.s === 200 && x.j.minSol === 0.0067 && x.j.maxCount === 10000 && x.j.shard === 500 && x.j.receive, '配置接口：最低 0.0067、最多 10000、分片 500、收款地址');
-    ok((await call('/api/batch/create', body({ sig: 'MOCKnologin01' }))).s === 401, '未登录创建 → 401');
-    ok((await call('/api/batch/create', body({ unitSol: 0.001, sig: 'MOCKlow00001' }), tk(M))).j.code === 'amount' && (await call('/api/batch/create', body({ count: 20000, sig: 'MOCKlow00002' }), tk(M))).j.code === 'count', '金额 / 数量校验（服务端）');
-    ok((await call('/api/batch/create', body({ sig: 'MOCKnotpaid001' }), tk(M))).j.code === 'verify', '链上查不到的支付签名 → verify');
-    const total = per * 1203; wr('ads-mock-pay.json', { MOCKpaidM00001: { signer: M.pubkey, lamports: total }, MOCKshort00001: { signer: M.pubkey, lamports: total - 5 }, MOCKpaidO00001: { signer: O.pubkey, lamports: total } });
-    ok((await call('/api/batch/create', body({ sig: 'MOCKshort00001' }), tk(M))).j.code === 'amount', '到账金额不足 → amount（服务端以链上到账为准，不信任客户端金额）');
-    ok((await call('/api/batch/create', body({ sig: 'MOCKpaidM00001' }), tk(O))).j.code === 'verify', '他人签名冒用：O 拿 M 的支付签名 → verify（签名者必须是当前登录账户）');
-    x = await call('/api/batch/create', body({ sig: 'MOCKpaidM00001' }), tk(M)); const id = x.j.batch && x.j.batch.id; ok(x.s === 200 && /^b_[0-9a-f]{16}$/.test(id) && x.j.batch.count === 1203 && x.j.batch.totalSol === total / SOL, '支付核验通过 → 创建批次任务');
-    x = await call('/api/batch/create', body({ sig: 'MOCKpaidM00001' }), tk(M)); ok(x.s === 200 && x.j.dup && x.j.batch.id === id, '重放同一支付 → 返回同一批次（幂等）');
-    ok((await call('/api/batch/create', body({ sig: 'MOCKpaidM00001' }), tk(O))).s === 409 || (await call('/api/batch/create', body({ sig: 'MOCKpaidM00001' }), tk(O))).j.code === 'verify', '他人重放同一签名 → 拒绝');
+    const base = (o = {}) => ({ blessing: '愿你被温柔以待', count: 1203, coin: 'SOL', valueUsd: 50, redeemNote: '凭领取码到店出示，由创建者按约定兑换', feeUsd: 1, gateName: '星光小屋', optPublic: false, optAnchor: false, ...o });
+    const quote = async (u, b) => (await call('/api/batch/quote', { count: b.count, coin: b.coin, feeUsd: b.feeUsd }, tk(u))).j;
+    // 先报价（服务端锁价）→ 钱包按报价金额支付（这里写模拟账本）→ 带报价令牌创建
+    const payAndCreate = async (u, b, sigName, { frac = 1, extra = {}, q } = {}) => { q ||= await quote(u, b); const lam = Math.ceil(q.amount * 1e9 * frac), sig = sigName; wr('ads-mock-pay.json', { ...rd('ads-mock-pay.json'), [sig]: { signer: u.pubkey, lamports: lam } }); return { q, r: await call('/api/batch/create', { ...b, quote: q.quote, sig, ...extra }, tk(u)) }; };
+    let x = await call('/api/batch/cfg'); ok(x.s === 200 && x.j.minFeeUsd === 1 && x.j.minValueUsd === 1 && JSON.stringify(x.j.coins) === '["SOL","ETH","BNB"]' && x.j.maxCount === 10000 && x.j.shard === 500 && x.j.slippage === 0.02 && x.j.receive, '配置接口：最低 1 USD / 张、币种仅 SOL/ETH/BNB、最多 10000、分片 500、滑点 2%、收款地址');
+    x = await call('/api/prices'); ok(x.s === 200 && x.j.prices.SOL === 150 && x.j.prices.ETH === 3000 && x.j.prices.BNB === 600 && x.j.stale === false && x.j.ttl === 60 && JSON.stringify(x.j.coins) === '["SOL","ETH","BNB"]', 'GET /api/prices（公开）：SOL/ETH/BNB 的 USD 价，stale 标记');
+    ok((await call('/api/batch/create', { ...base(), sig: 'MOCKnologin01' })).s === 401 && (await call('/api/batch/quote', { count: 1, coin: 'SOL', feeUsd: 1 })).s === 401, '未登录创建 / 报价 → 401');
+    ok((await quote(M, base({ feeUsd: 0.5 }))).code === 'amount' && (await quote(M, base({ coin: 'DOGE' }))).code === 'coin' && (await quote(M, base({ count: 0 }))).code === 'count', '报价输入校验：平台费 < 1 美元 / 币种 / 数量');
+    const q1 = await quote(M, base()); ok(q1.price === 150 && q1.amount === 8.02 && q1.feeTotalUsd === 1203 && q1.coin === 'SOL' && q1.expiresAt - Math.floor(Date.now() / 1000) > 590, '报价：1203 USD ÷ 150 = 8.02 SOL（服务端价格），锁价约 10 分钟');
+    const qe = await quote(M, base({ count: 10, coin: 'ETH' })), qb = await quote(M, base({ count: 10, coin: 'BNB' })); ok(qe.amount === Math.ceil(10 / 3000 * 1e8) / 1e8 && qb.amount === Math.ceil(10 / 600 * 1e8) / 1e8, 'ETH / BNB 报价按服务端币价换算');
+    // 输入校验（创建）
+    wr('ads-mock-pay.json', { MOCKvalid00001: { signer: M.pubkey, lamports: 9e9 } }); const cr = async (o, h = M) => (await call('/api/batch/create', { ...base(o), quote: q1.quote, sig: 'MOCKvalid00001' }, tk(h))).j.code;
+    ok(await cr({ valueUsd: 0.5 }) === 'value' && await cr({ redeemNote: '' }) === 'note' && await cr({ redeemNote: '字'.repeat(201) }) === 'note' && await cr({ coin: 'DOGE' }) === 'coin' && await cr({ feeUsd: 0.01 }) === 'amount', '创建校验：价值 ≥ 1、兑换说明必填且 ≤ 200 字、币种仅 3 种、平台费 ≥ 1 美元');
+    ok(await cr({ redeemNote: '访问 https://bit.ly/abc 兑换' }) === 'blocked' && await cr({ redeemNote: '保证年化收益 30%' }) === 'promise' && await cr({ blessing: '参与分红' }) === 'promise', '兑换说明过 blocklist（短链被拒）；收益 / 分红类承诺字样被拒');
+    // 篡改单价 / 数量 / 币种：与服务端锁定报价不一致
+    ok(await cr({ feeUsd: 2 }) === 'quote' && await cr({ count: 5 }) === 'quote' && await cr({ coin: 'ETH' }) === 'coin' && await cr({}, O) === 'quote', '篡改单价 / 数量、他人的报价令牌 → quote 拒绝（价格以服务端锁定为准）');
+    x = await call('/api/batch/create', { ...base(), quote: q1.quote.replace(/.$/, c => c === 'A' ? 'B' : 'A'), sig: 'MOCKvalid00001' }, tk(M)); ok(x.j.code === 'quote', '伪造报价令牌 → 拒绝');
+    x = await call('/api/batch/create', { ...base(), sig: 'MOCKvalid00001' }, tk(M)); ok(x.j.code === 'quote', '没有报价令牌 → 拒绝（不能绕过服务端报价）');
+    ok((await call('/api/batch/create', { ...base({ count: 3, evm: { chainId: 97, txs: ['0x' + '1'.repeat(64)] } }), quote: q1.quote }, tk(M))).j.code === 'coin' && (await call('/api/batch/create', { ...base({ coin: 'ETH', count: 3 }), quote: qe.quote, sig: 'MOCKvalid00001' }, tk(M))).j.code === 'coin' && (await call('/api/batch/create', { ...base({ coin: 'BNB', count: 3, optPublic: true }), evm: { chainId: 97, txs: ['0x' + '2'.repeat(64)] }, quote: qb.quote }, tk(M))).j.code === 'evmOpt', '币种与支付方式不匹配（SOL 走 Solana，ETH/BNB 走 EVM）；EVM 不支持公开 / 上链');
+    ok((await call('/api/batch/create', { ...base(), quote: q1.quote, sig: 'MOCKnotpaid001' }, tk(M))).j.code === 'verify', '链上查不到的支付签名 → verify');
+    // 金额：低于应付的 98% 拒绝；98.5% 通过（2% 滑点容差）
+    x = await payAndCreate(M, base(), 'MOCKshort00001', { frac: 0.97 }); ok(x.r.j.code === 'amount', '到账低于锁价应付额的 98% → amount（不信任客户端金额）');
+    const q100 = await quote(M, base({ count: 100 })); ok(q100.feeTotalUsd === 100 && q100.amount === Math.ceil(100 / 150 * 1e9) / 1e9, '示例：100 张 × 价值 50 USD → 平台费 100 USD（≈ 0.666667 SOL），价值 5000 USD 仅记录');
+    x = await payAndCreate(M, base({ count: 100 }), 'MOCKslip0000001', { frac: 0.985, q: q100 }); ok(x.r.s === 200 && x.r.j.batch.feeTotalUsd === 100 && x.r.j.batch.valueTotalUsd === 5000 && x.r.j.batch.valueUsd === 50 && x.r.j.batch.payUsd < 105, '2% 滑点容差内（98.5%）通过；创建者只付平台费 ≈100 USD，价值 5000 USD 仅记录');
+    // 锁价：创建订单后币价大幅变动，仍按锁定报价核验
+    const q2 = await quote(M, base({ count: 10 })); wr('prices-mock.json', { SOL: 300, ETH: 3000, BNB: 600 }); await new Promise(r => setTimeout(r, 100));
+    ok((await call('/api/prices')).j.prices.SOL === 300, '币价变动后 /api/prices 更新'); x = await payAndCreate(M, base({ count: 10 }), 'MOCKlock0000001', { q: q2 }); ok(x.r.s === 200, '锁价：币价翻倍后，仍按锁定报价（150）核验到账，不受前端 / 当前价格影响');
+    const q3 = await quote(M, base({ count: 10 })); ok(q3.price === 300, '新报价使用新币价'); x = await payAndCreate(M, base({ count: 10 }), 'MOCKlock0000002', { q: q2, frac: 0.5 }); ok(x.r.j.code === 'amount', '按“币价翻倍后的新价”少付一半，但锁定报价按 150 → 不足 → 拒绝（服务端价格为准）');
+    wr('prices-mock.json', { SOL: 150, ETH: 3000, BNB: 600, stale: true }); await new Promise(r => setTimeout(r, 100)); x = await call('/api/prices'); ok(x.j.stale === true, '价格源失败时 /api/prices 标记 stale'); ok((await call('/api/batch/quote', base({ count: 1 }), tk(M))).j.code === 'price', '报价价格过旧（仅有缓存回退值）→ 拒绝报价，避免按过期价格收费');
+    wr('prices-mock.json', { SOL: 150, ETH: 3000, BNB: 600 }); await new Promise(r => setTimeout(r, 100));
+    // 主流程
+    const qM = await quote(M, base()); wr('ads-mock-pay.json', { ...rd('ads-mock-pay.json'), MOCKpaidO00001: { signer: O.pubkey, lamports: Math.ceil(qM.amount * 1e9) } });
+    ok((await payAndCreate(M, base(), 'MOCKbad0000x', { q: qM, extra: { sig: 'MOCKpaidO00001' } })).r.j.code === 'verify', '他人签名冒用：M 拿 O 的支付签名 → verify（签名者必须是当前登录账户）');
+    x = await payAndCreate(M, base(), 'MOCKpaidM00001', { q: qM }); const id = x.r.j.batch && x.r.j.batch.id; ok(x.r.s === 200 && /^b_[0-9a-f]{16}$/.test(id) && x.r.j.batch.count === 1203 && x.r.j.batch.coin === 'SOL' && x.r.j.batch.feeTotalUsd === 1203 && x.r.j.batch.valueTotalUsd === 60150 && x.r.j.batch.redeemNote.includes('到店'), '支付核验通过 → 创建批次（平台费 1203 USD；总价值 60150 USD 仅记录）');
+    x = await call('/api/batch/create', { ...base(), quote: qM.quote, sig: 'MOCKpaidM00001' }, tk(M)); ok(x.s === 200 && x.j.dup && x.j.batch.id === id, '重放同一支付 → 返回同一批次（幂等）');
+    x = await call('/api/batch/create', { ...base(), quote: qM.quote, sig: 'MOCKpaidM00001' }, tk(O)); ok(x.s === 409, '他人重放同一签名 → 409');
     let st; for (let i = 0; i < 30; i++) { st = (await call('/api/batch/' + id, null, tk(M))).j.batch; if (st.status === 'done') break; await new Promise(r => setTimeout(r, 500)); } ok(st.status === 'done' && st.issued === 1203 && st.percent === 100 && st.shards.total === 3, '队列自动处理：3 个分片完成，进度 100%');
+    ok(st.valueUsd === 50 && st.valueTotalUsd === 60150 && st.feeUsd === 1 && st.payUsd >= 1190 && st.payUsd < 1250 && st.lockedPrice === 150, '进度 / 详情含卡片价值、总价值、平台费、锁定价（实付 ≈ 平台费，不含卡片价值）');
     ok((await call('/api/batch/' + id, null, tk(O))).s === 403 && (await call('/api/batch/' + id)).s === 401 && (await call('/api/batch/' + id + '/csv', null, tk(O))).s === 403, '进度 / CSV 只有批次所有者可读（其他人 403，未登录 401）');
-    ok((await call('/api/batch/mine', null, tk(M))).j.batches[0].id === id && (await call('/api/batch/mine', null, tk(O))).j.batches.length === 0, '“我的批次”按钱包身份隔离（换设备同账户可续看）');
-    const cs = await call('/api/batch/' + id + '/csv', null, tk(M)); const rows = cs.text.replace(/^\ufeff/, '').split('\r\n').filter(Boolean); ok(cs.s === 200 && /text\/csv/.test(cs.h.get('content-type')) && cs.bom && rows.length === 1204 && rows[0].includes('序号,领取码,领取链接,状态'), 'CSV 下载：UTF-8 BOM，1203 行');
+    ok((await call('/api/batch/mine', null, tk(M))).j.batches.some(b => b.id === id) && (await call('/api/batch/mine', null, tk(O))).j.batches.length === 0, '“我的批次”按钱包身份隔离');
+    const cs = await call('/api/batch/' + id + '/csv', null, tk(M)); const rows = cs.text.replace(/^\ufeff/, '').split('\r\n').filter(Boolean); ok(cs.s === 200 && /text\/csv/.test(cs.h.get('content-type')) && cs.bom && rows.length === 1204 && rows[0] === '序号,领取码,领取链接,状态', 'CSV 下载：UTF-8 BOM，表头固定，1203 行');
     const codes = rows.slice(1).map(l => l.split('","')[1]); ok(new Set(codes).size === 1203 && (await call('/api/batch/' + id + '/csv', null, tk(M))).text === cs.text, '1203 个码唯一；重复导出内容一致');
-    const pk = await call('/api/batch/peek?code=' + codes[0]); ok(pk.s === 200 && pk.j.gateName === '星光小屋' && pk.j.state === 'new' && !('by' in pk.j) && !JSON.stringify(pk.j).includes(M.pubkey), '领取页预览：只含祝福 / 门卡名 / 状态，不泄露所有者');
+    const pk = await call('/api/batch/peek?code=' + codes[0]); ok(pk.s === 200 && pk.j.gateName === '星光小屋' && pk.j.state === 'new' && pk.j.valueUsd === 50 && pk.j.redeemNote.includes('到店') && !('by' in pk.j) && !JSON.stringify(pk.j).includes(M.pubkey), '领取页预览：含卡片价值与创建者兑换说明；不泄露所有者');
     ok((await call('/api/batch/claim', { code: codes[0] })).s === 401, '领取需要登录（钱包身份绑定）');
-    x = await call('/api/batch/claim', { code: codes[0] }, tk(O)); ok(x.s === 200 && x.j.card.owner === O.pubkey && x.j.card.name === '星光小屋', '领取：绑定到登录钱包，签发门卡');
+    x = await call('/api/batch/claim', { code: codes[0] }, tk(O)); ok(x.s === 200 && x.j.card.owner === O.pubkey && x.j.card.name === '星光小屋' && x.j.valueUsd === 50 && x.j.redeemNote.includes('到店') && x.j.card.valueUsd === 50, '领取：绑定到登录钱包，签发门卡；领取结果与门卡携带价值与兑换说明；领取者支付 0（无支付参数）');
     ok((await call('/api/batch/claim', { code: codes[0] }, tk(M))).j.code === 'used' && (await call('/api/batch/claim', { code: codes[0] }, tk(O))).j.dup === true, '一码一领：他人 used；本人重复幂等');
     const gm = await call('/api/gate/me', null, tk(O)); ok(gm.s === 200 && JSON.stringify(gm.j).includes('星光小屋'), '门卡出现在领取者的“我的门卡”里（对接 gate 体系）');
     ok((await call('/api/batch/' + id, null, tk(M))).j.batch.claimed === 1, '进度中的已领取数 = 1');
     let last = 0; for (let i = 0; i < 25; i++) last = (await call('/api/batch/claim', { code: 'AAAAA-AAAAA-AAAAA-A' + String(i).padStart(4, '0') }, tk(M))).s; ok(last === 429, '领取限速：连续猜码 20 次后 429（防暴力枚举）');
-    ok((await call('/api/batch/peek?code=x')).s === 404 || (await call('/api/batch/peek?code=x')).s === 429, '无效码预览：404（且同样受限速）');
-    // 审核：过滤关键词 / 链接
-    wr('ads-mock-pay.json', { ...rd('ads-mock-pay.json'), MOCKbad0000001: { signer: M.pubkey, lamports: per * 5 } }); x = await call('/api/batch/create', body({ count: 5, blessing: '快来 https://bit.ly/abc 领取', sig: 'MOCKbad0000001' }), tk(M)); ok(x.j.code === 'blocked', '自动过滤：短链 / 黑名单链接被拒绝（沿用 blocklist，无人工审核）');
-    ok((await call('/api/batch/create', body({ count: 5, evm: { chainId: 11155111, txs: ['0x' + '1'.repeat(64)] }, optPublic: true }), tk(M))).j.code === 'evmOpt', 'EVM 账户不支持“公开 / 上链”选项（明确拒绝，不假装）');
-    // 托管账户一次支付（模拟）
-    x = await call('/api/batch/create', body({ count: 10, pay: true }), tk(M)); ok(x.s === 200 && x.j.batch.count === 10 && /^MOCK/.test(Object.keys(rd('ads-mock-pay.json')).pop()), '托管账户：服务端代签一笔总额支付（模拟）后创建批次');
+    // 托管账户一次支付（模拟）：仅 SOL
+    x = await call('/api/batch/quote', base({ count: 10 }), tk(M)); x = await call('/api/batch/create', { ...base({ count: 10 }), quote: x.j.quote, pay: true }, tk(M)); ok(x.s === 200 && x.j.batch.count === 10 && /^MOCK/.test(Object.keys(rd('ads-mock-pay.json')).pop()), '托管账户：服务端按锁价代签一笔平台费支付（模拟）后创建批次');
     // 管理 / 运维
-    ok((await call('/api/admin/batch')).s === 403, '管理接口无密钥 → 403'); const as = await call('/api/admin/batch', null, adm); ok(as.s === 200 && as.j.batches >= 2 && as.j.byStatus.done >= 1 && Array.isArray(as.j.alerts) && !JSON.stringify(as.j).includes('"secret"') && !as.text.includes(codes[1]), '管理：任务状态汇总 + 告警日志；不含密钥 / 领取码');
+    ok((await call('/api/admin/batch')).s === 403, '管理接口无密钥 → 403'); const as = await call('/api/admin/batch', null, adm); ok(as.s === 200 && as.j.batches >= 3 && as.j.byStatus.done >= 1 && Array.isArray(as.j.alerts) && !JSON.stringify(as.j).includes('"secret"') && !as.text.includes(codes[1]), '管理：任务状态汇总 + 告警日志；不含密钥 / 领取码');
     ok((await call('/api/admin/batch/retry', { id }, adm)).j.requeued === 0, '管理：重新排队失败分片（无失败分片 → 0）');
     // 门内记录上链（可选，用户自付 gas）：模拟
-    wr('ads-mock-pay.json', { ...rd('ads-mock-pay.json'), MOCKanchorpay01: { signer: M.pubkey, lamports: per * 3 } }); x = await call('/api/batch/create', body({ count: 3, optAnchor: true, sig: 'MOCKanchorpay01' }), tk(M)); const aid = x.j.batch.id;
+    x = await payAndCreate(M, base({ count: 3, optAnchor: true }), 'MOCKanchorpay01'); const aid = x.r.j.batch.id;
     ok((await call('/api/batch/anchor', { id: aid, sig: 'MOCKanchorsig01' }, tk(M))).j.code === 'state', '批次未完成时不能锚定');
     for (let i = 0; i < 20; i++) { st = (await call('/api/batch/' + aid, null, tk(M))).j.batch; if (st.status === 'done') break; await new Promise(r => setTimeout(r, 400)); } ok(st.status === 'done' && /^WTREE1\|BG\|/.test(st.anchorMemo) && !st.anchor, '完成后给出待签 memo（用户自付 gas），尚未写链时 anchor 为空');
     ok((await call('/api/batch/anchor', { id: aid, sig: 'MOCKanchorsig01' }, tk(M))).j.code === 'verify', '没有对应链上记录 → 不会假装已上链');
@@ -88,6 +131,13 @@ ok(B.setAnchor(b.id, 'sigANCH0001').ok && B.setAnchor(b.id, 'sigANCH0001').dup &
     x = await call('/api/batch/anchor', { id: aid, sig: 'MOCKanchorsig01' }, tk(M)); ok(x.s === 200 && x.j.batch.anchor.sig === 'MOCKanchorsig01', '锚定成功后进度里出现链上记录签名');
     ok(/batches\.json/.test(fs.readFileSync(path.join(__dirname, 'persist.js'), 'utf8')) && fs.existsSync(path.join(tmp, 'data', 'batches.json')), '批次数据落盘 data/batches.json 并纳入 persist.js（D1 write-through）');
     const raw = fs.readFileSync(path.join(tmp, 'data', 'batches.json'), 'utf8'); ok(!raw.includes(codes[0]) && !raw.includes(codes[5]), '库里不存明文领取码（只存哈希索引；码由密钥确定性派生）');
+    // 文案 / 前端：领取页展示兑换说明 + 固定免责提示；全部语言齐全；禁用词
+    const app = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'), gift = app.slice(app.indexOf('// ---------- 团购礼品卡'), app.indexOf('function list(q, only)'));
+    ok(/gb\.cl\.noteT/.test(gift) && /gb\.cl\.disc/.test(gift) && /gb\.cl\.value/.test(gift) && /\/api\/prices/.test(gift) && !/api\.coinbase|api\.binance|data-api\.binance|coingecko\.com/i.test(gift), '领取页渲染卡片价值、兑换说明、固定免责提示；前端只读 /api/prices，不直连第三方');
+    const langs = fs.readdirSync(path.join(__dirname, 'public', 'i18n')).filter(f => f.endsWith('.json')), bad = []; const need = ['gb.cl.disc', 'gb.cl.noteT', 'gb.cl.value', 'gb.f.note', 'gb.f.value', 'gb.f.fee', 'gb.gasNote', 'gb.min1', 'gb.foot'];
+    for (const f of langs) { const d = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'i18n', f), 'utf8')); for (const k of need) if (!d[k]) bad.push(f + ':' + k); for (const [k, v] of Object.entries(d)) if (k.startsWith('gb.') && /还愿|還願/.test(v)) bad.push(f + ':' + k + ':还愿'); }
+    ok(langs.length === 16 && !bad.length, '16 种语言都有新文案；gb.* 文案无“还愿”字样 ' + bad.slice(0, 3).join(','));
+    const zh = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'i18n', 'zh-CN.json'), 'utf8')); ok(/不保管资金/.test(zh['gb.cl.disc']) && /不负责兑现/.test(zh['gb.cl.disc']) && /向创建者核实/.test(zh['gb.cl.disc']) && !/心意/.test(Object.entries(zh).filter(([k]) => k.startsWith('gb.')).map(e => e[1]).join('')), '固定提示「平台不保管资金、不负责兑现，请向创建者核实」；gb.* 中旧“心意金额”措辞已清除');
   } finally { srv.kill(); }
   console.log(`\n✅ ${n} checks passed`); process.exit(0);
 })().catch(e => { console.error('\n❌', e.message); process.exit(1); });

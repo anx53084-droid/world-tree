@@ -428,3 +428,5 @@ svg.gface { height: auto }
 .gb-bless { font-style: italic; color: #f3e2b8; overflow-wrap: anywhere } .gb-list { list-style: none; padding: 0; margin: 0 } .gb-list li { margin: 6px 0 } .gb-list a { display: block; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; min-height: 24px }
 .gb-bar { height: 12px; border-radius: 99px; background: #ffffff18; overflow: hidden; margin: 10px 0 } .gb-bar i { display: block; height: 100%; background: linear-gradient(90deg, #e8a93a, #fff4cf); transition: width .5s }
 .gb-home { color: #ffd36b; text-decoration: underline } .gb-claimcard h3 { overflow-wrap: anywhere }
+.gb-note { margin: 8px 0; padding: 8px 12px; border-inline-start: 3px solid #ffd36b; background: #ffd36b10; border-radius: 6px } .gb-note h4 { margin: 0 0 4px; color: #ffd36b; font-size: 14px } .gb-note p { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap }
+.gb-disc { margin: 8px 0; padding: 8px 12px; border: 1px solid #ffb59c88; border-radius: 8px; color: #ffd6c6; font-weight: 600; line-height: 1.6 } .gb-val { color: #ffd36b; font-weight: 600; margin: 6px 0 } .gb-pay b { font-size: 20px; color: #ffd36b }

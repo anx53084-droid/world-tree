@@ -801,58 +801,73 @@ function openTopup(id) { const ad = S.my?.ads.find(x => x.id === id); if (!ad) r
 // ---------- 团购礼品卡：#/gift/batch（创建）· #/gift/batch/<id>（进度）· #/claim/<code>（领取）----------
 const GB_LS = 'wt_batches', gbLocal = () => { try { return JSON.parse(localStorage[GB_LS] || '{}'); } catch { return {}; } };
 const gbRemember = (id, o) => { const m = gbLocal(); m[id] = { ...(m[id] || {}), ...o, at: m[id]?.at || Date.now() }; const ks = Object.keys(m).sort((a, b) => m[b].at - m[a].at).slice(0, 30); const n = {}; ks.forEach(k => n[k] = m[k]); localStorage[GB_LS] = JSON.stringify(n); };
-const gbErr = e => { const c = e?.code; if (c === 'NOT_LOGIN') return t('gb.login'); if (c === 'amount' && e.data?.paid != null) return t('gb.err.short', { paid: e.data.paid, need: e.data.need }); const k = ['amount', 'blocked', 'verify', 'used', 'large', 'evmOpt', 'chain', 'rate', 'nf', 'reject'].includes(c) ? c : ['blessing', 'count', 'gate', 'param', 'sig', 'state', 'owner', 'exists'].includes(c) ? 'input' : ''; return k ? t('gb.err.' + k, { min: S.gb?.cfg?.minSol || 0.0067 }) : (e?.message || String(e)); };
+const gbErr = e => { const c = e?.code; if (c === 'NOT_LOGIN') return t('gb.login'); if (c === 'amount' && e.data?.paid != null) return t('gb.err.short', { paid: e.data.paid, need: e.data.need, coin: e.data.coin || '' }); const k = ['amount', 'blocked', 'verify', 'used', 'large', 'evmOpt', 'chain', 'rate', 'nf', 'reject', 'value', 'note', 'coin', 'quote', 'price', 'promise'].includes(c) ? c : ['blessing', 'count', 'gate', 'param', 'sig', 'state', 'owner', 'exists'].includes(c) ? 'input' : ''; return k ? t('gb.err.' + k) : (e?.message || String(e)); };
 const gbRules = () => `<section class="card motif gb-rules" aria-labelledby=gbrh><h3 id=gbrh>📜 ${E('gb.rules.t')}</h3><ul>${['gb.r1', 'gb.r2', 'gb.r3', 'gb.r4', 'gb.r5', 'gb.r6'].map(k => `<li>${E(k)}</li>`).join('')}</ul></section>`;
 const gbFoot = () => `<p class=gb-foot role=note>${E('gb.foot')}</p>`;
+const gbH = (k, o) => esc(t(k, Object.fromEntries(Object.keys(o).map(x => [x, `\u0001${x}\u0002`])))).replace(/\u0001(\w+)\u0002/g, (_, x) => o[x]); // 翻译句子里嵌入已转义的 HTML 片段
+const gbMoney = n => (+n).toLocaleString(I18N.locale(), { maximumFractionDigits: 2 });
+const gbAmt = (usd, price, coin) => { if (!(price > 0)) return 0; const k = coin === 'SOL' ? 1e6 : 1e6; return Math.ceil(usd / price * k) / k; }; // 仅用于页面预估；实际应付额以服务端锁价报价为准
 const gbPage = () => `<h2 class=gold-title>🎁 ${E('gb.title')}</h2><p class=tagline>${E('gb.sub')}</p>${S.mode === 'guest' ? `<div class=card><p>${E('gb.login')}</p>${guestCta()}</div>` : ''}
 <form id=gbf class="card motif gb-form" novalidate aria-labelledby=gbfh><h3 id=gbfh>${E('gb.form')}</h3>
 <label class=gb-l for=gbb>${E('gb.f.bless')}</label><textarea id=gbb maxlength=140 rows=3 required aria-describedby=gbbn></textarea><p class=muted id=gbbn>0/140</p>
 <div class=gb-grid><div><label class=gb-l for=gbn>${E('gb.f.count')}</label><input id=gbn type=number min=1 max=10000 step=1 value=10 inputmode=numeric required></div>
-<div><label class=gb-l for=gbu>${E('gb.f.unit')}</label><input id=gbu inputmode=decimal autocomplete=off value="0.0067" aria-describedby=gbum required><p class=muted id=gbum>${E('gb.f.unitMin', { min: 0.0067 })}</p></div></div>
+<div><label class=gb-l for=gbv>${E('gb.f.value')}</label><input id=gbv inputmode=decimal autocomplete=off value="10" aria-describedby=gbvh required></div></div><p class=muted id=gbvh>${E('gb.f.valueH')}</p>
+<label class=gb-l for=gbr>${E('gb.f.note')}</label><textarea id=gbr maxlength=200 rows=3 required aria-describedby=gbrn></textarea><p class=muted id=gbrn>${E('gb.f.noteH')} <span id=gbrc2>0/200</span></p>
 <label class=gb-l for=gbg>${E('gb.f.gate')}</label><input id=gbg maxlength=20 required aria-describedby=gbgh><p class=muted id=gbgh>${E('gb.f.gateH')}</p>
+<div class=gb-grid><div><label class=gb-l for=gbf2>${E('gb.f.fee')}</label><input id=gbf2 inputmode=decimal autocomplete=off value="1" aria-describedby=gbfh2 required></div>
+<div><label class=gb-l for=gbc>${E('gb.f.coin')}</label><select id=gbc><option value=SOL>SOL</option><option value=ETH>ETH</option><option value=BNB>BNB</option></select></div></div><p class=muted id=gbfh2>${E('gb.f.feeH')}</p><p class=muted id=gbmin></p><p class=muted id=gbcoinna hidden>${E('gb.coin.na')}</p>
+<div id=gbch hidden><label class=gb-l for=gbe>${E('gb.chain')}</label><select id=gbe></select></div>
 <fieldset class=gb-opts><legend>${E('gb.o.legend')}</legend>
 <label class=gb-c><input type=checkbox id=gbo1> <span>${E('gb.o.pub')}<small class=muted>${E('gb.o.pubN')}</small></span></label>
 <label class=gb-c><input type=checkbox id=gbo2> <span>${E('gb.o.anc')}<small class=muted>${E('gb.o.ancN')}</small><small class=gb-gas>⛽ ${E('gb.pg.anc.gas')}</small></span></label><p class=muted id=gblim hidden>${E('gb.o.lim')}</p></fieldset>
-<div class=gb-total role=status aria-live=polite><div>${E('gb.total')}: <b id=gbt>—</b></div><div class=muted id=gbtl></div><div class=muted id=gbtu></div>
-<div id=gbch hidden><label class=gb-l for=gbc>${E('gb.chain')}</label><select id=gbc></select><p class=muted id=gbca></p></div>
-<p class=gb-recv>${E('gb.recv')}: <code id=gbrc>${esc(S.cfg.receive || '')}</code></p></div>
+<div class=gb-total role=status aria-live=polite><div>${gbH('gb.sum.value', { v: '<b id=gbs1>—</b>' })}</div><div>${gbH('gb.sum.totalValue', { v: '<b id=gbs2>—</b>' })}</div><div>${gbH('gb.sum.fee', { usd: '<b id=gbs3>—</b>', amt: '<b id=gbs4>—</b>', coin: '<span id=gbs5>SOL</span>' })}</div>
+<div class=gb-pay>${E('gb.sum.pay')}: <b id=gbt>—</b></div><div class=muted id=gbpr></div><div class=muted id=gbst2 hidden>⚠️ ${E('gb.price.stale')}</div>
+<p class=gb-recv>${E('gb.recv')}: <code id=gbrc>${esc(S.cfg.receive || '')}</code></p><p class=gb-gas>⛽ ${E('gb.gasNote')}</p></div>
+<p class=gb-disc role=note>⚠️ ${E('gb.cl.disc')}</p>
 <label class=gb-c><input type=checkbox id=gbag required> <span>${E('gb.agree')}</span></label>
 <p id=gberr class=tu-err role=alert hidden></p><p id=gbst class=tu-state role=status aria-live=polite></p>
 <button type=submit class="primary breathe" id=gbgo>🎁 ${E('gb.go')}</button></form>
 <section class="card motif" aria-labelledby=gbmh><h3 id=gbmh>🗂️ ${E('gb.mine.t')}</h3><div id=gbmine><p class=muted>${E('gb.mine.none')}</p></div></section>${gbRules()}${gbFoot()}`;
-function gbBind() { const f = $('#gbf'); if (!f) return; S.gb ||= {}; const cfgP = fetch('/api/batch/cfg').then(r => r.json()).then(c => { S.gb.cfg = c; upd(); }).catch(() => {});
-  const mode = () => S.mode === 'self' ? 'self' : S.kind === 'evm' ? 'evm' : 'host', R = () => evmRoutes();
-  if (mode() === 'evm' && S.token) { const ks = Object.keys(R()); $('#gbch').hidden = !ks.length; $('#gbc').innerHTML = ks.map(k => `<option value=${esc(k)}>${esc(t('chain.' + R()[k].key))} · ${esc(R()[k].name)}</option>`).join(''); $('#gbc').value = localStorage.wt_pay || ks[0] || ''; }
-  if (mode() !== 'self' && S.token) { $('#gbo2').disabled = true; $('#gbo2').checked = false; if (mode() === 'evm') { $('#gbo1').disabled = true; $('#gbo1').checked = false; } $('#gblim').hidden = false; }
-  const vals = () => { const unit = parseAmt($('#gbu').value), count = +$('#gbn').value, per = Math.round(unit * 1e9), lam = per * count; return { unit, count, per, lam, ok: Number.isFinite(unit) && Number.isInteger(count) && count >= 1 && count <= 10000 && unit >= (S.gb.cfg?.minSol || 0.0067) && Number.isSafeInteger(lam) }; };
-  const err = m => { const e = $('#gberr'); e.hidden = !m; e.textContent = m || ''; }, state = (m, c = '') => { const x = $('#gbst'); x.textContent = m || ''; x.className = 'tu-state ' + c; };
-  function upd() { const bl = [...$('#gbb').value].length; $('#gbbn').textContent = `${bl}/140`; const v = vals(), usd = S.cfg.solUsd || 0;
-    $('#gbrc').textContent = (mode() === 'evm' && R()[$('#gbc')?.value]?.receive) || S.cfg.receive || '';
-    if (!v.ok) { $('#gbt').textContent = '—'; $('#gbtl').textContent = Number.isFinite(v.unit) && v.unit < (S.gb.cfg?.minSol || 0.0067) ? t('gb.err.amount', { min: S.gb.cfg?.minSol || 0.0067 }) : ''; $('#gbtu').textContent = ''; $('#gbca').textContent = ''; return v; }
-    const sol = v.lam / 1e9; $('#gbt').textContent = fmtSol(sol) + ' SOL'; $('#gbtl').textContent = t('gb.totalLine', { n: num(v.count), unit: fmtSol(v.per / 1e9), sol: fmtSol(sol) }); $('#gbtu').textContent = usd ? t('gb.usd', { usd: (sol * usd).toFixed(2) }) : '';
-    if (mode() === 'evm') { const r = R()[$('#gbc').value], p = S.cfg.evm?.usd?.[r?.coin] || 0; $('#gbca').textContent = p ? t('gb.evmAmt', { amt: evmAmt(sol), sym: r.sym }) : ''; } return v; }
-  const evmAmt = sol => { const r = R()[$('#gbc').value], p = S.cfg.evm?.usd?.[r?.coin] || 0; return p ? Math.ceil(sol * (S.cfg.solUsd || 0) / p * 1.02 * 1e6) / 1e6 : 0; };
-  f.addEventListener('input', upd); $('#gbc')?.addEventListener('change', upd); upd();
-  const loadMine = async () => { const m = gbLocal(); let rows = Object.entries(m).map(([id, o]) => ({ id, ...o })); if (S.token) { try { const r = await api('/api/batch/mine'); const ids = new Set(r.batches.map(b => b.id)); rows = [...r.batches.map(b => ({ id: b.id, gate: b.gateName, count: b.count, status: b.status, percent: b.percent, at: b.createdAt * 1000 })), ...rows.filter(x => !ids.has(x.id) && false)]; } catch { rows = []; } } else rows = []; if (!$('#gbmine')) return;
+function gbBind() { const f = $('#gbf'); if (!f) return; S.gb = { cfg: null, prices: null }; const num2 = v => { v = String(v || '').trim().replace(/,/g, '.'); return /^\d+(\.\d{1,2})?$/.test(v) ? +v : NaN; };
+  const mode = () => S.mode === 'self' ? 'self' : S.kind === 'evm' ? 'evm' : 'host', R = () => evmRoutes(), coinOk = c => S.mode === 'guest' || !S.token ? true : mode() === 'evm' ? c !== 'SOL' : c === 'SOL';
+  const routeKeys = coin => Object.keys(R()).filter(k => R()[k].coin === (coin === 'ETH' ? 'ethereum' : 'binancecoin'));
+  const cfgP = fetch('/api/batch/cfg').then(r => r.json()).then(c => { S.gb.cfg = c; upd(); }).catch(() => {});
+  const loadP = () => fetch('/api/prices').then(r => r.json()).then(p => { S.gb.prices = p; upd(); }).catch(() => {}); loadP(); clearInterval(S.gbPI); S.gbPI = setInterval(() => $('#gbf') ? loadP() : clearInterval(S.gbPI), 60000); // 前端只读服务端 /api/prices（60 秒缓存），不直连第三方
+  for (const o of f.querySelectorAll('#gbc option')) o.disabled = !coinOk(o.value); if (!coinOk($('#gbc').value)) $('#gbc').value = [...$('#gbc').options].find(o => !o.disabled)?.value || 'SOL'; $('#gbcoinna').hidden = ![...$('#gbc').options].some(o => o.disabled);
+  if (S.token && mode() !== 'self') { $('#gbo2').disabled = true; $('#gbo2').checked = false; if (mode() === 'evm') { $('#gbo1').disabled = true; $('#gbo1').checked = false; } $('#gblim').hidden = false; }
+  const evmSel = () => { const c = $('#gbc').value, ks = c === 'SOL' ? [] : routeKeys(c); $('#gbch').hidden = !(mode() === 'evm' && S.token && ks.length); $('#gbe').innerHTML = ks.map(k => `<option value=${esc(k)}>${esc(t('chain.' + R()[k].key))} · ${esc(R()[k].name)}</option>`).join(''); if (ks.includes(localStorage.wt_pay)) $('#gbe').value = localStorage.wt_pay; };
+  const vals = () => { const count = +$('#gbn').value, value = num2($('#gbv').value), fee = num2($('#gbf2').value), coin = $('#gbc').value, total = Number.isFinite(fee) ? Math.round(count * Math.max(1, fee) * 100) / 100 : NaN; return { count, value, fee, coin, total, ok: Number.isInteger(count) && count >= 1 && count <= 10000 && value >= 1 && fee >= 1 && Number.isFinite(total) }; };
+  function upd() { $('#gbbn').textContent = `${[...$('#gbb').value].length}/140`; $('#gbrc2').textContent = `${[...$('#gbr').value].length}/200`; const v = vals(), P = S.gb.prices?.prices || {}, pr = P[v.coin] || 0, ck = { SOL: 'sol', ETH: 'eth', BNB: 'bnb' };
+    $('#gbmin').textContent = pr ? t('gb.min1', { sol: gbAmt(1, P.SOL, 'SOL'), eth: gbAmt(1, P.ETH, 'ETH'), bnb: gbAmt(1, P.BNB, 'BNB') }) : ''; $('#gbst2').hidden = !S.gb.prices?.stale;
+    $('#gbrc').textContent = (v.coin !== 'SOL' && R()[$('#gbe')?.value]?.receive) || S.cfg.receive || ''; $('#gbs5').textContent = v.coin;
+    if (!v.ok) { for (const i of [1, 2, 3, 4]) $('#gbs' + i).textContent = '—'; $('#gbt').textContent = '—'; $('#gbpr').textContent = Number.isFinite(v.fee) && v.fee < 1 ? t('gb.err.amount') : ''; return v; }
+    const amt = gbAmt(v.total, pr, v.coin); $('#gbs1').textContent = gbMoney(v.value) + ' USD'; $('#gbs2').textContent = gbMoney(v.value * v.count) + ' USD'; $('#gbs3').textContent = gbMoney(v.total) + ' USD'; $('#gbs4').textContent = amt ? String(amt) : '—'; $('#gbt').textContent = amt ? `${amt} ${v.coin} (≈ ${gbMoney(v.total)} USD)` : '—';
+    $('#gbpr').textContent = pr ? t('gb.price.src', { coin: v.coin, p: gbMoney(pr) }) : ''; return v; }
+  f.addEventListener('input', upd); $('#gbc').addEventListener('change', () => { evmSel(); upd(); }); $('#gbe').addEventListener('change', upd); evmSel(); upd();
+  const loadMine = async () => { let rows = []; if (S.token) { try { const r = await api('/api/batch/mine'); rows = r.batches.map(b => ({ id: b.id, gate: b.gateName, count: b.count, status: b.status, percent: b.percent })); } catch {} } if (!$('#gbmine')) return;
     $('#gbmine').innerHTML = rows.length ? `<ul class=gb-list>${rows.map(b => `<li><a href="#/gift/batch/${esc(b.id)}">🎁 ${esc(b.gate || '')} · ${num(b.count)} · ${E('gb.pg.s.' + (b.status || 'queued'))} ${b.percent != null ? b.percent + '%' : ''}</a></li>`).join('')}</ul>` : `<p class=muted>${E('gb.mine.none')}</p>`; }; loadMine();
   f.addEventListener('submit', async e => { e.preventDefault(); err(''); if (S.mode === 'guest' || !S.token) { err(t('gb.login')); return; }
-    const v = vals(), blessing = $('#gbb').value.trim(), gate = $('#gbg').value.trim(); await cfgP;
-    if (!blessing || /\|/.test(blessing)) { err(t('gb.err.input')); $('#gbb').focus(); return; } if (!v.ok) { err(t(v.count >= 1 && v.count <= 10000 && Number.isInteger(v.count) ? 'gb.err.amount' : 'gb.err.count', { min: S.gb.cfg?.minSol || 0.0067 })); (v.count >= 1 && v.count <= 10000 ? $('#gbu') : $('#gbn')).focus(); return; }
-    if (!gate) { err(t('gb.err.input')); $('#gbg').focus(); return; } if (!$('#gbag').checked) { err(t('gb.err.agree')); $('#gbag').focus(); return; }
-    const optPublic = $('#gbo1').checked, optAnchor = $('#gbo2').checked, body = { blessing, count: v.count, unitSol: v.unit, gateName: gate, optPublic, optAnchor }, m = mode();
+    const v = vals(), blessing = $('#gbb').value.trim(), gate = $('#gbg').value.trim(), note = $('#gbr').value.trim(); await cfgP;
+    if (!blessing || /\|/.test(blessing)) { err(t('gb.err.input')); $('#gbb').focus(); return; } if (!(v.count >= 1 && v.count <= 10000 && Number.isInteger(v.count))) { err(t('gb.err.count')); $('#gbn').focus(); return; }
+    if (!(v.value >= 1)) { err(t('gb.err.value')); $('#gbv').focus(); return; } if (!note || [...note].length > 200) { err(t('gb.err.note')); $('#gbr').focus(); return; }
+    if (!(v.fee >= 1)) { err(t('gb.err.amount')); $('#gbf2').focus(); return; } if (!gate) { err(t('gb.err.input')); $('#gbg').focus(); return; } if (!coinOk(v.coin)) { err(t('gb.coin.na')); $('#gbc').focus(); return; } if (!$('#gbag').checked) { err(t('gb.err.agree')); $('#gbag').focus(); return; }
+    const optPublic = $('#gbo1').checked, optAnchor = $('#gbo2').checked, m = mode(), body = { blessing, count: v.count, coin: v.coin, valueUsd: v.value, redeemNote: note, feeUsd: v.fee, gateName: gate, optPublic, optAnchor };
     const lock = on => { f.querySelectorAll('input,textarea,select,button').forEach(x => { if (on) { x._d = x.disabled; x.disabled = true; } else x.disabled = !!x._d; }); if (on) $('#modal-box')?.focus?.(); };
     lock(true); let sig = '';
-    try { if (m === 'self') { state(t('gb.st.sign'), 'wait'); await needW3(); const recv = new W3.PublicKey(S.cfg.receive), me = new W3.PublicKey(S.pubkey), conn = new W3.Connection(RPC_WRITE, 'confirmed');
+    try { state(t('gb.st.quote'), 'wait'); const q = await api('/api/batch/quote', { count: v.count, coin: v.coin, feeUsd: v.fee }); body.quote = q.quote; // 服务端锁价：支付金额以此报价为准
+      state(t('gb.price.lock', { min: Math.max(1, Math.round((q.expiresAt - Date.now() / 1000) / 60)) }) + ' ' + t('gb.st.sign'), 'wait');
+      if (m === 'self') { if (v.coin !== 'SOL') throw new Error(t('gb.coin.na')); await needW3(); const recv = new W3.PublicKey(S.cfg.receive), me = new W3.PublicKey(S.pubkey), conn = new W3.Connection(RPC_WRITE, 'confirmed');
         let memo = 'WTREE1|BG|pay'; if (optPublic) memo = await moderateThenMemo('W', '经典', blessing); // 先审核再付款：公开的 1 张随这一笔支付一起上链
-        const tx = new W3.Transaction().add(W3.SystemProgram.transfer({ fromPubkey: me, toPubkey: recv, lamports: v.lam })); if (optPublic) tx.add(W3.SystemProgram.transfer({ fromPubkey: me, toPubkey: new W3.PublicKey(TREE), lamports: 0 }));
+        const tx = new W3.Transaction().add(W3.SystemProgram.transfer({ fromPubkey: me, toPubkey: recv, lamports: Math.ceil(q.amount * 1e9) })); if (optPublic) tx.add(W3.SystemProgram.transfer({ fromPubkey: me, toPubkey: new W3.PublicKey(TREE), lamports: 0 }));
         tx.add(new W3.TransactionInstruction({ programId: new W3.PublicKey(MEMO), keys: [{ pubkey: me, isSigner: true, isWritable: false }], data: new TextEncoder().encode(memo) }));
         const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(); tx.recentBlockhash = blockhash; tx.feePayer = me;
-        const sr = await (await solWallet()).signAndSend(tx); sig = sr?.raw ? await conn.sendRawTransaction(sr.raw) : sr; gbRemember('pending:' + sig, { sig, body });
+        const sr = await (await solWallet()).signAndSend(tx); sig = sr?.raw ? await conn.sendRawTransaction(sr.raw) : sr;
         state(t('gb.st.verify'), 'wait'); await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed'); body.sig = sig; }
-      else if (m === 'evm') { state(t('gb.st.sign'), 'wait'); const sol = v.lam / 1e9, amt = evmAmt(sol); if (!amt) throw new Error(t('gb.err.chain')); body.evm = await evmPay($('#gbc').value, amt); state(t('gb.st.verify'), 'wait'); }
-      else { body.pay = true; state(t('gb.st.verify'), 'wait'); }
-      const r = await api('/api/batch/create', body); gbRemember(r.batch.id, { gate: r.batch.gateName, count: r.batch.count, status: r.batch.status, percent: r.batch.percent }); localStorage.removeItem('wt_batches_pending'); location.hash = '#/gift/batch/' + r.batch.id; }
-    catch (e2) { lock(false); const cancelled = !e2.status && (e2?.code === 4001 || /reject|denied|cancel|declin/i.test(String(e2?.message || e2))); const html = e2.html; if (html) { state('', ''); const x = $('#gberr'); x.hidden = false; x.innerHTML = e2.message; } else { state(''); err(cancelled ? t('gb.st.cancel') : e2.status || e2.code ? gbErr(e2) : walErr(e2)); if (sig) { const x = $('#gberr'); x.hidden = false; x.textContent += ' ' + t('gb.err.paidNote', { sig }); } } } }); }
+      else if (m === 'evm') { if (v.coin === 'SOL') throw new Error(t('gb.coin.na')); const key = $('#gbe').value; if (!key) throw new Error(t('gb.err.chain')); body.evm = await evmPay(key, q.amount); state(t('gb.st.verify'), 'wait'); }
+      else { if (v.coin !== 'SOL') throw new Error(t('gb.coin.na')); body.pay = true; state(t('gb.st.verify'), 'wait'); }
+      const r = await api('/api/batch/create', body); gbRemember(r.batch.id, { gate: r.batch.gateName, count: r.batch.count, status: r.batch.status, percent: r.batch.percent }); location.hash = '#/gift/batch/' + r.batch.id; }
+    catch (e2) { lock(false); const cancelled = !e2.status && (e2?.code === 4001 || /reject|denied|cancel|declin/i.test(String(e2?.message || e2))); const html = e2.html; if (html) { state('', ''); const x = $('#gberr'); x.hidden = false; x.innerHTML = e2.message; } else { state(''); err(cancelled ? t('gb.st.cancel') : e2.status || e2.code ? gbErr(e2) : walErr(e2)); if (sig) { const x = $('#gberr'); x.hidden = false; x.textContent += ' ' + t('gb.err.paidNote', { sig }); } } } });
+  function err(m) { const e = $('#gberr'); e.hidden = !m; e.textContent = m || ''; } function state(m, c = '') { const x = $('#gbst'); x.textContent = m || ''; x.className = 'tu-state ' + c; } }
 // ----- 进度页 -----
 const gbProgress = id => `<h2 class=gold-title>🎁 ${E('gb.pg.t')}</h2><p><a href="#/gift/batch">← ${E('gb.pg.back')}</a></p><div id=gbpg data-id="${esc(id)}">${S.token ? `<p class=muted>⏳ ${E('route.loading')}</p>` : `<div class=card><p>${E('gb.login')}</p>${guestCta()}</div>`}</div>${gbRules()}${gbFoot()}`;
 async function gbPoll(id) { const box = $('#gbpg'); if (!box || box.dataset.id !== id) return; clearTimeout(S.gbT); if (!S.token) return;
@@ -860,7 +875,8 @@ async function gbPoll(id) { const box = $('#gbpg'); if (!box || box.dataset.id !
   if (!$('#gbpg') || $('#gbpg').dataset.id !== id) return; gbRemember(id, { gate: b.gateName, count: b.count, status: b.status, percent: b.percent }); box._ok = 1; const sh = b.shards, done = b.status === 'done';
   const keep = document.activeElement?.id, nextIn = b.nextRetryAt ? fmtT(b.nextRetryAt) : '';
   box.innerHTML = `<section class="card motif" aria-labelledby=gbph><h3 id=gbph>${esc(b.gateName)} · ${num(b.count)}</h3><p class=gb-bless>“${esc(b.blessing)}”</p>
-  <p class=gb-status><b>${E('gb.pg.s.' + b.status)}</b> · ${E('gb.pg.paid', { sol: fmtSol(b.paidSol ?? b.totalSol) })}${b.optPublic ? ' · ' + E('gb.pg.pub') : ''}</p>
+  <p class=gb-status><b>${E('gb.pg.s.' + b.status)}</b> · ${b.legacy ? E('gb.pg.legacy') : E('gb.pg.paid', { amt: b.payAmount, coin: b.coin, usd: gbMoney(b.feeTotalUsd) })}${b.optPublic ? ' · ' + E('gb.pg.pub') : ''}</p>
+  <p>${E('gb.pg.val', { v: gbMoney(b.valueUsd), t: gbMoney(b.valueTotalUsd) })}</p><div class=gb-note><h4>${E('gb.cl.noteT')}</h4><p dir=auto>${b.redeemNote ? esc(b.redeemNote) : E('gb.cl.noNote')}</p></div><p class=gb-disc role=note>⚠️ ${E('gb.cl.disc')}</p>
   <div class=gb-bar role=progressbar aria-valuemin=0 aria-valuemax=100 aria-valuenow="${b.percent}" aria-label="${E('gb.pg.t')}"><i style="width:${b.percent}%"></i></div>
   <p>${E('gb.pg.bar', { a: num(b.issued), b: num(b.count), p: b.percent })} · ${E('gb.pg.shards', { d: sh.done, n: sh.total })}${sh.failed ? ' · ' + E('gb.pg.sf', { f: sh.failed }) : ''} · ${E('gb.pg.claimed', { n: num(b.claimed), c: num(b.count) })}</p>
   ${b.nextRetryAt && !done ? `<p class=muted role=status>↻ ${E('gb.pg.retry', { t: nextIn })}</p>` : ''}${sh.failed ? `<p class=tu-err role=alert>${E('gb.pg.failed')}</p>` : ''}
@@ -876,7 +892,7 @@ async function gbPoll(id) { const box = $('#gbpg'); if (!box || box.dataset.id !
 const gbClaim = code => `<h2 class=gold-title>🎫 ${E('gb.cl.t')}</h2><div id=gbcl data-code="${esc(code)}"><p class=muted>⏳ ${E('gb.cl.check')}</p></div>${gbFoot()}`;
 async function gbClaimRun(code) { const box = $('#gbcl'); if (!box || box.dataset.code !== code) return; const fail = (k, e) => { box.innerHTML = `<div class=card role=alert><p class=tu-err>${esc(k)}</p><p><a class=btn href="#/">${E('gb.cl.home')}</a></p></div>`; };
   let p; try { const r = await fetch('/api/batch/peek?code=' + encodeURIComponent(code)); p = await r.json(); if (r.status === 429) return fail(t('gb.cl.rate')); if (!r.ok || p.error) return fail(t('gb.cl.nf')); } catch { return fail(t('gb.cl.net')); }
-  if (!$('#gbcl') || $('#gbcl').dataset.code !== code) return; const card = `<section class="card motif gb-claimcard"><p class=muted>${E('gb.cl.from', { name: p.gateName })}</p><h3>🎫 ${esc(p.gateName)}</h3><p class=gb-bless>“${esc(p.blessing)}”</p><p class=muted>${E('gb.cl.note')}</p></section>`;
+  if (!$('#gbcl') || $('#gbcl').dataset.code !== code) return; const card = `<section class="card motif gb-claimcard"><p class=muted>${E('gb.cl.from', { name: p.gateName })}</p><h3>🎫 ${esc(p.gateName)}</h3><p class=gb-bless>“${esc(p.blessing)}”</p><p class=gb-val>💠 ${E('gb.cl.value', { v: gbMoney(p.valueUsd || 0) })}</p><div class=gb-note><h4>${E('gb.cl.noteT')}</h4><p dir=auto>${p.redeemNote ? esc(p.redeemNote) : E('gb.cl.noNote')}</p></div><p class=gb-disc role=note>⚠️ ${E('gb.cl.disc')}</p><p class=muted>${E('gb.cl.note')}</p></section>`;
   if (p.state === 'used' && !S.token) return fail(t('gb.cl.used'));
   if (!S.token) { box.innerHTML = `${card}<div class=card><p>${E('gb.cl.need')}</p>${guestCta()}</div>`; bindCta(); return; }
   box.innerHTML = `${card}<p class=muted role=status>⏳ ${E('gb.cl.binding')}</p>`;
@@ -1156,7 +1172,7 @@ function paintGate() { const box = $('#gatebox'); if (!box) return; const G = S.
   const claim = G.claimable.map(c => `<div class="gate-claim" role=status><div><b>🎫 ${E('gate.claimable', { name: gName(c.rule.id, c.rule.name) })}</b><br><span class=muted>${E('gate.claimBy', { date: gateDate(c.expiresAt) })}</span></div><button type=button class=primary data-claim="${esc(c.ruleId)}">${E('gate.claim')}</button></div>`).join('');
   const row = c => { const st = gState(c), why = st === 'expired' ? t('gate.reason.expired', { date: gateDate(c.expireAt) }) : st === 'revoked' ? t('gate.reason.revoked', { why: c.reason ? ' · ' + c.reason : '' }) : '';
     return `<div class="gate-card st-${st}">${gFace(c.gateId, c.name, 'mini')}<div class=gc-body><div class=row style="justify-content:space-between"><b dir=auto>${esc(gName(c.gateId, c.name))}</b><span class="gate-st">${E('gate.s.' + st)}</span></div>
-    <p class=muted style="margin:.3em 0">${c.expireAt ? E('gate.until', { date: gateDate(c.expireAt) }) : E('gate.forever')}</p>${why ? `<p class=gate-why>${esc(why)}</p>` : ''}${st === 'valid' ? `<a class=btn href="#/treehole">🌳 ${E('th.enter')}</a>` : ''}</div></div>`; };
+    <p class=muted style="margin:.3em 0">${c.expireAt ? E('gate.until', { date: gateDate(c.expireAt) }) : E('gate.forever')}</p>${why ? `<p class=gate-why>${esc(why)}</p>` : ''}${c.source === 'batch' ? `<p class=gb-val>💠 ${E('gb.cl.value', { v: gbMoney(c.valueUsd || 0) })}</p><div class=gb-note><h4>${E('gb.cl.noteT')}</h4><p dir=auto>${c.redeemNote ? esc(c.redeemNote) : E('gb.cl.noNote')}</p></div><p class=gb-disc role=note>⚠️ ${E('gb.cl.disc')}</p>` : ''}${st === 'valid' ? `<a class=btn href="#/treehole">🌳 ${E('th.enter')}</a>` : ''}</div></div>`; };
   box.innerHTML = claim + `<h4 class=cg-t>${E('gate.ach')}</h4><div class=ach-grid>${G.progress.map(achCard).join('') || `<p class=muted>${E('gate.empty')}</p>`}</div>`
     + `<h4 class=cg-t>${E('gate.sec')}</h4><div class="row gate-filter" role=group aria-label="${E('gate.sec')}">${['all', 'valid', 'inactive'].map(k => `<button type=button data-gf=${k} aria-pressed=${f === k}>${E('gate.f.' + k)}</button>`).join('')}</div>`
     + (cards.length ? `<div class=gate-list>${cards.map(row).join('')}</div>` : `<p class=muted>${E('gate.empty')}</p>`) + (G.cooldownUntil > now ? `<p class="muted hint">${E('gate.cool', { t: new Date(G.cooldownUntil * 1000).toLocaleString(I18N.lang) })}</p>` : '');
@@ -1214,7 +1230,7 @@ async function route() {
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
   const pages = { '/treehole': treeholePage, '/ads': adsPage, '/gift/batch': gbPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
-  clearTimeout(S.gbT); const gbm = p.match(/^\/gift\/batch\/(b_[0-9a-f]{16})$/), clm = p.match(/^\/claim\/([A-Za-z0-9-]{4,40})$/);
+  clearTimeout(S.gbT); clearInterval(S.gbPI); const gbm = p.match(/^\/gift\/batch\/(b_[0-9a-f]{16})$/), clm = p.match(/^\/claim\/([A-Za-z0-9-]{4,40})$/);
   v.innerHTML = gbm ? gbProgress(gbm[1]) : clm ? gbClaim(clm[1].toUpperCase()) : p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
   if (p.startsWith('/w/')) bindSwiper(p);
   if (p === '/ads') paintAds();
