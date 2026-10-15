@@ -142,6 +142,23 @@ async function txInfo(sig) { // 读取自己刚上链的交易（最多重试 4 
       const ix = tx.transaction.message.instructions.find(x => x.program === 'spl-memo' || x.programId?.toBase58?.() === MEMO.toBase58()); return { author, memo: typeof ix?.parsed === 'string' ? ix.parsed : null }; } } catch {}
     await new Promise(r => setTimeout(r, 1500)); } return null; }
 
+// ================= 合作卡出价：支付核验 =================
+const ADS_MOCK = process.env.ADS_MOCK_PAY === '1'; // 仅测试：用 data/ads-mock-pay.json 模拟支付核验，不读链、不发交易
+const adsMockFile = n => path.join(DATA_DIR, n), adsMockRead = n => { try { return JSON.parse(fs.readFileSync(adsMockFile(n))); } catch { return {}; } };
+const adsMockFlag = k => !!adsMockRead('ads-mock-flags.json')[k];
+function adsMockPay(signer, lamports) { const sig = 'MOCK' + crypto.randomBytes(8).toString('hex'), m = adsMockRead('ads-mock-pay.json'); m[sig] = { signer, lamports }; fs.writeFileSync(adsMockFile('ads-mock-pay.json'), JSON.stringify(m)); return sig; }
+async function verifySolPay(sig, signer) { // 核验：交易成功、签名者 = 商家地址、转账收款方 = 收款地址；金额取转入收款地址的总额
+  if (ADS_MOCK) { const m = adsMockRead('ads-mock-pay.json')[sig]; return m && m.signer === signer ? { lamports: m.lamports, time: Math.floor(Date.now() / 1000) } : null; }
+  for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+    if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], from = k.pubkey?.toBase58?.() || String(k.pubkey || k); if (from !== signer) return null;
+      let lam = 0; for (const ix of tx.transaction.message.instructions) { const p = ix.parsed; if (ix.program === 'system' && p?.type === 'transfer' && p.info.destination === RECEIVE.toBase58() && p.info.source === signer) lam += +p.info.lamports; }
+      return lam > 0 ? { lamports: lam, time: tx.blockTime || Math.floor(Date.now() / 1000) } : null; } } catch {} await new Promise(r => setTimeout(r, 1500)); } return null; }
+Ads.setVerifier(verifySolPay);
+async function creditEvm(db, U, id, evm, now) { // EVM 链：原生币转入该链收款地址；折算为 SOL 等值计入（服务端核验：收款方 / 发送者 / 金额 / 一笔交易只能用一次）
+  if (!U.evm) throw Object.assign(new Error('not an EVM account'), { code: 'param' }); const ad = Ads.load().ads[id]; if (!ad || ad.owner !== U.pubkey) return { error: 'owner' }; const P = await solPrice(), coin = P.coins[Acc.CHAINS[+evm.chainId]?.coin] || 0; if (!coin) throw Object.assign(new Error('no price'), { code: 'evmChain' });
+  const key = 'evm:' + evm.chainId + ':' + String((evm.txs || [])[0] || '').toLowerCase(); if (Ads.load().paid[key]) return Ads.creditLocal(id, U.pubkey, key, 0, now, 'topup'); // 已入账：幂等返回
+  const ev = await Acc.verifyEvmPay(db, evm, U.evm, coin, Ads.cfg().minTopupSol * P.usd), lam = Math.round(ev.usd / P.usd * 1e9); save(db); return Ads.creditLocal(id, U.pubkey, key, lam, now, 'topup'); }
+
 // ================= 门卡（Gate Card）=================
 const GATE_MOCK = process.env.GATE_MOCK_STATS === '1'; // 仅测试：从 data/gate-mock-stats.json 读取统计，不读链
 const statsCache = new Map();
@@ -395,15 +412,39 @@ async function api(req, res, url) {
     }
     return send(res, 404, { error: 'not found' });
   }
-  if (url === '/api/ads' && req.method === 'GET') return send(res, 200, { ads: Ads.list(), page: Ads.PAGE, slots: Ads.SLOTS });
+  if (url === '/api/ads' && req.method === 'GET') { const q = new URL(req.url, 'http://x').searchParams, now = Math.floor(Date.now() / 1000); // 公开：不含得分；单个广告 ?id=，分页广告位 ?page=n
+    if (q.get('id')) { const ad = Ads.one(String(q.get('id')), now); return ad ? send(res, 200, { ad }) : send(res, 404, { error: 'nf', code: 'nf' }); }
+    return send(res, 200, { ...Ads.pageSlots(+q.get('page') || 1, now), per: Ads.PAGE, step: Ads.STEP }); }
   if (url === '/api/track' && req.method === 'POST') { const ip = String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(); // IP 仅用于内存限流，不存储
     if (Ads.limited(ip)) return send(res, 429, { error: 'rate', code: 'rate' }); const b = await body(req, 1000); const r = Ads.track(b || {}); return send(res, r.error ? 400 : 200, r); }
+  if (url.startsWith('/api/ads/') && url !== '/api/ads/') { const a = auth(req, db); if (!a) return send(res, 401, { error: 'NOT_LOGIN', code: 'NOT_LOGIN' }); const U = a.user, now = Math.floor(Date.now() / 1000), owner = U.pubkey;
+    const E = r => send(res, r.error === 'nf' ? 404 : r.error === 'owner' ? 403 : r.error === 'busy' ? 409 : 400, { error: r.error, code: r.error, min: Ads.cfg().minTopupSol });
+    if (url === '/api/ads/mine' && req.method === 'GET') return send(res, 200, { ...Ads.mine(owner, now), receive: RECEIVE.toBase58(), solUsd: (await solPrice()).usd });
+    if (url === '/api/ads/rank' && req.method === 'GET') { const id = String(new URL(req.url, 'http://x').searchParams.get('id') || ''), ad = Ads.load().ads[id]; if (!ad || ad.owner !== owner) return send(res, 403, { error: 'owner', code: 'owner' }); return send(res, 200, { ad: Ads.view(ad, now), recomputedAt: Ads.board(now).at }); } // 仅所有者（会话鉴权后）可读自己的名次与得分
+    if (url === '/api/ads/credit' && req.method === 'POST') { const b = await body(req, 4000), id = String(b.id || ''), kind = 'topup'; // 记账 / 补单：按交易签名核验后入账，幂等
+      let r; try { r = b.evm ? await creditEvm(db, U, id, b.evm, now) : await Ads.credit(id, owner, String(b.sig || ''), kind, now); } catch (e) { return send(res, 400, { error: e.code || 'verify', code: e.code || 'verify', detail: e.message }); }
+      if (r.error) return E(r); return send(res, 200, { ...r, board: Ads.mine(owner, now).board }); }
+    if (url === '/api/ads/pay' && req.method === 'POST') { // 托管账户：服务端用该用户的 devnet 密钥签名并转账到收款地址（全额，无分成），随后核验入账
+      const b = await body(req, 2000), id = String(b.id || ''), sol = +b.sol, ad = Ads.load().ads[id]; if (!ad || ad.owner !== owner) return send(res, 403, { error: 'owner', code: 'owner' });
+      if (!(sol >= Ads.cfg().minTopupSol) || sol > 1000) return send(res, 400, { error: 'amount', code: 'amount', min: Ads.cfg().minTopupSol });
+      const P = ADS_MOCK ? { usd: 0 } : await solPrice(); if (sol * P.usd >= (U.largeUsd || 20)) return send(res, 400, { error: 'large', code: 'large' });
+      if (!U.secret) return send(res, 400, { error: 'not custodial', code: 'param' }); const kp = web3.Keypair.fromSecretKey(Buffer.from(U.secret, 'base64')), lam = Math.round(sol * 1e9);
+      let sig; try { sig = ADS_MOCK ? adsMockPay(owner, lam) : await web3.sendAndConfirmTransaction(conn, buildMemoTx(kp.publicKey, 'WTREE1|AD|' + id, lam), [kp], { commitment: 'confirmed' }); }
+      catch (e) { return send(res, 200, { error: 'chain', code: 'chain', detail: e.message }); }
+      try { if (ADS_MOCK && adsMockFlag('failCredit')) throw new Error('mock record failure'); const r = await Ads.credit(id, owner, sig, 'topup', now); if (r.error) return send(res, 200, { error: 'record', code: 'record', signature: sig, reason: r.error }); return send(res, 200, { ...r, signature: sig, board: Ads.mine(owner, now).board }); }
+      catch (e) { return send(res, 200, { error: 'record', code: 'record', signature: sig, detail: e.message }); } } // 已付款但记账失败：返回签名，供用户补单
+    if (url === '/api/ads/launch' && req.method === 'POST') { const b = await body(req, 6000), c = b.ad || {}; const n = Ads.norm({ ...c, id: String(c.id || '').toLowerCase() }); if (n.error) return send(res, 400, { error: n.error, code: n.error });
+      const txt = [n.ad.title, n.ad.text, n.ad.brand, n.ad.url].join('\n'), bh = Block.check(txt); if (bh) return send(res, 400, { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : 'blockPhish', detail: bh.domain });
+      const mr = await moderate(n.ad.title + '\n' + n.ad.text); if (!mr.pass) return send(res, 400, { error: REJECT, code: 'reject' }); // 正向内容审核
+      const r = await Ads.launch(owner, c, String(b.sig || ''), now); if (r.error) return E(r); return send(res, 200, r); }
+    return send(res, 404, { error: 'not found' }); }
   if (url.startsWith('/api/admin/ads')) { if (!Fulfill.ADMIN_KEY || !Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' });
-    if (url === '/api/admin/ads' && req.method === 'GET') return send(res, 200, { ads: Object.values(Ads.load().ads), stats: Ads.summary(+new URL(req.url, 'http://x').searchParams.get('days') || 7) });
+    if (url === '/api/admin/ads' && req.method === 'GET') return send(res, 200, { ...Ads.adminList(), stats: Ads.summary(+new URL(req.url, 'http://x').searchParams.get('days') || 7) });
+    if (url === '/api/admin/ads/config' && req.method === 'POST') { try { return send(res, 200, { cfg: Ads.setConfig(await body(req)) }); } catch (e) { return send(res, 400, { error: e.code || 'param', code: e.code || 'param' }); } }
     if (url === '/api/admin/ads' && req.method === 'POST') { const b = await body(req); if (b.delete) return send(res, 200, { ok: Ads.remove(String(b.id || '')) });
       const r = Ads.norm(b); if (r.error) return send(res, 400, { error: r.error, code: r.error });
       const bh = Block.check([r.ad.title, r.ad.text, r.ad.brand, r.ad.url].join('\n')); if (bh) return send(res, 400, { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : 'blockPhish', detail: bh.domain }); // 外链/文案先过钓鱼黑名单
-      Ads.upsert(b); return send(res, 200, { ok: true, ad: r.ad }); }
+      const u = Ads.upsert(b, +b.bidSol || 0); return send(res, 200, { ok: true, ad: Ads.view(u.ad, Math.floor(Date.now() / 1000)) }); }
     return send(res, 404, { error: 'not found' }); }
   if ((url.startsWith('/api/gate') || url.startsWith('/api/treehole')) && (await gateApi(req, res, url, db))) return;
   if (url.startsWith('/api/admin/gate/') && (await gateApi(req, res, url, db))) return;

@@ -664,25 +664,30 @@ function home() {
 // ---------- 合作卡 / 统一卡片点击 / 详情滑动（跨页自动加载）----------
 // feed = 首页列表（#/list）当前已加载页的有序数组：自然卡与「合作」卡混排；详情页的上一张/下一张沿用同一数组。
 // 每页 100 张自然卡；广告位由服务端配置的合作内容按页计算（每页最多 20 个，均匀分布；未配置合作内容时 feed 与之前完全一致）。
-const FEED_PAGE = 100, AD_SLOTS = 20;
-S.ads = []; S.fp = null; S.feed = []; S.swIdx = -1; S.swLock = false;
+const FEED_PAGE = 100; // 每页 100 张；广告位固定在每页第 5,10,…,100 位（20 个），由服务端按全局排名分页下发，名次不足的位置由自然卡填充
+S.adPages = {}; S.adOne = {}; S.fp = null; S.feed = []; S.swIdx = -1; S.swLock = false; S.my = null;
 const feedKey = it => it.t === 'ad' ? 'AD:' + it.ad.id : it.w.sig;
-function loadAds() { if (S.adsP) return S.adsP; S.adsP = fetch('/api/ads').then(r => r.ok ? r.json() : Promise.reject()).then(j => { const n = JSON.stringify(j.ads || []) !== JSON.stringify(S.ads); S.ads = j.ads || []; if (n) { rebuildFeed(); if ($('#wl')) softRefresh(); else if (location.hash.startsWith('#/w/AD')) route(); } }).catch(() => { setTimeout(() => S.adsP = null, 30000); }); return S.adsP; }
-function slotsFor(count) { const n = Math.min(AD_SLOTS, S.ads.length, Math.floor(count / 5)); return Array.from({ length: n }, (_, i) => ({ at: Math.floor((i + 1) * count / (n + 1)), ad: S.ads[i] })); }
-function rebuildFeed() { const F = S.fp; if (!F) return; const out = [];
-  for (let p = 0; p < F.pages; p++) { const chunk = F.ws.slice(p * FEED_PAGE, (p + 1) * FEED_PAGE), sl = slotsFor(chunk.length); chunk.forEach((w, i) => { sl.filter(x => x.at === i).forEach(x => out.push({ t: 'ad', ad: x.ad })); out.push({ t: 'w', w }); }); }
-  S.feed = out; }
-function initFeed(key, ws) { if (!S.fp || S.fp.key !== key) S.fp = { key, pages: 1, loading: false, err: false }; S.fp.ws = ws; rebuildFeed(); }
+const adById = id => { for (const pg of Object.values(S.adPages)) for (const sl of pg.slots || []) if (sl.ad.id === id) return sl.ad; return S.adOne[id] || null; };
+function buildFeedItems(ws, adPages, pages) { const items = []; let used = 0;
+  for (let p = 1; p <= pages; p++) { const at = {}; for (const sl of (adPages[p]?.slots || [])) at[sl.pos] = sl;
+    for (let pos = 1; pos <= FEED_PAGE; pos++) { const sl = at[pos]; if (sl) items.push({ t: 'ad', ad: sl.ad }); else if (used < ws.length) items.push({ t: 'w', w: ws[used++] }); } }
+  return { items, used }; }
+function loadAds() { if (S.adsP && Date.now() - S.adsAt < 300000) return S.adsP; S.adsAt = Date.now();
+  S.adsP = fetch('/api/ads?page=1').then(r => r.ok ? r.json() : Promise.reject()).then(j => { const ch = JSON.stringify(j.slots) !== JSON.stringify(S.adPages[1]?.slots); S.adPages[1] = j; if (ch) { rebuildFeed(); if ($('#wl')) softRefresh(); else if (location.hash.startsWith('#/w/AD')) route(); } }).catch(() => { setTimeout(() => S.adsP = null, 30000); }); return S.adsP; }
+function rebuildFeed() { const F = S.fp; if (!F) return; const r = buildFeedItems(F.ws, S.adPages, F.pages); S.feed = r.items; F.used = r.used; }
+function initFeed(key, ws) { if (!S.fp || S.fp.key !== key) { S.fp = { key, pages: 1, loading: false, err: false, used: 0 }; S.adPages = {}; S.adsP = null; } S.fp.ws = ws; rebuildFeed(); }
 function ensureFeed() { if (!S.fp) initFeed('', visibleWishes(S.wishes)); }
-const hasMore = () => !!S.fp && S.fp.pages * FEED_PAGE < S.fp.ws.length;
+const hasMore = () => !!S.fp && (S.fp.used < S.fp.ws.length || !!S.adPages[S.fp.pages]?.hasMoreAds);
 function loadNextPage() { const F = S.fp; if (!F) return Promise.resolve(false); if (F.pr) return F.pr; if (!hasMore()) return Promise.resolve(false); // 单飞：防重复触发
   F.loading = true; F.err = false; paintSw(); paintFeedMore();
-  F.pr = (async () => { try { const r = await fetch('/api/ads?page=' + (F.pages + 1)); if (!r.ok) throw 0; const j = await r.json(); S.ads = j.ads || S.ads; F.pages++; rebuildFeed(); if ($('#view').classList.contains('sw-loading')) await sleep(180); return true; } // 动画可见时多停 ~180ms；预取完成则不延迟
+  F.pr = (async () => { try { const r = await fetch('/api/ads?page=' + (F.pages + 1)); if (!r.ok) throw 0; const j = await r.json(); S.adPages[F.pages + 1] = j; F.pages++; rebuildFeed(); if ($('#view').classList.contains('sw-loading')) await sleep(180); return true; } // 动画可见时多停 ~180ms；预取完成则不延迟
     catch { F.err = true; setTimeout(() => { if (S.fp === F && F.err) { F.err = false; paintSw(); paintFeedMore(); } }, 1500); return false; } finally { F.loading = false; F.pr = null; paintSw(); paintFeedMore(); if (!F.err && $('#wl')) softRefresh(); } })(); return F.pr; }
 const adCover = a => a.image ? esc(a.image) : WTCovers.url(a.cover || 0, 300, 400);
-const adCard = (a, pos) => `<div class="card hover ad ad-r${a.rank || 0}" data-cid="AD:${esc(a.id)}" data-pos="${pos}" data-rank="${a.rank || 0}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
+const adRc = a => a.rank >= 1 && a.rank <= 3 ? a.rank : 0, isMyAd = id => !!S.my?.ads.some(x => x.id === id);
+const upBtn = a => isMyAd(a.id) ? `<button type=button class="primary ad-up" data-topup="${esc(a.id)}">🚀 ${E('ads.up')}</button>` : '';
+const adCard = (a, pos) => `<div class="card hover ad ad-r${adRc(a)}" data-cid="AD:${esc(a.id)}" data-pos="${pos}" data-rank="${a.rank || 0}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
   <div class=ad-row><img class=ad-cover alt="" loading=lazy src="${adCover(a)}"><div class=ad-main>${a.brand ? `<span class="muted ad-brand" dir=auto>${esc(a.brand)}</span>` : ''}<b dir=auto>${esc(a.title)}</b><p dir=auto>${esc(a.text)}</p></div></div>
-  <div class=row style="margin-top:6px"><a class=btn href="#/w/AD%3A${encodeURIComponent(a.id)}?i=${pos}" data-cid="AD:${esc(a.id)}" data-pos="${pos}" data-rank="${a.rank || 0}">${a.mode === 'external' ? '↗ ' : ''}${esc(t('card.details'))}</a></div></div>`;
+  <div class=row style="margin-top:6px"><a class=btn href="#/w/AD%3A${encodeURIComponent(a.id)}?i=${pos}" data-cid="AD:${esc(a.id)}" data-pos="${pos}" data-rank="${a.rank || 0}">${a.mode === 'external' ? '↗ ' : ''}${esc(t('card.details'))}</a>${upBtn(a)}</div></div>`;
 const feedHtml = (it, i) => it.t === 'ad' ? adCard(it.ad, i) : wishCard(it.w, i, true);
 const feedMore = () => hasMore() ? `<div class=row id=fmore style="justify-content:center;margin:12px 0">${feedMoreInner()}</div>` : '';
 const feedMoreInner = () => { const F = S.fp; return F.loading ? `<span class=muted role=status>${E('sw.loading')}</span>` : `<button type=button id=fmorebtn>${F.err ? E('sw.retry') : E('feed.more')}</button>`; };
@@ -703,11 +708,12 @@ async function extLink(url, name) { let u; try { u = new URL(url); } catch { ret
   await loadBlocklist(true).catch(() => {}); if (u.protocol !== 'https:' || WTBlock.checkText(S.block, u.href) || WTBlock.checkText(S.block, u.hostname)) return toast(esc(t('ad.blocked')), 'err');
   modal(`<h3 style="margin-top:0">↗ ${E('ad.leaveT')}</h3><p>${E('ad.leaveB', { domain: u.hostname })}</p><p class="muted ad-leave-n" dir=auto>${esc(name || '')}</p><div class=row style="justify-content:flex-end;gap:8px"><button type=button data-close>${E('common.cancel')}</button><button type=button class=primary id=extgo>${E('ad.go')}</button></div>`);
   $('#extgo').onclick = () => { window.open(u.href, '_blank', 'noopener,noreferrer'); closeModal(); }; }
-function adDetail(id) { const a = S.ads.find(x => x.id === id); if (!a) { loadAds(); return `<h2>${E('detail.title')}</h2><p class=muted>${S.adsP ? E('ad.notFound') : E('route.loading')}</p>`; }
+function loadAdOne(id) { S.adOneP ||= {}; return S.adOneP[id] ||= fetch('/api/ads?id=' + encodeURIComponent(id)).then(r => r.ok ? r.json() : Promise.reject()).then(j => { S.adOne[id] = j.ad; route(); }).catch(() => { S.adOne[id] = false; route(); }); }
+function adDetail(id) { const a = adById(id); if (!a) { if (S.adOne[id] === undefined) loadAdOne(id); return `<h2>${E('detail.title')}</h2><p class=muted>${S.adOne[id] === false ? E('ad.notFound') : E('route.loading')}</p>`; }
   ensureFeed(); resolveIdx('AD:' + id);
-  return swBar() + `<h2>${E('detail.title')}</h2><div class="ad-banner" role=note>🤝 ${E('ad.banner')}</div><div class="card ad ad-r${a.rank || 0}" data-rank="${a.rank || 0}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
+  return swBar() + `<h2>${E('detail.title')}</h2><div class="ad-banner" role=note>🤝 ${E('ad.banner')}</div><div class="card ad ad-r${adRc(a)}" data-rank="${a.rank || 0}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
   <div class=ad-row><img class="ad-cover big" alt="" src="${adCover(a)}"><div class=ad-main>${a.brand ? `<span class="muted ad-brand" dir=auto>${esc(a.brand)}</span>` : ''}<h3 dir=auto style="margin:.2em 0">${esc(a.title)}</h3><p dir=auto style="font-size:18px">${esc(a.text)}</p></div></div>
-  ${a.mode === 'external' && a.url ? `<div class=row><button type=button class=primary data-adgo>↗ ${E('ad.visit')}</button></div>` : ''}<p class="muted hint">${E('ad.disc')}</p></div>`; }
+  ${a.mode === 'external' && a.url ? `<div class=row><button type=button class=primary data-adgo>↗ ${E('ad.visit')}</button></div>` : ''}${isMyAd(a.id) ? `<div class=row>${upBtn(a)}<a class=btn href="#/ads">${E('ads.mineTitle')}</a></div>` : ''}<p class="muted hint">${E('ad.disc')}</p></div>`; }
 // 详情滑动：沿用 feed 顺序
 function resolveIdx(sig) { const i = S.curPos; S.swIdx = i != null && S.feed[i] && feedKey(S.feed[i]) === sig ? i : S.feed.findIndex(it => feedKey(it) === sig); }
 function swBar() { if (S.swIdx < 0 || S.feed.length < 2) return ''; return `<div class=sw-bar id=swbar role=group aria-label="${E('sw.aria')}">${swBarInner()}</div><div class=sw-loader id=swloader aria-hidden=true><i></i><i></i><i></i></div>`; }
@@ -728,12 +734,70 @@ async function swGo(dir) { if (S.swLock) return; const i = S.swIdx, n = S.feed.l
 function bindSwiper(p) { const ac = S.swAC = new AbortController(), sg = { signal: ac.signal }, v = $('#view');
   if (S.swDir && !matchMedia('(prefers-reduced-motion: reduce)').matches) { v.classList.add(S.swDir > 0 ? 'sw-in-r' : 'sw-in-l'); setTimeout(() => v.classList.remove('sw-in-r', 'sw-in-l'), 320); } S.swDir = 0;
   $('#swbar')?.addEventListener('click', e => { const b = e.target.closest('[data-sw]'); if (b && b.getAttribute('aria-disabled') !== 'true') swGo(+b.dataset.sw); }, sg);
-  $('[data-adgo]')?.addEventListener('click', () => { const a = S.ads.find(x => 'AD:' + x.id === decodeURIComponent(p.slice(3))); if (a) { track('ad_click', 'AD:' + a.id, S.swIdx, a.rank || 0); extLink(a.url, a.brand || a.title); } }, sg);
+  $('[data-adgo]')?.addEventListener('click', () => { const a = adById(decodeURIComponent(p.slice(3)).slice(3)); if (a) { track('ad_click', 'AD:' + a.id, S.swIdx, a.rank || 0); extLink(a.url, a.brand || a.title); } }, sg);
   if (S.swIdx < 0) return; let x0 = null, y0 = 0;
   v.addEventListener('touchstart', e => { x0 = e.target.closest('textarea,input,select') ? null : e.touches[0].clientX; y0 = e.touches[0].clientY; }, { ...sg, passive: true });
   v.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.5) swGo(dx < 0 ? 1 : -1); }, sg); // 50px 阈值
   document.addEventListener('keydown', e => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; if (!$('#modal').hidden || e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input,textarea,select,[contenteditable]')) return; swGo(e.key === 'ArrowRight' ? 1 : -1); }, sg);
   paintSw(); if (S.swIdx >= S.feed.length - 10 && hasMore()) loadNextPage(); } // 距末尾 ~10 张时预取下一页
+// ---------- 商家：我的广告卡 / 提升排名（追加出价）----------
+// 得分 = 累计出价 × 衰减；衰减 = 1/(1+rate×上线小时数)，不低于累计出价×floor；衰减自「首次上线」起算，追加只增加累计出价、不重置时间，追加后立即重算。
+const fmtSol = n => (+n).toFixed(4).replace(/0+$/, '').replace(/\.$/, '') || '0', fmtScore = n => (+n).toFixed(3);
+const adCfg = () => S.my?.cfg || { rate: 0.03, floor: 0.1, intervalMin: 15, cap: 3, minTopupSol: 0.01 };
+const adScore = (total, launchAt, now) => { const c = adCfg(); return Math.max(total / (1 + c.rate * Math.max(0, (now - launchAt) / 3600)), total * c.floor); };
+function paintAdNav() { document.querySelectorAll('.nav-ads').forEach(x => x.hidden = !S.my?.ads.length); }
+async function loadMyAds(force) { if (!S.token) { S.my = null; return paintAdNav(); }
+  if (!force && S.my && Date.now() - S.myAt < 120000) return paintAdNav();
+  try { S.my = await api('/api/ads/mine'); S.myAt = Date.now(); } catch { S.my = null; } paintAdNav();
+  if ($('#adsbox')) paintAds(); else if ($('#wl')) softRefresh(); else if (location.hash.startsWith('#/w/AD')) { const el = $('#view'); if (el && !$('#modal').offsetParent) route(); } }
+const adsPage = () => `<h2>🤝 ${E('ads.mineTitle')}</h2><p class=tagline>${E('ads.mineSub')}</p><div id=adsbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
+function adExample() { const c = adCfg(), P = [[0, t('ads.ex.r0')], [24, t('ads.ex.r1')], [72, t('ads.ex.r2')], [168, t('ads.ex.r3')]], row = (lab, bid, sc) => `<tr><td>${esc(lab)}</td><td>${fmtSol(bid)} SOL</td><td>${fmtScore(sc)}</td></tr>`, sc = (b, h) => adScore(b, 0, h * 3600);
+  return `<details class=ad-ex><summary>${E('ads.exTitle')}</summary><p class=muted>${E('ads.exBody', { rate: c.rate, floor: Math.round(c.floor * 100) })}</p><table class=ad-tbl><thead><tr><th>${E('ads.ex.h')}</th><th>${E('ads.total')}</th><th>${E('ads.score')}</th></tr></thead><tbody>${P.map(([h, l]) => row(l, 1, sc(1, h))).join('')}${row(t('ads.ex.topup', { amt: 0.5 }), 1.5, sc(1.5, 72))}</tbody></table><p class="muted hint">${E('ads.exNote')}</p></details>`; }
+function adRow(a) { const f = a.forecast, c = adCfg(), now = S.my.now;
+  return `<div class="card ad ad-r${adRc(a)} ad-mine" data-ad="${esc(a.id)}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span><div class=ad-row><img class=ad-cover alt="" src="${adCover(a)}"><div class=ad-main>${a.brand ? `<span class="muted ad-brand" dir=auto>${esc(a.brand)}</span>` : ''}<b dir=auto>${esc(a.title)}</b>
+  <p class=ad-rk>${a.participates ? `<b>#${a.rank}</b> · ${E('ads.rankV', { page: a.page, pos: a.pos })}` : E('ads.noRank', { cap: c.cap })}</p>
+  <p class=ad-st>${E('ads.score')} <b>${fmtScore(a.score)}</b> · ${E('ads.total')} <b>${fmtSol(a.totalBid)} SOL</b></p><p class=muted>${E('ads.launch')} ${esc(fmtT(a.launchAt))}</p>
+  <p class="muted ad-fc">${E('ads.fore')}: ${E('ads.foreV', { a: fmtScore(f.h24), b: fmtScore(f.h72), c: fmtScore(f.d7) })}</p></div></div>
+  <div class=row style="margin-top:8px"><a class=btn href="#/w/AD%3A${encodeURIComponent(a.id)}">${E('ads.view')}</a><button type=button class=primary data-topup="${esc(a.id)}">🚀 ${E('ads.up')}</button></div></div>`; }
+function paintAds() { const box = $('#adsbox'); if (!box) return; const M = S.my;
+  if (!S.token) { box.innerHTML = `<div class=card><p>${E('ads.needLogin')}</p>${guestCta()}</div>`; bindCta(); return; }
+  if (!M) { box.innerHTML = `<p class=muted>⏳ ${E('route.loading')}</p>`; return; }
+  box.innerHTML = `<div class="ad-notice" role=note>⏳ ${E('ads.notice')}</div>${adExample()}<p class="muted hint">${E('ads.recAt', { min: M.cfg.intervalMin, time: fmtT(M.recomputedAt) })}</p>`
+    + (M.ads.length ? M.ads.map(adRow).join('') : `<div class="card ad-empty"><h3>🌱 ${E('ads.empty')}</h3><p class=muted>${E('ads.emptyHint')}</p></div>`); }
+document.addEventListener('click', e => { const b = e.target.closest?.('[data-topup]'); if (b) { e.preventDefault(); e.stopPropagation(); openTopup(b.dataset.topup); } });
+const parseAmt = v => { v = String(v || '').trim().replace(/,/g, '.'); return /^\d+(\.\d{1,9})?$/.test(v) ? +v : NaN; };
+function openTopup(id) { const ad = S.my?.ads.find(x => x.id === id); if (!ad) return toast(esc(t('ads.err.owner')), 'err'); const M = S.my, c = M.cfg, QUICK = [0.05, 0.1, 0.5]; let busy = false, lastSig = '';
+  const est = add => { const nowS = Math.floor(Date.now() / 1000), bd = [...M.board]; if (ad.participates) { const k = bd.findIndex(x => Math.abs(x - ad.score) <= 1e-6 * Math.max(1, x)); if (k >= 0) bd.splice(k, 1); }
+    const sc = adScore(ad.totalBid + add, ad.launchAt, nowS); return { total: ad.totalBid + add, score: sc, rank: 1 + bd.filter(x => x > sc).length }; };
+  modal(`<h3 style="margin-top:0">🚀 ${E('ads.tuTitle')} · <span dir=auto>${esc(ad.title)}</span></h3>
+  <div id=tubody><div class=tu-stats><span>${E('ads.total')}<b>${fmtSol(ad.totalBid)} SOL</b></span><span>${E('ads.rank')}<b>${ad.participates ? '#' + ad.rank : '—'}</b></span><span>${E('ads.score')}<b>${fmtScore(ad.score)}</b></span></div>
+  <div class=tu-quick role=group aria-label="${E('ads.tuQuick')}">${QUICK.map(q => `<button type=button data-q="${q}" aria-pressed=false>+${q}</button>`).join('')}</div>
+  <label class=tu-lab>${E('ads.tuCustom')}<input id=tuamt inputmode=decimal autocomplete=off placeholder="${E('ads.tuMin', { min: c.minTopupSol })}" aria-describedby=tuerr></label><p id=tuerr class=tu-err role=alert hidden></p>
+  <div class=tu-prev><div>${E('ads.tuNew')}: <b id=tunew>—</b></div><div>${E('ads.tuEst')}: <b id=turank>—</b></div><small class=muted>${E('ads.tuEstN')}</small></div>
+  <p class=tu-recv>${E('ads.tuRecv')}: <code id=turecv>${esc(M.receive || S.cfg.receive || '')}</code><br>${E('ads.tuPay')}: <b id=tupay>—</b></p>
+  <p id=tustate class=tu-state role=status aria-live=polite></p>
+  <div class=row id=tuacts style="justify-content:flex-end;gap:8px"><button type=button data-close>${E('common.cancel')}</button><button type=button class=primary id=tugo>${E('ads.tuGo')}</button></div>
+  <p class="muted hint">${E('ads.notice')}</p></div>`);
+  const $a = $('#tuamt'), err = m => { const e = $('#tuerr'); e.hidden = !m; e.textContent = m || ''; $a.setAttribute('aria-invalid', !!m); }, state = (m, cls = '') => { const x = $('#tustate'); x.textContent = m || ''; x.className = 'tu-state ' + cls; };
+  const upd = () => { const v = $a.value, a = parseAmt(v); document.querySelectorAll('#tubody [data-q]').forEach(b => b.setAttribute('aria-pressed', String(a === +b.dataset.q)));
+    if (!v.trim()) { err(''); $('#tunew').textContent = $('#turank').textContent = $('#tupay').textContent = '—'; return false; }
+    if (!Number.isFinite(a)) { err(t('ads.err.fmt')); $('#tunew').textContent = $('#turank').textContent = $('#tupay').textContent = '—'; return false; }
+    if (a < c.minTopupSol) { err(t('ads.err.min', { min: c.minTopupSol })); $('#tunew').textContent = $('#turank').textContent = $('#tupay').textContent = '—'; return false; }
+    err(''); const e = est(a); $('#tunew').textContent = fmtSol(e.total) + ' SOL'; $('#turank').textContent = '≈ #' + e.rank; $('#tupay').textContent = fmtSol(a) + ' SOL'; return true; };
+  $a.addEventListener('input', upd); document.querySelectorAll('#tubody [data-q]').forEach(b => b.onclick = () => { if (busy) return; $a.value = b.dataset.q; upd(); });
+  const lock = on => { busy = on; $a.disabled = on; document.querySelectorAll('#tubody [data-q],#tugo').forEach(b => b.disabled = on); if (on) $('#modal-box').focus(); else $('#tugo')?.focus(); }; // 禁用后保持焦点留在对话框内，Esc 仍可关闭
+  const done = r => { const nw = r.ad; S.my.ads = S.my.ads.map(x => x.id === nw.id ? { ...x, ...nw } : x); if (r.board) S.my.board = r.board; S.myAt = Date.now(); loadMyAds(true); // 成功后立即更新本地名次/得分，并后台刷新
+    $('#tubody').innerHTML = `<div class=tu-ok role=status><h4 style="margin:0 0 6px">✅ ${E('ads.ok')}</h4><p>${E('ads.okNew', { rank: nw.rank || '—', score: fmtScore(nw.score), total: fmtSol(nw.totalBid) })}</p></div><div class=row style="justify-content:flex-end;gap:8px"><a class="btn primary" href="#/list" data-close>${E('ads.okView')}</a><button type=button data-close>${E('common.close')}</button></div>`; paintAds(); };
+  const recordFail = sig => { lastSig = sig; state(t('ads.st.record'), 'err'); $('#tuacts').outerHTML = `<div class=tu-redo><label class=tu-lab>${E('ads.sig')}<input id=tusig value="${esc(sig)}" spellcheck=false autocomplete=off></label><div class=row style="gap:8px;justify-content:flex-end"><button type=button data-close>${E('common.close')}</button><button type=button class=primary id=turedo>${E('ads.redo')}</button></div></div>`;
+    $('#turedo').onclick = async () => { const b = $('#turedo'); b.disabled = true; state(t('ads.redoing')); try { done(await api('/api/ads/credit', { id: ad.id, sig: $('#tusig').value.trim() })); } catch (e) { b.disabled = false; state(t('ads.st.fail', { msg: adErr(e) }), 'err'); } }; };
+  const adErr = e => I18N.dict['ads.err.' + e.code] ? t('ads.err.' + e.code, { min: c.minTopupSol }) : (e.data?.detail || e.message || String(e));
+  $('#tugo').onclick = async () => { if (busy) return; if (!upd() || !$a.value.trim()) { err($a.value.trim() ? $('#tuerr').textContent : t('ads.err.fmt')); $a.focus(); return; } const sol = parseAmt($a.value), lam = Math.round(sol * 1e9); lock(true); let sig = '';
+    try { if (S.mode === 'self') { state(t('ads.st.sign'), 'wait'); await needW3(); const conn = new W3.Connection(RPC_WRITE, 'confirmed'), tx = memoTx(S.pubkey, 'WTREE1|AD|' + ad.id, lam); const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(); tx.recentBlockhash = blockhash; tx.feePayer = new W3.PublicKey(S.pubkey);
+        const sr = await (await solWallet()).signAndSend(tx); sig = sr?.raw ? await conn.sendRawTransaction(sr.raw) : sr; state(t('ads.st.verify'), 'wait'); await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
+        try { done(await api('/api/ads/credit', { id: ad.id, sig })); } catch (e) { if (e.code === 'verify' || e.code === 'busy' || !e.code) return recordFail(sig); throw e; } }
+      else { state(t('ads.st.verify'), 'wait'); try { done(await api('/api/ads/pay', { id: ad.id, sol })); } catch (e) { if (e.code === 'record' && e.data?.signature) return recordFail(e.data.signature); throw e; } } } // 托管账户：服务端签名转账并核验入账
+    catch (e) { lock(false); const cancelled = S.mode === 'self' && !sig && (e?.code === 4001 || /reject|denied|cancel|declin/i.test(String(e?.message || e))); state(cancelled ? t('ads.st.cancel') : t('ads.st.fail', { msg: S.mode === 'self' && !e.status ? walErr(e) : adErr(e) }), cancelled ? '' : 'err'); } };
+  upd(); }
 function list(q, only) {
   const kw = q.get('q') || '', sort = q.get('sort') || 'new', cat = q.get('cat') || '', type = q.get('type') || '', days = +q.get('days') || 0, minHeat = +q.get('heat') || 0, now = Date.now() / 1000, kql = kw.toLowerCase();
   loadCardMeta(); loadGoodsMeta();
@@ -1064,9 +1128,11 @@ async function route() {
   S.swAC?.abort(); S.swAC = null; $('#view').classList.remove('sw-loading', 'sw-nudge'); // 切换页面即关闭详情：清理滑动监听
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/treehole': treeholePage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
+  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
   if (p.startsWith('/w/')) bindSwiper(p);
+  if (p === '/ads') paintAds();
+  if (S.token && (p === '/ads' || p === '/list' || p.startsWith('/w/AD') || p === '/')) loadMyAds(p === '/ads'); else paintAdNav();
   document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });

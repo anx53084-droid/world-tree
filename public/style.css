@@ -402,3 +402,14 @@ svg.gface { height: auto }
   #view.sw-nudge > *:not(.sw-loader) { animation: swnudge .24s ease-out } }
 @keyframes swpulse { 0%, 100% { transform: scale(.6); opacity: .35 } 50% { transform: scale(1.15); opacity: 1 } }
 @keyframes swnudge { 0%, 100% { translate: 0 0 } 40% { translate: -8px 0 } }
+/* 商家：我的广告卡 / 提升排名 */
+.ad-notice { margin: 8px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid #f6d38a66; background: #f6d38a12; color: #f6d38a }
+.ad-ex { margin: 8px 0 } .ad-ex summary { cursor: pointer; color: #f6d38a }
+.ad-tbl { border-collapse: collapse; width: 100%; font-size: 13px; margin: 6px 0 } .ad-tbl th, .ad-tbl td { border-bottom: 1px solid #ffffff22; padding: 6px 8px; text-align: start }
+.ad-mine p { margin: .25em 0 } .ad-rk b { color: #f6d38a; font-size: 18px } .ad-empty { text-align: center; padding: 24px 12px }
+.tu-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0 } .tu-stats span { display: flex; flex-direction: column; font-size: 12px; color: #cfd6ff; border: 1px solid #ffffff22; border-radius: 10px; padding: 8px } .tu-stats b { font-size: 16px; color: #fff }
+.tu-quick { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 } .tu-quick button[aria-pressed=true] { border-color: #f6d38a; color: #f6d38a }
+.tu-lab { display: block; margin: 6px 0 } .tu-lab input { width: 100%; box-sizing: border-box; margin-top: 4px }
+.tu-err { color: #ffb59c; margin: 4px 0; font-size: 13px } .tu-prev { margin: 8px 0; padding: 8px 10px; border-radius: 10px; background: #ffffff0d } .tu-prev small { display: block; margin-top: 4px }
+.tu-recv { font-size: 13px; word-break: break-all } .tu-state { min-height: 1.4em; margin: 6px 0; font-size: 14px } .tu-state.err { color: #ffb59c } .tu-state.wait { color: #e8c87a }
+.tu-ok { border: 1px solid #5ad1a0aa; border-radius: 10px; padding: 10px 12px; margin: 8px 0 } .ad-up { margin-inline-start: 8px }
