@@ -376,3 +376,19 @@ svg.gface { height: auto }
 .th-meta { justify-content: space-between; font-size: 12px } .th-empty { text-align: center; padding: 28px 12px } .th-foot { text-align: center; font-size: 12px }
 .th-like[aria-pressed=true] { border-color: #f6d38a }
 #topnav .th-lock, #menu .th-lock { font-size: .85em }
+/* 合作卡 / 详情滑动 */
+.card[data-cid] { cursor: pointer }
+.card.ad { position: relative; padding-top: 34px; border: 1px solid #f6d38a55; background: linear-gradient(160deg, #f6d38a14, #ffffff06 55%) }
+.card.ad.ad-r3 { border-color: #f6d38a88 } .card.ad.ad-r2 { border: 1.5px solid #f6d38acc } .card.ad.ad-r1 { border: 2px solid #f6d38a; box-shadow: 0 0 18px #f6d38a33 }
+.ad-tag { position: absolute; top: 8px; inset-inline-start: 10px; font-size: 12px; line-height: 1; padding: 4px 8px; border-radius: 999px; background: #f6d38a; color: #1b1405; font-weight: 700; letter-spacing: .04em }
+.ad-row { display: flex; gap: 12px; align-items: flex-start } .ad-main { flex: 1; min-width: 0 } .ad-main p { margin: .3em 0 }
+.ad-cover { width: 84px; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; flex: none } .ad-cover.big { width: 140px }
+.ad-banner { margin: 8px 0; padding: 8px 12px; border-radius: 10px; border: 1px dashed #f6d38a88; background: #f6d38a14; color: #f6d38a; font-size: 14px }
+@media (prefers-reduced-motion: no-preference) { .card.ad { transition: transform .2s ease, box-shadow .2s ease } .card.ad:hover { transform: translateY(-3px); box-shadow: 0 8px 22px #f6d38a33 }
+  #view.sw-in-r { animation: swr .28s ease-out } #view.sw-in-l { animation: swl .28s ease-out } }
+@keyframes swr { from { opacity: .2; transform: translateX(40px) } to { opacity: 1; transform: none } } @keyframes swl { from { opacity: .2; transform: translateX(-40px) } to { opacity: 1; transform: none } }
+.sw-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 10px }
+.sw-btn { min-width: 44px; min-height: 40px; padding: 6px 14px; border-radius: 10px; border: 1px solid #ffffff33; background: #ffffff10; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center }
+.sw-btn.dim { opacity: .45; cursor: default } .sw-btn.sw-err { border-color: #ff9a7a; color: #ffb59c } .sw-load { cursor: default; opacity: .85 }
+.sw-pos { font-variant-numeric: tabular-nums; color: #cfd6ff; font-size: 13px }
+.ad-main > * { display: block }

@@ -572,8 +572,8 @@ function kindHtml(w, full) { // 交友卡 / 礼品卡附加信息（全部转义
   return ''; }
 const typeTag = w => w.kind === 'social' || w.kind === 'gift' || w.kind === 'goods' || w.kind === 'gate' ? `<span class="tag ktype">${esc(t('kind.' + w.kind))}</span>` : '';
 const visBadge = w => w.vis && w.vis !== 'public' ? `<span class="tag kvis">${E('vis.' + w.vis)}</span>` : (w.deliver === 'off' ? `<span class="tag kvis">${E('vis.offTree')}</span>` : '');
-const wishCard = w => { const L = lockPaint(w); return `<div class="card hover k-${w.kind || 'wish'}${L.lockedView ? ' locked-card' : ''}" data-cat="${w.cat}">${locCorner(w)}<div>${w.pending ? '⏳ ' : ''}${kIcon(w)}${esc(L.text)} ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}</div>${L.lockedView ? `<p class=muted>${E('vis.unlockHint')}</p>` : kindHtml(w)}<div class="row muted" style="margin-top:6px">
-  <span class=tag>${esc(catName(w.cat))}</span><span>${esc(t('card.author', { addr: short(w.author) }))}</span><span>${fmtT(w.time)}</span><span>🔥 ${w.heat}</span>${L.lockedView ? '' : likeBtn(w)}<a class=btn href="#/w/${encodeURIComponent(w.sig)}">${esc(t('card.details'))}</a></div></div>`; };
+const wishCard = (w, pos, F) => { const L = lockPaint(w), fa = F === true ? ` data-cid="${esc(w.sig)}" data-pos="${pos}"` : ''; return `<div class="card hover k-${w.kind || 'wish'}${L.lockedView ? ' locked-card' : ''}" data-cat="${w.cat}"${fa}>${locCorner(w)}<div>${w.pending ? '⏳ ' : ''}${kIcon(w)}${esc(L.text)} ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}</div>${L.lockedView ? `<p class=muted>${E('vis.unlockHint')}</p>` : kindHtml(w)}<div class="row muted" style="margin-top:6px">
+  <span class=tag>${esc(catName(w.cat))}</span><span>${esc(t('card.author', { addr: short(w.author) }))}</span><span>${fmtT(w.time)}</span><span>🔥 ${w.heat}</span>${L.lockedView ? '' : likeBtn(w)}<a class=btn href="#/w/${encodeURIComponent(w.sig)}${F === true ? '?i=' + pos : ''}"${fa}>${esc(t('card.details'))}</a></div></div>`; };
 document.addEventListener('click', e => { const s = e.target.closest('[data-like]')?.dataset.like; if (!s) return;
   const w = S.wishes.find(x => x.sig === s); if (S.pubkey && w?.likers.has(S.pubkey)) return toast(esc(t('card.alreadyLiked'))); submit(TAG + 'L|' + s, 'like'); });
 window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true; return; } tip.hidden = false; tip.dataset.cat = w.cat;
@@ -661,12 +661,83 @@ function home() {
   <div class=scene-hint>${E('home.hint')} <span class=debug-only>· <a href="#lists" data-scroll=lists>⌄ ${E('home.rank')}</a></span></div></div>
   <div class="cols home-lists debug-only" id=lists><div class=glass><h2>🔥 ${E('home.hot')}</h2>${hot.map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div><div class=glass><h2>🆕 ${E('home.new')}</h2>${visibleWishes().slice(0, 5).map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div></div>`;
 }
+// ---------- 合作卡 / 统一卡片点击 / 详情滑动（跨页自动加载）----------
+// feed = 首页列表（#/list）当前已加载页的有序数组：自然卡与「合作」卡混排；详情页的上一张/下一张沿用同一数组。
+// 每页 100 张自然卡；广告位由服务端配置的合作内容按页计算（每页最多 20 个，均匀分布；未配置合作内容时 feed 与之前完全一致）。
+const FEED_PAGE = 100, AD_SLOTS = 20;
+S.ads = []; S.fp = null; S.feed = []; S.swIdx = -1; S.swLock = false;
+const feedKey = it => it.t === 'ad' ? 'AD:' + it.ad.id : it.w.sig;
+function loadAds() { if (S.adsP) return S.adsP; S.adsP = fetch('/api/ads').then(r => r.ok ? r.json() : Promise.reject()).then(j => { const n = JSON.stringify(j.ads || []) !== JSON.stringify(S.ads); S.ads = j.ads || []; if (n) { rebuildFeed(); if ($('#wl')) softRefresh(); else if (location.hash.startsWith('#/w/AD')) route(); } }).catch(() => { setTimeout(() => S.adsP = null, 30000); }); return S.adsP; }
+function slotsFor(count) { const n = Math.min(AD_SLOTS, S.ads.length, Math.floor(count / 5)); return Array.from({ length: n }, (_, i) => ({ at: Math.floor((i + 1) * count / (n + 1)), ad: S.ads[i] })); }
+function rebuildFeed() { const F = S.fp; if (!F) return; const out = [];
+  for (let p = 0; p < F.pages; p++) { const chunk = F.ws.slice(p * FEED_PAGE, (p + 1) * FEED_PAGE), sl = slotsFor(chunk.length); chunk.forEach((w, i) => { sl.filter(x => x.at === i).forEach(x => out.push({ t: 'ad', ad: x.ad })); out.push({ t: 'w', w }); }); }
+  S.feed = out; }
+function initFeed(key, ws) { if (!S.fp || S.fp.key !== key) S.fp = { key, pages: 1, loading: false, err: false }; S.fp.ws = ws; rebuildFeed(); }
+function ensureFeed() { if (!S.fp) initFeed('', visibleWishes(S.wishes)); }
+const hasMore = () => !!S.fp && S.fp.pages * FEED_PAGE < S.fp.ws.length;
+function loadNextPage() { const F = S.fp; if (!F) return Promise.resolve(false); if (F.pr) return F.pr; if (!hasMore()) return Promise.resolve(false); // 单飞：防重复触发
+  F.loading = true; F.err = false; paintSw(); paintFeedMore();
+  F.pr = (async () => { try { const r = await fetch('/api/ads?page=' + (F.pages + 1)); if (!r.ok) throw 0; const j = await r.json(); S.ads = j.ads || S.ads; F.pages++; rebuildFeed(); return true; }
+    catch { F.err = true; return false; } finally { F.loading = false; F.pr = null; paintSw(); paintFeedMore(); if (!F.err && $('#wl')) softRefresh(); } })(); return F.pr; }
+const adCover = a => a.image ? esc(a.image) : WTCovers.url(a.cover || 0, 300, 400);
+const adCard = (a, pos) => `<div class="card hover ad ad-r${a.rank || 0}" data-cid="AD:${esc(a.id)}" data-pos="${pos}" data-rank="${a.rank || 0}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
+  <div class=ad-row><img class=ad-cover alt="" loading=lazy src="${adCover(a)}"><div class=ad-main>${a.brand ? `<span class="muted ad-brand" dir=auto>${esc(a.brand)}</span>` : ''}<b dir=auto>${esc(a.title)}</b><p dir=auto>${esc(a.text)}</p></div></div>
+  <div class=row style="margin-top:6px"><a class=btn href="#/w/AD%3A${encodeURIComponent(a.id)}?i=${pos}" data-cid="AD:${esc(a.id)}" data-pos="${pos}" data-rank="${a.rank || 0}">${a.mode === 'external' ? '↗ ' : ''}${esc(t('card.details'))}</a></div></div>`;
+const feedHtml = (it, i) => it.t === 'ad' ? adCard(it.ad, i) : wishCard(it.w, i, true);
+const feedMore = () => hasMore() ? `<div class=row id=fmore style="justify-content:center;margin:12px 0">${feedMoreInner()}</div>` : '';
+const feedMoreInner = () => { const F = S.fp; return F.loading ? `<span class=muted role=status>${E('sw.loading')}</span>` : `<button type=button id=fmorebtn>${F.err ? E('sw.retry') : E('feed.more')}</button>`; };
+function paintFeedMore() { const b = $('#fmore'); if (b && S.fp) b.innerHTML = feedMoreInner(); }
+// 事件统计：仅聚合计数（无 IP / 地址 / 账号），服务端限流
+function track(ev, id, pos, rank) { try { fetch('/api/track', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ev, id, pos, rank }), keepalive: true }).catch(() => {}); } catch {} }
+const feedItem = cid => S.feed.find(it => feedKey(it) === cid);
+// 统一点击入口：合作卡与自然卡共用同一站内展开逻辑（进入详情），合作卡可按配置改为外链
+function openFeedCard(cid, pos, rank) { const it = feedItem(cid); track('card_click', cid, pos, rank); if (cid.startsWith('AD:')) track('ad_click', cid, pos, rank);
+  if (it?.t === 'ad' && it.ad.mode === 'external' && it.ad.url) return extLink(it.ad.url, it.ad.brand || it.ad.title);
+  S.swDir = 0; location.hash = '#/w/' + encodeURIComponent(cid) + '?i=' + pos; }
+document.addEventListener('click', e => { const el = e.target.closest?.('[data-cid]'); if (!el || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+  if (e.target.closest('button,input,textarea,select,[data-like],label') || (e.target.closest('a') && !e.target.closest('a[data-cid]'))) return;
+  e.preventDefault(); openFeedCard(el.dataset.cid, +el.dataset.pos || 0, +el.dataset.rank || 0); });
+document.addEventListener('click', e => { if (e.target.id === 'fmorebtn') loadNextPage(); });
+// 外链：站内确认对话框（非 window.confirm）+ 钓鱼黑名单检查 + noopener,noreferrer
+async function extLink(url, name) { let u; try { u = new URL(url); } catch { return toast(esc(t('ad.blocked')), 'err'); }
+  await loadBlocklist(true).catch(() => {}); if (u.protocol !== 'https:' || WTBlock.checkText(S.block, u.href) || WTBlock.checkText(S.block, u.hostname)) return toast(esc(t('ad.blocked')), 'err');
+  modal(`<h3 style="margin-top:0">↗ ${E('ad.leaveT')}</h3><p>${E('ad.leaveB', { domain: u.hostname })}</p><p class="muted ad-leave-n" dir=auto>${esc(name || '')}</p><div class=row style="justify-content:flex-end;gap:8px"><button type=button data-close>${E('common.cancel')}</button><button type=button class=primary id=extgo>${E('ad.go')}</button></div>`);
+  $('#extgo').onclick = () => { window.open(u.href, '_blank', 'noopener,noreferrer'); closeModal(); }; }
+function adDetail(id) { const a = S.ads.find(x => x.id === id); if (!a) { loadAds(); return `<h2>${E('detail.title')}</h2><p class=muted>${S.adsP ? E('ad.notFound') : E('route.loading')}</p>`; }
+  ensureFeed(); resolveIdx('AD:' + id);
+  return swBar() + `<h2>${E('detail.title')}</h2><div class="ad-banner" role=note>🤝 ${E('ad.banner')}</div><div class="card ad ad-r${a.rank || 0}" data-rank="${a.rank || 0}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
+  <div class=ad-row><img class="ad-cover big" alt="" src="${adCover(a)}"><div class=ad-main>${a.brand ? `<span class="muted ad-brand" dir=auto>${esc(a.brand)}</span>` : ''}<h3 dir=auto style="margin:.2em 0">${esc(a.title)}</h3><p dir=auto style="font-size:18px">${esc(a.text)}</p></div></div>
+  ${a.mode === 'external' && a.url ? `<div class=row><button type=button class=primary data-adgo>↗ ${E('ad.visit')}</button></div>` : ''}<p class="muted hint">${E('ad.disc')}</p></div>`; }
+// 详情滑动：沿用 feed 顺序
+function resolveIdx(sig) { const i = S.curPos; S.swIdx = i != null && S.feed[i] && feedKey(S.feed[i]) === sig ? i : S.feed.findIndex(it => feedKey(it) === sig); }
+function swBar() { if (S.swIdx < 0 || S.feed.length < 2) return ''; return `<div class=sw-bar id=swbar role=group aria-label="${E('sw.aria')}">${swBarInner()}</div>`; }
+function swBarInner() { const i = S.swIdx, n = S.feed.length, first = i <= 0, last = i >= n - 1, more = hasMore(), F = S.fp || {};
+  const nxt = last && more ? (F.loading ? `<span class="sw-btn sw-load" role=status>${E('sw.loading')}</span>` : `<button type=button class="sw-btn${F.err ? ' sw-err' : ''}" data-sw=1>${F.err ? E('sw.retry') : E('sw.nextPage')}</button>`)
+    : `<button type=button class="sw-btn${last ? ' dim' : ''}" data-sw=1 ${last ? 'aria-disabled=true' : ''} aria-label="${E('sw.next')}">${last ? E('sw.end') : '›'}</button>`;
+  return `<button type=button class="sw-btn${first ? ' dim' : ''}" data-sw=-1 ${first ? 'aria-disabled=true' : ''} aria-label="${E('sw.prev')}">‹</button><span class=sw-pos aria-live=polite>${E('sw.pos', { i: i + 1, n: n + (more ? '+' : '') })}</span>${nxt}`; }
+function paintSw() { const b = $('#swbar'); if (b) b.innerHTML = swBarInner(); }
+function swTo(idx, dir) { const it = S.feed[idx]; if (!it) return; S.swLock = true; S.swDir = dir; track('card_view', feedKey(it), idx, it.t === 'ad' ? it.ad.rank || 0 : 0);
+  S.curPos = idx; location.hash = '#/w/' + encodeURIComponent(feedKey(it)) + '?i=' + idx; setTimeout(() => S.swLock = false, 300); } // 动画锁
+async function swGo(dir) { if (S.swLock) return; const i = S.swIdx, n = S.feed.length;
+  if (dir < 0) return i > 0 ? swTo(i - 1, -1) : undefined;
+  if (i < n - 1) return swTo(i + 1, 1);
+  if (!hasMore() || S.swWait) return; S.swWait = true; const ok = await loadNextPage(); S.swWait = false; if (ok && S.swIdx === i && S.feed.length > i + 1) swTo(i + 1, 1); } // 最后一张：自动加载下一页并无缝继续
+function bindSwiper(p) { const ac = S.swAC = new AbortController(), sg = { signal: ac.signal }, v = $('#view');
+  if (S.swDir && !matchMedia('(prefers-reduced-motion: reduce)').matches) { v.classList.add(S.swDir > 0 ? 'sw-in-r' : 'sw-in-l'); setTimeout(() => v.classList.remove('sw-in-r', 'sw-in-l'), 320); } S.swDir = 0;
+  $('#swbar')?.addEventListener('click', e => { const b = e.target.closest('[data-sw]'); if (b && b.getAttribute('aria-disabled') !== 'true') swGo(+b.dataset.sw); }, sg);
+  $('[data-adgo]')?.addEventListener('click', () => { const a = S.ads.find(x => 'AD:' + x.id === decodeURIComponent(p.slice(3))); if (a) { track('ad_click', 'AD:' + a.id, S.swIdx, a.rank || 0); extLink(a.url, a.brand || a.title); } }, sg);
+  if (S.swIdx < 0) return; let x0 = null, y0 = 0;
+  v.addEventListener('touchstart', e => { x0 = e.target.closest('textarea,input,select') ? null : e.touches[0].clientX; y0 = e.touches[0].clientY; }, { ...sg, passive: true });
+  v.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.5) swGo(dx < 0 ? 1 : -1); }, sg); // 50px 阈值
+  document.addEventListener('keydown', e => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; if (!$('#modal').hidden || e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input,textarea,select,[contenteditable]')) return; swGo(e.key === 'ArrowRight' ? 1 : -1); }, sg);
+  if (S.swIdx >= S.feed.length - 10 && hasMore()) loadNextPage(); } // 距末尾 ~10 张时预取下一页
 function list(q, only) {
   const kw = q.get('q') || '', sort = q.get('sort') || 'new', cat = q.get('cat') || '', type = q.get('type') || '', days = +q.get('days') || 0, minHeat = +q.get('heat') || 0, now = Date.now() / 1000, kql = kw.toLowerCase();
   loadCardMeta(); loadGoodsMeta();
   let ws = visibleWishes(S.wishes).filter(w => (!kw || (!w.priv && (cardSearchText(w).includes(kql) || w.author.startsWith(kw) || (w.time && (ymd(w.time).startsWith(kw) || fmtT(w.time).includes(kw))))) || (kw && w.author.startsWith(kw))) && (!cat || w.cat === cat || (cat === '经典' && w.cat === MATERIAL)) && (!type || (w.kind || 'wish') === type) && (!days || (w.time || now) > now - days * 86400) && w.heat >= minHeat);
   if (sort === 'hot') ws = [...ws].sort((a, b) => b.heat - a.heat); if (sort === 'old') ws = [...ws].reverse();
-  const body = () => !ws.length && S.syncing ? skel(3) : `<p class=muted>${E('list.count', { n: num(ws.length) })}</p>${ws.length ? ws.map(wishCard).join('') : `<div class=card><h3>🌟 ${E('ux.featured')}</h3><p class=muted>${E('ux.featuredHint')}</p>${sampleCards(3)}</div>`}`; if (only) return body();
+  initFeed(q.toString(), ws); loadAds();
+  const body = () => !ws.length && S.syncing ? skel(3) : `<p class=muted>${E('list.count', { n: num(ws.length) })}</p>${ws.length ? S.feed.map(feedHtml).join('') + feedMore() : `<div class=card><h3>🌟 ${E('ux.featured')}</h3><p class=muted>${E('ux.featuredHint')}</p>${sampleCards(3)}</div>`}`; if (only) return body();
   const opt = (arr, v) => arr.map(([k, l]) => `<option value="${k}" ${String(k) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('');
   return `<h2>${E('list.title')}</h2><form class=row id=lf role=search aria-label="${E('list.filter')}"><input name=q aria-label="${E('list.kwPh')}" placeholder="${E('list.kwPh')}" value="${esc(kw)}">
   <select name=type aria-label="${E('a11y.f.type')}">${opt([['', t('list.allTypes')], ['wish', '✨ ' + t('kind.wish')], ['social', '💬 ' + t('kind.social')], ['gift', '🎁 ' + t('kind.gift')], ['goods', '🛍️ ' + t('kind.goods')]], type)}</select>
@@ -676,7 +747,8 @@ function list(q, only) {
   <select name=sort aria-label="${E('a11y.f.sort')}">${opt([['new', t('home.new')], ['hot', t('home.hot')], ['old', t('list.sortOld')]], sort)}</select><button>${E('list.filter')}</button><button type=button id=rf>${E('list.refresh')}</button></form>
   <div id=wl>${body()}</div>`;
 }
-function detail(sig) {
+const detail = sig => { if (sig.startsWith('AD:')) return adDetail(sig.slice(3)); ensureFeed(); resolveIdx(sig); return swBar() + detailBase(sig); };
+function detailBase(sig) {
   const w = S.wishes.find(x => x.sig === sig) || (/^SYN\d+$/.test(sig) && window.WT3D?.cardById(sig.slice(3))); if (!w) return `<p>${E('detail.notFound')}</p>`;
   if (w.kind === 'goods') loadGoodsMeta([w]);
   maybeFulfillToast(w); loadCardMeta([w]);
@@ -985,10 +1057,13 @@ function applySeo(p) {
   setMeta('meta[name="twitter:title"]', 'content', title); setMeta('meta[name="twitter:description"]', 'content', desc);
   const can = document.head.querySelector('link[rel="canonical"]'); if (can) can.href = 'https://world-tree.pages.dev/'; }
 async function route() {
+  S.curPos = (new URLSearchParams((location.hash.split('?')[1] || ''))).has('i') ? +(new URLSearchParams(location.hash.split('?')[1])).get('i') : null;
+  S.swAC?.abort(); S.swAC = null; // 切换页面即关闭详情：清理滑动监听
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
   const pages = { '/treehole': treeholePage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
   v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
+  if (p.startsWith('/w/')) bindSwiper(p);
   document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
