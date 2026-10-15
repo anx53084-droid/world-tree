@@ -2,7 +2,7 @@
 // 环境变量：D1_API_TOKEN、D1_ACCOUNT_ID、D1_DATABASE_ID；未设置则仅用本地文件。
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const E = process.env, ON = !!(E.D1_API_TOKEN && E.D1_ACCOUNT_ID && E.D1_DATABASE_ID);
-const DIR = path.join(__dirname, 'data'), FILES = ['users.json', 'fulfillments.json', 'fund-ledger.json', 'moderator.json', 'payees.json', 'social.json', 'gates.json', 'ads.json', 'domains.json'];
+const DIR = path.join(__dirname, 'data'), FILES = ['users.json', 'fulfillments.json', 'fund-ledger.json', 'moderator.json', 'payees.json', 'social.json', 'gates.json', 'ads.json', 'domains.json', 'batches.json'];
 const URL_ = () => `https://api.cloudflare.com/client/v4/accounts/${E.D1_ACCOUNT_ID}/d1/database/${E.D1_DATABASE_ID}/query`;
 async function q(sql, params = []) { const r = await fetch(URL_(), { method: 'POST', headers: { authorization: 'Bearer ' + E.D1_API_TOKEN, 'content-type': 'application/json' }, body: JSON.stringify({ sql, params }) });
   const j = await r.json(); if (!j.success) throw new Error('D1 ' + JSON.stringify(j.errors)); return j.result[0].results; }

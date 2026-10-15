@@ -12,7 +12,7 @@ const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
-const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'); const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
+const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'), Batch = require('./batch'); const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
@@ -149,7 +149,12 @@ async function verifySolPay(sig, signer) { // 核验：交易成功、签名者 
     if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], from = k.pubkey?.toBase58?.() || String(k.pubkey || k); if (from !== signer) return null;
       let lam = 0; for (const ix of tx.transaction.message.instructions) { const p = ix.parsed; if (ix.program === 'system' && p?.type === 'transfer' && RC.isSolRecv(p.info.destination) && p.info.source === signer) lam += +p.info.lamports; }
       return lam > 0 ? { lamports: lam, time: tx.blockTime || Math.floor(Date.now() / 1000) } : null; } } catch {} await new Promise(r => setTimeout(r, 1500)); } return null; }
-Ads.setVerifier(verifySolPay);
+async function verifyMemoTx(sig, signer, memo) { // 门内记录上链（用户自付 gas）：核验交易成功、签名者 = 批次所有者、memo 完全一致
+  if (ADS_MOCK) { const m = adsMockRead('batch-mock-anchor.json')[sig]; return !!m && m.signer === signer && m.memo === memo; }
+  for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+    if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], from = k.pubkey?.toBase58?.() || String(k.pubkey || k); if (from !== signer) return false;
+      return tx.transaction.message.instructions.some(ix => (ix.program === 'spl-memo' || ix.programId?.toBase58?.() === MEMO.toBase58()) && (typeof ix.parsed === 'string' ? ix.parsed : '') === memo); } } catch {} await new Promise(r => setTimeout(r, 1500)); } return false; }
+Ads.setVerifier((sig, signer) => Batch.load().paid[sig] ? null : verifySolPay(sig, signer)); // 同一笔支付不能既用于广告又用于批次
 async function creditEvm(db, U, id, evm, now) { // EVM 链：原生币转入该链收款地址；折算为 SOL 等值计入（服务端核验：收款方 / 发送者 / 金额 / 一笔交易只能用一次）
   if (!U.evm) throw Object.assign(new Error('not an EVM account'), { code: 'param' }); const ad = Ads.load().ads[id]; if (!ad || ad.owner !== U.pubkey) return { error: 'owner' }; const P = await solPrice(), coin = P.coins[Acc.CHAINS[+evm.chainId]?.coin] || 0; if (!coin) throw Object.assign(new Error('no price'), { code: 'evmChain' });
   const key = 'evm:' + evm.chainId + ':' + String((evm.txs || [])[0] || '').toLowerCase(); if (Ads.load().paid[key]) return Ads.creditLocal(id, U.pubkey, key, 0, now, 'topup'); // 已入账：幂等返回
@@ -418,6 +423,46 @@ async function api(req, res, url) {
       const act = String(b.action || ''); if (act === 'add') return send(res, 200, Domains.add(host, b.status || 'standby', b.note));
       if (act === 'primary') return send(res, 200, Domains.setPrimary(host)); if (act === 'status') return send(res, 200, Domains.setStatus(host, String(b.status || ''))); if (act === 'remove') return send(res, 200, Domains.remove(host));
       return send(res, 400, { error: 'action', code: 'action' }); } catch (e) { return dErr(e); } }
+  // ---------- 团购礼品卡（批量心意卡）----------
+  if (url.startsWith('/api/batch')) { const sp = new URL(req.url, 'http://x').searchParams, now = Math.floor(Date.now() / 1000), BE = (code, st = 400, x = {}) => send(res, st, { error: code, code, ...x });
+    const ip = String(req.headers['cf-connecting-ip'] || (String(req.headers['x-forwarded-for'] || '').split(',').pop() || '').trim() || req.socket.remoteAddress || '');
+    if (url === '/api/batch/cfg' && req.method === 'GET') { const P = await solPrice(); return send(res, 200, { ...Batch.CFG(), receive: RECEIVE.toBase58(), solUsd: P.usd, largeUsd: 20 }); }
+    if (url === '/api/batch/peek' && req.method === 'GET') { if (Batch.limited('peek|' + ip, 30, 600000)) return BE('rate', 429); const r = Batch.peek(String(sp.get('code') || '')); return r.error ? BE(r.error, 404) : send(res, 200, r); } // 领取页先看内容（不绑定），同样限速防枚举
+    const a = auth(req, db); if (!a) return BE('NOT_LOGIN', 401); const U = a.user, owner = U.pubkey;
+    if (url === '/api/batch/claim' && req.method === 'POST') { const b = await body(req, 600);
+      if (Batch.limited('claim|' + ip, 20, 600000) || Batch.limited('claimu|' + owner, 20, 600000)) return BE('rate', 429); // 防暴力枚举：IP + 账户双限速
+      const r = Batch.claim(String(b.code || ''), owner, now); return r.error ? BE(r.error, r.error === 'used' ? 409 : 404) : send(res, 200, r); }
+    if (url === '/api/batch/mine' && req.method === 'GET') return send(res, 200, { batches: Batch.list(owner) });
+    if (url === '/api/batch/create' && req.method === 'POST') { const b = await body(req, 4000), v = Batch.validate({ ...b, count: b.count });
+      if (v.error) return BE(v.error); const { blessing, gateName, totalLam } = v.ok, P = await solPrice();
+      if (b.evm && (v.ok.optPublic || v.ok.optAnchor)) return BE('evmOpt'); // 公开 / 上链需要 Solana 签名，EVM 账户暂不支持
+      const txt = blessing + '\n' + gateName, bh = Block.check(txt); if (bh) return BE('blocked', 400, { detail: bh.domain }); // 仅自动过滤（长度 / 关键词黑名单 / 正向内容审核），无人工审核
+      const mr = await moderate(txt); if (!mr.pass) return BE('reject');
+      let key, lamports, chain = 'sol', publicSig = '';
+      if (b.evm) { if (!U.evm) return BE('param'); const hk = 'evm:' + (+b.evm.chainId) + ':' + String((b.evm.txs || [])[0] || '').toLowerCase(); if (Batch.load().paid[hk]) { const r0 = Batch.create(owner, v.ok, { key: hk, lamports: 0 }, now); return r0.error ? BE(r0.error, 409) : send(res, 200, { ...r0, batch: Batch.view(r0.batch) }); }
+        let ev; try { ev = await Acc.verifyEvmPay(db, b.evm, U.evm, P.coins[Acc.CHAINS[+b.evm.chainId]?.coin] || 0, totalLam / 1e9 * P.usd); } catch (e) { return fail(res, e); } save(db); key = hk; lamports = Math.round(ev.usd / P.usd * 1e9); chain = 'evm:' + b.evm.chainId; }
+      else if (b.pay) { // 托管账户：服务端用该用户的 devnet 密钥签名转账（全额转入收款地址）；大额需改用自有钱包
+        if (!U.secret) return BE('param'); if (!ADS_MOCK && totalLam / 1e9 * P.usd >= (U.largeUsd || 20)) return BE('large');
+        const kp = web3.Keypair.fromSecretKey(Buffer.from(U.secret, 'base64')); let memo = 'WTREE1|BG|pay';
+        if (v.ok.optPublic) { const at = attest('经典|' + blessing); memo = `WTREE1|W|${at.hash}|${at.ts}|${at.sig}|经典|${blessing}`; }
+        try { if (ADS_MOCK) key = adsMockPay(owner, totalLam); else { const tx = new web3.Transaction().add(web3.SystemProgram.transfer({ fromPubkey: kp.publicKey, toPubkey: RECEIVE, lamports: totalLam }));
+            if (v.ok.optPublic) tx.add(web3.SystemProgram.transfer({ fromPubkey: kp.publicKey, toPubkey: TREE, lamports: 0 })); tx.add(new web3.TransactionInstruction({ programId: MEMO, keys: [{ pubkey: kp.publicKey, isSigner: true, isWritable: false }], data: Buffer.from(memo, 'utf8') }));
+            key = await web3.sendAndConfirmTransaction(conn, tx, [kp], { commitment: 'confirmed' }); } } catch (e) { return send(res, 200, { error: 'chain', code: 'chain', detail: e.message }); }
+        lamports = totalLam; publicSig = v.ok.optPublic ? key : ''; }
+      else { key = String(b.sig || ''); if (!/^[A-Za-z0-9_-]{8,100}$/.test(key)) return BE('sig'); if (Batch.load().paid[key]) { const r0 = Batch.create(owner, v.ok, { key, lamports: 0 }, now); return r0.error ? BE(r0.error, 409) : send(res, 200, { ...r0, batch: Batch.view(r0.batch) }); }
+        if (Ads.load().paid[key]) return BE('used', 409); const vr = await verifySolPay(key, owner); if (!vr) return BE('verify'); lamports = vr.lamports; publicSig = v.ok.optPublic ? key : ''; } // 核验：交易成功、签名者 = 当前登录账户地址（防他人签名冒用）、收款方 = 收款地址
+      if (!(lamports >= totalLam)) return BE('amount', 400, { paid: lamports / 1e9, need: totalLam / 1e9 });
+      const r = Batch.create(owner, v.ok, { key, lamports, chain, publicSig }, now); if (r.error) return BE(r.error, r.error === 'used' ? 409 : 400); return send(res, 200, { ...r, batch: Batch.view(r.batch) }); }
+    if (url === '/api/batch/anchor' && req.method === 'POST') { const b = await body(req, 2000), bt = Batch.load().batches[String(b.id || '')]; if (!bt || bt.owner !== owner) return BE('owner', 403); if (!bt.optAnchor || bt.status !== 'done') return BE('state');
+      const sig = String(b.sig || ''); if (!/^[A-Za-z0-9_-]{8,100}$/.test(sig)) return BE('sig'); if (!(await verifyMemoTx(sig, owner, Batch.anchorMemo(bt)))) return BE('verify'); const r = Batch.setAnchor(bt.id, sig, now); return r.error ? BE(r.error, 409) : send(res, 200, { ...r, batch: Batch.view(bt) }); }
+    const m = url.match(/^\/api\/batch\/(b_[0-9a-f]{16})(\/csv)?$/); if (m && req.method === 'GET') { const bt = Batch.load().batches[m[1]]; if (!bt || bt.owner !== owner) return BE('owner', 403);
+      if (m[2]) { if (bt.status !== 'done') return BE('state'); const o = req.headers.origin && Domains.originOk(req.headers.origin) ? req.headers.origin : 'https://' + (Domains.primary()?.host || 'world-tree.pages.dev'); res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="gift-batch-${bt.id}.csv"`, 'cache-control': 'no-store' }); return res.end(Batch.csv(bt, o)); }
+      return send(res, 200, { batch: Batch.view(bt, now) }); }
+    return BE('nf', 404); }
+  if (url.startsWith('/api/admin/batch')) { if (!Fulfill.ADMIN_KEY || !Fulfill.adminOk(req)) return send(res, 403, { error: 'forbidden', code: 'admin' });
+    if (url === '/api/admin/batch' && req.method === 'GET') return send(res, 200, Batch.summary());
+    if (url === '/api/admin/batch/retry' && req.method === 'POST') { const b = await body(req, 400), n = Batch.retryFailed(String(b.id || '')); return n == null ? send(res, 404, { error: 'nf', code: 'nf' }) : send(res, 200, { requeued: n }); }
+    return send(res, 404, { error: 'not found' }); }
   if (url === '/api/ads' && req.method === 'GET') { const q = new URL(req.url, 'http://x').searchParams, now = Math.floor(Date.now() / 1000); // 公开：不含得分；单个广告 ?id=，分页广告位 ?page=n
     if (q.get('id')) { const ad = Ads.one(String(q.get('id')), now); return ad ? send(res, 200, { ad }) : send(res, 404, { error: 'nf', code: 'nf' }); }
     return send(res, 200, { ...Ads.pageSlots(+q.get('page') || 1, now), per: Ads.PAGE, step: Ads.STEP }); }
@@ -554,6 +599,7 @@ async function api(req, res, url) {
 }
 
 // CORS 白名单由 domains.js 动态生成（域名清单 + ALLOWED_ORIGINS + CORS_ORIGIN_RE），增删域名无需重新部署
+Batch.start(); // 团购礼品卡任务队列：启动即恢复未完成的分片
 http.createServer(async (req, res) => {
   const url = req.url.split('?')[0];
   if (url.startsWith('/api/')) { // CORS：允许 Cloudflare Pages 前端（*.pages.dev 的 world-tree 项目及预览）与 ALLOWED_ORIGINS（自定义域名）；鉴权用 Bearer token，不用 cookie

@@ -658,7 +658,7 @@ function home() {
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
 </form>
   <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.growing')}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
-  <div class=scene-hint>${E('home.hint')} <span class=debug-only>· <a href="#lists" data-scroll=lists>⌄ ${E('home.rank')}</a></span></div></div>
+  <div class=scene-hint><a class=gb-home href="#/gift/batch">🎁 ${E('gb.nav')}</a> · ${E('home.hint')} <span class=debug-only>· <a href="#lists" data-scroll=lists>⌄ ${E('home.rank')}</a></span></div></div>
   <div class="cols home-lists debug-only" id=lists><div class=glass><h2>🔥 ${E('home.hot')}</h2>${hot.map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div><div class=glass><h2>🆕 ${E('home.new')}</h2>${visibleWishes().slice(0, 5).map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div></div>`;
 }
 // ---------- 合作卡 / 统一卡片点击 / 详情滑动（跨页自动加载）----------
@@ -798,6 +798,90 @@ function openTopup(id) { const ad = S.my?.ads.find(x => x.id === id); if (!ad) r
       else { state(t('ads.st.verify'), 'wait'); try { done(await api('/api/ads/pay', { id: ad.id, sol })); } catch (e) { if (e.code === 'record' && e.data?.signature) return recordFail(e.data.signature); throw e; } } } // 托管账户：服务端签名转账并核验入账
     catch (e) { lock(false); const cancelled = S.mode === 'self' && !sig && (e?.code === 4001 || /reject|denied|cancel|declin/i.test(String(e?.message || e))); state(cancelled ? t('ads.st.cancel') : t('ads.st.fail', { msg: S.mode === 'self' && !e.status ? walErr(e) : adErr(e) }), cancelled ? '' : 'err'); } };
   upd(); }
+// ---------- 团购礼品卡：#/gift/batch（创建）· #/gift/batch/<id>（进度）· #/claim/<code>（领取）----------
+const GB_LS = 'wt_batches', gbLocal = () => { try { return JSON.parse(localStorage[GB_LS] || '{}'); } catch { return {}; } };
+const gbRemember = (id, o) => { const m = gbLocal(); m[id] = { ...(m[id] || {}), ...o, at: m[id]?.at || Date.now() }; const ks = Object.keys(m).sort((a, b) => m[b].at - m[a].at).slice(0, 30); const n = {}; ks.forEach(k => n[k] = m[k]); localStorage[GB_LS] = JSON.stringify(n); };
+const gbErr = e => { const c = e?.code; if (c === 'NOT_LOGIN') return t('gb.login'); if (c === 'amount' && e.data?.paid != null) return t('gb.err.short', { paid: e.data.paid, need: e.data.need }); const k = ['amount', 'blocked', 'verify', 'used', 'large', 'evmOpt', 'chain', 'rate', 'nf', 'reject'].includes(c) ? c : ['blessing', 'count', 'gate', 'param', 'sig', 'state', 'owner', 'exists'].includes(c) ? 'input' : ''; return k ? t('gb.err.' + k, { min: S.gb?.cfg?.minSol || 0.0067 }) : (e?.message || String(e)); };
+const gbRules = () => `<section class="card motif gb-rules" aria-labelledby=gbrh><h3 id=gbrh>📜 ${E('gb.rules.t')}</h3><ul>${['gb.r1', 'gb.r2', 'gb.r3', 'gb.r4', 'gb.r5', 'gb.r6'].map(k => `<li>${E(k)}</li>`).join('')}</ul></section>`;
+const gbFoot = () => `<p class=gb-foot role=note>${E('gb.foot')}</p>`;
+const gbPage = () => `<h2 class=gold-title>🎁 ${E('gb.title')}</h2><p class=tagline>${E('gb.sub')}</p>${S.mode === 'guest' ? `<div class=card><p>${E('gb.login')}</p>${guestCta()}</div>` : ''}
+<form id=gbf class="card motif gb-form" novalidate aria-labelledby=gbfh><h3 id=gbfh>${E('gb.form')}</h3>
+<label class=gb-l for=gbb>${E('gb.f.bless')}</label><textarea id=gbb maxlength=140 rows=3 required aria-describedby=gbbn></textarea><p class=muted id=gbbn>0/140</p>
+<div class=gb-grid><div><label class=gb-l for=gbn>${E('gb.f.count')}</label><input id=gbn type=number min=1 max=10000 step=1 value=10 inputmode=numeric required></div>
+<div><label class=gb-l for=gbu>${E('gb.f.unit')}</label><input id=gbu inputmode=decimal autocomplete=off value="0.0067" aria-describedby=gbum required><p class=muted id=gbum>${E('gb.f.unitMin', { min: 0.0067 })}</p></div></div>
+<label class=gb-l for=gbg>${E('gb.f.gate')}</label><input id=gbg maxlength=20 required aria-describedby=gbgh><p class=muted id=gbgh>${E('gb.f.gateH')}</p>
+<fieldset class=gb-opts><legend>${E('gb.o.legend')}</legend>
+<label class=gb-c><input type=checkbox id=gbo1> <span>${E('gb.o.pub')}<small class=muted>${E('gb.o.pubN')}</small></span></label>
+<label class=gb-c><input type=checkbox id=gbo2> <span>${E('gb.o.anc')}<small class=muted>${E('gb.o.ancN')}</small><small class=gb-gas>⛽ ${E('gb.pg.anc.gas')}</small></span></label><p class=muted id=gblim hidden>${E('gb.o.lim')}</p></fieldset>
+<div class=gb-total role=status aria-live=polite><div>${E('gb.total')}: <b id=gbt>—</b></div><div class=muted id=gbtl></div><div class=muted id=gbtu></div>
+<div id=gbch hidden><label class=gb-l for=gbc>${E('gb.chain')}</label><select id=gbc></select><p class=muted id=gbca></p></div>
+<p class=gb-recv>${E('gb.recv')}: <code id=gbrc>${esc(S.cfg.receive || '')}</code></p></div>
+<label class=gb-c><input type=checkbox id=gbag required> <span>${E('gb.agree')}</span></label>
+<p id=gberr class=tu-err role=alert hidden></p><p id=gbst class=tu-state role=status aria-live=polite></p>
+<button type=submit class="primary breathe" id=gbgo>🎁 ${E('gb.go')}</button></form>
+<section class="card motif" aria-labelledby=gbmh><h3 id=gbmh>🗂️ ${E('gb.mine.t')}</h3><div id=gbmine><p class=muted>${E('gb.mine.none')}</p></div></section>${gbRules()}${gbFoot()}`;
+function gbBind() { const f = $('#gbf'); if (!f) return; S.gb ||= {}; const cfgP = fetch('/api/batch/cfg').then(r => r.json()).then(c => { S.gb.cfg = c; upd(); }).catch(() => {});
+  const mode = () => S.mode === 'self' ? 'self' : S.kind === 'evm' ? 'evm' : 'host', R = () => evmRoutes();
+  if (mode() === 'evm' && S.token) { const ks = Object.keys(R()); $('#gbch').hidden = !ks.length; $('#gbc').innerHTML = ks.map(k => `<option value=${esc(k)}>${esc(t('chain.' + R()[k].key))} · ${esc(R()[k].name)}</option>`).join(''); $('#gbc').value = localStorage.wt_pay || ks[0] || ''; }
+  if (mode() !== 'self' && S.token) { $('#gbo2').disabled = true; $('#gbo2').checked = false; if (mode() === 'evm') { $('#gbo1').disabled = true; $('#gbo1').checked = false; } $('#gblim').hidden = false; }
+  const vals = () => { const unit = parseAmt($('#gbu').value), count = +$('#gbn').value, per = Math.round(unit * 1e9), lam = per * count; return { unit, count, per, lam, ok: Number.isFinite(unit) && Number.isInteger(count) && count >= 1 && count <= 10000 && unit >= (S.gb.cfg?.minSol || 0.0067) && Number.isSafeInteger(lam) }; };
+  const err = m => { const e = $('#gberr'); e.hidden = !m; e.textContent = m || ''; }, state = (m, c = '') => { const x = $('#gbst'); x.textContent = m || ''; x.className = 'tu-state ' + c; };
+  function upd() { const bl = [...$('#gbb').value].length; $('#gbbn').textContent = `${bl}/140`; const v = vals(), usd = S.cfg.solUsd || 0;
+    $('#gbrc').textContent = (mode() === 'evm' && R()[$('#gbc')?.value]?.receive) || S.cfg.receive || '';
+    if (!v.ok) { $('#gbt').textContent = '—'; $('#gbtl').textContent = Number.isFinite(v.unit) && v.unit < (S.gb.cfg?.minSol || 0.0067) ? t('gb.err.amount', { min: S.gb.cfg?.minSol || 0.0067 }) : ''; $('#gbtu').textContent = ''; $('#gbca').textContent = ''; return v; }
+    const sol = v.lam / 1e9; $('#gbt').textContent = fmtSol(sol) + ' SOL'; $('#gbtl').textContent = t('gb.totalLine', { n: num(v.count), unit: fmtSol(v.per / 1e9), sol: fmtSol(sol) }); $('#gbtu').textContent = usd ? t('gb.usd', { usd: (sol * usd).toFixed(2) }) : '';
+    if (mode() === 'evm') { const r = R()[$('#gbc').value], p = S.cfg.evm?.usd?.[r?.coin] || 0; $('#gbca').textContent = p ? t('gb.evmAmt', { amt: evmAmt(sol), sym: r.sym }) : ''; } return v; }
+  const evmAmt = sol => { const r = R()[$('#gbc').value], p = S.cfg.evm?.usd?.[r?.coin] || 0; return p ? Math.ceil(sol * (S.cfg.solUsd || 0) / p * 1.02 * 1e6) / 1e6 : 0; };
+  f.addEventListener('input', upd); $('#gbc')?.addEventListener('change', upd); upd();
+  const loadMine = async () => { const m = gbLocal(); let rows = Object.entries(m).map(([id, o]) => ({ id, ...o })); if (S.token) { try { const r = await api('/api/batch/mine'); const ids = new Set(r.batches.map(b => b.id)); rows = [...r.batches.map(b => ({ id: b.id, gate: b.gateName, count: b.count, status: b.status, percent: b.percent, at: b.createdAt * 1000 })), ...rows.filter(x => !ids.has(x.id) && false)]; } catch { rows = []; } } else rows = []; if (!$('#gbmine')) return;
+    $('#gbmine').innerHTML = rows.length ? `<ul class=gb-list>${rows.map(b => `<li><a href="#/gift/batch/${esc(b.id)}">🎁 ${esc(b.gate || '')} · ${num(b.count)} · ${E('gb.pg.s.' + (b.status || 'queued'))} ${b.percent != null ? b.percent + '%' : ''}</a></li>`).join('')}</ul>` : `<p class=muted>${E('gb.mine.none')}</p>`; }; loadMine();
+  f.addEventListener('submit', async e => { e.preventDefault(); err(''); if (S.mode === 'guest' || !S.token) { err(t('gb.login')); return; }
+    const v = vals(), blessing = $('#gbb').value.trim(), gate = $('#gbg').value.trim(); await cfgP;
+    if (!blessing || /\|/.test(blessing)) { err(t('gb.err.input')); $('#gbb').focus(); return; } if (!v.ok) { err(t(v.count >= 1 && v.count <= 10000 && Number.isInteger(v.count) ? 'gb.err.amount' : 'gb.err.count', { min: S.gb.cfg?.minSol || 0.0067 })); (v.count >= 1 && v.count <= 10000 ? $('#gbu') : $('#gbn')).focus(); return; }
+    if (!gate) { err(t('gb.err.input')); $('#gbg').focus(); return; } if (!$('#gbag').checked) { err(t('gb.err.agree')); $('#gbag').focus(); return; }
+    const optPublic = $('#gbo1').checked, optAnchor = $('#gbo2').checked, body = { blessing, count: v.count, unitSol: v.unit, gateName: gate, optPublic, optAnchor }, m = mode();
+    const lock = on => { f.querySelectorAll('input,textarea,select,button').forEach(x => { if (on) { x._d = x.disabled; x.disabled = true; } else x.disabled = !!x._d; }); if (on) $('#modal-box')?.focus?.(); };
+    lock(true); let sig = '';
+    try { if (m === 'self') { state(t('gb.st.sign'), 'wait'); await needW3(); const recv = new W3.PublicKey(S.cfg.receive), me = new W3.PublicKey(S.pubkey), conn = new W3.Connection(RPC_WRITE, 'confirmed');
+        let memo = 'WTREE1|BG|pay'; if (optPublic) memo = await moderateThenMemo('W', '经典', blessing); // 先审核再付款：公开的 1 张随这一笔支付一起上链
+        const tx = new W3.Transaction().add(W3.SystemProgram.transfer({ fromPubkey: me, toPubkey: recv, lamports: v.lam })); if (optPublic) tx.add(W3.SystemProgram.transfer({ fromPubkey: me, toPubkey: new W3.PublicKey(TREE), lamports: 0 }));
+        tx.add(new W3.TransactionInstruction({ programId: new W3.PublicKey(MEMO), keys: [{ pubkey: me, isSigner: true, isWritable: false }], data: new TextEncoder().encode(memo) }));
+        const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(); tx.recentBlockhash = blockhash; tx.feePayer = me;
+        const sr = await (await solWallet()).signAndSend(tx); sig = sr?.raw ? await conn.sendRawTransaction(sr.raw) : sr; gbRemember('pending:' + sig, { sig, body });
+        state(t('gb.st.verify'), 'wait'); await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed'); body.sig = sig; }
+      else if (m === 'evm') { state(t('gb.st.sign'), 'wait'); const sol = v.lam / 1e9, amt = evmAmt(sol); if (!amt) throw new Error(t('gb.err.chain')); body.evm = await evmPay($('#gbc').value, amt); state(t('gb.st.verify'), 'wait'); }
+      else { body.pay = true; state(t('gb.st.verify'), 'wait'); }
+      const r = await api('/api/batch/create', body); gbRemember(r.batch.id, { gate: r.batch.gateName, count: r.batch.count, status: r.batch.status, percent: r.batch.percent }); localStorage.removeItem('wt_batches_pending'); location.hash = '#/gift/batch/' + r.batch.id; }
+    catch (e2) { lock(false); const cancelled = !e2.status && (e2?.code === 4001 || /reject|denied|cancel|declin/i.test(String(e2?.message || e2))); const html = e2.html; if (html) { state('', ''); const x = $('#gberr'); x.hidden = false; x.innerHTML = e2.message; } else { state(''); err(cancelled ? t('gb.st.cancel') : e2.status || e2.code ? gbErr(e2) : walErr(e2)); if (sig) { const x = $('#gberr'); x.hidden = false; x.textContent += ' ' + t('gb.err.paidNote', { sig }); } } } }); }
+// ----- 进度页 -----
+const gbProgress = id => `<h2 class=gold-title>🎁 ${E('gb.pg.t')}</h2><p><a href="#/gift/batch">← ${E('gb.pg.back')}</a></p><div id=gbpg data-id="${esc(id)}">${S.token ? `<p class=muted>⏳ ${E('route.loading')}</p>` : `<div class=card><p>${E('gb.login')}</p>${guestCta()}</div>`}</div>${gbRules()}${gbFoot()}`;
+async function gbPoll(id) { const box = $('#gbpg'); if (!box || box.dataset.id !== id) return; clearTimeout(S.gbT); if (!S.token) return;
+  let b; try { b = (await api('/api/batch/' + id)).batch; } catch (e) { if (!$('#gbpg')) return; if (!box._ok || e.status === 403 || e.status === 401) { const lc = gbLocal()[id]; box.innerHTML = `<div class=card><p class=tu-err role=alert>${esc(e.status === 403 ? t('gb.pg.other') : gbErr(e))}</p>${lc ? `<p class=muted>${esc(lc.gate || '')} · ${num(lc.count || 0)} · ${E('gb.pg.s.' + (lc.status || 'queued'))}</p>` : ''}</div>`; if (e.status === 403) return; } S.gbT = setTimeout(() => gbPoll(id), 5000); return; }
+  if (!$('#gbpg') || $('#gbpg').dataset.id !== id) return; gbRemember(id, { gate: b.gateName, count: b.count, status: b.status, percent: b.percent }); box._ok = 1; const sh = b.shards, done = b.status === 'done';
+  const keep = document.activeElement?.id, nextIn = b.nextRetryAt ? fmtT(b.nextRetryAt) : '';
+  box.innerHTML = `<section class="card motif" aria-labelledby=gbph><h3 id=gbph>${esc(b.gateName)} · ${num(b.count)}</h3><p class=gb-bless>“${esc(b.blessing)}”</p>
+  <p class=gb-status><b>${E('gb.pg.s.' + b.status)}</b> · ${E('gb.pg.paid', { sol: fmtSol(b.paidSol ?? b.totalSol) })}${b.optPublic ? ' · ' + E('gb.pg.pub') : ''}</p>
+  <div class=gb-bar role=progressbar aria-valuemin=0 aria-valuemax=100 aria-valuenow="${b.percent}" aria-label="${E('gb.pg.t')}"><i style="width:${b.percent}%"></i></div>
+  <p>${E('gb.pg.bar', { a: num(b.issued), b: num(b.count), p: b.percent })} · ${E('gb.pg.shards', { d: sh.done, n: sh.total })}${sh.failed ? ' · ' + E('gb.pg.sf', { f: sh.failed }) : ''} · ${E('gb.pg.claimed', { n: num(b.claimed), c: num(b.count) })}</p>
+  ${b.nextRetryAt && !done ? `<p class=muted role=status>↻ ${E('gb.pg.retry', { t: nextIn })}</p>` : ''}${sh.failed ? `<p class=tu-err role=alert>${E('gb.pg.failed')}</p>` : ''}
+  ${done ? `<div class=row style="gap:8px"><button type=button class=primary id=gbcsv>⬇️ ${E('gb.pg.csv')}</button></div><p class=muted>${E('gb.pg.csvNote')}</p>` : `<p class=muted>${E('gb.pg.resume')}</p>`}</section>
+  ${done && b.optAnchor ? `<section class="card motif" aria-labelledby=gbah><h3 id=gbah>⛓️ ${E('gb.pg.anc.t')}</h3>${b.anchor ? `<p>✅ ${E('gb.pg.anc.done')} <a target=_blank rel=noopener href="${EXPLORER(b.anchor.sig)}">${esc(short(b.anchor.sig))}</a></p>` : `<p>${E('gb.pg.anc.not')}</p><p class=gb-gas>⛽ ${E('gb.pg.anc.gas')}</p>${S.mode === 'self' ? `<button type=button id=gbanc>⛓️ ${E('gb.pg.anc.btn')}</button><p id=gbancs class=tu-state role=status aria-live=polite></p>` : `<p class=muted>${E('gb.o.lim')}</p>`}`}</section>` : ''}`;
+  if (keep && $('#' + keep)) $('#' + keep).focus();
+  $('#gbcsv')?.addEventListener('click', async e => { const bt = e.target; bt.disabled = true; try { const r = await fetch(`/api/batch/${id}/csv`, { headers: { authorization: 'Bearer ' + S.token } }); if (!r.ok) throw Object.assign(new Error(r.status), { status: r.status }); const u = URL.createObjectURL(await r.blob()), a = document.createElement('a'); a.href = u; a.download = `gift-batch-${id}.csv`; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); } catch (er) { toast(esc(t('gb.pg.csvErr')), 'err'); } bt.disabled = false; bt.focus(); });
+  $('#gbanc')?.addEventListener('click', async e => { const bt = e.target, st = x => { $('#gbancs').textContent = x; }; bt.disabled = true; try { st(t('gb.st.sign')); await needW3(); const me = new W3.PublicKey(S.pubkey), conn = new W3.Connection(RPC_WRITE, 'confirmed');
+      const tx = new W3.Transaction().add(new W3.TransactionInstruction({ programId: new W3.PublicKey(MEMO), keys: [{ pubkey: me, isSigner: true, isWritable: false }], data: new TextEncoder().encode(b.anchorMemo) })); const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(); tx.recentBlockhash = blockhash; tx.feePayer = me;
+      const sr = await (await solWallet()).signAndSend(tx), sig = sr?.raw ? await conn.sendRawTransaction(sr.raw) : sr; st(t('gb.st.verify')); await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed'); await api('/api/batch/anchor', { id, sig }); gbPoll(id); } catch (er) { st(er.status ? gbErr(er) : walErr(er)); bt.disabled = false; } });
+  if (b.status !== 'done' && b.status !== 'failed' || (b.status === 'failed' && false)) S.gbT = setTimeout(() => gbPoll(id), 2000); else if (b.status === 'failed') S.gbT = setTimeout(() => gbPoll(id), 10000); }
+// ----- 领取页 -----
+const gbClaim = code => `<h2 class=gold-title>🎫 ${E('gb.cl.t')}</h2><div id=gbcl data-code="${esc(code)}"><p class=muted>⏳ ${E('gb.cl.check')}</p></div>${gbFoot()}`;
+async function gbClaimRun(code) { const box = $('#gbcl'); if (!box || box.dataset.code !== code) return; const fail = (k, e) => { box.innerHTML = `<div class=card role=alert><p class=tu-err>${esc(k)}</p><p><a class=btn href="#/">${E('gb.cl.home')}</a></p></div>`; };
+  let p; try { const r = await fetch('/api/batch/peek?code=' + encodeURIComponent(code)); p = await r.json(); if (r.status === 429) return fail(t('gb.cl.rate')); if (!r.ok || p.error) return fail(t('gb.cl.nf')); } catch { return fail(t('gb.cl.net')); }
+  if (!$('#gbcl') || $('#gbcl').dataset.code !== code) return; const card = `<section class="card motif gb-claimcard"><p class=muted>${E('gb.cl.from', { name: p.gateName })}</p><h3>🎫 ${esc(p.gateName)}</h3><p class=gb-bless>“${esc(p.blessing)}”</p><p class=muted>${E('gb.cl.note')}</p></section>`;
+  if (p.state === 'used' && !S.token) return fail(t('gb.cl.used'));
+  if (!S.token) { box.innerHTML = `${card}<div class=card><p>${E('gb.cl.need')}</p>${guestCta()}</div>`; bindCta(); return; }
+  box.innerHTML = `${card}<p class=muted role=status>⏳ ${E('gb.cl.binding')}</p>`;
+  try { const cp = (S.gbCl ||= {}); const r = await (cp[code] ||= api('/api/batch/claim', { code }).finally(() => setTimeout(() => delete cp[code], 3000))); box.innerHTML = `${card}<div class=card role=status><h3>✅ ${E(r.dup ? 'gb.cl.dup' : 'gb.cl.ok')}</h3><p>${E('gb.cl.okSub', { name: r.card?.name || p.gateName })}</p><div class=row style="gap:8px"><a class="btn primary" href="#/treehole">${E('gb.cl.go')}</a><a class=btn href="#/wish">${E('gb.cl.mine')}</a></div></div>`; loadGateMe?.(true); }
+  catch (e) { box.innerHTML = `${card}<div class=card role=alert><p class=tu-err>${esc(e.code === 'used' ? t('gb.cl.used') : e.status === 429 ? t('gb.cl.rate') : e.code === 'nf' ? t('gb.cl.nf') : gbErr(e))}</p>${e.code === 'used' || e.code === 'nf' ? '' : `<button type=button id=gbretry>${E('gb.cl.retry')}</button>`}</div>`; $('#gbretry')?.addEventListener('click', () => gbClaimRun(code)); } }
 function list(q, only) {
   const kw = q.get('q') || '', sort = q.get('sort') || 'new', cat = q.get('cat') || '', type = q.get('type') || '', days = +q.get('days') || 0, minHeat = +q.get('heat') || 0, now = Date.now() / 1000, kql = kw.toLowerCase();
   loadCardMeta(); loadGoodsMeta();
@@ -1129,10 +1213,12 @@ async function route() {
   S.swAC?.abort(); S.swAC = null; $('#view').classList.remove('sw-loading', 'sw-nudge'); // 切换页面即关闭详情：清理滑动监听
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
-  v.innerHTML = p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
+  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/gift/batch': gbPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
+  clearTimeout(S.gbT); const gbm = p.match(/^\/gift\/batch\/(b_[0-9a-f]{16})$/), clm = p.match(/^\/claim\/([A-Za-z0-9-]{4,40})$/);
+  v.innerHTML = gbm ? gbProgress(gbm[1]) : clm ? gbClaim(clm[1].toUpperCase()) : p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
   if (p.startsWith('/w/')) bindSwiper(p);
   if (p === '/ads') paintAds();
+  if (p === '/gift/batch') gbBind(); if (gbm) gbPoll(gbm[1]); if (clm) gbClaimRun(clm[1].toUpperCase());
   if (S.token && (p === '/ads' || p === '/list' || p.startsWith('/w/AD') || p === '/')) loadMyAds(p === '/ads'); else paintAdNav();
   document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });

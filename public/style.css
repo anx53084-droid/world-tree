@@ -417,3 +417,14 @@ svg.gface { height: auto }
 #dombar { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 8px 12px; font-size: 14px; background: #2b2410; color: #ffe3a0; border-bottom: 1px solid #f6d38a88 }
 #dombar.blocked { background: #3a1410; color: #ffd0c4; border-color: #ff8a70aa } #dombar.info { background: #10301f; color: #c4f5da; border-color: #5ad1a0aa } #dombar small { display: block; opacity: .85 }
 .recvline code { word-break: break-all; overflow-wrap: anywhere; user-select: all }
+/* 团购礼品卡 */
+.gb-form label.gb-l { display: block; margin: 12px 0 4px; color: #f3e2b8; font-weight: 600 } .gb-form textarea, .gb-form input:not([type=checkbox]), .gb-form select { width: 100%; box-sizing: border-box }
+.gb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px } @media (max-width: 520px) { .gb-grid { grid-template-columns: 1fr } }
+.gb-opts { border: 1px solid #ffd36b44; border-radius: 10px; margin: 14px 0; padding: 8px 12px } .gb-opts legend { color: #ffd36b; padding: 0 6px }
+.gb-c { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; line-height: 1.6 } .gb-c input { margin-top: 5px; flex: none; width: 18px; height: 18px } .gb-c small { display: block } .gb-gas { color: #ffd36b }
+.gb-total { margin: 14px 0; padding: 12px; border-radius: 10px; background: #ffd36b14; border: 1px solid #ffd36b55 } .gb-total b { font-size: 22px; color: #ffd36b } .gb-recv { margin: 8px 0 0; font-size: 13px } .gb-recv code { word-break: break-all }
+.gb-rules ul { margin: 6px 0; padding-inline-start: 20px } .gb-rules li { line-height: 1.7; margin: 4px 0 }
+.gb-foot { text-align: center; color: #ffd36b; font-weight: 600; border-top: 1px solid #ffd36b44; padding: 14px 8px; margin: 18px 0 8px; line-height: 1.7 }
+.gb-bless { font-style: italic; color: #f3e2b8; overflow-wrap: anywhere } .gb-list { list-style: none; padding: 0; margin: 0 } .gb-list li { margin: 6px 0 } .gb-list a { display: block; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; min-height: 24px }
+.gb-bar { height: 12px; border-radius: 99px; background: #ffffff18; overflow: hidden; margin: 10px 0 } .gb-bar i { display: block; height: 100%; background: linear-gradient(90deg, #e8a93a, #fff4cf); transition: width .5s }
+.gb-home { color: #ffd36b; text-decoration: underline } .gb-claimcard h3 { overflow-wrap: anywhere }
