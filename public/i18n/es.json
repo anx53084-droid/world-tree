@@ -942,5 +942,22 @@
   "wal.wcWait": "Esperando la aprobación de la cartera…",
   "wal.reconn": "Reconectando {wallet}…",
   "wal.reconnFail": "No se conectó automáticamente: toca para reconectar",
-  "wal.statusOn": "Conectado"
+  "wal.statusOn": "Conectado",
+  "wal.dyn": "Acceso con correo / Google",
+  "wal.dynSub": "Sin cartera previa · se crea una cartera no custodiada",
+  "wal.dynTitle": "Acceso con correo / Google",
+  "wal.dynHint": "Inicia sesión con un código por correo o con tu cuenta de Google y crearemos una cartera integrada de Solana para ti.",
+  "wal.dynEmail": "Correo electrónico",
+  "wal.dynSend": "Enviar código",
+  "wal.dynOr": "o",
+  "wal.dynGoogle": "Continuar con Google",
+  "wal.dynCode": "Código",
+  "wal.dynVerify": "Verificar e iniciar sesión",
+  "wal.dynSent": "Se envió un código a {email}. Introdúcelo.",
+  "wal.dynFail": "Error al iniciar sesión, inténtalo de nuevo",
+  "wal.dynNote": "Es una cartera integrada no custodiada proporcionada por Dynamic: la clave privada no está en este sitio ni en la plataforma. La firma y las comisiones de red las gestiona la propia cartera; este sitio nunca envía transacciones en tu nombre.",
+  "wal.dynOff": "El acceso con correo / Google aún no está configurado, por lo que no está disponible",
+  "wal.dynNoWallet": "Sesión iniciada, pero no se creó ninguna cartera de Solana; inténtalo más tarde",
+  "wal.dynLoading": "Cargando…",
+  "wal.dynBadEmail": "Introduce un correo electrónico válido"
 }

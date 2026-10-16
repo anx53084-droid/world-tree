@@ -942,5 +942,22 @@
   "wal.wcWait": "Cüzdanın onayı bekleniyor…",
   "wal.reconn": "{wallet} yeniden bağlanıyor…",
   "wal.reconnFail": "Otomatik bağlanmadı — yeniden bağlanmak için dokunun",
-  "wal.statusOn": "Bağlandı"
+  "wal.statusOn": "Bağlandı",
+  "wal.dyn": "E-posta / Google ile giriş",
+  "wal.dynSub": "Cüzdan gerekmez · saklama yapmayan bir cüzdan oluşturulur",
+  "wal.dynTitle": "E-posta / Google ile giriş",
+  "wal.dynHint": "E-posta kodu veya Google hesabınla giriş yap; senin için gömülü bir Solana cüzdanı oluşturalım.",
+  "wal.dynEmail": "E-posta adresi",
+  "wal.dynSend": "Kod gönder",
+  "wal.dynOr": "veya",
+  "wal.dynGoogle": "Google ile devam et",
+  "wal.dynCode": "Kod",
+  "wal.dynVerify": "Doğrula ve giriş yap",
+  "wal.dynSent": "{email} adresine kod gönderildi. Lütfen girin.",
+  "wal.dynFail": "Giriş başarısız, lütfen tekrar deneyin",
+  "wal.dynNote": "Bu, Dynamic tarafından sağlanan saklama yapmayan gömülü bir cüzdandır: özel anahtar ne bu sitede ne de platformdadır. İmzalama ve ağ ücretlerini cüzdanın kendisi üstlenir; bu site senin adına hiçbir işlem göndermez.",
+  "wal.dynOff": "E-posta / Google ile giriş henüz yapılandırılmadı, bu yüzden kullanılamıyor",
+  "wal.dynNoWallet": "Giriş yapıldı ancak Solana cüzdanı oluşturulamadı — lütfen sonra tekrar deneyin",
+  "wal.dynLoading": "Yükleniyor…",
+  "wal.dynBadEmail": "Geçerli bir e-posta adresi girin"
 }

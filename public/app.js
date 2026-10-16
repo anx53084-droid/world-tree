@@ -357,9 +357,9 @@ function watchEvm(p) { if (!p?.on || p.__wt) return; p.__wt = 1; // 钱包切换
   p.on('chainChanged', h => { const c = parseInt(h, 16); if (EVM_KEYS[c]) localStorage.wt_chain = String(c); S.evmChain = c; });
   p.on('accountsChanged', a => { if (S.kind === 'evm' && (a[0] || '').toLowerCase() !== S.evmAddr) { toast(esc(t('wal.switched')), 'err'); logout(); } }); }
 // 钱包图标：已注入钱包用其自带图标；否则用本站自绘的简洁字母徽标（非官方 logo）
-const WICON = { phantom: ['#ab9ff2', 'P'], solflare: ['#fc7227', 'S'], backpack: ['#e33e3f', 'B'], okx: ['#111', 'O'], metamask: ['#f6851b', 'M'], coinbase: ['#0052ff', 'C'] };
+const WICON = { phantom: ['#ab9ff2', 'P'], solflare: ['#fc7227', 'S'], backpack: ['#e33e3f', 'B'], okx: ['#111', 'O'], dynamic: ['#4779ff', '✉'], metamask: ['#f6851b', 'M'], coinbase: ['#0052ff', 'C'] };
 const wIcon = w => { if (w.icon) return `<img src="${esc(w.icon)}" alt="" width=28 height=28>`; const [c, l] = WICON[w.id] || ['#556', '◎']; return `<i aria-hidden=true style="background:${c}">${l}</i>`; };
-function walletItem(w, kind) { const nm = w.mwa ? t('wal.mwa') : w.name, sub = w.mwa ? E('wal.recommended') : w.wc ? E('wal.wcHint') : w.installed ? E('wal.detected') : E('wal.notDetected');
+function walletItem(w, kind) { const nm = w.mwa ? t('wal.mwa') : w.dyn ? t('wal.dyn') : w.name, sub = w.mwa ? E('wal.recommended') : w.dyn ? E('wal.dynSub') : w.wc ? E('wal.wcHint') : w.installed ? E('wal.detected') : E('wal.notDetected');
   return `<button type=button class="witem${w.installed ? '' : ' off'}${w.mwa ? ' rec' : ''}" data-k=${kind} data-w="${esc(w.id)}">${wIcon(w)}<b>${esc(nm)}</b><span class=${w.installed ? 'wok' : 'muted'}>${sub}</span></button>`; }
 // 手机浏览器没有注入钱包：每个钱包给一个一键深链接（在该钱包 App 的内置浏览器中打开本站）
 const walletDeep = w => `<a class="witem wdeep" href="${esc(w.deep())}" rel="noopener">${wIcon(w)}<b>${esc(w.name)}</b><span class=wok>📱 ${E('wal.openApp', { name: esc(w.name) })}</span></a>`;
@@ -384,16 +384,42 @@ async function connectSol(id, given) { const w = WTW.solWallets().find(x => x.id
   if (!w.installed) return walletMissing(w, 'sol');
   const a = given || w.adapter(), np = getNonce(); let pk, signed = null; const wc = id === 'walletconnect', ppk = localStorage.wt_wpk;
   if (wc) WTW.onWcUri = uri => showWcQr(uri);
+  if (id === 'dynamic') { try { await dynLogin(); } catch (e) { if (e?.code === 'cancel') return; closeModal(); return toast(esc(e.code === 'dynOff' ? t('wal.dynOff') : e.code === 'dynNoWallet' ? t('wal.dynNoWallet') : walErr(e)), 'err'); } }
   try { if (a.canSignIn) { const o = await a.signIn({ domain: location.host, statement: STMT, uri: location.origin, version: '1', nonce: await np, issuedAt: new Date().toISOString() }); // 一次点击：连接并签名
       pk = o.address; signed = { message: o.message, signature: WTW.b58(o.signature) }; } else pk = await a.connect(false); }
   catch (e) { if (wc) closeModal(); return toast(esc(e.code === 'wcOff' ? t('wal.wcOff') : walErr(e)), 'err'); }
   if (wc && !$('#wcwait')) { a.disconnect?.(); return; } // 用户在等待批准时关闭了二维码弹窗
   closeModal(); if (S.mode === 'host' && S.token) await logout(true);
   if (S.wantSwitch && S.solPrev && pk === S.solPrev) toast(esc(t('wal.oneAccount')), ''); S.wantSwitch = false; S.solPrev = null;
-  S.mode = 'self'; S.kind = 'sol'; S.pubkey = pk; S.email = null; S.wallet = a; S.wst = 'ok'; localStorage.wt_wallet = id; localStorage.wt_wpk = pk; localStorage.wt_wname = w.mwa ? t('wal.mwa') : w.name; watchSol(a); renderMode(); route(); toast(esc(t('wal.ok', { addr: short(pk) })), 'ok'); sparkle();
+  S.mode = 'self'; S.kind = 'sol'; S.pubkey = pk; S.email = null; S.wallet = a; S.wst = 'ok'; localStorage.wt_wallet = id; localStorage.wt_wpk = pk; localStorage.wt_wname = w.mwa ? t('wal.mwa') : w.dyn ? t('wal.dyn') : w.name; watchSol(a); renderMode(); route(); toast(esc(t('wal.ok', { addr: short(pk) })), 'ok'); sparkle();
   try { if (signed) { const r = await walletLogin(signed); setSession(r); renderMode(); loadBell(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); }
     else { toast(esc(t('wal.signing'))); await siws(); if (/\/(security|inbox|notify)/.test(location.hash)) route(); } }
   catch (e) { toast(esc(walErr(e)) + ' · ' + esc(t('wal.signLater')), 'err'); } }
+// Dynamic 登录弹窗：邮箱 OTP（发送验证码 → 输入验证码）或 Google（整页跳转，回来后在启动时完成）。登录成功即自动创建非托管 Solana 嵌入式钱包。
+async function dynLogin() { if (!WTW.cfg.dynamicEnvId) throw Object.assign(new Error('off'), { code: 'dynOff' });
+  modal(`<h3 style="margin-top:0">✉️ ${E('wal.dynTitle')}</h3><p id=dst class=muted role=status>⏳ ${E('wal.dynLoading')}</p>`);
+  if (!window.WTDYN) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'vendor/dynamic.js'; sc.onload = ok; sc.onerror = () => no(new Error(t('wal.dynFail'))); document.head.append(sc); });
+  WTDYN.envId = WTW.cfg.dynamicEnvId; await WTDYN.init(WTW.cfg.dynamicEnvId); if (WTDYN.address()) return; // 已有会话：直接复用
+  return new Promise((res, rej) => { let otp = null; const live = () => !!$('#dynbody'), st = (x, bad) => { const e = $('#dst'); if (e) { e.textContent = x; e.style.color = bad ? '#ff9b7a' : ''; } };
+    const fin = async p => { try { st(t('wal.dynLoading')); await p; if (live()) res(); } catch (e) { if (!live()) return; st(e?.code === 'dynNoWallet' ? t('wal.dynNoWallet') : t('wal.dynFail') + (e?.message ? ' · ' + e.message : ''), true); $('#dynbody').querySelectorAll('button').forEach(b => b.disabled = false); } };
+    const stepMail = () => { modal(`<h3 style="margin-top:0">✉️ ${E('wal.dynTitle')}</h3><p class=muted>${E('wal.dynHint')}</p><div id=dynbody><label>${E('wal.dynEmail')}<input id=dem type=email autocomplete=email inputmode=email style="width:100%" dir=ltr></label>
+        <div class=row style="margin:8px 0"><button type=button class=primary id=dsend>${E('wal.dynSend')}</button></div><p class=muted style="text-align:center;margin:4px 0">${E('wal.dynOr')}</p><div class=row><button type=button id=dgg>G · ${E('wal.dynGoogle')}</button></div></div>
+      <p id=dst class=muted role=status></p><p class=muted style="font-size:12px">🔐 ${E('wal.dynNote')}</p><div class=row style="justify-content:space-between"><button type=button id=dback>← ${E('wal.back')}</button><button type=button id=dcn>${E('common.cancel')}</button></div>`);
+      $('#dcn').onclick = () => { closeModal(); rej(Object.assign(new Error('cancel'), { code: 'cancel' })); }; $('#dback').onclick = () => { closeModal(); rej(Object.assign(new Error('cancel'), { code: 'cancel' })); connectWallet('sol'); };
+      setTimeout(() => $('#dem')?.focus(), 50); $('#dem').onkeydown = e => { if (e.key === 'Enter') $('#dsend').click(); };
+      $('#dsend').onclick = async () => { const em = $('#dem').value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return st(t('wal.dynBadEmail'), true); $('#dynbody').querySelectorAll('button').forEach(b => b.disabled = true); st(t('wal.dynLoading'));
+        try { otp = await WTDYN.sendEmail(em); } catch (e) { $('#dynbody').querySelectorAll('button').forEach(b => b.disabled = false); return st(t('wal.dynFail') + (e?.message ? ' · ' + e.message : ''), true); } stepCode(em); };
+      $('#dgg').onclick = async () => { $('#dynbody').querySelectorAll('button').forEach(b => b.disabled = true); try { localStorage.wt_dyn_pending = '1'; sessionStorage.wt_dyn_ret = location.hash || '#/'; await WTDYN.google(location.origin + '/'); } catch (e) { localStorage.removeItem('wt_dyn_pending'); $('#dynbody').querySelectorAll('button').forEach(b => b.disabled = false); st(t('wal.dynFail') + (e?.message ? ' · ' + e.message : ''), true); } }; };
+    const stepCode = em => { modal(`<h3 style="margin-top:0">✉️ ${E('wal.dynTitle')}</h3><p class=muted>${E('wal.dynSent', { email: esc(em) })}</p><div id=dynbody><label>${E('wal.dynCode')}<input id=dcode inputmode=numeric autocomplete=one-time-code maxlength=8 style="width:100%" dir=ltr></label>
+        <div class=row style="margin:8px 0"><button type=button class=primary id=dver>${E('wal.dynVerify')}</button></div></div><p id=dst class=muted role=status></p><div class=row style="justify-content:flex-end"><button type=button id=dcn>${E('common.cancel')}</button></div>`);
+      $('#dcn').onclick = () => { closeModal(); rej(Object.assign(new Error('cancel'), { code: 'cancel' })); }; setTimeout(() => $('#dcode')?.focus(), 50); $('#dcode').onkeydown = e => { if (e.key === 'Enter') $('#dver').click(); };
+      $('#dver').onclick = () => { const c = $('#dcode').value.trim(); if (!c) return; $('#dynbody').querySelectorAll('button').forEach(b => b.disabled = true); fin(WTDYN.verify(otp, c)); }; };
+    stepMail(); }); }
+async function dynResume() { // Google 登录跳转回来：完成登录并走正常连接流程
+  if (!localStorage.wt_dyn_pending) return; localStorage.removeItem('wt_dyn_pending'); if (!WTW.cfg.dynamicEnvId) return;
+  try { if (!window.WTDYN) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'vendor/dynamic.js'; sc.onload = ok; sc.onerror = no; document.head.append(sc); });
+    WTDYN.envId = WTW.cfg.dynamicEnvId; await WTDYN.init(WTW.cfg.dynamicEnvId); const ad = await WTDYN.finishRedirect(); const ret = sessionStorage.wt_dyn_ret || '#/'; sessionStorage.removeItem('wt_dyn_ret'); history.replaceState(null, '', location.origin + '/' + ret);
+    if (ad) { if (S.mode === 'guest' || S.mode === 'self') await connectSol('dynamic'); } } catch (e) { toast(esc(t('wal.dynFail') + (e?.message ? ' · ' + e.message : '')), 'err'); } }
 async function showWcQr(uri) { await loadQr().catch(() => {}); let svg = ''; try { const q = qrcode(0, 'M'); q.addData(uri); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 3, scalable: true }); } catch {}
   modal(`<h3 style="margin-top:0">WalletConnect</h3><p class=muted>${E('wal.wcScan')}</p>${svg ? `<div class=qr role=img aria-label="WalletConnect QR">${svg}</div>` : ''}<div class=row style="gap:8px;margin:8px 0"><a class="btn primary" href="${esc(uri)}">${E('wal.wcOpen')}</a><button type=button id=wccp>${E('wal.wcCopy')}</button></div><p id=wcwait class=muted role=status>⏳ ${E('wal.wcWait')}</p><div class=row style="justify-content:flex-end"><button type=button data-close>${E('common.cancel')}</button></div>`);
   $('#wccp').onclick = () => navigator.clipboard?.writeText(uri).then(() => toast(esc(t('wal.wcCopied')), 'ok')).catch(() => {}); }
@@ -1502,10 +1528,11 @@ addEventListener('langchange', () => { renderMode(); if (window.WT3D?.relabel) W
 if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.hostname) || QS.get('sw') === '1') navigator.serviceWorker?.register('sw.js').catch(() => {});
 (async () => {
   await I18N.ready; renderMode(); WTW.initMwa().then(ok => { if (ok && $('.wlist')) connectWallet(localStorage.wt_wtab); }); // Android Chrome：注册 Mobile Wallet Adapter（面板已打开则刷新列表）
-  const cfgP = fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); WTW.cfg.wcProjectId = c.wcProjectId || ''; }).catch(() => {}); cfgP.then(() => fetch('/api/rules')).then(r => r.json()).then(r => S.words = r.words).catch(() => {});
+  const cfgP = fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); WTW.cfg.wcProjectId = c.wcProjectId || ''; WTW.cfg.dynamicEnvId = c.dynamicEnvId || ''; }).catch(() => {}); cfgP.then(() => fetch('/api/rules')).then(r => r.json()).then(r => S.words = r.words).catch(() => {});
+  cfgP.then(() => dynResume());
   addEventListener('wt:mwa-notfound', () => toast(esc(t('wal.mwaNone')), 'err'));
   // 自动重连：本地存了上次的钱包与公钥 → 页面加载时先静默重连（Phantom / Solflare 等注入钱包用 connect({onlyIfTrusted:true})；MWA 用缓存的 authToken；WalletConnect 恢复已有会话），不弹窗
-  const silentSol = async () => { await Promise.all([cfgP, WTW.initMwa()]); const id = localStorage.wt_wallet; if (!id) return null; let w = null; for (let i = 0; i < 6 && !(w = WTW.solWallets().find(x => x.id === id && x.installed && (!x.wc || WTW.cfg.wcProjectId))); i++) await sleep(250); // Wallet Standard 钱包注册稍晚
+  const silentSol = async () => { await Promise.all([cfgP, WTW.initMwa()]); const id = localStorage.wt_wallet; if (!id) return null; let w = null; for (let i = 0; i < 6 && !(w = WTW.solWallets().find(x => x.id === id && x.installed && (!x.wc || WTW.cfg.wcProjectId) && (!x.dyn || WTW.cfg.dynamicEnvId))); i++) await sleep(250); // Wallet Standard 钱包注册稍晚
     if (!w) return null; try { const a = w.adapter(), pk = await a.connect(true); if (!pk) return null; if (localStorage.wt_wpk && localStorage.wt_wpk !== pk && S.mode !== 'guest' && S.pubkey && pk !== S.pubkey) return null; return { a, pk }; } catch { return null; } };
   if (S.token) api('/api/me').then(async r => { setSession({ ...r, token: S.token }); S.pubkey = r.pubkey;
     if (r.kind === 'sol') { S.mode = 'self'; S.wst = 'reconnecting'; renderMode(); const c = await silentSol(); if (c && c.pk === r.pubkey) { S.wallet = c.a; S.wst = 'ok'; localStorage.wt_wpk = c.pk; watchSol(c.a); } else S.wst = 'fail'; } else { S.mode = 'host'; if (r.kind === 'evm') { const pv = WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed)?.provider; watchEvm(pv); pv?.request({ method: 'eth_accounts' }).then(a => { if (a?.[0] && a[0].toLowerCase() !== r.evm) { toast(esc(t('wal.switched')), 'err'); logout(); } }).catch(() => {}); } } renderMode(); route(); loadBell(); })

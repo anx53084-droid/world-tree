@@ -942,5 +942,22 @@
   "wal.wcWait": "等待錢包批准…",
   "wal.reconn": "正在重新連接 {wallet}…",
   "wal.reconnFail": "未自動連接，請點擊重新連接",
-  "wal.statusOn": "已連接"
+  "wal.statusOn": "已連接",
+  "wal.dyn": "信箱 / Google 登入",
+  "wal.dynSub": "沒有錢包也能用 · 自動建立非託管錢包",
+  "wal.dynTitle": "信箱 / Google 登入",
+  "wal.dynHint": "用信箱驗證碼或 Google 帳號登入，我們會為你建立一個 Solana 嵌入式錢包。",
+  "wal.dynEmail": "電子郵件地址",
+  "wal.dynSend": "發送驗證碼",
+  "wal.dynOr": "或",
+  "wal.dynGoogle": "使用 Google 繼續",
+  "wal.dynCode": "驗證碼",
+  "wal.dynVerify": "驗證並登入",
+  "wal.dynSent": "驗證碼已發送到 {email}，請輸入。",
+  "wal.dynFail": "登入失敗，請重試",
+  "wal.dynNote": "這是由 Dynamic 提供的非託管嵌入式錢包，私鑰不在本站也不在平台手中。簽名和網路費用都由這個錢包自己負責，本站不代發任何交易。",
+  "wal.dynOff": "信箱 / Google 登入尚未設定，暫不可用",
+  "wal.dynNoWallet": "登入成功，但沒有建立出 Solana 錢包，請稍後再試",
+  "wal.dynLoading": "載入中…",
+  "wal.dynBadEmail": "請輸入有效的電子郵件地址"
 }

@@ -942,5 +942,22 @@
   "wal.wcWait": "Waiting for the wallet to approve…",
   "wal.reconn": "Reconnecting {wallet}…",
   "wal.reconnFail": "Not connected automatically — tap to reconnect",
-  "wal.statusOn": "Connected"
+  "wal.statusOn": "Connected",
+  "wal.dyn": "Email / Google sign-in",
+  "wal.dynSub": "No wallet needed · a non-custodial wallet is created for you",
+  "wal.dynTitle": "Email / Google sign-in",
+  "wal.dynHint": "Sign in with an email code or your Google account and we'll create a Solana embedded wallet for you.",
+  "wal.dynEmail": "Email address",
+  "wal.dynSend": "Send code",
+  "wal.dynOr": "or",
+  "wal.dynGoogle": "Continue with Google",
+  "wal.dynCode": "Code",
+  "wal.dynVerify": "Verify and sign in",
+  "wal.dynSent": "A code was sent to {email}. Enter it below.",
+  "wal.dynFail": "Sign-in failed, please try again",
+  "wal.dynNote": "This is a non-custodial embedded wallet provided by Dynamic: the private key is held neither by this site nor by the platform. Signing and network fees are handled by this wallet itself; this site never sends transactions on your behalf.",
+  "wal.dynOff": "Email / Google sign-in isn't configured yet, so it's unavailable",
+  "wal.dynNoWallet": "Signed in, but no Solana wallet was created — please try again later",
+  "wal.dynLoading": "Loading…",
+  "wal.dynBadEmail": "Please enter a valid email address"
 }

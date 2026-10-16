@@ -6,6 +6,10 @@ services:
     buildCommand: npm install --omit=dev
     startCommand: npm start
     envVars:
+      - key: DYNAMIC_ENV_ID # Dynamic Environment ID（公开标识）：邮箱 / Google 登录 + 嵌入式 Solana 钱包；未配置时前端显示“尚未配置”
+        sync: false
+      - key: WC_PROJECT_ID # WalletConnect 项目 ID（公开标识）
+        sync: false
       - key: MODERATOR_SECRET
         sync: false
       - key: RECEIVE_PUBKEY # 已弃用：收款地址见 receive-config.js；此变量只会被当作“历史收款地址”（仅校验旧记录）

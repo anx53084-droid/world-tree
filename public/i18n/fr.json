@@ -942,5 +942,22 @@
   "wal.wcWait": "En attente de l'approbation du portefeuille…",
   "wal.reconn": "Reconnexion à {wallet}…",
   "wal.reconnFail": "Pas de connexion automatique : touchez pour vous reconnecter",
-  "wal.statusOn": "Connecté"
+  "wal.statusOn": "Connecté",
+  "wal.dyn": "Connexion e-mail / Google",
+  "wal.dynSub": "Sans portefeuille · un portefeuille non custodial est créé pour vous",
+  "wal.dynTitle": "Connexion e-mail / Google",
+  "wal.dynHint": "Connectez-vous avec un code reçu par e-mail ou votre compte Google : nous créons un portefeuille Solana intégré pour vous.",
+  "wal.dynEmail": "Adresse e-mail",
+  "wal.dynSend": "Envoyer le code",
+  "wal.dynOr": "ou",
+  "wal.dynGoogle": "Continuer avec Google",
+  "wal.dynCode": "Code",
+  "wal.dynVerify": "Vérifier et se connecter",
+  "wal.dynSent": "Un code a été envoyé à {email}. Saisissez-le.",
+  "wal.dynFail": "Échec de la connexion, veuillez réessayer",
+  "wal.dynNote": "Il s'agit d'un portefeuille intégré non custodial fourni par Dynamic : la clé privée n'est détenue ni par ce site ni par la plateforme. La signature et les frais de réseau sont gérés par ce portefeuille lui-même ; ce site n'envoie jamais de transaction à votre place.",
+  "wal.dynOff": "La connexion e-mail / Google n'est pas encore configurée et reste indisponible",
+  "wal.dynNoWallet": "Connecté, mais aucun portefeuille Solana n'a été créé — réessayez plus tard",
+  "wal.dynLoading": "Chargement…",
+  "wal.dynBadEmail": "Saisissez une adresse e-mail valide"
 }

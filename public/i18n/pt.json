@@ -942,5 +942,22 @@
   "wal.wcWait": "Aguardando a aprovação da carteira…",
   "wal.reconn": "Reconectando {wallet}…",
   "wal.reconnFail": "Não conectou automaticamente — toque para reconectar",
-  "wal.statusOn": "Conectado"
+  "wal.statusOn": "Conectado",
+  "wal.dyn": "Entrar com e-mail / Google",
+  "wal.dynSub": "Sem carteira prévia · criamos uma carteira não custodial para você",
+  "wal.dynTitle": "Entrar com e-mail / Google",
+  "wal.dynHint": "Entre com um código por e-mail ou com sua conta Google e criaremos uma carteira embutida da Solana para você.",
+  "wal.dynEmail": "Endereço de e-mail",
+  "wal.dynSend": "Enviar código",
+  "wal.dynOr": "ou",
+  "wal.dynGoogle": "Continuar com o Google",
+  "wal.dynCode": "Código",
+  "wal.dynVerify": "Verificar e entrar",
+  "wal.dynSent": "Um código foi enviado para {email}. Digite-o.",
+  "wal.dynFail": "Falha ao entrar, tente novamente",
+  "wal.dynNote": "Esta é uma carteira embutida não custodial fornecida pela Dynamic: a chave privada não fica com este site nem com a plataforma. A assinatura e as taxas de rede ficam a cargo da própria carteira; este site nunca envia transações em seu nome.",
+  "wal.dynOff": "O login com e-mail / Google ainda não está configurado e está indisponível",
+  "wal.dynNoWallet": "Login feito, mas nenhuma carteira Solana foi criada — tente novamente mais tarde",
+  "wal.dynLoading": "Carregando…",
+  "wal.dynBadEmail": "Digite um e-mail válido"
 }

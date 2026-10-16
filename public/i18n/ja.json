@@ -942,5 +942,22 @@
   "wal.wcWait": "ウォレットの承認を待っています…",
   "wal.reconn": "{wallet} に再接続中…",
   "wal.reconnFail": "自動接続できませんでした。タップして再接続",
-  "wal.statusOn": "接続済み"
+  "wal.statusOn": "接続済み",
+  "wal.dyn": "メール / Google ログイン",
+  "wal.dynSub": "ウォレット不要・非カストディアルのウォレットを自動作成",
+  "wal.dynTitle": "メール / Google ログイン",
+  "wal.dynHint": "メールの認証コードまたは Google アカウントでログインすると、Solana の埋め込みウォレットを作成します。",
+  "wal.dynEmail": "メールアドレス",
+  "wal.dynSend": "コードを送信",
+  "wal.dynOr": "または",
+  "wal.dynGoogle": "Google で続ける",
+  "wal.dynCode": "認証コード",
+  "wal.dynVerify": "確認してログイン",
+  "wal.dynSent": "{email} にコードを送信しました。入力してください。",
+  "wal.dynFail": "ログインに失敗しました。もう一度お試しください",
+  "wal.dynNote": "Dynamic が提供する非カストディアルの埋め込みウォレットです。秘密鍵は当サイトにもプラットフォームにもありません。署名とネットワーク手数料はこのウォレット自身が扱い、当サイトが代わりに取引を送信することはありません。",
+  "wal.dynOff": "メール / Google ログインは未設定のため利用できません",
+  "wal.dynNoWallet": "ログインしましたが Solana ウォレットが作成されませんでした。後でもう一度お試しください",
+  "wal.dynLoading": "読み込み中…",
+  "wal.dynBadEmail": "有効なメールアドレスを入力してください"
 }

@@ -942,5 +942,22 @@
   "wal.wcWait": "Warte auf die Bestätigung der Wallet…",
   "wal.reconn": "{wallet} wird neu verbunden…",
   "wal.reconnFail": "Nicht automatisch verbunden – zum erneuten Verbinden tippen",
-  "wal.statusOn": "Verbunden"
+  "wal.statusOn": "Verbunden",
+  "wal.dyn": "E-Mail- / Google-Anmeldung",
+  "wal.dynSub": "Keine Wallet nötig · eine Non-Custodial-Wallet wird für dich erstellt",
+  "wal.dynTitle": "E-Mail- / Google-Anmeldung",
+  "wal.dynHint": "Melde dich mit einem E-Mail-Code oder deinem Google-Konto an – wir erstellen dir eine eingebettete Solana-Wallet.",
+  "wal.dynEmail": "E-Mail-Adresse",
+  "wal.dynSend": "Code senden",
+  "wal.dynOr": "oder",
+  "wal.dynGoogle": "Weiter mit Google",
+  "wal.dynCode": "Code",
+  "wal.dynVerify": "Bestätigen und anmelden",
+  "wal.dynSent": "Ein Code wurde an {email} gesendet. Bitte eingeben.",
+  "wal.dynFail": "Anmeldung fehlgeschlagen, bitte erneut versuchen",
+  "wal.dynNote": "Dies ist eine von Dynamic bereitgestellte eingebettete Non-Custodial-Wallet: Den privaten Schlüssel hält weder diese Seite noch die Plattform. Signatur und Netzwerkgebühren übernimmt die Wallet selbst; diese Seite sendet nie Transaktionen in deinem Namen.",
+  "wal.dynOff": "E-Mail- / Google-Anmeldung ist noch nicht eingerichtet und daher nicht verfügbar",
+  "wal.dynNoWallet": "Angemeldet, aber es wurde keine Solana-Wallet erstellt – bitte später erneut versuchen",
+  "wal.dynLoading": "Wird geladen…",
+  "wal.dynBadEmail": "Bitte eine gültige E-Mail-Adresse eingeben"
 }

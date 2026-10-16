@@ -942,5 +942,22 @@
   "wal.wcWait": "Đang chờ ví phê duyệt…",
   "wal.reconn": "Đang kết nối lại {wallet}…",
   "wal.reconnFail": "Chưa tự động kết nối — chạm để kết nối lại",
-  "wal.statusOn": "Đã kết nối"
+  "wal.statusOn": "Đã kết nối",
+  "wal.dyn": "Đăng nhập bằng email / Google",
+  "wal.dynSub": "Không cần có ví · tự tạo ví phi lưu ký",
+  "wal.dynTitle": "Đăng nhập bằng email / Google",
+  "wal.dynHint": "Đăng nhập bằng mã email hoặc tài khoản Google, chúng tôi sẽ tạo cho bạn một ví Solana nhúng.",
+  "wal.dynEmail": "Địa chỉ email",
+  "wal.dynSend": "Gửi mã",
+  "wal.dynOr": "hoặc",
+  "wal.dynGoogle": "Tiếp tục với Google",
+  "wal.dynCode": "Mã",
+  "wal.dynVerify": "Xác minh và đăng nhập",
+  "wal.dynSent": "Đã gửi mã tới {email}. Hãy nhập mã.",
+  "wal.dynFail": "Đăng nhập thất bại, vui lòng thử lại",
+  "wal.dynNote": "Đây là ví nhúng phi lưu ký do Dynamic cung cấp: khóa riêng không nằm ở trang này cũng không ở nền tảng. Việc ký và phí mạng do chính ví này xử lý; trang này không bao giờ gửi giao dịch thay bạn.",
+  "wal.dynOff": "Đăng nhập bằng email / Google chưa được cấu hình nên chưa dùng được",
+  "wal.dynNoWallet": "Đã đăng nhập nhưng chưa tạo được ví Solana — vui lòng thử lại sau",
+  "wal.dynLoading": "Đang tải…",
+  "wal.dynBadEmail": "Vui lòng nhập địa chỉ email hợp lệ"
 }

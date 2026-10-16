@@ -942,5 +942,22 @@
   "wal.wcWait": "Menunggu persetujuan dompet…",
   "wal.reconn": "Menghubungkan ulang {wallet}…",
   "wal.reconnFail": "Tidak terhubung otomatis — ketuk untuk menghubungkan ulang",
-  "wal.statusOn": "Terhubung"
+  "wal.statusOn": "Terhubung",
+  "wal.dyn": "Masuk dengan email / Google",
+  "wal.dynSub": "Tanpa dompet sebelumnya · dompet non-kustodian dibuat otomatis",
+  "wal.dynTitle": "Masuk dengan email / Google",
+  "wal.dynHint": "Masuk dengan kode email atau akun Google dan kami akan membuatkan dompet Solana tertanam untuk Anda.",
+  "wal.dynEmail": "Alamat email",
+  "wal.dynSend": "Kirim kode",
+  "wal.dynOr": "atau",
+  "wal.dynGoogle": "Lanjutkan dengan Google",
+  "wal.dynCode": "Kode",
+  "wal.dynVerify": "Verifikasi dan masuk",
+  "wal.dynSent": "Kode dikirim ke {email}. Masukkan kodenya.",
+  "wal.dynFail": "Gagal masuk, coba lagi",
+  "wal.dynNote": "Ini adalah dompet tertanam non-kustodian dari Dynamic: kunci privat tidak dipegang situs ini maupun platform. Penandatanganan dan biaya jaringan ditangani oleh dompet itu sendiri; situs ini tidak pernah mengirim transaksi atas nama Anda.",
+  "wal.dynOff": "Masuk dengan email / Google belum dikonfigurasi sehingga belum tersedia",
+  "wal.dynNoWallet": "Berhasil masuk, tetapi dompet Solana tidak terbuat — coba lagi nanti",
+  "wal.dynLoading": "Memuat…",
+  "wal.dynBadEmail": "Masukkan alamat email yang valid"
 }

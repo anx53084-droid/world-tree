@@ -45,12 +45,17 @@
   function wcAdapter() { let inner = null; const get = async () => { if (inner) return inner; await loadJs('vendor/walletconnect.js'); const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' });
       return inner = window.WTWC.create({ projectId: pid, metadata: { name: '光栖', description: 'World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), b58, b58dec }); };
     return { id: 'walletconnect', name: 'WalletConnect', canSignIn: false, connect: async sl => (await get()).connect(sl), signAndSend: async tx => (await get()).signAndSend(tx), signMessage: async m => (await get()).signMessage(m), onChange: cb => { get().then(i => i.onChange(cb)).catch(() => {}); }, disconnect: async () => { try { await inner?.disconnect(); } catch {} } }; }
+  // Dynamic（邮箱 OTP / Google → 非托管 Solana 嵌入式钱包）：按需加载 vendor/dynamic.js；需要服务端公开配置的 Environment ID（WTW.cfg.dynamicEnvId）
+  function dynAdapter() { let inner = null; const get = async () => { if (inner) return inner; const id = WTW.cfg.dynamicEnvId; if (!id) throw Object.assign(new Error('Dynamic not configured'), { code: 'dynOff' });
+      if (!window.WTDYN) await loadJs('vendor/dynamic.js'); window.WTDYN.envId = id; await window.WTDYN.init(id); return inner = window.WTDYN.adapter(); };
+    return { id: 'dynamic', name: 'Dynamic', canSignIn: false, connect: async sl => (await get()).connect(sl), signAndSend: async tx => (await get()).signAndSend(tx), signMessage: async m => (await get()).signMessage(m), onChange: cb => { get().then(i => i.onChange(cb)).catch(() => {}); }, disconnect: async () => { try { await (await get()).disconnect(); } catch {} } }; }
   function solWallets() { // 返回四个固定钱包 + 其余 Wallet Standard 钱包；installed 表示可直接连接
     const out = [], used = new Set();
     for (const d of SOL) { const sw = [...std.values()].find(w => w.name.toLowerCase().includes(d.id === 'okx' ? 'okx' : d.id)); const p = d.inj();
       if (sw) used.add(sw.name); out.push({ ...d, installed: !!(sw || p), adapter: () => sw ? stdAdapter(sw, d.id) : injAdapter(p, d) }); }
     const mw = [...std.values()].find(w => MWA_NAME.test(w.name)); if (mw) { used.add(mw.name); out.unshift({ id: 'mwa', name: mw.name, icon: mw.icon, installed: true, mwa: true, adapter: () => stdAdapter(mw, 'mwa') }); } // Android + MWA 可用：排第一并优先连接
     for (const w of std.values()) if (!used.has(w.name)) out.push({ id: 'std:' + w.name, name: w.name, icon: w.icon, installed: true, adapter: () => stdAdapter(w, 'std:' + w.name) });
+    out.push({ id: 'dynamic', name: 'Dynamic', installed: true, dyn: true, adapter: dynAdapter }); // 邮箱 / Google 登录
     out.push({ id: 'walletconnect', name: 'WalletConnect', installed: true, wc: true, adapter: wcAdapter }); // 兜底项
     return out; }
   // ---- EVM：EIP-6963 发现 + 注入式回退 ----
@@ -67,7 +72,7 @@
     if (!out.some(w => w.installed) && window.ethereum?.request) out.push({ id: 'injected', name: 'Browser wallet', installed: true, provider: window.ethereum }); // 通用注入钱包
     return out; }
   const mobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const noProvider = kind => mobile() && !(kind === 'evm' ? evmWallets() : solWallets()).some(w => w.installed && !w.mwa && !w.wc); // 手机浏览器没有注入任何钱包（MWA / WalletConnect 不算注入）
+  const noProvider = kind => mobile() && !(kind === 'evm' ? evmWallets() : solWallets()).some(w => w.installed && !w.mwa && !w.wc && !w.dyn); // 手机浏览器没有注入任何钱包（MWA / WalletConnect 不算注入）
   // ---- EVM 工具 ----
   const hexOf = s => '0x' + [...new TextEncoder().encode(s)].map(b => b.toString(16).padStart(2, '0')).join('');
   const toWei = s => { const m = String(s).trim().match(/^(\d*)(?:\.(\d{0,18}))?\d*$/); if (!m) throw new Error('amount'); return BigInt(m[1] || '0') * 10n ** 18n + BigInt((m[2] || '').padEnd(18, '0') || '0'); };
