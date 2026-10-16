@@ -927,5 +927,20 @@
   "gb.err.attImg": "Địa chỉ hình không hợp lệ: chỉ nhận hình tải lên qua trang này",
   "gb.err.attLink": "Liên kết sản phẩm không hợp lệ hoặc không được phép (chỉ http / https, không dùng địa chỉ nội bộ)",
   "gb.cl.later": "Nhận sau",
-  "gb.r7": "Hình ảnh và liên kết đính kèm chỉ để hiển thị; nền tảng không chịu trách nhiệm về tính xác thực hay khả năng sử dụng."
+  "gb.r7": "Hình ảnh và liên kết đính kèm chỉ để hiển thị; nền tảng không chịu trách nhiệm về tính xác thực hay khả năng sử dụng.",
+  "wal.mobNoProv": "Trình duyệt di động không thể kết nối trực tiếp với ví — hãy mở trang này trong ứng dụng ví của bạn",
+  "wal.openApp": "Mở trong {name}",
+  "wal.mwa": "Ví di động (MWA)",
+  "wal.mwaNone": "Không tìm thấy ứng dụng ví di động — hãy cài ví Solana trước",
+  "wal.recommended": "Khuyên dùng · kết nối và đăng nhập trong một bước",
+  "wal.wcHint": "Quét mã QR hoặc dùng ví di động (dự phòng)",
+  "wal.wcOff": "WalletConnect chưa được cấu hình nên chưa dùng được",
+  "wal.wcScan": "Quét mã QR bằng ứng dụng ví, hoặc chạm nút bên dưới để mở ví",
+  "wal.wcOpen": "Mở ứng dụng ví",
+  "wal.wcCopy": "Sao chép liên kết kết nối",
+  "wal.wcCopied": "Đã sao chép",
+  "wal.wcWait": "Đang chờ ví phê duyệt…",
+  "wal.reconn": "Đang kết nối lại {wallet}…",
+  "wal.reconnFail": "Chưa tự động kết nối — chạm để kết nối lại",
+  "wal.statusOn": "Đã kết nối"
 }

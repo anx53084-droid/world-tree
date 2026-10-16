@@ -927,5 +927,20 @@
   "gb.err.attImg": "圖片位址無效：只接受透過本站上傳的圖片",
   "gb.err.attLink": "商品連結無效或不被允許（僅 http / https，不能是內網位址）",
   "gb.cl.later": "稍後領取",
-  "gb.r7": "附加圖片與商品連結僅作展示，平台不對其真實性、可用性負責。"
+  "gb.r7": "附加圖片與商品連結僅作展示，平台不對其真實性、可用性負責。",
+  "wal.mobNoProv": "手機瀏覽器無法直接連接錢包，請在錢包 App 內開啟本站",
+  "wal.openApp": "在 {name} 中開啟",
+  "wal.mwa": "手機錢包（MWA）",
+  "wal.mwaNone": "找不到可用的手機錢包 App，請先安裝支援 Solana 的錢包",
+  "wal.recommended": "推薦 · 一次完成連接與簽名登入",
+  "wal.wcHint": "掃碼或用手機錢包連接（備用）",
+  "wal.wcOff": "WalletConnect 尚未設定，暫不可用",
+  "wal.wcScan": "用錢包 App 掃描 QR Code，或點下方按鈕開啟錢包",
+  "wal.wcOpen": "開啟錢包 App",
+  "wal.wcCopy": "複製連接連結",
+  "wal.wcCopied": "已複製",
+  "wal.wcWait": "等待錢包批准…",
+  "wal.reconn": "正在重新連接 {wallet}…",
+  "wal.reconnFail": "未自動連接，請點擊重新連接",
+  "wal.statusOn": "已連接"
 }

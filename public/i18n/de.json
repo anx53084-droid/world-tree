@@ -927,5 +927,20 @@
   "gb.err.attImg": "Ungültige Bildadresse: nur über diese Seite hochgeladene Bilder werden akzeptiert",
   "gb.err.attLink": "Produktlink ungültig oder nicht erlaubt (nur http / https, keine internen Adressen)",
   "gb.cl.later": "Später einlösen",
-  "gb.r7": "Angehängte Bilder und Produktlinks dienen nur der Anzeige; die Plattform haftet nicht für Echtheit oder Verfügbarkeit."
+  "gb.r7": "Angehängte Bilder und Produktlinks dienen nur der Anzeige; die Plattform haftet nicht für Echtheit oder Verfügbarkeit.",
+  "wal.mobNoProv": "Der mobile Browser kann sich nicht direkt mit einer Wallet verbinden – bitte öffne diese Seite in deiner Wallet-App",
+  "wal.openApp": "In {name} öffnen",
+  "wal.mwa": "Mobile Wallet (MWA)",
+  "wal.mwaNone": "Keine mobile Wallet-App gefunden – installiere zuerst eine Solana-Wallet",
+  "wal.recommended": "Empfohlen · Verbinden und Anmelden in einem Schritt",
+  "wal.wcHint": "QR-Code scannen oder mobile Wallet nutzen (Ersatz)",
+  "wal.wcOff": "WalletConnect ist noch nicht eingerichtet und daher nicht verfügbar",
+  "wal.wcScan": "Scanne den QR-Code mit deiner Wallet-App oder tippe unten auf die Schaltfläche",
+  "wal.wcOpen": "Wallet-App öffnen",
+  "wal.wcCopy": "Verbindungslink kopieren",
+  "wal.wcCopied": "Kopiert",
+  "wal.wcWait": "Warte auf die Bestätigung der Wallet…",
+  "wal.reconn": "{wallet} wird neu verbunden…",
+  "wal.reconnFail": "Nicht automatisch verbunden – zum erneuten Verbinden tippen",
+  "wal.statusOn": "Verbunden"
 }

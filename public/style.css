@@ -444,3 +444,9 @@ svg.gface { height: auto }
 .gb-lb { display: flex; align-items: center; gap: 6px; margin: 8px 0 } .gb-lb img { flex: 1; min-width: 0; max-height: 70vh; object-fit: contain; border-radius: 8px } .gb-lb button { min-width: 44px; min-height: 44px; font-size: 22px }
 .gb-ag li { align-self: start } .gb-ai img, .gb-pc img { height: auto } .gb-pc .gb-ph { height: auto; width: 100%; aspect-ratio: 1 } .gb-ai { line-height: 0 }
 #modal-box[data-cat=lb] { width: min(96vw, 980px); max-width: none } .gb-lb img { width: 100%; height: 72vh; max-height: 72vh }
+/* 手机钱包连接：顶部状态胶囊 / 无注入提示 / 深链接按钮 / MWA 推荐项 */
+.wstat { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid #ffffff33; background: #0b1030cc; color: #e6ecff; max-width: 48vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.wstat.on { border-color: #7ee78788; color: #bff3c4 } .wstat.on > span:first-child { color: #7ee787 } .wstat.wait { border-color: #ffd36b88; color: #ffd36b } .wstat.off { border-color: #ff9b7a99 } .wstat button { all: unset; cursor: pointer; color: #ffc9b8; font-size: 12px; padding: 2px 0 }
+@media (max-width: 480px) { .wstat .wst-w { display: none } .wstat { padding: 3px 8px; max-width: 42vw } }
+.wmob { margin: 8px 0; padding: 10px 12px; border: 1px solid #ffd36b88; border-radius: 10px; background: #ffd36b14; color: #ffe9b0; font-weight: 600; line-height: 1.5 }
+.witem.wdeep { text-decoration: none; color: inherit; border: 1px solid var(--line, #ffffff33); border-radius: 10px; background: #ffffff0a; min-height: 48px; box-sizing: border-box } .witem.rec { border-color: #ffd36b } .wcqr, .qr { max-width: 260px; margin: 8px auto }

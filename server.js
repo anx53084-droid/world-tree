@@ -307,7 +307,7 @@ async function api(req, res, url) {
     const routes = {};
     for (const [id, c] of Object.entries(Acc.CHAINS)) if (Acc.EVM_RECV[c.key]) routes[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: Acc.EVM_RECV_DISPLAY[c.key] };
     return send(res, 200, { receiveLegacy: RC.legacy.sol, receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, minLamports: minLamports(p.usd), moderator: MOD_PUB,
-    evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV_DISPLAY }, legacy: RC.legacy.evm, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20 }); }
+    evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV_DISPLAY }, legacy: RC.legacy.evm, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20, wcProjectId: process.env.WC_PROJECT_ID || '' }); } // WalletConnect 项目 ID 是公开标识（不是密钥）；未配置时 WalletConnect 项显示“未配置”
   if (url === '/api/nonce') return send(res, 200, { nonce: Acc.nonce() });
   if (url === '/api/login/wallet' && req.method === 'POST') { // 钱包签名登录：EVM（personal_sign，EIP-4361 格式）或 Solana（signMessage）；不涉及私钥、不发交易
     const lb = await body(req); let v; try { v = Acc.verifyLogin(lb, allowHost(req)); } catch (e) { return fail(res, e, 401); }

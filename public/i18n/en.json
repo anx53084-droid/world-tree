@@ -927,5 +927,20 @@
   "gb.err.attImg": "Invalid image address: only images uploaded through this site are accepted",
   "gb.err.attLink": "Product link is invalid or not allowed (http / https only, no internal addresses)",
   "gb.cl.later": "Claim later",
-  "gb.r7": "Attached images and product links are for display only; the platform does not vouch for their authenticity or availability."
+  "gb.r7": "Attached images and product links are for display only; the platform does not vouch for their authenticity or availability.",
+  "wal.mobNoProv": "Mobile browsers can't connect to a wallet directly — please open this site inside your wallet app",
+  "wal.openApp": "Open in {name}",
+  "wal.mwa": "Mobile wallet (MWA)",
+  "wal.mwaNone": "No mobile wallet app found — install a Solana wallet first",
+  "wal.recommended": "Recommended · connect and sign in in one step",
+  "wal.wcHint": "Scan a QR code or use a mobile wallet (fallback)",
+  "wal.wcOff": "WalletConnect isn't configured yet, so it's unavailable",
+  "wal.wcScan": "Scan the QR code with your wallet app, or tap the button below to open it",
+  "wal.wcOpen": "Open wallet app",
+  "wal.wcCopy": "Copy connection link",
+  "wal.wcCopied": "Copied",
+  "wal.wcWait": "Waiting for the wallet to approve…",
+  "wal.reconn": "Reconnecting {wallet}…",
+  "wal.reconnFail": "Not connected automatically — tap to reconnect",
+  "wal.statusOn": "Connected"
 }

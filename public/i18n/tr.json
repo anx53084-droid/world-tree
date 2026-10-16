@@ -927,5 +927,20 @@
   "gb.err.attImg": "Görsel adresi geçersiz: yalnızca bu siteden yüklenen görseller kabul edilir",
   "gb.err.attLink": "Ürün bağlantısı geçersiz veya izin verilmiyor (yalnızca http / https, iç adres olmaz)",
   "gb.cl.later": "Sonra talep et",
-  "gb.r7": "Eklenen görseller ve ürün bağlantıları yalnızca gösterim içindir; platform bunların gerçekliğinden veya erişilebilirliğinden sorumlu değildir."
+  "gb.r7": "Eklenen görseller ve ürün bağlantıları yalnızca gösterim içindir; platform bunların gerçekliğinden veya erişilebilirliğinden sorumlu değildir.",
+  "wal.mobNoProv": "Mobil tarayıcı cüzdana doğrudan bağlanamaz — lütfen bu siteyi cüzdan uygulamanızın içinde açın",
+  "wal.openApp": "{name} içinde aç",
+  "wal.mwa": "Mobil cüzdan (MWA)",
+  "wal.mwaNone": "Mobil cüzdan uygulaması bulunamadı — önce bir Solana cüzdanı yükleyin",
+  "wal.recommended": "Önerilen · bağlanma ve imzayla giriş tek adımda",
+  "wal.wcHint": "QR kodu tarayın veya mobil cüzdan kullanın (yedek)",
+  "wal.wcOff": "WalletConnect henüz yapılandırılmadı, bu yüzden kullanılamıyor",
+  "wal.wcScan": "QR kodunu cüzdan uygulamanızla tarayın veya açmak için aşağıdaki düğmeye dokunun",
+  "wal.wcOpen": "Cüzdan uygulamasını aç",
+  "wal.wcCopy": "Bağlantı linkini kopyala",
+  "wal.wcCopied": "Kopyalandı",
+  "wal.wcWait": "Cüzdanın onayı bekleniyor…",
+  "wal.reconn": "{wallet} yeniden bağlanıyor…",
+  "wal.reconnFail": "Otomatik bağlanmadı — yeniden bağlanmak için dokunun",
+  "wal.statusOn": "Bağlandı"
 }

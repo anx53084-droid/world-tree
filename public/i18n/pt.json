@@ -927,5 +927,20 @@
   "gb.err.attImg": "Endereço de imagem inválido: só são aceitas imagens enviadas por este site",
   "gb.err.attLink": "Link de produto inválido ou não permitido (apenas http / https, sem endereços internos)",
   "gb.cl.later": "Resgatar depois",
-  "gb.r7": "Imagens e links anexados servem apenas para exibição; a plataforma não garante sua autenticidade nem disponibilidade."
+  "gb.r7": "Imagens e links anexados servem apenas para exibição; a plataforma não garante sua autenticidade nem disponibilidade.",
+  "wal.mobNoProv": "O navegador do celular não conecta direto a uma carteira — abra este site dentro do app da sua carteira",
+  "wal.openApp": "Abrir no {name}",
+  "wal.mwa": "Carteira móvel (MWA)",
+  "wal.mwaNone": "Nenhum app de carteira móvel encontrado — instale primeiro uma carteira Solana",
+  "wal.recommended": "Recomendado · conectar e entrar em uma só etapa",
+  "wal.wcHint": "Escaneie um QR code ou use uma carteira móvel (alternativa)",
+  "wal.wcOff": "O WalletConnect ainda não está configurado e está indisponível",
+  "wal.wcScan": "Escaneie o QR code com o app da carteira ou toque no botão para abri-lo",
+  "wal.wcOpen": "Abrir app da carteira",
+  "wal.wcCopy": "Copiar link de conexão",
+  "wal.wcCopied": "Copiado",
+  "wal.wcWait": "Aguardando a aprovação da carteira…",
+  "wal.reconn": "Reconectando {wallet}…",
+  "wal.reconnFail": "Não conectou automaticamente — toque para reconectar",
+  "wal.statusOn": "Conectado"
 }

@@ -927,5 +927,20 @@
   "gb.err.attImg": "Alamat gambar tidak valid: hanya gambar yang diunggah lewat situs ini yang diterima",
   "gb.err.attLink": "Tautan produk tidak valid atau tidak diizinkan (hanya http / https, tanpa alamat internal)",
   "gb.cl.later": "Klaim nanti",
-  "gb.r7": "Gambar dan tautan produk hanya untuk ditampilkan; platform tidak menjamin keaslian maupun ketersediaannya."
+  "gb.r7": "Gambar dan tautan produk hanya untuk ditampilkan; platform tidak menjamin keaslian maupun ketersediaannya.",
+  "wal.mobNoProv": "Peramban seluler tidak bisa langsung terhubung ke dompet — buka situs ini di dalam aplikasi dompet Anda",
+  "wal.openApp": "Buka di {name}",
+  "wal.mwa": "Dompet seluler (MWA)",
+  "wal.mwaNone": "Aplikasi dompet seluler tidak ditemukan — pasang dompet Solana terlebih dahulu",
+  "wal.recommended": "Disarankan · hubungkan dan masuk dalam satu langkah",
+  "wal.wcHint": "Pindai kode QR atau gunakan dompet seluler (cadangan)",
+  "wal.wcOff": "WalletConnect belum dikonfigurasi sehingga belum tersedia",
+  "wal.wcScan": "Pindai kode QR dengan aplikasi dompet, atau ketuk tombol di bawah untuk membukanya",
+  "wal.wcOpen": "Buka aplikasi dompet",
+  "wal.wcCopy": "Salin tautan koneksi",
+  "wal.wcCopied": "Disalin",
+  "wal.wcWait": "Menunggu persetujuan dompet…",
+  "wal.reconn": "Menghubungkan ulang {wallet}…",
+  "wal.reconnFail": "Tidak terhubung otomatis — ketuk untuk menghubungkan ulang",
+  "wal.statusOn": "Terhubung"
 }

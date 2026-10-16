@@ -7,15 +7,15 @@
   const here = () => location.href, enc = encodeURIComponent;
   // ---- Solana：Wallet Standard 发现 ----
   const std = new Map();
-  const reg = (...ws) => { for (const w of ws) if (w?.features?.['standard:connect'] && (w.features['solana:signAndSendTransaction'] || w.features['solana:signTransaction']) && (w.chains || []).some(c => c.startsWith('solana:'))) std.set(w.name, w); return () => {}; };
+  const reg = (...ws) => { for (const w of ws) if (w?.features?.['standard:connect'] && (w.features['solana:signAndSendTransaction'] || w.features['solana:signTransaction'] || /mobile wallet adapter/i.test(w.name)) && (w.chains || []).some(c => c.startsWith('solana:'))) std.set(w.name, w); return () => {}; }; // MWA 的签名能力要授权后才出现，所以按名称放行
   try { addEventListener('wallet-standard:register-wallet', e => { try { e.detail({ register: reg }); } catch {} });
     dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: { register: reg } })); } catch {}
   const SOL = [ // 固定展示的四个钱包：检测名称 / 注入对象 / 移动端深链接
-    { id: 'phantom', name: 'Phantom', inj: () => window.phantom?.solana?.isPhantom && window.phantom.solana, deep: () => `https://phantom.app/ul/browse/${enc(here())}?ref=${enc(location.origin)}`, site: 'https://phantom.app/' },
+    { id: 'phantom', name: 'Phantom', inj: () => window.phantom?.solana?.isPhantom && window.phantom.solana, deep: () => `https://phantom.com/ul/browse/${enc(here())}?ref=${enc(location.origin)}`, site: 'https://phantom.com/' },
     { id: 'solflare', name: 'Solflare', inj: () => window.solflare?.isSolflare && window.solflare, deep: () => `https://solflare.com/ul/v1/browse/${enc(here())}?ref=${enc(location.origin)}`, site: 'https://solflare.com/' },
     { id: 'backpack', name: 'Backpack', inj: () => window.backpack?.isBackpack && window.backpack, deep: () => `https://backpack.app/ul/v1/browse/${enc(here())}?ref=${enc(location.origin)}`, site: 'https://backpack.app/' },
     { id: 'okx', name: 'OKX Wallet', inj: () => window.okxwallet?.solana, deep: () => `okx://wallet/dapp/url?dappUrl=${enc(here())}`, site: 'https://www.okx.com/web3' }];
-  function stdAdapter(w, id) { let acct = null; const F = w.features;
+  function stdAdapter(w, id) { let acct = null; const F = new Proxy({}, { get: (_, k) => w.features[k] }); // 每次读取最新 features（MWA 授权后才有 signAndSend / signTransaction）
     return { id, name: w.name, icon: w.icon, std: true,
       async connect(silent) { const r = await F['standard:connect'].connect(silent ? { silent: true } : undefined); acct = (r?.accounts || w.accounts)[0]; if (!acct) throw new Error('no account'); return acct.address; },
       async signAndSend(tx) { const bytes = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
@@ -23,7 +23,7 @@
         const [o] = await F['solana:signTransaction'].signTransaction({ account: acct, transaction: bytes, chain: 'solana:devnet' }); return { raw: toU8(o.signedTransaction) }; },
       async signMessage(m) { if (!F['solana:signMessage']) throw new Error('signMessage unsupported'); const [o] = await F['solana:signMessage'].signMessage({ account: acct, message: m }); return toU8(o.signature); },
       canSignIn: !!F['solana:signIn'],
-      async signIn(input) { const [o] = await F['solana:signIn'].signIn(input); acct = o.account; return { address: o.account.address, message: new TextDecoder().decode(toU8(o.signedMessage)), signature: toU8(o.signature) }; },
+      async signIn(input) { if (id === 'mwa') window.WTMWA?.fresh?.(); const [o] = await F['solana:signIn'].signIn(input); acct = o.account; return { address: o.account.address, message: new TextDecoder().decode(toU8(o.signedMessage)), signature: toU8(o.signature) }; },
       onChange(cb) { try { return F['standard:events']?.on('change', ch => { if (ch.accounts) cb(ch.accounts[0]?.address || null); }); } catch {} },
       async disconnect() { try { await F['standard:disconnect']?.disconnect(); } catch {} } }; }
   function injAdapter(p, d) { let pk = null;
@@ -35,11 +35,23 @@
       async signIn(input) { const o = await p.signIn(input); pk = (o.address || o.account?.address || p.publicKey)?.toString(); return { address: pk, message: new TextDecoder().decode(toU8(o.signedMessage)), signature: toU8(o.signature) }; },
       onChange(cb) { try { p.on?.('accountChanged', k => cb(k ? k.toString() : null)); p.on?.('disconnect', () => cb(null)); } catch {} },
       async disconnect() { try { await p.disconnect?.(); } catch {} } }; }
+  const b58dec = s => { let n = 0n; for (const c of s) { const i = A.indexOf(c); if (i < 0) throw new Error('b58'); n = n * 58n + BigInt(i); } const out = []; while (n > 0n) { out.unshift(Number(n & 255n)); n >>= 8n; } for (const c of s) { if (c !== '1') break; out.unshift(0); } return Uint8Array.from(out); };
+  const loadJs = src => new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = () => no(new Error('load ' + src)); document.head.append(sc); });
+  const isAndroid = () => /Android/i.test(navigator.userAgent);
+  // Android Chrome：Mobile Wallet Adapter（Wallet Standard 钱包；connect 与 signIn 合并为一次授权，authToken 持久化在 localStorage）
+  let mwaP = null; const initMwa = () => mwaP ||= (async () => { if (!isAndroid() || !isSecureContext) return false; try { await loadJs('vendor/mwa.js'); return !!window.WTMWA?.init({ name: '光栖', uri: location.origin, icon: 'og-image.png' }); } catch { return false; } })();
+  const MWA_NAME = /mobile wallet adapter/i;
+  // WalletConnect（兜底）：按需加载库；需要服务端配置的项目 ID（WTW.cfg.wcProjectId）；连接二维码由站内弹窗显示（WTW.onWcUri）
+  function wcAdapter() { let inner = null; const get = async () => { if (inner) return inner; await loadJs('vendor/walletconnect.js'); const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' });
+      return inner = window.WTWC.create({ projectId: pid, metadata: { name: '光栖', description: 'World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), b58, b58dec }); };
+    return { id: 'walletconnect', name: 'WalletConnect', canSignIn: false, connect: async sl => (await get()).connect(sl), signAndSend: async tx => (await get()).signAndSend(tx), signMessage: async m => (await get()).signMessage(m), onChange: cb => { get().then(i => i.onChange(cb)).catch(() => {}); }, disconnect: async () => { try { await inner?.disconnect(); } catch {} } }; }
   function solWallets() { // 返回四个固定钱包 + 其余 Wallet Standard 钱包；installed 表示可直接连接
     const out = [], used = new Set();
     for (const d of SOL) { const sw = [...std.values()].find(w => w.name.toLowerCase().includes(d.id === 'okx' ? 'okx' : d.id)); const p = d.inj();
       if (sw) used.add(sw.name); out.push({ ...d, installed: !!(sw || p), adapter: () => sw ? stdAdapter(sw, d.id) : injAdapter(p, d) }); }
+    const mw = [...std.values()].find(w => MWA_NAME.test(w.name)); if (mw) { used.add(mw.name); out.unshift({ id: 'mwa', name: mw.name, icon: mw.icon, installed: true, mwa: true, adapter: () => stdAdapter(mw, 'mwa') }); } // Android + MWA 可用：排第一并优先连接
     for (const w of std.values()) if (!used.has(w.name)) out.push({ id: 'std:' + w.name, name: w.name, icon: w.icon, installed: true, adapter: () => stdAdapter(w, 'std:' + w.name) });
+    out.push({ id: 'walletconnect', name: 'WalletConnect', installed: true, wc: true, adapter: wcAdapter }); // 兜底项
     return out; }
   // ---- EVM：EIP-6963 发现 + 注入式回退 ----
   const evm = new Map();
@@ -54,7 +66,8 @@
     for (const [r, a] of evm) if (!used.has(r)) out.push({ id: r, name: a.info.name, icon: a.info.icon, installed: true, provider: a.provider });
     if (!out.some(w => w.installed) && window.ethereum?.request) out.push({ id: 'injected', name: 'Browser wallet', installed: true, provider: window.ethereum }); // 通用注入钱包
     return out; }
-  const mobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const mobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const noProvider = kind => mobile() && !(kind === 'evm' ? evmWallets() : solWallets()).some(w => w.installed && !w.mwa && !w.wc); // 手机浏览器没有注入任何钱包（MWA / WalletConnect 不算注入）
   // ---- EVM 工具 ----
   const hexOf = s => '0x' + [...new TextEncoder().encode(s)].map(b => b.toString(16).padStart(2, '0')).join('');
   const toWei = s => { const m = String(s).trim().match(/^(\d*)(?:\.(\d{0,18}))?\d*$/); if (!m) throw new Error('amount'); return BigInt(m[1] || '0') * 10n ** 18n + BigInt((m[2] || '').padEnd(18, '0') || '0'); };
@@ -71,5 +84,5 @@
     let c = await chainOf(p); if (LOGIN_CHAINS.includes(c) && (!want || c === +want)) return c;
     if (want) { try { await switchChain(p, want, cfg); } catch (e) { if (e?.code === 4001) throw e; } c = await chainOf(p); }
     if (!LOGIN_CHAINS.includes(c)) throw Object.assign(new Error('unsupported chain ' + c), { code: 'chainUnsupported' }); return c; }
-  window.WTW = { LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
+  window.WTW = { cfg: {}, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
 })();

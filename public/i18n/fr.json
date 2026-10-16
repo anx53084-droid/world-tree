@@ -927,5 +927,20 @@
   "gb.err.attImg": "Adresse d'image invalide : seules les images envoyées via ce site sont acceptées",
   "gb.err.attLink": "Lien produit invalide ou non autorisé (http / https uniquement, pas d'adresse interne)",
   "gb.cl.later": "Récupérer plus tard",
-  "gb.r7": "Les images et liens joints sont fournis à titre d'affichage ; la plateforme ne garantit ni leur authenticité ni leur disponibilité."
+  "gb.r7": "Les images et liens joints sont fournis à titre d'affichage ; la plateforme ne garantit ni leur authenticité ni leur disponibilité.",
+  "wal.mobNoProv": "Le navigateur mobile ne peut pas se connecter directement à un portefeuille : ouvrez ce site dans votre application de portefeuille",
+  "wal.openApp": "Ouvrir dans {name}",
+  "wal.mwa": "Portefeuille mobile (MWA)",
+  "wal.mwaNone": "Aucune application de portefeuille mobile trouvée : installez d'abord un portefeuille Solana",
+  "wal.recommended": "Recommandé · connexion et signature en une étape",
+  "wal.wcHint": "Scannez un QR code ou utilisez un portefeuille mobile (secours)",
+  "wal.wcOff": "WalletConnect n'est pas encore configuré et reste indisponible",
+  "wal.wcScan": "Scannez le QR code avec votre application de portefeuille ou touchez le bouton pour l'ouvrir",
+  "wal.wcOpen": "Ouvrir l'application",
+  "wal.wcCopy": "Copier le lien de connexion",
+  "wal.wcCopied": "Copié",
+  "wal.wcWait": "En attente de l'approbation du portefeuille…",
+  "wal.reconn": "Reconnexion à {wallet}…",
+  "wal.reconnFail": "Pas de connexion automatique : touchez pour vous reconnecter",
+  "wal.statusOn": "Connecté"
 }
