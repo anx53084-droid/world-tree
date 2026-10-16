@@ -33,6 +33,22 @@
 5. 服务端核验：交易成功、**签名者 = 当前登录账户**、收款方 = 当前或遗留收款地址、到账 ≥ **锁价应付额的 98%**（2% 滑点容差；一律使用**服务端锁定价格**，前端传来的价格/金额不被信任）；币种与支付方式必须匹配；`paid[支付签名]` 防重放；同一支付签名不能同时用于广告与团购。篡改单价/数量/币种、伪造或他人的报价令牌、过期报价均被拒绝。
 6. 通过后创建批次（所有者 = 登录钱包）写入任务队列，页面自动跳转进度页。
 
+## 2.1 附加内容（图片 + 商品链接，可选，合计 ≤ 20）
+
+- **位置**：创建页「兑换说明」下方；顶部实时计数「已添加 n/20」；按钮「添加图片」「添加商品链接」；列表项＝缩略图 + 名称/域名 + 操作（▲上移 ▼下移 ✕删除；鼠标可拖拽手柄排序，键盘与手机触摸用上移/下移按钮；商品链接标题可直接编辑；上传失败可重试或移除）。满 20 个时两个按钮置灰并提示「已达上限」。「预览领取页」按钮在表单内实时渲染领取页效果（含兑换说明、附加内容、免责声明）。草稿保存在浏览器 localStorage（`wt_gbdraft`：表单 + 附加内容元数据，创建成功后清除）。
+- **完全可选、创建后不可修改**：不加附加内容时流程与之前完全一致；同一批次所有领取码看到的内容一致（存在批次上，不复制进每张卡）。
+- **添加图片**：多选（不超过剩余数量）→ 浏览器内压缩（最长边 ≤ 1200px，质量 80%，< 2MB，WebP 优先，不支持则 JPEG）→ 上传到现有 `POST /api/img`（加 `att:true`：放宽到 ≤ 1200px / < 2MB，其余沿用类型 / 魔数 / NSFW 审核；普通上传仍是 1024px / 300KB）→ 存入平台图片存储（R2 或磁盘）。
+- **添加商品链接**：弹窗填 URL（必填，http/https）、标题（选填 ≤ 60 字）、封面（选填，可上传）。「获取预览」调用 `POST /api/batch/link-preview`（登录，20 次 / 10 分钟 / 用户）：复用商品预览的 SSRF 防护抓取（仅 https、拒绝内网 / 回环 / 链路本地 / 元数据地址、DNS 校验后按 IP 连接防 rebinding、≤ 3 次重定向逐跳复查、8 秒超时、HTML ≤ 1.5MB / 图片 ≤ 5MB），取 `title` / `og:image`；封面转存为平台图片（同样过 NSFW 审核）后再使用，**绝不直接外链**。失败时用占位图 + 用户填的标题。**http 链接不抓取**（明文）。商品链接过 `blocklist.js`（短链 / 钓鱼 / 地址），标题过审核与承诺字样过滤；**不审核商品是否可用**。
+- **服务端强制校验**（`batch.js normAtt` + `/api/batch/create`）：
+  - 数组 ≤ 20 → 否则 `attMax`；类型只能是 `image` / `product` → 否则 `att`。
+  - 图片 URL 只接受平台图片存储地址：`/api/img/<32 位哈希>`、平台域名（本机 host / 已登记域名）下的同路径绝对地址、或 `R2_PUBLIC_URL/<哈希>`；统一规范化为 `/api/img/<哈希>`，且该哈希必须真实存在于平台存储（即已通过上传审核）→ 否则 `attImg`（外链、其他域名、data: 一律拒绝）。
+  - 商品链接：http/https、≤ 500 字、不带账号密码、主机名必须含点且不是 IP / localhost / `.local` / `.internal` 等 → 否则 `attLink`；封面必须是平台图片。
+  - 链接与标题过 blocklist（`blocked`）、审核（`reject`）、承诺字样（`promise`）。
+- **数据模型**：批次新增 `attachments: [{type:'image'|'product', url, title, cover, sort}]`（`sort` 从 0 按提交顺序）。旧批次没有该字段：领取页 / 进度页 / 门卡列表按“无附加内容”处理，模块不显示。
+- **领取页**：兑换说明下方、免责声明上方显示「附加内容」（无内容不显示）；手机 2 列网格 / 桌面 3 列；图片 `loading=lazy`，点击全屏预览（站内对话框：焦点陷阱、Esc 关闭、左右按钮 / 方向键 / 触摸滑动切换）；商品链接显示封面 + 标题 +「查看商品」，点击先弹站内外链确认（沿用 `extLink`：钓鱼黑名单检查），再以 `rel="noopener noreferrer nofollow"` 新窗口打开。门卡列表（我的星愿）里的批次门卡同样按批次读取并显示（`GET /api/batch/pub?id=`）。
+- **免责文案**（16 语言）：「附加图片与商品链接仅作展示，平台不对其真实性、可用性负责。」放在附加内容下方，并作为「费用与资金规则」第 7 条。
+- **错误码**：`attMax`（> 20）、`attImg`（图片地址非法 / 不在平台存储）、`attLink`（商品链接格式错误 / 内网地址，预览接口的 SSRF 拒绝也返回此提示）、`att`（结构非法）。
+
 ## 3. 架构
 
 ```
@@ -88,8 +104,11 @@
 | `GET /api/prices` | 公开：SOL/ETH/BNB 的 USD 价（中位数，缓存 60 秒，`stale` 标记） |
 | `GET /api/batch/cfg` | 公开：最低平台费（1 USD）、币种、滑点、上限、分片数、收款地址 |
 | `POST /api/batch/quote` `{count,coin,feeUsd}` | 登录：服务端锁价报价（返回报价令牌、应付币种数量、过期时间） |
-| `GET /api/batch/peek?code=` | 公开（限速）：领取页预览 |
-| `POST /api/batch/create` | 登录：`{blessing,count,coin,valueUsd,redeemNote,feeUsd,gateName,optPublic,optAnchor,quote, sig｜pay:true｜evm}` |
+| `GET /api/batch/peek?code=` | 公开（限速）：领取页预览（含价值、兑换说明、附加内容） |
+| `GET /api/batch/pub?id=` | 公开（限速）：批次的价值 / 兑换说明 / 附加内容（门卡列表用） |
+| `POST /api/batch/link-preview` `{url}` | 登录（限速）：商品链接预览（SSRF 防护，封面转存平台图片） |
+| `POST /api/img` `{mime,data,att:true}` | 沿用上传接口：附加图片放宽到 ≤ 1200px / < 2MB，仍过类型 / 魔数 / NSFW 审核 |
+| `POST /api/batch/create` | 登录：`{blessing,count,coin,valueUsd,redeemNote,feeUsd,gateName,optPublic,optAnchor,attachments?,quote, sig｜pay:true｜evm}` |
 | `GET /api/batch/mine` / `GET /api/batch/<id>` / `GET /api/batch/<id>/csv` | 仅所有者 |
 | `POST /api/batch/claim` `{code}` | 登录：领取并绑定 |
 | `POST /api/batch/anchor` `{id,sig}` | 所有者：登记链上记录 |
@@ -110,9 +129,11 @@
 
 ## 6. 未测试 / 风险
 
+- 附加内容：测试环境没有外网（DNS 被劫持到保留地址），所以**真实商品页的 title / og:image 抓取与封面转存没有端到端跑通**（只验证了 SSRF 拒绝与失败降级）；上传审核在测试里用 NSFW 桩服务；附加图片没有逐张二次审核人工复核；附加内容不可修改，创建后发现违规只能由运维处理整个批次；R2 真实存储与 `R2_PUBLIC_URL` 302 路径未在本机验证。
+
 - 真实链上支付（自有钱包 `signAndSend`、托管账户真实转账、EVM 的 ETH/BNB 真实转账）、真实上链 memo：测试全部使用 mock（`ADS_MOCK_PAY`、`PRICE_MOCK`），未做真实交易；EVM 核验链路在集成测试中只覆盖到币种/选项校验。
 - 真实行情源（Coinbase/Binance/CoinGecko）在 Render 上的可达性与取中位数效果未做长期观测（Binance 在部分地区可能被限制，此时由其余源取中位数）。
 - 10000 规模的性能与 Render 单实例/D1 写入压力未压测；`batches.json` 体积随张数线性增长。
 - 密钥派生方案的泄露风险（见上）。
 - 翻译为机器辅助，未经母语审校。
-- 回归：`node verify-batch.js`（120 项，含最低 1 USD、服务端锁价与滑点、篡改单价被拒、兑换说明必填、仅 3 种币种、领取页显示兑换说明与免责提示、旧批次兼容）。
+- 回归：`node verify-batch.js`（162 项，含最低 1 USD、服务端锁价与滑点、篡改单价被拒、兑换说明必填、仅 3 种币种、领取页显示兑换说明与免责提示、旧批次兼容）。

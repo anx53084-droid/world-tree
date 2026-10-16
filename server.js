@@ -65,11 +65,11 @@ async function nsfwCheck(buf, mime) { if (!process.env.NSFW_URL) { try { return 
   try { const j = await (await fetch(process.env.NSFW_URL, { method: 'POST', headers: { 'content-type': mime }, body: buf, signal: AbortSignal.timeout(15000) })).json(); const sc = +j.nsfw || +j.score || 0; return { pass: sc < (+process.env.NSFW_MAX || .6), score: sc, provider: 'remote' }; }
   catch (e) { return { pass: false, error: 'nsfw service unavailable' }; } } // 失败即拒绝（fail closed）
 async function imgUpload(b) {
-  if (b.tooBig) return { error: '图片过大', code: 'imgSize' };
+  if (b.tooBig) return { error: '图片过大', code: 'imgSize' }; const AT = b.att === true && b.cipher == null, MAXB = AT ? 2 * 1024 * 1024 : IMG_MAX, MAXD = AT ? 1200 : IMG_DIM; // att：团购礼品卡附加图片（≤1200px、<2MB，同样过类型/魔数/NSFW 审核）
   const mime = b.mime, raw = typeof b.data === 'string' ? Buffer.from(b.data, 'base64') : null; if (!raw || !['image/webp', 'image/jpeg'].includes(mime)) return { error: '仅支持 webp/jpeg', code: 'imgType' };
-  if (raw.length > IMG_MAX) return { error: '图片过大', code: 'imgSize' };
+  if (raw.length > MAXB) return { error: '图片过大', code: 'imgSize' };
   const isJ = raw[0] === 0xFF && raw[1] === 0xD8, isW = raw.toString('ascii', 0, 4) === 'RIFF' && raw.toString('ascii', 8, 12) === 'WEBP'; if (!(mime === 'image/jpeg' ? isJ : isW)) return { error: '文件内容与类型不符', code: 'imgType' };
-  const d = imgDims(raw, mime); if (!d || d[0] < 16 || d[1] < 16 || d[0] > IMG_DIM || d[1] > IMG_DIM) return { error: '图片尺寸无效（需 16–1024px）', code: 'imgDim' };
+  const d = imgDims(raw, mime); if (!d || d[0] < 16 || d[1] < 16 || d[0] > MAXD || d[1] > MAXD) return { error: '图片尺寸无效（需 16–' + MAXD + 'px）', code: 'imgDim' };
   const ns = await nsfwCheck(raw, mime); if (!ns.pass) return { error: ns.error || '图片未通过审核', code: ns.error ? 'imgSvc' : 'imgReject' };
   // 私密卡内页：审核明文，只存客户端 AES-GCM 加密后的密文（服务器不保存明文）
   let store = raw, smime = mime; if (b.cipher != null) { const c = typeof b.cipher === 'string' ? Buffer.from(b.cipher, 'base64') : null; if (!c || c.length < 28 || c.length > IMG_MAX + 64) return { error: '参数无效', code: 'param' }; store = c; smime = 'application/octet-stream'; }
@@ -287,7 +287,7 @@ async function api(req, res, url) {
     const r = await moderate(extra ? text + '\n' + extra : text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
   if (url === '/api/img' && req.method === 'POST') { // 用户自定义模板图片：链下存储（memo 仅存内容哈希），上传即自动审核
-    const r = await imgUpload(await body(req, 700000)); return send(res, r.error ? 400 : 200, r); }
+    const r = await imgUpload(await body(req, 2900000)); return send(res, r.error ? 400 : 200, r); }
   if (url.startsWith('/api/img/') && req.method === 'GET') { const h = url.slice(9); if (!/^[0-9a-f]{32}$/.test(h)) return send(res, 400, { error: 'bad hash' });
     if (Store.publicUrl) { res.writeHead(302, { location: Store.publicUrl + '/' + h }); return res.end(); }
     try { const g = await Store.get(h); if (!g) throw 0; const d = g.data, m = g; res.writeHead(200, { 'content-type': m.mime, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' }); return res.end(d); }
@@ -429,19 +429,26 @@ async function api(req, res, url) {
     const ip = String(req.headers['cf-connecting-ip'] || (String(req.headers['x-forwarded-for'] || '').split(',').pop() || '').trim() || req.socket.remoteAddress || '');
     if (url === '/api/batch/cfg' && req.method === 'GET') return send(res, 200, { ...Batch.CFG(), receive: RECEIVE.toBase58(), largeUsd: 20 });
     if (url === '/api/batch/peek' && req.method === 'GET') { if (Batch.limited('peek|' + ip, 30, 600000)) return BE('rate', 429); const r = Batch.peek(String(sp.get('code') || '')); return r.error ? BE(r.error, 404) : send(res, 200, r); } // 领取页先看内容（不绑定），同样限速防枚举
+    if (url === '/api/batch/pub' && req.method === 'GET') { if (Batch.limited('peek|' + ip, 30, 600000)) return BE('rate', 429); const r = Batch.pubOne(sp.get('id')); return r ? send(res, 200, r) : BE('nf', 404); } // 门卡列表：按批次读取附加内容（不复制进每张卡）
     const a = auth(req, db); if (!a) return BE('NOT_LOGIN', 401); const U = a.user, owner = U.pubkey;
+    if (url === '/api/batch/link-preview' && req.method === 'POST') { const now2 = Date.now(), rl = (goodsRate.get(a.uid) || []).filter(t => now2 - t < 600000); if (rl.length >= 20) return BE('rate', 429); rl.push(now2); goodsRate.set(a.uid, rl); // 受限预览：复用商品预览的 SSRF 防护抓取（仅 https、拒绝内网 / 回环 / 元数据地址、≤3 次重定向逐跳复查、8 秒超时、体积上限），封面转存平台图片存储
+      const b = await body(req, 2000), u = String(b.url || '').trim(); if (u.length > 500) return BE('attLink'); let x; try { x = new URL(u); } catch { return BE('attLink'); } if (!/^https?:$/.test(x.protocol)) return BE('attLink');
+      if (x.protocol === 'http:') { if (!Batch.normAtt([{ type: 'product', url: u }]).ok) return BE('attLink'); return send(res, 200, { url: x.href, title: '', cover: '', failed: 'goodsHttps' }); } // http 不抓取（明文），用占位图 + 用户填的标题
+      try { x = Goods.checkUrl(x.href, Block); } catch (e) { return BE(e.code === 'ssrf' ? 'ssrf' : /^block/.test(e.code) ? 'blocked' : 'attLink'); }
+      try { const p = await goodsPreview(x.href); return send(res, 200, { url: x.href, title: p.title || '', cover: p.image ? '/api/img/' + p.image : '', failed: p.image || p.title ? '' : 'goodsFetch' }); } catch (e) { if (e.code === 'ssrf') return BE('ssrf'); return send(res, 200, { url: x.href, title: '', cover: '', failed: e.code || 'goodsFetch' }); } }
     if (url === '/api/batch/claim' && req.method === 'POST') { const b = await body(req, 600);
       if (Batch.limited('claim|' + ip, 20, 600000) || Batch.limited('claimu|' + owner, 20, 600000)) return BE('rate', 429); // 防暴力枚举：IP + 账户双限速
       const r = Batch.claim(String(b.code || ''), owner, now); return r.error ? BE(r.error, r.error === 'used' ? 409 : 404) : send(res, 200, r); }
     if (url === '/api/batch/mine' && req.method === 'GET') return send(res, 200, { batches: Batch.list(owner) });
     const priceOk = async coin => { const P = await Prices.get(); return Prices.usable(P, coin) ? P.prices[coin] : 0; }; // 只用有真实来源且不过期的报价
     if (url === '/api/batch/quote' && req.method === 'POST') { const b = await body(req, 2000), v = Batch.validate({ blessing: 'x', redeemNote: 'x', gateName: 'x', valueUsd: 1, count: b.count, coin: b.coin, feeUsd: b.feeUsd }); if (v.error) return BE(v.error); const price = await priceOk(v.ok.coin); if (!price) return BE('price', 503); return send(res, 200, Batch.quote(owner, v.ok, price, now)); }
-    if (url === '/api/batch/create' && req.method === 'POST') { const b = await body(req, 5000), v = Batch.validate({ ...b, count: b.count });
+    if (url === '/api/batch/create' && req.method === 'POST') { const b = await body(req, 20000), hostOk = h => h === String(req.headers.host || '').toLowerCase() || Domains.originOk('https://' + h) || (Store.publicUrl && new URL(Store.publicUrl).host.toLowerCase() === h), v = Batch.validate({ ...b, count: b.count }, hostOk);
       if (v.error) return BE(v.error); const { blessing, gateName, redeemNote, coin, feeTotalUsd } = v.ok;
       if (b.evm && (v.ok.optPublic || v.ok.optAnchor)) return BE('evmOpt'); // 公开 / 上链需要 Solana 签名，EVM 账户暂不支持
       if (coin === 'SOL' ? !!b.evm : !b.evm) return BE('coin', 400); // SOL 走 Solana 支付；ETH / BNB 走 EVM 支付
-      const txt = blessing + '\n' + gateName + '\n' + redeemNote, bh = Block.check(txt); if (bh) return BE('blocked', 400, { detail: bh.domain }); // 仅自动过滤（长度 / 关键词黑名单 / 正向内容审核），无人工审核
-      const mr = await moderate(txt); if (!mr.pass) return BE('reject');
+      const atts = v.ok.attachments, txt = blessing + '\n' + gateName + '\n' + redeemNote + '\n' + atts.filter(x => x.type === 'product').map(x => x.title + '\n' + x.url).join('\n'), bh = Block.check(txt); if (bh) return BE('blocked', 400, { detail: bh.domain }); // 仅自动过滤（长度 / 关键词黑名单 / 正向内容审核），无人工审核
+      const mr = await moderate(txt.replace(/https?:\/\/\S+/g, ' ')); if (!mr.pass) return BE('reject');
+      for (const h of Batch.attHashes(atts)) { let ok = false; try { ok = await Store.has(h); } catch {} if (!ok) return BE('attImg'); } // 图片必须真实存在于平台存储（已通过上传时的类型 / 大小 / NSFW 审核）
       const key0 = b.evm ? 'evm:' + (+b.evm.chainId) + ':' + String((b.evm.txs || [])[0] || '').toLowerCase() : b.pay ? '' : String(b.sig || '');
       if (key0 && Batch.load().paid[key0]) { const r0 = Batch.create(owner, v.ok, { key: key0 }, now); return r0.error ? BE(r0.error, 409) : send(res, 200, { ...r0, batch: Batch.view(r0.batch) }); } // 重放：同账户返回同一批次，他人 → 409
       const q = Batch.checkQuote(b.quote, owner, v.ok, now); if (q.error) return BE('quote', 400, { expired: !!q.expired }); // 价格以服务端锁定的报价为准（前端篡改单价 / 数量 / 币种都会与报价不一致）

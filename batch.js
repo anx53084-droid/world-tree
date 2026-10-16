@@ -23,16 +23,32 @@ const validCode = c => /^[0-9A-HJKMNP-TV-Z]{20}$/.test(c), idx = c => sha(normCo
 // ---- 参数 ----
 const clean = (s, n) => [...String(s || '').replace(/[\u0000-\u001f\u007f~|<>]/g, '').trim()].slice(0, n).join('');
 const usd2 = x => Math.round(x * 100) / 100;
-function validate(p) { const c = CFG(), blessing = [...String(p.blessing || '').trim()].length, count = p.count;
+// ---- 附加内容（图片 / 商品链接，可选，合计 ≤ 20；创建后不可修改，同批次所有领取码一致）----
+const MAX_ATT = 20, IMGRE = /^(?:https?:\/\/([^/?#]+))?\/api\/img\/([0-9a-f]{32})$/;
+function platImg(u, hostOk) { u = String(u || '').trim(); const m = IMGRE.exec(u); // 仅接受平台图片存储的地址（上传接口返回的 32 位内容哈希）；绝对地址必须是平台域名；外链一律拒绝
+  if (m) { if (m[1] && !(hostOk && hostOk(m[1].toLowerCase()))) return null; return '/api/img/' + m[2]; }
+  const pu = E.R2_PUBLIC_URL && E.R2_PUBLIC_URL.replace(/\/$/, ''); if (pu && u.startsWith(pu + '/')) { const h = u.slice(pu.length + 1); if (/^[0-9a-f]{32}$/.test(h)) return '/api/img/' + h; } return null; }
+function prodUrl(u) { let x; try { x = new URL(String(u || '').trim()); } catch { return null; } if (!/^https?:$/.test(x.protocol) || x.username || x.password || x.href.length > 500) return null;
+  const h = x.hostname.toLowerCase(); if (!h.includes('.') || h === 'localhost' || /\.(localhost|local|internal|lan|home|corp)$/.test(h) || /^[\d.]+$/.test(h) || h.includes(':') || h.startsWith('[')) return null; return x.href; }
+function normAtt(list, hostOk) { if (list == null || list === '') return { ok: [] }; if (!Array.isArray(list)) return { error: 'att' }; if (list.length > MAX_ATT) return { error: 'attMax' }; const out = [];
+  for (const it of list) { if (!it || typeof it !== 'object') return { error: 'att' };
+    if (it.type === 'image') { const url = platImg(it.url, hostOk); if (!url) return { error: 'attImg' }; out.push({ type: 'image', url, title: '', cover: '', sort: out.length }); }
+    else if (it.type === 'product') { const url = prodUrl(it.url); if (!url) return { error: 'attLink' }; let cover = ''; if (it.cover) { cover = platImg(it.cover, hostOk); if (!cover) return { error: 'attImg' }; }
+      out.push({ type: 'product', url, title: clean(it.title, 60), cover, sort: out.length }); }
+    else return { error: 'att' }; }
+  return { ok: out }; }
+const attHashes = l => (l || []).flatMap(a => [a.type === 'image' ? a.url : a.cover]).filter(Boolean).map(u => u.slice(9));
+function validate(p, hostOk) { const c = CFG(), blessing = [...String(p.blessing || '').trim()].length, count = p.count;
   if (!blessing || blessing > 140 || /[|]/.test(p.blessing)) return { error: 'blessing' }; if (!Number.isInteger(count) || count < 1 || count > c.maxCount) return { error: 'count' };
   const coin = String(p.coin || '').toUpperCase(); if (!COINS.includes(coin)) return { error: 'coin' };
   const valueUsd = +p.valueUsd; if (!Number.isFinite(valueUsd) || valueUsd < c.minValueUsd || valueUsd > 1e7) return { error: 'value' };
   const feeUsd = p.feeUsd == null || p.feeUsd === '' ? MIN_FEE_USD : +p.feeUsd; if (!Number.isFinite(feeUsd) || feeUsd < MIN_FEE_USD || feeUsd > 1e5) return { error: 'amount' }; // 每张平台费最低 1 美元等值
   const note = clean(p.redeemNote, 200).replace(/\s+/g, ' '); if ([...String(p.redeemNote || '').trim()].length > 200 || !note) return { error: 'note' }; // 兑换说明必填，≤200 字
   const gateName = clean(p.gateName, 20); if (!gateName) return { error: 'gate' };
+  const at = normAtt(p.attachments, hostOk); if (at.error) return at; if (PROMISE.test(at.ok.map(a => a.title).join(' '))) return { error: 'promise' };
   if (PROMISE.test(String(p.blessing) + ' ' + note + ' ' + gateName)) return { error: 'promise' }; // 不允许承诺性字样（收益 / 分红 / 回报等）
   const feeTotalUsd = usd2(count * Math.max(MIN_FEE_USD, feeUsd)); if (!(feeTotalUsd >= count * MIN_FEE_USD - 1e-9) || feeTotalUsd > 1e8) return { error: 'amount' };
-  return { ok: { blessing: clean(String(p.blessing).trim(), 140).replace(/[~<>]/g, ''), count, coin, valueUsd: usd2(valueUsd), redeemNote: note.replace(/[~<>]/g, ''), feeUsd: usd2(Math.max(MIN_FEE_USD, feeUsd)), feeTotalUsd, gateName, optPublic: !!p.optPublic, optAnchor: !!p.optAnchor } }; }
+  return { ok: { blessing: clean(String(p.blessing).trim(), 140).replace(/[~<>]/g, ''), count, coin, valueUsd: usd2(valueUsd), redeemNote: note.replace(/[~<>]/g, ''), feeUsd: usd2(Math.max(MIN_FEE_USD, feeUsd)), feeTotalUsd, gateName, optPublic: !!p.optPublic, optAnchor: !!p.optAnchor, attachments: at.ok } }; }
 // ---- 报价：服务端锁价（无状态，HMAC 签名，绑定账户 / 币种 / 数量 / 单价 / 价格 / 过期时间）----
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url'), mac = t => crypto.createHmac('sha256', secret()).update('quote:' + t).digest('base64url').slice(0, 32);
 const DEC = { SOL: 9, ETH: 8, BNB: 8 };
@@ -48,7 +64,7 @@ function create(owner, v, pay, now = Math.floor(Date.now() / 1000)) { const d = 
   const shards = []; for (let from = 0, i = 0; from < v.count; from += c.shard, i++) shards.push({ i, from, to: Math.min(v.count, from + c.shard), state: 'queued', tries: 0, nextAt: 0, err: '' });
   const b = d.batches[id] = { id, owner, ...v, payKey: key, payChain: pay.chain || 'sol', payAmount: pay.amount || 0, payUsd: pay.usd || 0, lockedPrice: pay.price || 0, status: 'queued', createdAt: now, doneAt: 0, shards, anchor: null, publicMemoSig: pay.publicSig || '' };
   d.paid[key] = id; save(true); return { ok: true, batch: b }; }
-const pubView = b => ({ id: b.id, status: b.status, count: b.count, gateName: b.gateName, blessing: b.blessing, valueUsd: b.valueUsd || 0, valueTotalUsd: usd2((b.valueUsd || 0) * b.count), redeemNote: b.redeemNote || '', optPublic: b.optPublic, optAnchor: b.optAnchor, createdAt: b.createdAt, doneAt: b.doneAt, payChain: b.payChain });
+const pubView = b => ({ id: b.id, status: b.status, count: b.count, gateName: b.gateName, blessing: b.blessing, valueUsd: b.valueUsd || 0, valueTotalUsd: usd2((b.valueUsd || 0) * b.count), redeemNote: b.redeemNote || '', attachments: b.attachments || [], optPublic: b.optPublic, optAnchor: b.optAnchor, createdAt: b.createdAt, doneAt: b.doneAt, payChain: b.payChain });
 function view(b, now = Math.floor(Date.now() / 1000)) { const s = { total: b.shards.length, done: 0, failed: 0, pending: 0, running: 0 }; let issued = 0, nextRetryAt = 0;
   for (const x of b.shards) { if (x.state === 'done') { s.done++; issued += x.to - x.from; } else if (x.state === 'failed') s.failed++; else { s.pending++; if (x.state === 'running') s.running++; if (x.tries && x.nextAt > now && (!nextRetryAt || x.nextAt < nextRetryAt)) nextRetryAt = x.nextAt; } }
   const claimed = b.claimedN || 0;
@@ -78,7 +94,7 @@ function csv(b, origin) { const d = load(), rows = ['序号,领取码,领取链�
 // ---- 领取 ----
 const rl = new Map(); // 限速：key → [timestamps]
 function limited(key, max, win, now = Date.now()) { const a = (rl.get(key) || []).filter(x => now - x < win); a.push(now); rl.set(key, a); if (rl.size > 20000) for (const [k, v] of rl) if (!v.length || now - v[v.length - 1] > win) rl.delete(k); return a.length > max; }
-function peek(code) { const c = normCode(code); if (!validCode(c)) return { error: 'nf' }; const d = load(), r = d.codes[idx(c)]; if (!r) return { error: 'nf' }; const b = d.batches[r.b]; return { ok: true, blessing: b.blessing, gateName: b.gateName, state: r.st, count: b.count, valueUsd: b.valueUsd || 0, redeemNote: b.redeemNote || '', coin: b.coin || '' }; }
+function peek(code) { const c = normCode(code); if (!validCode(c)) return { error: 'nf' }; const d = load(), r = d.codes[idx(c)]; if (!r) return { error: 'nf' }; const b = d.batches[r.b]; return { ok: true, blessing: b.blessing, gateName: b.gateName, state: r.st, count: b.count, valueUsd: b.valueUsd || 0, redeemNote: b.redeemNote || '', attachments: b.attachments || [], coin: b.coin || '' }; }
 function claim(code, claimer, now = Math.floor(Date.now() / 1000)) { const c = normCode(code); if (!validCode(c) || !claimer) return { error: 'nf' }; const d = load(), r = d.codes[idx(c)]; if (!r) return { error: 'nf' }; const b = d.batches[r.b];
   const gd = Gate.load(), id = 'g_' + sha('bc:' + idx(c)).slice(0, 16);
   if (r.st === 'claimed') return r.by === claimer ? { ok: true, dup: true, card: gd.cards[id] || null, gateName: b.gateName, blessing: b.blessing, valueUsd: b.valueUsd || 0, redeemNote: b.redeemNote || '' } : { error: 'used' }; // 一码一领；本人重复提交幂等
@@ -91,4 +107,5 @@ function setAnchor(id, sig, now = Math.floor(Date.now() / 1000)) { const b = loa
 function summary() { const d = load(), bs = Object.values(d.batches), st = {}; for (const b of bs) st[b.status] = (st[b.status] || 0) + 1; return { batches: bs.length, byStatus: st, codes: Object.keys(d.codes).length, alerts: d.alerts.slice(-20),
   list: bs.sort((a, b) => b.createdAt - a.createdAt).slice(0, 50).map(b => { const v = view(b); return { id: b.id, owner: b.owner, status: b.status, count: b.count, issued: v.issued, claimed: v.claimed, shards: v.shards, createdAt: b.createdAt, failed: b.shards.filter(x => x.state === 'failed').map(x => ({ i: x.i, tries: x.tries, err: x.err })) }; }) }; }
 const reset = () => { D = null; rl.clear(); };
-module.exports = { CFG, MIN_FEE_USD, COINS, SLIP, MAX_COUNT, quote, checkQuote, hooks, load, flush, validate, create, view, pubView, list, tick, start, retryFailed, csv, peek, claim, limited, anchorMemo, setAnchor, summary, codeFor, normCode, idx, merkle, backoff, reset, sha };
+const pubOne = id => { const b = load().batches[String(id || '')]; return b ? { id: b.id, valueUsd: b.valueUsd || 0, redeemNote: b.redeemNote || '', attachments: b.attachments || [] } : null; };
+module.exports = { MAX_ATT, normAtt, attHashes, pubOne, CFG, MIN_FEE_USD, COINS, SLIP, MAX_COUNT, quote, checkQuote, hooks, load, flush, validate, create, view, pubView, list, tick, start, retryFailed, csv, peek, claim, limited, anchorMemo, setAnchor, summary, codeFor, normCode, idx, merkle, backoff, reset, sha };
