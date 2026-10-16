@@ -144,7 +144,7 @@ server.js · moderation.js · fulfillment.js（心愿实现 + 内部记账） ·
 ## Cloudflare Pages 前端（API 仍在 Render）
 - Pages 项目：连接 GitHub `anx53084-droid/world-tree`，分支 `main`；Framework preset: None；Build command: `node scripts/build-pages.js`；Build output directory: `public`。
 - 构建脚本生成 `public/config.js`（`apiBase` = `https://world-tree-ijv1.onrender.com`，审核公钥内置）与 `public/_headers`（`x-wt` 供 Service Worker 识别）。可用 Pages 环境变量 `WT_API_BASE` / `WT_MODERATOR_PUBKEY` 覆盖。
-- 服务器 CORS：默认允许 `https://world-tree.pages.dev` 及其预览子域（`<hash>.world-tree.pages.dev`）；前端由 GitHub Actions（.github/workflows/pages.yml）在 push main 时自动部署；自定义域名加到 Render 环境变量 `ALLOWED_ORIGINS`（逗号分隔），或用 `CORS_ORIGIN_RE` 覆盖规则。鉴权使用 Bearer token（localStorage），不依赖 cookie。
+- 服务器 CORS：默认允许 `https://world-tree.pages.dev` 及其预览子域（`<hash>.world-tree.pages.dev`）；前端由 GitHub Actions（.github/workflows/pages.yml）在 push main 时自动部署；首选域名 `guangqi.world` 由 `DOMAINS_ENSURE` 启动时补进域名清单（standby，设主域见 docs/domains.md）；其他自定义域名加到 Render 环境变量 `ALLOWED_ORIGINS`（逗号分隔），或用 `CORS_ORIGIN_RE` 覆盖规则。鉴权使用 Bearer token（localStorage），不依赖 cookie。
 - 冷启动：前端静态资源由 Cloudflare 提供，树立即渲染；`/api` 幂等请求在服务器唤醒期间自动重试（≤90s），显示「正在唤醒服务器」提示；链上读取超时后浏览器直连 devnet。
 
 ## 多链钱包 · 安全设置 · 站内信

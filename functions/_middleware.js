@@ -1,7 +1,7 @@
 // Cloudflare Pages 中间件：社交爬虫不执行 JS，按 ?lang= → Accept-Language → zh-CN 服务端改写 <head> 的 og/twitter/lang
 import META from '../public/og/meta.json';
 const LANGS = Object.keys(META); // 域名取当前请求的 origin（多域名部署，不写死）
-const DEFAULT_ORIGIN = 'https://world-tree.pages.dev';
+const DEFAULT_ORIGIN = 'https://guangqi.world'; // 与 public/index.html 里静态写的首选域名一致；实际输出一律用当前请求的 origin
 function match(l) { if (!l) return null; l = l.trim().toLowerCase();
   if (l.startsWith('zh')) return /tw|hk|mo|hant/.test(l) ? 'zh-TW' : 'zh-CN';
   return LANGS.find(k => k.toLowerCase() === l) || LANGS.find(k => k.toLowerCase() === l.split('-')[0]) || null; }

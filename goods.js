@@ -24,7 +24,7 @@ function checkUrl(u, Block) {
 }
 function get1(x, max, accept) {
   return new Promise((res, rej) => {
-    const r = https.get(x, { lookup: safeLookup, timeout: TIMEOUT, headers: { 'user-agent': 'Mozilla/5.0 (compatible; WorldTreePreview/1.0; +https://world-tree.pages.dev)', accept, 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8' } }, s => {
+    const r = https.get(x, { lookup: safeLookup, timeout: TIMEOUT, headers: { 'user-agent': 'Mozilla/5.0 (compatible; WorldTreePreview/1.0; +https://guangqi.world)', accept, 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8' } }, s => {
       if ([301, 302, 303, 307, 308].includes(s.statusCode)) { s.resume(); return res({ redirect: s.headers.location }); }
       if (s.statusCode !== 200) { s.resume(); return rej(Object.assign(new Error('HTTP ' + s.statusCode), { code: 'goodsFetch' })); }
       const len = +s.headers['content-length'] || 0; if (len > max) { s.destroy(); return rej(Object.assign(new Error('too large'), { code: 'goodsSize' })); }

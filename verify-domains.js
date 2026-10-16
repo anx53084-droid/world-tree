@@ -1,5 +1,6 @@
 // 域名清单 / 一键换域验证：清单规则、动态 CORS（增删域名无需重启）、管理端点鉴权、故障转移、前端跳转决策与开放重定向防护、迁移参数白名单、中间件不写死域名。
 const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process'), assert = require('assert');
+process.env.DOMAINS_ENSURE = ''; // 其余用例假定干净的默认种子；DOMAINS_ENSURE 在末尾单独测
 let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); }; const throws = (f, code, m) => { let c = null; try { f(); } catch (e) { c = e.code; } ok(c === code, m); };
 console.log('domains list'); const tmpd = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-dom-')); fs.mkdirSync(path.join(tmpd, 'data')); fs.copyFileSync(path.join(__dirname, 'domains.js'), path.join(tmpd, 'domains.js'));
 const Dm = require(path.join(tmpd, 'domains.js'));
@@ -64,5 +65,11 @@ Dm.reset(); ok(Dm.list().domains.length === 2, '持久化：重新加载后清�
     const raw = JSON.parse(fs.readFileSync(tmp + '/data/domains.json', 'utf8')); ok(raw.domains['new.example.com'].primary === true && !raw.domains['world-tree.pages.dev'], '清单已落盘 data/domains.json（persist.js 同步 D1）');
     ok(/domains\.json/.test(fs.readFileSync(path.join(__dirname, 'persist.js'), 'utf8')), 'persist.js 已纳入 domains.json');
   } finally { srv.kill(); }
+  { console.log('ensure'); const td = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-ens-')); fs.mkdirSync(td + '/data'); fs.copyFileSync(path.join(__dirname, 'domains.js'), td + '/domains.js');
+    fs.writeFileSync(td + '/data/domains.json', JSON.stringify({ domains: { 'old.example.com': { status: 'active', primary: true, note: '', at: 1 }, 'guangqi.world': { status: 'blocked', primary: false, note: '', at: 1 } }, updatedAt: 1 }));
+    const r = cp.spawnSync('node', ['-e', "const D=require('./domains.js');console.log(JSON.stringify(D.list().domains));console.log(D.originOk('https://guangqi.world'),D.originOk('https://www.guangqi.world'),D.originOk('https://evil-guangqi.world'))"], { cwd: td, env: { ...process.env, DOMAINS_ENSURE: 'guangqi.world,www.guangqi.world' }, encoding: 'utf8' });
+    const [l1, l2] = r.stdout.trim().split('\n'), L2 = JSON.parse(l1);
+    ok(L2.find(d => d.host === 'old.example.com').primary && L2.find(d => d.host === 'www.guangqi.world').status === 'standby' && !L2.find(d => d.host === 'www.guangqi.world').primary, 'DOMAINS_ENSURE：补齐缺失域名为 standby，不动主域');
+    ok(L2.find(d => d.host === 'guangqi.world').status === 'blocked', 'DOMAINS_ENSURE：已存在的域名状态不被覆盖'); ok(l2 === 'true true false', '补齐后 CORS 立即允许 guangqi.world / www，且不放过相似域名'); }
   console.log(`\n✅ ${n} checks passed`); process.exit(0);
 })().catch(e => { console.error('\n❌', e.message); process.exit(1); });

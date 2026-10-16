@@ -5,10 +5,13 @@ const fs = require('fs'), path = require('path');
 const F = path.join(__dirname, 'data', 'domains.json'), STATUS = ['active', 'standby', 'blocked'], MAX = 50;
 const HOST = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/; // 只接受域名（无端口 / 路径 / IP / 凭据）
 const SEED = (process.env.DOMAINS_SEED || 'world-tree.pages.dev').split(',').map(x => x.trim().toLowerCase()).filter(x => HOST.test(x));
+// 启动时补齐的内置域名（只补缺失项，且一律 standby；不改已有域名的状态 / 主域）。换主域仍走管理端点。要永久删除某个域，同时把它从 DOMAINS_ENSURE 去掉。
+const ENSURE = (process.env.DOMAINS_ENSURE ?? 'guangqi.world,www.guangqi.world').split(',').map(x => x.trim().toLowerCase()).filter(x => HOST.test(x));
 let D = null; const err = c => Object.assign(new Error(c), { code: c });
 function load() { if (D) return D; let j = null; try { j = JSON.parse(fs.readFileSync(F, 'utf8')); } catch {}
   D = { domains: (j && j.domains && !Array.isArray(j.domains)) ? j.domains : {}, updatedAt: (j && j.updatedAt) || 0 };
-  if (!Object.keys(D.domains).length) { SEED.forEach((h, i) => D.domains[h] = { status: 'active', primary: i === 0, note: 'seed', at: 0 }); if (SEED.length) save(); } return D; }
+  if (!Object.keys(D.domains).length) { SEED.forEach((h, i) => D.domains[h] = { status: 'active', primary: i === 0, note: 'seed', at: 0 }); if (SEED.length) save(); }
+  let ch = false; for (const h of ENSURE) if (!D.domains[h] && Object.keys(D.domains).length < MAX) { D.domains[h] = { status: 'standby', primary: false, note: 'ensure', at: Math.floor(Date.now() / 1000) }; ch = true; } if (ch) save(); return D; }
 function save() { D.updatedAt = Math.floor(Date.now() / 1000); fs.mkdirSync(path.dirname(F), { recursive: true }); fs.writeFileSync(F, JSON.stringify(D), { mode: 0o600 }); }
 const norm = h => String(h || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
 function ok(h) { h = norm(h); if (!HOST.test(h)) throw err('host'); return h; }

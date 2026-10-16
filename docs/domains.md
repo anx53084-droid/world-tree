@@ -14,6 +14,15 @@
 - **管理端点**（`x-admin-key` = `ADMIN_KEY`）：`GET /api/admin/domains`、`GET|POST /api/admin/domains/check`（HEAD 探测每个域名）、`POST /api/admin/domains {action:add|primary|status|remove, host, status}`、`POST /api/admin/domains/failover`（主域不通 / blocked → 自动切到健康的备用域，并把旧主域标 blocked）。规则：blocked 域不能设为主域；主域不能直接降级或删除（先换主域）。
 - **og / canonical**：`functions/_middleware.js` 用当前请求的 origin 改写 og:url / og:image / canonical / hreflang；前端 SEO 脚本用 `location.origin`。
 
+## 当前域名（guangqi.world）
+- 首选域名：`guangqi.world`（Cloudflare Pages 项目 `world-tree` 的自定义域名）；`www.guangqi.world` 备用；`world-tree.pages.dev` 保留为备用。
+- **代码里的内置补齐**：`DOMAINS_ENSURE`（默认 `guangqi.world,www.guangqi.world`）——API 启动时把清单里缺失的这些域名补成 **standby**（不改已有域名的状态，也不改主域），所以 Render 部署后 CORS 立即允许它们，不需要 ADMIN_KEY。
+- **设为主域必须用管理端点**（需要 `ADMIN_KEY`，只放环境变量）：
+  `ADMIN_KEY=… node scripts/domains.js primary guangqi.world`（pages.dev 自动保持 active 作为备用；`www` 保持 standby）。
+- 前端内置回退清单（API 不可达且无缓存时）默认 `guangqi.world`（主）+ `world-tree.pages.dev`，可用仓库 Variables `WT_DOMAINS` 覆盖。
+- 站内不再写死域名：分享链接 / 钱包 appIdentity（MWA、WalletConnect、Dynamic）都用 `location.origin`；og / canonical 由 `functions/_middleware.js` 用当前请求的 origin 改写（静态 HTML 里的默认值是 guangqi.world）；og 图上的网址文字为 guangqi.world（`node scripts/og/gen.js` 生成）。`blocklist.js` 仍从 pages.dev 拉取 blocklist（备用域名，保持可用即可）。
+- 第三方后台要同步添加新域名：Dynamic → Security → Allowed Origins 加 `https://guangqi.world`、`https://www.guangqi.world`；Reown（WalletConnect）→ 项目 → Domain allowlist 加 `guangqi.world`、`www.guangqi.world`（填项目 ID 后才需要）。pages.dev 的条目保留。
+
 ## 怎么加新域名
 1. 买域名（注册商任选），在 Cloudflare 添加站点或把 DNS 指到 Cloudflare。
 2. Cloudflare Pages → 项目 `world-tree` → Custom domains → 绑定新域名（同一个项目可绑多个域名，部署一次全部生效）。如要完全独立的备份，另建 Pages 项目并在 GitHub 仓库 Variables 设置 `WT_EXTRA_PAGES_PROJECTS=proj-b,proj-c`，同一份构建会被部署到这些项目（不设置则跳过，不报错）。
