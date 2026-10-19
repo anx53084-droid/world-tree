@@ -1,4 +1,4 @@
-// 多链钱包：Solana（Wallet Standard + 注入式：Phantom / Solflare / Backpack / OKX）与 EVM（EIP-6963 + 注入式：MetaMask / OKX / Coinbase）
+// 多链钱包：Solana（Wallet Standard + 注入式：Phantom / Solflare / Backpack / OKX + MWA / Dynamic / WalletConnect）与 EVM（EIP-6963 + 注入式：MetaMask / OKX / Coinbase / Trust / Bitget + Dynamic / WalletConnect；MWA 仅 Solana）
 // 非托管：只请求连接、签名消息和发送交易；私钥永远留在钱包里。移动端未检测到钱包时用深链接在钱包内置浏览器中打开本站。
 (function () {
   const A = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -65,11 +65,22 @@
   const EVM = [
     { id: 'metamask', name: 'MetaMask', rdns: 'io.metamask', inj: () => window.ethereum?.isMetaMask && !window.ethereum.isOkxWallet && window.ethereum, deep: () => `https://metamask.app.link/dapp/${here().replace(/^https?:\/\//, '')}`, site: 'https://metamask.io/' },
     { id: 'okx', name: 'OKX Wallet', rdns: 'com.okex.wallet', inj: () => window.okxwallet?.request && window.okxwallet, deep: () => `okx://wallet/dapp/url?dappUrl=${enc(here())}`, site: 'https://www.okx.com/web3' },
-    { id: 'coinbase', name: 'Coinbase Wallet', rdns: 'com.coinbase.wallet', inj: () => window.coinbaseWalletExtension || (window.ethereum?.isCoinbaseWallet && window.ethereum), deep: () => `https://go.cb-w.com/dapp?cb_url=${enc(here())}`, site: 'https://www.coinbase.com/wallet' }];
+    { id: 'coinbase', name: 'Coinbase Wallet', rdns: 'com.coinbase.wallet', inj: () => window.coinbaseWalletExtension || (window.ethereum?.isCoinbaseWallet && window.ethereum), deep: () => `https://go.cb-w.com/dapp?cb_url=${enc(here())}`, site: 'https://www.coinbase.com/wallet' },
+    { id: 'trust', name: 'Trust Wallet', rdns: 'com.trustwallet.app', inj: () => window.trustwallet?.request && window.trustwallet || (window.ethereum?.isTrust && window.ethereum), deep: () => `https://link.trustwallet.com/open_url?coin_id=60&url=${enc(here())}`, site: 'https://trustwallet.com/' },
+    { id: 'bitget', name: 'Bitget Wallet', rdns: 'com.bitget.web3', inj: () => window.bitkeep?.ethereum?.request && window.bitkeep.ethereum, deep: () => `https://bkcode.vip?action=dapp&url=${enc(here())}`, site: 'https://web3.bitget.com/' }];
+  // EVM 版 WalletConnect / Dynamic：都包装成 EIP-1193 provider（按需加载 vendor），复用现有 personal_sign 登录与 eth_sendTransaction 支付
+  const evmRpc = id => WTW.cfg.evmRpc?.(id) || '';
+  let wcEvm = null; const wcEvmProvider = () => wcEvm ||= (() => { let inner = null; const get = async () => { if (inner) return inner; const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' }); await loadJs('vendor/walletconnect.js');
+      return inner = window.WTWC.createEvm({ projectId: pid, metadata: { name: '光栖', description: 'World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), chains: WTW.cfg.evmChainIds?.() || [11155111, 84532, 421614, 97], rpc: evmRpc }); }, Lq = [];
+    return { isWalletConnect: true, request: async a => (await get()).request(a), on: (e, f) => { if (inner) inner.on(e, f); else Lq.push([e, f]); get().then(i => { while (Lq.length) i.on(...Lq.shift()); }).catch(() => {}); }, removeListener: (e, f) => inner?.removeListener(e, f), disconnect: async () => inner?.disconnect() }; })();
+  let dynEvm = null; const dynEvmProvider = () => dynEvm ||= (() => { let inner = null; const get = async () => { if (inner) return inner; const id = WTW.cfg.dynamicEnvId; if (!id) throw Object.assign(new Error('Dynamic not configured'), { code: 'dynOff' }); if (!window.WTDYN) await loadJs('vendor/dynamic.js'); window.WTDYN.envId = id; await window.WTDYN.init(id); return inner = window.WTDYN.evmProvider(evmRpc); };
+    return { isDynamic: true, request: async a => (await get()).request(a), on: (e, f) => { get().then(i => i.on(e, f)).catch(() => {}); }, removeListener: (e, f) => inner?.removeListener(e, f) }; })();
   function evmWallets() { ask(); const out = [], used = new Set();
     for (const d of EVM) { const a = evm.get(d.rdns); if (a) used.add(d.rdns); const p = a?.provider || d.inj(); out.push({ ...d, icon: a?.info.icon, installed: !!p, provider: p }); }
     for (const [r, a] of evm) if (!used.has(r)) out.push({ id: r, name: a.info.name, icon: a.info.icon, installed: true, provider: a.provider });
     if (!out.some(w => w.installed) && window.ethereum?.request) out.push({ id: 'injected', name: 'Browser wallet', installed: true, provider: window.ethereum }); // 通用注入钱包
+    out.push({ id: 'dynamic', name: 'Dynamic', installed: true, dyn: true, get provider() { return dynEvmProvider(); } }); // 邮箱 / Google 登录（EVM 嵌入式钱包）
+    out.push({ id: 'walletconnect', name: 'WalletConnect', installed: true, wc: true, get provider() { return wcEvmProvider(); } }); // 二维码 / 唤起手机钱包（eip155）
     return out; }
   const mobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const noProvider = kind => mobile() && !(kind === 'evm' ? evmWallets() : solWallets()).some(w => w.installed && !w.mwa && !w.wc && !w.dyn); // 手机浏览器没有注入任何钱包（MWA / WalletConnect 不算注入）

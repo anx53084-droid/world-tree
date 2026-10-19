@@ -25,3 +25,12 @@
 - 包体积大（约 1.4MB，按需加载）；不随 npm 依赖自动更新。
 - Dynamic 为第三方托管服务：登录与钱包创建依赖它在线；邮箱 OTP 有频率限制（每邮箱 10 分钟 3 次）。
 - 非托管但有恢复边界：用户丢失登录方式时的钱包恢复由 Dynamic 的流程决定，本站无法代为找回。
+
+## EVM 嵌入式钱包（邮箱 / Google → EVM）
+
+EVM 标签下的「邮箱 / Google 登录」用同一个 Dynamic 环境（`DYNAMIC_ENV_ID`）和 `@dynamic-labs-sdk/evm/waas` 创建非托管 EVM 嵌入式钱包。同一个邮箱在 Solana 和 EVM 下是**两个不同地址**，账户卡片会按当前链显示（「邮箱钱包持有者（EVM）」）。登录用 personal_sign，走现有 EVM 登录；付款用 eth_sendTransaction，gas 由该钱包自己支付。
+
+需要在 Dynamic 后台打开（未打开时前端只显示友好提示）：
+- Dashboard → **Chains & Networks** → EVM：打开 Sepolia (11155111)、Base Sepolia (84532)、Arbitrum Sepolia (421614)、BNB Smart Chain Testnet (97)。未打开时登录照常（签名与网络无关），但在该网络付款前必须先打开。
+- Dashboard → **Wallets → Embedded Wallets**：EVM 必须为启用状态（当前已启用）。
+- **Security → Allowed Origins**：包含 https://guangqi.world。

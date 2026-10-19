@@ -997,5 +997,11 @@
   "gb.face.def": "Memakai gaya bawaan",
   "gb.err.face": "Desain kartu tidak valid, silakan pilih lagi",
   "gb.face.cv": "Sampul",
-  "gb.face.in": "Halaman dalam"
+  "gb.face.in": "Halaman dalam",
+  "wal.dynSubEvm": "Tanpa dompet · membuat dompet EVM non-kustodian",
+  "wal.dynHintEvm": "Masuk dengan kode email atau Google, kami akan membuat dompet EVM tertanam untukmu (alamat berbeda dari Solana).",
+  "wal.dynNoEvm": "Berhasil masuk, tetapi dompet EVM tidak dibuat. Coba lagi nanti",
+  "wal.dynEvmOff": "Dompet EVM untuk login email / Google belum diaktifkan. Gunakan dompet EVM lain untuk sementara",
+  "wal.dynEvmNet": "Dompet email belum mendukung jaringan yang dipilih ({chain}). Login ditandatangani di jaringan dompet saat ini; aktifkan dulu sebelum membayar di jaringan itu",
+  "acct.idDynEvm": "Pemilik dompet email (EVM)"
 }

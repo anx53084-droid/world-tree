@@ -997,5 +997,11 @@
   "gb.face.def": "Usando el estilo predeterminado",
   "gb.err.face": "Diseño de tarjeta no válido, vuelve a elegir",
   "gb.face.cv": "Portada",
-  "gb.face.in": "Interior"
+  "gb.face.in": "Interior",
+  "wal.dynSubEvm": "Sin necesidad de wallet · crea una wallet EVM no custodial",
+  "wal.dynHintEvm": "Inicia sesión con un código por correo o con Google y crearemos una wallet EVM integrada (dirección distinta a la de Solana).",
+  "wal.dynNoEvm": "Sesión iniciada, pero no se creó la wallet EVM. Inténtalo más tarde",
+  "wal.dynEvmOff": "La wallet EVM del inicio con correo / Google aún no está habilitada. Usa otra wallet EVM por ahora",
+  "wal.dynEvmNet": "La wallet de correo aún no admite la red seleccionada ({chain}). Iniciaste sesión en la red actual de la wallet; debe habilitarse antes de pagar en esa red",
+  "acct.idDynEvm": "Titular de wallet de correo (EVM)"
 }

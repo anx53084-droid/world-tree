@@ -997,5 +997,11 @@
   "gb.face.def": "Varsayılan stil kullanılıyor",
   "gb.err.face": "Geçersiz kart tasarımı, lütfen yeniden seçin",
   "gb.face.cv": "Kapak",
-  "gb.face.in": "İç sayfa"
+  "gb.face.in": "İç sayfa",
+  "wal.dynSubEvm": "Cüzdan gerekmez · gözetimsiz bir EVM cüzdanı oluşturur",
+  "wal.dynHintEvm": "E-posta koduyla veya Google ile giriş yapın; size gömülü bir EVM cüzdanı oluşturalım (Solana'dakinden farklı adres).",
+  "wal.dynNoEvm": "Giriş yapıldı ancak EVM cüzdanı oluşturulamadı. Lütfen daha sonra tekrar deneyin",
+  "wal.dynEvmOff": "E-posta / Google girişi için EVM cüzdanı henüz etkin değil. Şimdilik başka bir EVM cüzdanı kullanın",
+  "wal.dynEvmNet": "E-posta cüzdanı seçilen ağı ({chain}) henüz desteklemiyor. Giriş cüzdanın mevcut ağında imzalandı; o ağda ödeme yapmadan önce etkinleştirilmesi gerekir",
+  "acct.idDynEvm": "E-posta cüzdanı sahibi (EVM)"
 }

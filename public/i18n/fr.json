@@ -997,5 +997,11 @@
   "gb.face.def": "Style par défaut utilisé",
   "gb.err.face": "Design de carte invalide, veuillez choisir à nouveau",
   "gb.face.cv": "Couverture",
-  "gb.face.in": "Intérieur"
+  "gb.face.in": "Intérieur",
+  "wal.dynSubEvm": "Pas besoin de portefeuille · crée un portefeuille EVM non custodial",
+  "wal.dynHintEvm": "Connectez-vous avec un code e-mail ou Google et nous créerons un portefeuille EVM intégré (adresse différente de celle de Solana).",
+  "wal.dynNoEvm": "Connecté, mais aucun portefeuille EVM n'a été créé. Réessayez plus tard",
+  "wal.dynEvmOff": "Le portefeuille EVM de la connexion e-mail / Google n'est pas encore activé. Utilisez un autre portefeuille EVM pour l'instant",
+  "wal.dynEvmNet": "Le portefeuille e-mail ne prend pas encore en charge le réseau choisi ({chain}). Connexion signée sur le réseau actuel du portefeuille ; il faut l'activer avant de payer sur ce réseau",
+  "acct.idDynEvm": "Détenteur du portefeuille e-mail (EVM)"
 }

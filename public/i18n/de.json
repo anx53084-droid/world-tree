@@ -997,5 +997,11 @@
   "gb.face.def": "Standardstil aktiv",
   "gb.err.face": "Ungültiges Kartendesign, bitte erneut wählen",
   "gb.face.cv": "Cover",
-  "gb.face.in": "Innenseite"
+  "gb.face.in": "Innenseite",
+  "wal.dynSubEvm": "Keine Wallet nötig · erstellt eine nicht verwahrte EVM-Wallet",
+  "wal.dynHintEvm": "Melde dich mit E-Mail-Code oder Google an – wir erstellen dir eine eingebettete EVM-Wallet (andere Adresse als bei Solana).",
+  "wal.dynNoEvm": "Angemeldet, aber es wurde keine EVM-Wallet erstellt. Bitte später erneut versuchen",
+  "wal.dynEvmOff": "Die EVM-Wallet für E-Mail- / Google-Login ist noch nicht aktiviert. Bitte vorerst eine andere EVM-Wallet nutzen",
+  "wal.dynEvmNet": "Die E-Mail-Wallet unterstützt das gewählte Netzwerk ({chain}) noch nicht. Die Anmeldung wurde im aktuellen Netzwerk der Wallet signiert; vor Zahlungen in diesem Netzwerk muss es aktiviert werden",
+  "acct.idDynEvm": "E-Mail-Wallet-Inhaber (EVM)"
 }

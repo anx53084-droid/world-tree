@@ -997,5 +997,11 @@
   "gb.face.def": "Usando o estilo padrão",
   "gb.err.face": "Design de cartão inválido, escolha novamente",
   "gb.face.cv": "Capa",
-  "gb.face.in": "Interior"
+  "gb.face.in": "Interior",
+  "wal.dynSubEvm": "Sem carteira · cria uma carteira EVM não custodial",
+  "wal.dynHintEvm": "Entre com um código por e-mail ou Google e criaremos uma carteira EVM incorporada (endereço diferente do Solana).",
+  "wal.dynNoEvm": "Login feito, mas a carteira EVM não foi criada. Tente novamente mais tarde",
+  "wal.dynEvmOff": "A carteira EVM do login por e-mail / Google ainda não está ativada. Use outra carteira EVM por enquanto",
+  "wal.dynEvmNet": "A carteira de e-mail ainda não suporta a rede escolhida ({chain}). O login foi assinado na rede atual da carteira; é preciso ativá-la antes de pagar nessa rede",
+  "acct.idDynEvm": "Titular da carteira de e-mail (EVM)"
 }

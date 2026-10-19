@@ -22,3 +22,9 @@
 - WalletConnect 只接了 Solana；EVM 标签页没有 WalletConnect。
 - WalletConnect 交易签名用 `solana_signTransaction`（钱包签名后由前端广播），部分钱包只支持 `solana_signAndSendTransaction`，未做该分支。
 - MWA 的 vendor 包约 176KB、WalletConnect 约 490KB（按需加载），打包产物不随 npm 依赖自动更新。
+
+## EVM（手机）
+
+- WalletConnect（eip155，与 Solana 共用 Reown 项目 `WC_PROJECT_ID`，会话前缀 `wt-evm` 与 Solana 分开）：桌面显示二维码，手机可用「打开钱包」唤起任何支持 WalletConnect 的钱包。链：Sepolia、Base Sepolia、Arbitrum Sepolia、BSC Testnet；切链用 wallet_switchEthereumChain（钱包未授权该链时返回 4902）。
+- 深链接：MetaMask、OKX、Trust Wallet（link.trustwallet.com/open_url）、Bitget（bkcode.vip）在 App 内置浏览器中打开本站。
+- EVM 没有 Mobile Wallet Adapter（那是 Solana 专用协议），不显示 MWA 入口。

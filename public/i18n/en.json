@@ -997,5 +997,11 @@
   "gb.face.def": "Using the default style",
   "gb.err.face": "Invalid card design, please choose again",
   "gb.face.cv": "Cover",
-  "gb.face.in": "Inside"
+  "gb.face.in": "Inside",
+  "wal.dynSubEvm": "No wallet needed · creates a non-custodial EVM wallet",
+  "wal.dynHintEvm": "Sign in with an email code or Google and we'll create an EVM embedded wallet for you (a different address from your Solana one).",
+  "wal.dynNoEvm": "Signed in, but no EVM wallet was created. Please try again later",
+  "wal.dynEvmOff": "The EVM wallet for email / Google sign-in isn't enabled yet. Please use another EVM wallet for now",
+  "wal.dynEvmNet": "The email wallet doesn't support the selected network ({chain}) yet. You signed in on the wallet's current network; it must be enabled before paying on that network",
+  "acct.idDynEvm": "Email wallet holder (EVM)"
 }

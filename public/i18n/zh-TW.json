@@ -997,5 +997,11 @@
   "gb.face.def": "目前為預設樣式",
   "gb.err.face": "卡面設定無效，請重新選擇",
   "gb.face.cv": "封面",
-  "gb.face.in": "內頁"
+  "gb.face.in": "內頁",
+  "wal.dynSubEvm": "沒有錢包也能用 · 自動建立非託管 EVM 錢包",
+  "wal.dynHintEvm": "用電子郵件驗證碼或 Google 帳號登入，我們會為你建立一個 EVM 嵌入式錢包（地址與 Solana 下的不同）。",
+  "wal.dynNoEvm": "登入成功，但沒有建立出 EVM 錢包，請稍後再試",
+  "wal.dynEvmOff": "電子郵件 / Google 登入的 EVM 錢包尚未啟用，請先使用其他 EVM 錢包",
+  "wal.dynEvmNet": "郵件錢包暫不支援所選網路（{chain}），已按錢包目前網路簽名登入；在該網路付款前需先啟用它",
+  "acct.idDynEvm": "郵件錢包持有者（EVM）"
 }
