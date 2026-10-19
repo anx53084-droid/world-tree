@@ -959,5 +959,10 @@
   "wal.dynOff": "이메일 / Google 로그인이 아직 설정되지 않아 사용할 수 없습니다",
   "wal.dynNoWallet": "로그인했지만 Solana 지갑이 생성되지 않았습니다. 잠시 후 다시 시도해 주세요",
   "wal.dynLoading": "불러오는 중…",
-  "wal.dynBadEmail": "올바른 이메일 주소를 입력하세요"
+  "wal.dynBadEmail": "올바른 이메일 주소를 입력하세요",
+  "gift.page": "기프트 카드",
+  "gift.single": "단일",
+  "gift.batch": "단체",
+  "gift.singleHint": "특정 주소에 보내는 축복 카드(메시지 선택). 온체인 표시 기록이며 자산 이전이 아닙니다.",
+  "gift.batchHint": "수령 코드를 한 번에 여러 개 만들어 공유합니다. 플랫폼 수수료는 생성자가 자신의 지갑으로 내며, 네트워크 수수료도 그 지갑이 냅니다."
 }

@@ -959,5 +959,10 @@
   "wal.dynOff": "O login com e-mail / Google ainda não está configurado e está indisponível",
   "wal.dynNoWallet": "Login feito, mas nenhuma carteira Solana foi criada — tente novamente mais tarde",
   "wal.dynLoading": "Carregando…",
-  "wal.dynBadEmail": "Digite um e-mail válido"
+  "wal.dynBadEmail": "Digite um e-mail válido",
+  "gift.page": "Cartões-presente",
+  "gift.single": "Individual",
+  "gift.batch": "Em grupo",
+  "gift.singleHint": "Um cartão de bons votos para um endereço, com recado opcional. É um registro exibido on-chain, não uma transferência de ativos.",
+  "gift.batchHint": "Crie vários códigos de resgate de uma vez e compartilhe. O criador paga a taxa da plataforma com a própria carteira, que também paga a taxa de rede."
 }

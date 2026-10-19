@@ -959,5 +959,10 @@
   "wal.dynOff": "El acceso con correo / Google aún no está configurado, por lo que no está disponible",
   "wal.dynNoWallet": "Sesión iniciada, pero no se creó ninguna cartera de Solana; inténtalo más tarde",
   "wal.dynLoading": "Cargando…",
-  "wal.dynBadEmail": "Introduce un correo electrónico válido"
+  "wal.dynBadEmail": "Introduce un correo electrónico válido",
+  "gift.page": "Tarjetas regalo",
+  "gift.single": "Individual",
+  "gift.batch": "Grupal",
+  "gift.singleHint": "Una tarjeta de buenos deseos para una dirección, con nota opcional. Es un registro visible en cadena, no una transferencia de activos.",
+  "gift.batchHint": "Crea muchos códigos de canje a la vez y compártelos. El creador paga la tarifa de la plataforma con su propia cartera, que también paga la comisión de red."
 }

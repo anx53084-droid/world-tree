@@ -959,5 +959,10 @@
   "wal.dynOff": "La connexion e-mail / Google n'est pas encore configurée et reste indisponible",
   "wal.dynNoWallet": "Connecté, mais aucun portefeuille Solana n'a été créé — réessayez plus tard",
   "wal.dynLoading": "Chargement…",
-  "wal.dynBadEmail": "Saisissez une adresse e-mail valide"
+  "wal.dynBadEmail": "Saisissez une adresse e-mail valide",
+  "gift.page": "Cartes cadeaux",
+  "gift.single": "Unique",
+  "gift.batch": "Groupée",
+  "gift.singleHint": "Une carte de vœux pour une adresse, avec un mot facultatif. C'est un enregistrement affiché on-chain, pas un transfert d'actifs.",
+  "gift.batchHint": "Créez plusieurs codes de retrait d'un coup et partagez-les. Le créateur paie les frais de plateforme avec son propre portefeuille, qui paie aussi les frais de réseau."
 }

@@ -450,3 +450,6 @@ svg.gface { height: auto }
 @media (max-width: 480px) { .wstat .wst-w { display: none } .wstat { padding: 3px 8px; max-width: 42vw } }
 .wmob { margin: 8px 0; padding: 10px 12px; border: 1px solid #ffd36b88; border-radius: 10px; background: #ffd36b14; color: #ffe9b0; font-weight: 600; line-height: 1.5 }
 .witem.wdeep { text-decoration: none; color: inherit; border: 1px solid var(--line, #ffffff33); border-radius: 10px; background: #ffffff0a; min-height: 48px; box-sizing: border-box } .witem.rec { border-color: #ffd36b } .wcqr, .qr { max-width: 260px; margin: 8px auto }
+/* 礼品卡页：单张 / 团购 切换 */
+.gift-seg { display: inline-flex; gap: 4px; padding: 4px; margin: 4px 0 12px; border: 1px solid #ffffff33; border-radius: 999px; background: #0b1030aa }
+.gift-seg a { padding: 8px 18px; border-radius: 999px; color: #d6dbf5; text-decoration: none; font-weight: 600; min-height: 24px } .gift-seg a.on { background: #ffd36b; color: #1b1446 } .gift-seg a:focus-visible { outline: 2px solid #8ab4ff; outline-offset: 2px }

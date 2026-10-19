@@ -959,5 +959,10 @@
   "wal.dynOff": "Email / Google sign-in isn't configured yet, so it's unavailable",
   "wal.dynNoWallet": "Signed in, but no Solana wallet was created — please try again later",
   "wal.dynLoading": "Loading…",
-  "wal.dynBadEmail": "Please enter a valid email address"
+  "wal.dynBadEmail": "Please enter a valid email address",
+  "gift.page": "Gift cards",
+  "gift.single": "Single",
+  "gift.batch": "Group",
+  "gift.singleHint": "A blessing card for one address, with an optional note. It is an on-chain display record, not an asset transfer.",
+  "gift.batchHint": "Create many claim codes at once and share them. The creator pays the platform fee from their own wallet, which also pays the network fee."
 }

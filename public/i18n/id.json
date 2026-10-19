@@ -959,5 +959,10 @@
   "wal.dynOff": "Masuk dengan email / Google belum dikonfigurasi sehingga belum tersedia",
   "wal.dynNoWallet": "Berhasil masuk, tetapi dompet Solana tidak terbuat — coba lagi nanti",
   "wal.dynLoading": "Memuat…",
-  "wal.dynBadEmail": "Masukkan alamat email yang valid"
+  "wal.dynBadEmail": "Masukkan alamat email yang valid",
+  "gift.page": "Kartu hadiah",
+  "gift.single": "Tunggal",
+  "gift.batch": "Grup",
+  "gift.singleHint": "Kartu ucapan untuk satu alamat, dengan catatan opsional. Ini catatan tampilan on-chain, bukan transfer aset.",
+  "gift.batchHint": "Buat banyak kode klaim sekaligus lalu bagikan. Pembuat membayar biaya platform dengan dompetnya sendiri, yang juga membayar biaya jaringan."
 }

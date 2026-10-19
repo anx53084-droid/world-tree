@@ -959,5 +959,10 @@
   "wal.dynOff": "E-posta / Google ile giriş henüz yapılandırılmadı, bu yüzden kullanılamıyor",
   "wal.dynNoWallet": "Giriş yapıldı ancak Solana cüzdanı oluşturulamadı — lütfen sonra tekrar deneyin",
   "wal.dynLoading": "Yükleniyor…",
-  "wal.dynBadEmail": "Geçerli bir e-posta adresi girin"
+  "wal.dynBadEmail": "Geçerli bir e-posta adresi girin",
+  "gift.page": "Hediye kartları",
+  "gift.single": "Tekli",
+  "gift.batch": "Grup",
+  "gift.singleHint": "Tek bir adrese yazılan, isteğe bağlı notlu bir dilek kartı. Zincir üstü bir gösterim kaydıdır, varlık transferi değildir.",
+  "gift.batchHint": "Tek seferde çok sayıda alma kodu oluşturup paylaşın. Platform ücretini oluşturan kendi cüzdanıyla öder; ağ ücretini de aynı cüzdan öder."
 }

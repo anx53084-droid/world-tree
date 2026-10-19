@@ -959,5 +959,10 @@
   "wal.dynOff": "Đăng nhập bằng email / Google chưa được cấu hình nên chưa dùng được",
   "wal.dynNoWallet": "Đã đăng nhập nhưng chưa tạo được ví Solana — vui lòng thử lại sau",
   "wal.dynLoading": "Đang tải…",
-  "wal.dynBadEmail": "Vui lòng nhập địa chỉ email hợp lệ"
+  "wal.dynBadEmail": "Vui lòng nhập địa chỉ email hợp lệ",
+  "gift.page": "Thẻ quà tặng",
+  "gift.single": "Một thẻ",
+  "gift.batch": "Theo nhóm",
+  "gift.singleHint": "Thẻ chúc phúc gửi một địa chỉ, có thể kèm lời nhắn. Đây là bản ghi hiển thị trên chuỗi, không phải chuyển tài sản.",
+  "gift.batchHint": "Tạo nhiều mã nhận cùng lúc rồi chia sẻ. Người tạo trả phí nền tảng bằng ví của chính mình, và ví đó cũng trả phí mạng."
 }

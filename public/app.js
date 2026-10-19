@@ -700,7 +700,7 @@ function home() {
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
 </form>
   <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.growing')}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
-  <div class=scene-hint><a class=gb-home href="#/gift/batch">🎁 ${E('gb.nav')}</a> · ${E('home.hint')} <span class=debug-only>· <a href="#lists" data-scroll=lists>⌄ ${E('home.rank')}</a></span></div></div>
+  <div class=scene-hint><a class=gb-home href="#/gift">🎁 ${E('gift.page')}</a> · ${E('home.hint')} <span class=debug-only>· <a href="#lists" data-scroll=lists>⌄ ${E('home.rank')}</a></span></div></div>
   <div class="cols home-lists debug-only" id=lists><div class=glass><h2>🔥 ${E('home.hot')}</h2>${hot.map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div><div class=glass><h2>🆕 ${E('home.new')}</h2>${visibleWishes().slice(0, 5).map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div></div>`;
 }
 // ---------- 合作卡 / 统一卡片点击 / 详情滑动（跨页自动加载）----------
@@ -840,6 +840,10 @@ function openTopup(id) { const ad = S.my?.ads.find(x => x.id === id); if (!ad) r
       else { state(t('ads.st.verify'), 'wait'); try { done(await api('/api/ads/pay', { id: ad.id, sol })); } catch (e) { if (e.code === 'record' && e.data?.signature) return recordFail(e.data.signature); throw e; } } } // 托管账户：服务端签名转账并核验入账
     catch (e) { lock(false); const cancelled = S.mode === 'self' && !sig && (e?.code === 4001 || /reject|denied|cancel|declin/i.test(String(e?.message || e))); state(cancelled ? t('ads.st.cancel') : t('ads.st.fail', { msg: S.mode === 'self' && !e.status ? walErr(e) : adErr(e) }), cancelled ? '' : 'err'); } };
   upd(); }
+// ---------- 礼品卡页 #/gift：顶部切换「单张 / 团购」。单张 = 制作页的礼品卡表单；团购 = 原 #/gift/batch 的完整流程（附加内容、报价、免责声明、支付不变）----------
+const giftTabs = m => `<div class=gift-seg role=tablist aria-label="${E('gift.page')}"><a role=tab id=gtab-s href="#/gift" aria-selected=${m === 'single'} class="${m === 'single' ? 'on' : ''}">🎁 ${E('gift.single')}</a><a role=tab id=gtab-b href="#/gift/batch" aria-selected=${m === 'batch'} class="${m === 'batch' ? 'on' : ''}">👥 ${E('gift.batch')}</a></div>`;
+const giftPage = () => `<h2 class=gold-title>🎁 ${E('gift.page')}</h2>${giftTabs('single')}<p class=tagline>${E('gift.singleHint')}</p><section class="card motif" aria-labelledby=gtab-s><div id=maker>${wishPanel()}</div></section>`;
+const giftBatchPage = () => `<h2 class=gold-title>🎁 ${E('gift.page')}</h2>${giftTabs('batch')}<p class=tagline>${E('gift.batchHint')}</p><div role=tabpanel aria-labelledby=gtab-b>${gbPage()}</div>`;
 // ---------- 团购礼品卡：#/gift/batch（创建）· #/gift/batch/<id>（进度）· #/claim/<code>（领取）----------
 const GB_LS = 'wt_batches', gbLocal = () => { try { return JSON.parse(localStorage[GB_LS] || '{}'); } catch { return {}; } };
 const gbRemember = (id, o) => { const m = gbLocal(); m[id] = { ...(m[id] || {}), ...o, at: m[id]?.at || Date.now() }; const ks = Object.keys(m).sort((a, b) => m[b].at - m[a].at).slice(0, 30); const n = {}; ks.forEach(k => n[k] = m[k]); localStorage[GB_LS] = JSON.stringify(n); };
@@ -869,7 +873,7 @@ async function shrinkAtt(file) { if (!/^image\//.test(file.type)) throw new Erro
   c.width = Math.max(16, Math.round(bm.width * k)); c.height = Math.max(16, Math.round(bm.height * k)); c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
   for (const q of [.8, .7, .6, .45]) for (const ty of ['image/webp', 'image/jpeg']) { const b = await new Promise(r => c.toBlob(r, ty, q)); if (b && b.type === ty && b.size < 2 * 1024 * 1024) return b; }
   throw new Error(t('gb.att.big')); }
-const gbPage = () => `<h2 class=gold-title>🎁 ${E('gb.title')}</h2><p class=tagline>${E('gb.sub')}</p>${S.mode === 'guest' ? `<div class=card><p>${E('gb.login')}</p>${guestCta()}</div>` : ''}
+const gbPage = () => `<h3 class=gold-title>👥 ${E('gb.title')}</h3><p class=tagline>${E('gb.sub')}</p>${S.mode === 'guest' ? `<div class=card><p>${E('gb.login')}</p>${guestCta()}</div>` : ''}
 <form id=gbf class="card motif gb-form" novalidate aria-labelledby=gbfh><h3 id=gbfh>${E('gb.form')}</h3>
 <label class=gb-l for=gbb>${E('gb.f.bless')}</label><textarea id=gbb maxlength=140 rows=3 required aria-describedby=gbbn></textarea><p class=muted id=gbbn>0/140</p>
 <div class=gb-grid><div><label class=gb-l for=gbn>${E('gb.f.count')}</label><input id=gbn type=number min=1 max=10000 step=1 value=10 inputmode=numeric required></div>
@@ -1313,6 +1317,8 @@ const SEO = {
   '/list': ['星愿星语 · 光栖', '浏览大家挂在世界树上的心愿', 'Star Wishes · Guangqi', 'Browse the wishes everyone has hung on the World Tree'],
   '/wish': ['我的星愿 · 光栖', '创建并管理你的链上心愿卡', 'My Wishes · Guangqi', 'Create and manage your on-chain wish cards'],
   '/wish/make': ['制作卡片 · 光栖', '写下正向心愿，审核后永久上链', 'Make a Card · Guangqi', 'Write a positive wish—permanently on-chain after review'],
+  '/gift': ['礼品卡 · 光栖', '单张礼品卡或团购礼品卡（批量领取码）', 'Gift Cards · Guangqi', 'A single gift card, or group gift cards with claim codes'],
+  '/gift/batch': ['团购礼品卡 · 光栖', '一次生成多张领取码，分享给大家领取', 'Group Gift Cards · Guangqi', 'Create many claim codes at once and share them'],
   '/help': ['规则与说明 · 光栖', '了解心愿卡内容规范、费用与安全说明', 'Rules & Guide · Guangqi', 'Card content rules, fees and safety notes'],
   '/origin': ['光栖起源', '让光有处可栖', 'Origin of Guangqi', 'A place for light to dwell'] };
 function setMeta(sel, attr, val) { let m = document.head.querySelector(sel); if (!m) { m = document.createElement('meta'); const [k, v] = sel.match(/\[(\w+(?::\w+)?)="([^"]+)"\]/).slice(1); m.setAttribute(k, v); document.head.append(m); } m.setAttribute(attr, val); }
@@ -1335,14 +1341,15 @@ async function route() {
   S.swAC?.abort(); S.swAC = null; $('#view').classList.remove('sw-loading', 'sw-nudge'); // 切换页面即关闭详情：清理滑动监听
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/gift/batch': gbPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
+  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/gift': giftPage, '/gift/batch': giftBatchPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
   clearTimeout(S.gbT); clearInterval(S.gbPI); const gbm = p.match(/^\/gift\/batch\/(b_[0-9a-f]{16})$/), clm = p.match(/^\/claim\/([A-Za-z0-9-]{4,40})$/);
   v.innerHTML = gbm ? gbProgress(gbm[1]) : clm ? gbClaim(clm[1].toUpperCase()) : p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
   if (p.startsWith('/w/')) bindSwiper(p);
   if (p === '/ads') paintAds();
   if (p === '/gift/batch') gbBind(); if (gbm) gbPoll(gbm[1]); if (clm) gbClaimRun(clm[1].toUpperCase());
   if (S.token && (p === '/ads' || p === '/list' || p.startsWith('/w/AD') || p === '/')) loadMyAds(p === '/ads'); else paintAdNav();
-  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/'))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
+  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/') || (x.getAttribute('href') === '#/gift' && /^\/(gift|claim)\//.test(p)))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
+  if (p === '/gift') setTimeout(() => { const k = $('#ckind'); if (!k || location.hash.split('?')[0] !== '#/gift') return; k.value = 'gift'; k.dispatchEvent(new Event('change', { bubbles: true })); const lb = k.closest('label'); if (lb) lb.hidden = true; }, 0); // 礼品卡单张模式：固定为礼品卡类型
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });

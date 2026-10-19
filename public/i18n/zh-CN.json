@@ -959,5 +959,10 @@
   "wal.dynOff": "邮箱 / Google 登录尚未配置，暂不可用",
   "wal.dynNoWallet": "登录成功，但没有创建出 Solana 钱包，请稍后再试",
   "wal.dynLoading": "正在加载…",
-  "wal.dynBadEmail": "请输入有效的邮箱地址"
+  "wal.dynBadEmail": "请输入有效的邮箱地址",
+  "gift.page": "礼品卡",
+  "gift.single": "单张",
+  "gift.batch": "团购",
+  "gift.singleHint": "写给一个指定地址的祝福卡，可附赠言；仅为链上展示记录，不代表资产转移。",
+  "gift.batchHint": "一次生成多张领取码，分享给大家领取；平台费由创建者用自己的钱包支付，网络费也由该钱包支付。"
 }

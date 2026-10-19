@@ -959,5 +959,10 @@
   "wal.dynOff": "E-Mail- / Google-Anmeldung ist noch nicht eingerichtet und daher nicht verfügbar",
   "wal.dynNoWallet": "Angemeldet, aber es wurde keine Solana-Wallet erstellt – bitte später erneut versuchen",
   "wal.dynLoading": "Wird geladen…",
-  "wal.dynBadEmail": "Bitte eine gültige E-Mail-Adresse eingeben"
+  "wal.dynBadEmail": "Bitte eine gültige E-Mail-Adresse eingeben",
+  "gift.page": "Geschenkkarten",
+  "gift.single": "Einzeln",
+  "gift.batch": "Gruppe",
+  "gift.singleHint": "Eine Segenskarte für eine Adresse, optional mit Nachricht. Sie ist ein On-Chain-Anzeigeeintrag, keine Übertragung von Vermögenswerten.",
+  "gift.batchHint": "Erstelle viele Einlösecodes auf einmal und teile sie. Die Plattformgebühr zahlt der Ersteller mit seiner eigenen Wallet, die auch die Netzwerkgebühr zahlt."
 }
