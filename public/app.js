@@ -1570,7 +1570,7 @@ function mount3d() { if (!window.WT3D) { if (!ready3d) { ready3d = true; addEven
   WT3D.attach($('#scene')); canvasA11y(); WT3D.setSeason(S.season || autoSeason()); WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); }
 addEventListener('hashchange', () => { closeModal(); $('#tip').hidden = true; route(); });
 addEventListener('langchange', () => { renderMode(); if (window.WT3D?.relabel) WT3D.relabel(); if (!document.querySelector('textarea:focus') && $('#modal').hidden) route(); });
-if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.hostname) || QS.get('sw') === '1') navigator.serviceWorker?.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.hostname) || QS.get('sw') === '1') navigator.serviceWorker?.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
 (async () => {
   await I18N.ready; renderMode(); WTW.initMwa().then(ok => { if (ok && $('.wlist')) connectWallet(localStorage.wt_wtab); }); // Android Chrome：注册 Mobile Wallet Adapter（面板已打开则刷新列表）
   const cfgP = fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); WTW.cfg.wcProjectId = c.wcProjectId || ''; WTW.cfg.dynamicEnvId = c.dynamicEnvId || ''; }).catch(() => {}); cfgP.then(() => fetch('/api/rules')).then(r => r.json()).then(r => S.words = r.words).catch(() => {});
