@@ -494,7 +494,7 @@
   "err.passNeed": "Password must be 4–64 characters",
   "err.inviteNeed": "Enter at least one valid invite address",
   "help.socialVis": "Görünürlük: herkes / yakındakiler (girdiğiniz ülke·il·şehir ile eşleşme) / son etkileşimler (7 gün içindeki beğeni veya kutsamalar). Konum kartın sağ üstünde görünür. İletişim bilgisi zincir dışında kalır ve silinebilir.",
-  "help.giftVis": "Teslim: herkes için ağaçta, sınırlı kitle için ağaçta (yakındakiler / son etkileşimler / davet), şifreyle kilitli, ağaç dışında yalnızca alıcıya, veya ağaçta ve alıcıya bildirim. Hediye kartları varlık aktarmaz. Arama “hediye / 礼品卡” ile eşleşir.",
+  "help.giftVis": "Teslim: herkes için ağaçta, sınırlı kitle için ağaçta (yakındakiler / son etkileşimler / davet), şifreyle kilitli, ağaç dışında yalnızca alıcıya, veya ağaçta ve alıcıya bildirim. Hediye kartları varlık aktarmaz. Arama “hediye” ile eşleşir.",
   "kind.goods": "Wish Card",
   "wish.coverStyle": "Kart kapağı tasarımı",
   "wish.coverBasic": "Classic (basic)",

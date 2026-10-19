@@ -494,7 +494,7 @@
   "err.passNeed": "Password must be 4–64 characters",
   "err.inviteNeed": "Enter at least one valid invite address",
   "help.socialVis": "Visibilitas: semua orang / terdekat (dicocokkan dengan negara·provinsi·kota yang kamu isi) / interaksi terbaru (suka atau berkat dalam 7 hari). Lokasi tampil di kanan atas kartu. Kontak tetap di luar rantai dan bisa dihapus.",
-  "help.giftVis": "Pengiriman: di pohon untuk semua, di pohon untuk kalangan terbatas (terdekat / interaksi terbaru / undangan), dikunci kata sandi, di luar pohon hanya untuk penerima, atau di pohon sambil memberi tahu penerima. Kartu hadiah tidak memindahkan aset apa pun. Pencarian cocok dengan “hadiah / 礼品卡”.",
+  "help.giftVis": "Pengiriman: di pohon untuk semua, di pohon untuk kalangan terbatas (terdekat / interaksi terbaru / undangan), dikunci kata sandi, di luar pohon hanya untuk penerima, atau di pohon sambil memberi tahu penerima. Kartu hadiah tidak memindahkan aset apa pun. Pencarian cocok dengan “hadiah”.",
   "kind.goods": "Wish Card",
   "wish.coverStyle": "Desain sampul kartu",
   "wish.coverBasic": "Classic (basic)",

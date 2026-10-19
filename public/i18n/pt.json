@@ -494,7 +494,7 @@
   "err.passNeed": "Password must be 4–64 characters",
   "err.inviteNeed": "Enter at least one valid invite address",
   "help.socialVis": "Visibilidade: todos / por perto (correspondência pelo país·província·cidade que você informar) / interações recentes (curtidas ou bênçãos em 7 dias). A localização aparece no canto superior direito do cartão. O contato continua fora da cadeia e pode ser apagado.",
-  "help.giftVis": "Entrega: na árvore para todos, na árvore para um público limitado (por perto / recentes / convite), bloqueado por senha, fora da árvore só para o destinatário, ou na árvore notificando o destinatário. Cartões-presente nunca transferem ativos. A busca encontra “presente / 礼品卡”.",
+  "help.giftVis": "Entrega: na árvore para todos, na árvore para um público limitado (por perto / recentes / convite), bloqueado por senha, fora da árvore só para o destinatário, ou na árvore notificando o destinatário. Cartões-presente nunca transferem ativos. A busca encontra “presente”.",
   "kind.goods": "Wish Card",
   "wish.coverStyle": "Design da capa",
   "wish.coverBasic": "Classic (basic)",

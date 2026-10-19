@@ -494,7 +494,7 @@
   "err.passNeed": "Password must be 4–64 characters",
   "err.inviteNeed": "Enter at least one valid invite address",
   "help.socialVis": "Phạm vi hiển thị: mọi người / người gần đây (khớp theo quốc gia·tỉnh·thành phố bạn điền) / tương tác gần đây (lượt thích hoặc chúc phúc trong 7 ngày). Vị trí hiện ở góc trên bên phải thẻ. Thông tin liên hệ vẫn nằm ngoài chuỗi và có thể xóa.",
-  "help.giftVis": "Cách gửi: treo trên cây cho mọi người, treo cho nhóm giới hạn (gần đây / tương tác gần đây / mời), khóa bằng mật khẩu, không treo trên cây chỉ người nhận xem, hoặc treo trên cây và thông báo người nhận. Thẻ quà tặng không chuyển tài sản. Tìm kiếm khớp “quà tặng / 礼品卡”.",
+  "help.giftVis": "Cách gửi: treo trên cây cho mọi người, treo cho nhóm giới hạn (gần đây / tương tác gần đây / mời), khóa bằng mật khẩu, không treo trên cây chỉ người nhận xem, hoặc treo trên cây và thông báo người nhận. Thẻ quà tặng không chuyển tài sản. Tìm kiếm khớp “quà tặng”.",
   "kind.goods": "Wish Card",
   "wish.coverStyle": "Thiết kế bìa thẻ",
   "wish.coverBasic": "Classic (basic)",

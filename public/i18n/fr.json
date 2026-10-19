@@ -494,7 +494,7 @@
   "err.passNeed": "Password must be 4–64 characters",
   "err.inviteNeed": "Enter at least one valid invite address",
   "help.socialVis": "Visibilité : tout le monde / à proximité (correspondance sur le pays·province·ville saisis) / interactions récentes (j’aime ou bénédictions sous 7 jours). Le lieu s’affiche en haut à droite de la carte. Le contact reste hors chaîne et supprimable.",
-  "help.giftVis": "Remise : sur l’arbre pour tous, sur l’arbre pour un public restreint (proximité / récents / invitation), verrouillée par mot de passe, hors de l’arbre pour le seul destinataire, ou sur l’arbre avec notification du destinataire. Les cartes cadeau ne transfèrent aucun actif. La recherche trouve « cadeau / 礼品卡 ».",
+  "help.giftVis": "Remise : sur l’arbre pour tous, sur l’arbre pour un public restreint (proximité / récents / invitation), verrouillée par mot de passe, hors de l’arbre pour le seul destinataire, ou sur l’arbre avec notification du destinataire. Les cartes cadeau ne transfèrent aucun actif. La recherche trouve « cadeau ».",
   "kind.goods": "Wish Card",
   "wish.coverStyle": "Design de couverture",
   "wish.coverBasic": "Classic (basic)",

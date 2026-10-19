@@ -183,7 +183,7 @@ function makePetals() { // 飘落花瓣（着色器内下落 + 漂移），数�
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('seed', new THREE.BufferAttribute(Float32Array.from({ length: n }, () => r()), 1)); g.boundingSphere = new THREE.Sphere(V(0, 8, 0), 20);
   petals = new THREE.Points(g, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: BU,
     vertexShader: `attribute float seed; uniform float uTime,uPR,uSeason; varying float vA,vS;
-      void main(){ float amt=smoothstep(1.5,2.,uSeason)*.95; // 仅下旬·樱花飘落 vA=step(seed,amt); vS=seed; float sp=.35+seed*.5, ph=fract(position.y-uTime*sp/15.);
+      void main(){ float amt=smoothstep(1.5,2.,uSeason)*.95; /* 仅下旬·樱花飘落 */ vA=step(seed,amt); vS=seed; float sp=.35+seed*.5, ph=fract(position.y-uTime*sp/15.);
         vec3 p=vec3(position.x+sin(uTime*.8+seed*30.)*.8*(1.-ph), 15.*ph-.2, position.z+cos(uTime*.6+seed*20.)*.8*(1.-ph));
         vec4 mv=modelViewMatrix*vec4(p,1.); gl_PointSize=(.28+seed*.18)*uPR*(300./-mv.z); gl_Position=projectionMatrix*mv; }`,
     fragmentShader: `uniform float uTime; varying float vA,vS; void main(){ if(vA<=0.) discard; vec2 q=gl_PointCoord-.5; float a=uTime*(1.+vS*2.)+vS*9.; q=mat2(cos(a),-sin(a),sin(a),cos(a))*q;

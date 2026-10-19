@@ -494,7 +494,7 @@
   "err.passNeed": "Password must be 4–64 characters",
   "err.inviteNeed": "Enter at least one valid invite address",
   "help.socialVis": "Visibilidad: todos / cerca (coincidencia por el país·provincia·ciudad que indiques) / interacciones recientes (me gusta o bendiciones en 7 días). La ubicación aparece arriba a la derecha de la tarjeta. El contacto sigue fuera de la cadena y se puede borrar.",
-  "help.giftVis": "Entrega: en el árbol para todos, en el árbol para un público limitado (cerca / recientes / invitación), con contraseña, fuera del árbol solo para el destinatario, o en el árbol notificando al destinatario. Las tarjetas regalo nunca transfieren activos. La búsqueda encuentra «regalo / 礼品卡».",
+  "help.giftVis": "Entrega: en el árbol para todos, en el árbol para un público limitado (cerca / recientes / invitación), con contraseña, fuera del árbol solo para el destinatario, o en el árbol notificando al destinatario. Las tarjetas regalo nunca transfieren activos. La búsqueda encuentra «regalo».",
   "kind.goods": "Wish Card",
   "wish.coverStyle": "Diseño de portada",
   "wish.coverBasic": "Classic (basic)",

@@ -494,7 +494,7 @@
   "err.passNeed": "Password must be 4–64 characters",
   "err.inviteNeed": "Enter at least one valid invite address",
   "help.socialVis": "Sichtbarkeit: alle / in der Nähe (Abgleich über das eingetragene Land·Provinz·Stadt) / letzte Interaktionen (Likes oder Segnungen innerhalb von 7 Tagen). Der Ort steht oben rechts auf der Karte. Kontaktdaten bleiben off-chain und löschbar.",
-  "help.giftVis": "Zustellung: am Baum für alle, am Baum für einen begrenzten Kreis (in der Nähe / letzte Interaktionen / Einladung), mit Passwort gesperrt, nicht am Baum nur für den Empfänger, oder am Baum mit Benachrichtigung des Empfängers. Geschenkkarten übertragen keine Vermögenswerte. Die Suche findet „Geschenk / 礼品卡“.",
+  "help.giftVis": "Zustellung: am Baum für alle, am Baum für einen begrenzten Kreis (in der Nähe / letzte Interaktionen / Einladung), mit Passwort gesperrt, nicht am Baum nur für den Empfänger, oder am Baum mit Benachrichtigung des Empfängers. Geschenkkarten übertragen keine Vermögenswerte. Die Suche findet „Geschenk“.",
   "kind.goods": "Wish Card",
   "wish.coverStyle": "Kartencover-Design",
   "wish.coverBasic": "Classic (basic)",
