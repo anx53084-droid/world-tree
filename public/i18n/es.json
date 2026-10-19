@@ -988,5 +988,12 @@
   "acct.toSecurity": "Seguridad (dispositivos, 2FA)",
   "err.nameLen": "El nombre admite como máximo 20 caracteres",
   "err.nameLink": "El nombre no puede contener enlaces",
-  "err.avatar": "Imagen de avatar no válida, vuelve a subirla"
+  "err.avatar": "Imagen de avatar no válida, vuelve a subirla",
+  "gift.att.h": "Imágenes y enlaces de productos. El destinatario puede verlos en los detalles de la tarjeta; no se pueden cambiar una vez que la tarjeta está en la cadena.",
+  "gb.face.t": "Diseño de la tarjeta (opcional)",
+  "gb.face.h": "Portada, plantilla interior, imágenes propias y texto interior. Todos los códigos de este lote comparten este diseño. Si no eliges nada, se usa el estilo predeterminado.",
+  "gb.face.text": "Texto interior (opcional, hasta 140 caracteres)",
+  "gb.face.reset": "Restablecer diseño predeterminado",
+  "gb.face.def": "Usando el estilo predeterminado",
+  "gb.err.face": "Diseño de tarjeta no válido, vuelve a elegir"
 }

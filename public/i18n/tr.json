@@ -988,5 +988,12 @@
   "acct.toSecurity": "Güvenlik (cihazlar, 2FA)",
   "err.nameLen": "Ad en fazla 20 karakter olabilir",
   "err.nameLink": "Ad bağlantı içeremez",
-  "err.avatar": "Geçersiz avatar görseli, lütfen tekrar yükleyin"
+  "err.avatar": "Geçersiz avatar görseli, lütfen tekrar yükleyin",
+  "gift.att.h": "Görseller ve ürün bağlantıları. Alıcı bunları kart ayrıntılarında görebilir; kart zincire yazıldıktan sonra değiştirilemez.",
+  "gb.face.t": "Kart tasarımı (isteğe bağlı)",
+  "gb.face.h": "Kapak, iç sayfa şablonu, özel görseller ve iç metin. Bu partideki tüm talep kodları bu tasarımı paylaşır. Seçim yapılmazsa varsayılan stil kullanılır.",
+  "gb.face.text": "İç metin (isteğe bağlı, en fazla 140 karakter)",
+  "gb.face.reset": "Varsayılan tasarıma dön",
+  "gb.face.def": "Varsayılan stil kullanılıyor",
+  "gb.err.face": "Geçersiz kart tasarımı, lütfen yeniden seçin"
 }

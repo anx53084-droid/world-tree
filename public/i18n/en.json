@@ -988,5 +988,12 @@
   "acct.toSecurity": "Security settings (devices, 2FA)",
   "err.nameLen": "Name can be at most 20 characters",
   "err.nameLink": "Name cannot contain links",
-  "err.avatar": "Invalid avatar image, please upload again"
+  "err.avatar": "Invalid avatar image, please upload again",
+  "gift.att.h": "Images and product links. The recipient can see them in the card details; they cannot be changed after the card is on-chain.",
+  "gb.face.t": "Card design (optional)",
+  "gb.face.h": "Cover, inside template, custom images and inside text. All claim codes in this batch share this design. Leave empty to use the default style.",
+  "gb.face.text": "Inside text (optional, up to 140 characters)",
+  "gb.face.reset": "Reset to default design",
+  "gb.face.def": "Using the default style",
+  "gb.err.face": "Invalid card design, please choose again"
 }

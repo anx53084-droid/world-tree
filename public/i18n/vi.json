@@ -988,5 +988,12 @@
   "acct.toSecurity": "Bảo mật (thiết bị, 2FA)",
   "err.nameLen": "Tên tối đa 20 ký tự",
   "err.nameLink": "Tên không được chứa liên kết",
-  "err.avatar": "Ảnh đại diện không hợp lệ, vui lòng tải lại"
+  "err.avatar": "Ảnh đại diện không hợp lệ, vui lòng tải lại",
+  "gift.att.h": "Hình ảnh và liên kết sản phẩm. Người nhận xem được trong chi tiết thẻ; không thể sửa sau khi thẻ đã lên chuỗi.",
+  "gb.face.t": "Thiết kế thẻ (tùy chọn)",
+  "gb.face.h": "Bìa, mẫu trang trong, ảnh tùy chỉnh và nội dung trang trong. Mọi mã nhận trong lô này dùng chung thiết kế. Nếu không chọn sẽ dùng kiểu mặc định.",
+  "gb.face.text": "Nội dung trang trong (tùy chọn, tối đa 140 ký tự)",
+  "gb.face.reset": "Khôi phục thiết kế mặc định",
+  "gb.face.def": "Đang dùng kiểu mặc định",
+  "gb.err.face": "Thiết kế thẻ không hợp lệ, vui lòng chọn lại"
 }

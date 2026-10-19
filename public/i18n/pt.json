@@ -988,5 +988,12 @@
   "acct.toSecurity": "Segurança (dispositivos, 2FA)",
   "err.nameLen": "O nome pode ter no máximo 20 caracteres",
   "err.nameLink": "O nome não pode conter links",
-  "err.avatar": "Imagem de avatar inválida, envie novamente"
+  "err.avatar": "Imagem de avatar inválida, envie novamente",
+  "gift.att.h": "Imagens e links de produtos. O destinatário pode vê-los nos detalhes do cartão; não podem ser alterados depois que o cartão estiver na blockchain.",
+  "gb.face.t": "Design do cartão (opcional)",
+  "gb.face.h": "Capa, modelo interno, imagens personalizadas e texto interno. Todos os códigos deste lote compartilham este design. Sem escolha, usa-se o estilo padrão.",
+  "gb.face.text": "Texto interno (opcional, até 140 caracteres)",
+  "gb.face.reset": "Restaurar design padrão",
+  "gb.face.def": "Usando o estilo padrão",
+  "gb.err.face": "Design de cartão inválido, escolha novamente"
 }

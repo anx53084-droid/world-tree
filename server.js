@@ -136,6 +136,7 @@ function applyMeta(st, sig, owner, K, b) { // 写入链下可见性元数据；�
   }
   st.meta[sig] = meta; return null; }
 async function txInfo(sig) { // 读取自己刚上链的交易（最多重试 4 次）：作者 + memo
+  if (process.env.ADS_MOCK_PAY === '1') { const m = adsMockRead('tx-mock.json')[sig]; if (m) return m; } // 仅测试：模拟已上链交易（不读链、不发交易）
   for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
     if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], author = k.pubkey?.toBase58?.() || String(k.pubkey || k);
       const ix = tx.transaction.message.instructions.find(x => x.program === 'spl-memo' || x.programId?.toBase58?.() === MEMO.toBase58()); return { author, memo: typeof ix?.parsed === 'string' ? ix.parsed : null }; } } catch {}
@@ -370,6 +371,19 @@ async function api(req, res, url) {
         invite: !!(m.invite && m.invite.length), invited, inv: mine ? (m.invite || []) : undefined, hasPass: !!m.passHash, offTree: m.deliver === 'off',
         age: m.age || '', gender: m.gender || '', job: m.job || '' }; }
     return send(res, 200, { meta: out }); }
+  const reqHostOk = h => h === String(req.headers.host || '').toLowerCase() || Domains.originOk('https://' + h) || (Store.publicUrl && new URL(Store.publicUrl).host.toLowerCase() === h);
+  const giftAttCheck = async list => { // 单张礼品卡附加内容：与团购同一套校验（≤20、平台图片、链接格式、黑名单、正向审核、图片须真实存在）
+    const at = Batch.normAtt(list, reqHostOk); if (at.error) return at; const atts = at.ok; if (!atts.length) return { ok: [] };
+    const txt = atts.filter(x => x.type === 'product').map(x => x.title + '\n' + x.url).join('\n'); if (Batch.PROMISE.test(atts.map(a => a.title).join(' '))) return { error: 'promise' };
+    if (txt) { const bh = Block.check(txt); if (bh) return { error: 'blocked', detail: bh.domain }; const tt = txt.replace(/https?:\/\/\S+/g, ' ').trim(); if (tt) { const mr = await moderate(tt); if (!mr.pass) return { error: 'reject' }; } }
+    for (const h of Batch.attHashes(atts)) { let ok = false; try { ok = await Store.has(h); } catch {} if (!ok) return { error: 'attImg' }; } return { ok: atts }; };
+  if (url === '/api/gift-att/check' && req.method === 'POST') { const b = await body(req, 20000), r = await giftAttCheck(b.attachments); return r.error ? send(res, 400, { error: r.error, code: r.error, detail: r.detail }) : send(res, 200, { ok: true, attachments: r.ok }); } // 付款前预检，避免付款后才发现附加内容不合规
+  if (url === '/api/gift-att' && req.method === 'GET') { const sig = new URL(req.url, 'http://x').searchParams.get('sig') || ''; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig)) return send(res, 400, { error: 'bad sig', code: 'param' });
+    const st = Soc.load(), a = st.att[sig]; if (!a || !a.list?.length) return send(res, 200, { attachments: [] }); const m = st.meta[sig];
+    if (m && (m.vis && m.vis !== 'public' || m.passHash)) { const me = auth(req, db); if (!me) return send(res, 200, { attachments: [], locked: true }); // 非公开卡：作者 / 收礼人 / 已解锁 / 受邀 / 同城可见
+      const addrs = [me.user.pubkey, me.user.evm].filter(Boolean).map(Soc.addrKey), ok = me.user.pubkey === m.owner || me.user.pubkey === a.owner || addrs.includes(a.to) || !!(st.unlocks[sig] && st.unlocks[sig][me.user.pubkey]) || !!(m.invite && addrs.some(x => m.invite.includes(x))) || (m.vis === 'nearby' && Soc.locMatch({ country: me.user.country, province: me.user.province, city: me.user.city }, m)) || m.vis === 'recent';
+      if (!ok) return send(res, 200, { attachments: [], locked: true }); }
+    return send(res, 200, { attachments: a.list }); }
   if (url === '/api/gift-sent' && req.method === 'POST') { // 礼品卡上链后登记 + 可选链下元数据（密码/邀请/城市）；投递 both/off 时通知收礼人
     const b = await body(req), sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
     const st = Soc.load(), ti = await txInfo(sig); if (!ti || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 400, { error: 'not found', code: 'nf' });
@@ -382,7 +396,8 @@ async function api(req, res, url) {
       for (const pk of new Set(tos)) { const owners = Object.values(db.users).filter(u => u.pubkey === pk); if (owners.length && owners.every(u => !Acc.prefs(u).system)) continue;
         Acc.pushMsg(db, pk, { kind: 'gift', sig, from: ti.author, note: K.note.slice(0, 50), deliver: K.deliver }); n++; }
       if (n) save(db); }
-    st.giftSeen[sig] = Date.now(); Soc.save(st); return send(res, 200, { ok: true, notified: n, already: false }); }
+    let attError; if (Array.isArray(b.attachments) && b.attachments.length && !st.att[sig]) { const ar = await giftAttCheck(b.attachments); if (ar.error) attError = ar.error; else st.att[sig] = { owner: ti.author, to: Soc.addrKey(K.to), list: ar.ok, at: Date.now() }; } // 附加内容只登记一次（首次写入为准，作者核验同上）
+    st.giftSeen[sig] = Date.now(); Soc.save(st); return send(res, 200, { ok: true, notified: n, already: false, attError }); }
   if (url === '/api/card-meta' && req.method === 'POST') { // 交友卡上链后登记链下可见性（城市等）
     const b = await body(req), a = auth(req, db); if (!a) return send(res, 401, { error: '未登录', code: 'auth' });
     const sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
@@ -449,9 +464,9 @@ async function api(req, res, url) {
       if (v.error) return BE(v.error); const { blessing, gateName, redeemNote, coin, feeTotalUsd } = v.ok;
       if (b.evm && (v.ok.optPublic || v.ok.optAnchor)) return BE('evmOpt'); // 公开 / 上链需要 Solana 签名，EVM 账户暂不支持
       if (coin === 'SOL' ? !!b.evm : !b.evm) return BE('coin', 400); // SOL 走 Solana 支付；ETH / BNB 走 EVM 支付
-      const atts = v.ok.attachments, txt = blessing + '\n' + gateName + '\n' + redeemNote + '\n' + atts.filter(x => x.type === 'product').map(x => x.title + '\n' + x.url).join('\n'), bh = Block.check(txt); if (bh) return BE('blocked', 400, { detail: bh.domain }); // 仅自动过滤（长度 / 关键词黑名单 / 正向内容审核），无人工审核
+      const atts = v.ok.attachments, txt = blessing + '\n' + gateName + '\n' + redeemNote + '\n' + atts.filter(x => x.type === 'product').map(x => x.title + '\n' + x.url).join('\n') + (v.ok.face?.text ? '\n' + v.ok.face.text : ''), bh = Block.check(txt); if (bh) return BE('blocked', 400, { detail: bh.domain }); // 仅自动过滤（长度 / 关键词黑名单 / 正向内容审核），无人工审核
       const mr = await moderate(txt.replace(/https?:\/\/\S+/g, ' ')); if (!mr.pass) return BE('reject');
-      for (const h of Batch.attHashes(atts)) { let ok = false; try { ok = await Store.has(h); } catch {} if (!ok) return BE('attImg'); } // 图片必须真实存在于平台存储（已通过上传时的类型 / 大小 / NSFW 审核）
+      for (const h of [...Batch.attHashes(atts), ...Batch.faceHashes(v.ok.face)]) { let ok = false; try { ok = await Store.has(h); } catch {} if (!ok) return BE('attImg'); } // 图片必须真实存在于平台存储（已通过上传时的类型 / 大小 / NSFW 审核）
       const key0 = b.evm ? 'evm:' + (+b.evm.chainId) + ':' + String((b.evm.txs || [])[0] || '').toLowerCase() : b.pay ? '' : String(b.sig || '');
       if (key0 && Batch.load().paid[key0]) { const r0 = Batch.create(owner, v.ok, { key: key0 }, now); return r0.error ? BE(r0.error, 409) : send(res, 200, { ...r0, batch: Batch.view(r0.batch) }); } // 重放：同账户返回同一批次，他人 → 409
       const q = Batch.checkQuote(b.quote, owner, v.ok, now); if (q.error) return BE('quote', 400, { expired: !!q.expired }); // 价格以服务端锁定的报价为准（前端篡改单价 / 数量 / 币种都会与报价不一致）

@@ -988,5 +988,12 @@
   "acct.toSecurity": "Sicherheit (Geräte, 2FA)",
   "err.nameLen": "Der Name darf höchstens 20 Zeichen haben",
   "err.nameLink": "Der Name darf keine Links enthalten",
-  "err.avatar": "Ungültiges Avatarbild, bitte erneut hochladen"
+  "err.avatar": "Ungültiges Avatarbild, bitte erneut hochladen",
+  "gift.att.h": "Bilder und Produktlinks. Der Empfänger sieht sie in den Kartendetails; nach dem On-Chain-Eintrag der Karte nicht mehr änderbar.",
+  "gb.face.t": "Kartendesign (optional)",
+  "gb.face.h": "Cover, Innenseiten-Vorlage, eigene Bilder und Innentext. Alle Einlösecodes dieses Stapels teilen dieses Design. Ohne Auswahl wird der Standardstil verwendet.",
+  "gb.face.text": "Innentext (optional, bis zu 140 Zeichen)",
+  "gb.face.reset": "Standarddesign wiederherstellen",
+  "gb.face.def": "Standardstil aktiv",
+  "gb.err.face": "Ungültiges Kartendesign, bitte erneut wählen"
 }

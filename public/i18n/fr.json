@@ -988,5 +988,12 @@
   "acct.toSecurity": "Sécurité (appareils, 2FA)",
   "err.nameLen": "Le nom est limité à 20 caractères",
   "err.nameLink": "Le nom ne peut pas contenir de lien",
-  "err.avatar": "Image d'avatar invalide, veuillez réessayer"
+  "err.avatar": "Image d'avatar invalide, veuillez réessayer",
+  "gift.att.h": "Images et liens produits. Le destinataire peut les voir dans les détails de la carte ; ils ne peuvent plus être modifiés une fois la carte inscrite on-chain.",
+  "gb.face.t": "Design de la carte (facultatif)",
+  "gb.face.h": "Couverture, modèle intérieur, images personnalisées et texte intérieur. Tous les codes de ce lot partagent ce design. Sans choix, le style par défaut est utilisé.",
+  "gb.face.text": "Texte intérieur (facultatif, 140 caractères max.)",
+  "gb.face.reset": "Revenir au design par défaut",
+  "gb.face.def": "Style par défaut utilisé",
+  "gb.err.face": "Design de carte invalide, veuillez choisir à nouveau"
 }

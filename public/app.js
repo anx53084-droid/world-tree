@@ -639,11 +639,16 @@ const giftToMe = w => w.kind === 'gift' && !!w.to && ((S.pubkey && w.to === S.pu
 const kindTag = w => w.kind !== 'gift' ? '' : isMine(w) ? `<span class="tag k-gift">${E('gift.sent')}</span>` : giftToMe(w) ? `<span class="tag k-gift">${E('gift.recv')}</span>` : '';
 const sha16 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 const gateDate = ts => new Date(ts * 1000).toLocaleDateString(I18N.lang);
+// 单张礼品卡附加内容：链下登记（/api/gift-sent），详情 / 弹窗中在祝福语下方展示；图片可预览（灯箱），商品链接经外链确认后打开
+S.giftAtt = {}; const giftAttSlot = w => w.sample ? '' : S.giftAtt[w.sig] ? gbAtt(S.giftAtt[w.sig], 'g' + w.sig.slice(0, 12)) : `<div class=gift-att data-gatt="${esc(w.sig)}"></div>`;
+async function loadGiftAtt(w) { if (w?.kind !== 'gift' || w.sample || w.sig in S.giftAtt) return; S.giftAtt[w.sig] = null;
+  try { const r = await fetch('/api/gift-att?sig=' + encodeURIComponent(w.sig), { headers: { authorization: 'Bearer ' + (S.token || '') } }).then(x => x.json()); const l = Array.isArray(r.attachments) ? r.attachments : [];
+    if (!l.length) { delete S.giftAtt[w.sig]; if (!r.locked) S.giftAtt[w.sig] = []; return; } S.giftAtt[w.sig] = l; document.querySelectorAll(`[data-gatt="${CSS.escape(w.sig)}"]`).forEach(el => { el.outerHTML = gbAtt(l, 'g' + w.sig.slice(0, 12)); }); } catch { delete S.giftAtt[w.sig]; } }
 function kindHtml(w, full) { // 交友卡 / 礼品卡附加信息（全部转义）
   if (w.kind === 'social') { const m = S.cardMeta[w.sig] || {}, gLab = m.gender && (I18N.dict['soc.g.' + m.gender] ? t('soc.g.' + m.gender) : m.gender);
     const prof = full ? [m.age && `${E('soc.age')}: ${esc(m.age)}`, gLab && `${E('soc.gender')}: ${esc(gLab)}`, m.job && `${E('soc.job')}: ${esc(m.job)}`].filter(Boolean) : [];
     return `${w.tags.length ? `<div class=soc-tags>${w.tags.map(x => `<span class="tag soc">#${esc(x)}</span>`).join('')}</div>` : ''}${w.intro ? `<p class=soc-intro dir=auto>${esc(w.intro)}</p>` : ''}${w.looking ? `<p class=muted dir=auto>${E('soc.lookingL')} ${esc(w.looking)}</p>` : ''}${prof.length ? `<p class="muted soc-prof">${prof.join(' · ')}</p>` : ''}`; }
-  if (w.kind === 'gift') return `<p class=gift-ft>🎁 <code>${esc(short(w.author))}</code> → <code>${esc(short(w.to))}</code></p>${w.note ? `<p class=gift-note dir=auto>“${esc(w.note)}”</p>` : ''}${full ? `<p class="muted hint">${E('gift.hint')}</p>` : ''}`;
+  if (w.kind === 'gift') return `<p class=gift-ft>🎁 <code>${esc(short(w.author))}</code> → <code>${esc(short(w.to))}</code></p>${w.note ? `<p class=gift-note dir=auto>“${esc(w.note)}”</p>` : ''}${full ? giftAttSlot(w) + `<p class="muted hint">${E('gift.hint')}</p>` : ''}`;
   if (w.kind === 'gate') return `<p class=gift-ft>🎫 <b dir=auto>${esc(w.gname || w.gateId)}</b> → <code>${esc(short(w.to))}</code></p><p class=muted>${w.expireAt ? E('gate.until', { date: gateDate(w.expireAt) }) : E('gate.forever')}</p>${full ? `<p class="muted hint">${E('gate.hint')}</p>` : ''}`;
   if (w.kind === 'goods') { const g = S.goods[w.sig]; if (!g) return w.domain ? `<p class="muted goods-dom">🛍️ ${esc(w.domain)}</p>` : '';
     const pr = g.price ? `<b class=goods-price>${esc(g.currency || '')} ${esc(g.price)}</b>` : '';
@@ -673,7 +678,7 @@ function openCardPopup(w) { if (w.folded) return openFolded(w); maybeFulfillToas
   modal(`<div class="row k-${w.kind || 'wish'}" style="position:relative">${locCorner(w)}${spectrum(w.sig, 72)}<div><span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}<p style="font-size:18px;margin:.4em 0" dir=auto>${kIcon(w)}${esc(L.text)}</p>${locked ? unlockHtml : kindHtml(w, true)}${w.kind === 'social' && !locked ? '<div id=ctbox></div>' : ''}
   <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · ${fmtT(w.time)} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div></div></div>
   <div class=row style="margin-top:14px">${locked ? '' : likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`, w.hue);
-  if (w.kind === 'social' && !w.sample && !locked) loadContact(w); if (w.kind === 'goods') loadGoodsMeta([w]);
+  if (w.kind === 'social' && !w.sample && !locked) loadContact(w); if (w.kind === 'goods') loadGoodsMeta([w]); if (!locked) loadGiftAtt(w);
   $('#uok')?.addEventListener('click', async () => { try { await api('/api/card-unlock', { sig: w.sig, password: $('#upass').value }); S.unlocked[w.sig] = 1; sessionStorage.wt_unlock = JSON.stringify(S.unlocked); toast(E('vis.unlocked'), 'ok'); closeModal(); openCardPopup(w); softRefresh(); } catch (e) { toast(esc(e.message), 'err'); } });
   $('#usetloc')?.addEventListener('click', async () => { const loc = { country: cleanLoc($('#ucountry')?.value), province: cleanLoc($('#uprov')?.value), city: cleanLoc($('#ucity')?.value) }; S.myLoc = loc; localStorage.wt_loc = JSON.stringify(loc); try { if (S.token) await api('/api/me/loc', loc); } catch {} metaFor = ''; await loadCardMeta(); closeModal(); openCardPopup(w); softRefresh(); });
 }
@@ -885,7 +890,7 @@ const giftBatchPage = () => `<h2 class=gold-title>🎁 ${E('gift.page')}</h2>${g
 // ---------- 团购礼品卡：#/gift/batch（创建）· #/gift/batch/<id>（进度）· #/claim/<code>（领取）----------
 const GB_LS = 'wt_batches', gbLocal = () => { try { return JSON.parse(localStorage[GB_LS] || '{}'); } catch { return {}; } };
 const gbRemember = (id, o) => { const m = gbLocal(); m[id] = { ...(m[id] || {}), ...o, at: m[id]?.at || Date.now() }; const ks = Object.keys(m).sort((a, b) => m[b].at - m[a].at).slice(0, 30); const n = {}; ks.forEach(k => n[k] = m[k]); localStorage[GB_LS] = JSON.stringify(n); };
-const gbErr = e => { const c = e?.code === 'ssrf' ? 'attLink' : e?.code; if (c === 'NOT_LOGIN') return t('gb.login'); if (c === 'amount' && e.data?.paid != null) return t('gb.err.short', { paid: e.data.paid, need: e.data.need, coin: e.data.coin || '' }); const k = ['amount', 'blocked', 'verify', 'used', 'large', 'evmOpt', 'chain', 'rate', 'nf', 'reject', 'value', 'note', 'coin', 'quote', 'price', 'promise', 'attMax', 'attImg', 'attLink', 'att'].includes(c) ? c : ['blessing', 'count', 'gate', 'param', 'sig', 'state', 'owner', 'exists'].includes(c) ? 'input' : ''; return k ? t('gb.err.' + k) : (e?.message || String(e)); };
+const gbErr = e => { const c = e?.code === 'ssrf' ? 'attLink' : e?.code; if (c === 'NOT_LOGIN') return t('gb.login'); if (c === 'amount' && e.data?.paid != null) return t('gb.err.short', { paid: e.data.paid, need: e.data.need, coin: e.data.coin || '' }); const k = ['amount', 'blocked', 'verify', 'used', 'large', 'evmOpt', 'chain', 'rate', 'nf', 'reject', 'value', 'note', 'coin', 'quote', 'price', 'promise', 'attMax', 'attImg', 'attLink', 'att', 'face'].includes(c) ? c : ['blessing', 'count', 'gate', 'param', 'sig', 'state', 'owner', 'exists'].includes(c) ? 'input' : ''; return k ? t('gb.err.' + k) : (e?.message || String(e)); };
 const gbRules = () => `<section class="card motif gb-rules" aria-labelledby=gbrh><h3 id=gbrh>📜 ${E('gb.rules.t')}</h3><ul>${['gb.r1', 'gb.r2', 'gb.r3', 'gb.r4', 'gb.r5', 'gb.r6', 'gb.r7'].map(k => `<li>${E(k)}</li>`).join('')}</ul></section>`;
 const gbFoot = () => `<p class=gb-foot role=note>${E('gb.foot')}</p>`;
 const gbH = (k, o) => esc(t(k, Object.fromEntries(Object.keys(o).map(x => [x, `\u0001${x}\u0002`])))).replace(/\u0001(\w+)\u0002/g, (_, x) => o[x]); // 翻译句子里嵌入已转义的 HTML 片段
@@ -897,7 +902,36 @@ const gbAtt = (list, key) => { if (!list?.length) return ''; (S.gbAV ||= {})[key
   return `<section class=gb-attv data-av="${esc(key)}" aria-labelledby="gbav-${esc(key)}"><h4 id="gbav-${esc(key)}">🎁 ${E('gb.att.view')}</h4><ul class=gb-ag>${list.map((a, i) => a.type === 'image'
     ? `<li><button type=button class=gb-ai data-lb="${i}" aria-label="${E('gb.att.lbT')} ${i + 1}"><img loading=lazy decoding=async alt="" src="${esc(attSrc(a.url))}"></button></li>`
     : `<li class=gb-pc>${a.cover ? `<img loading=lazy decoding=async alt="" src="${esc(attSrc(a.cover))}">` : `<span class=gb-ph aria-hidden=true>🛍️</span>`}<b dir=auto>${esc(a.title || attDom(a.url))}</b><button type=button class=gb-pb data-pl="${i}">${E('gb.att.go')} ↗</button></li>`).join('')}</ul><p class="muted gb-attd">${E('gb.att.disc')}</p></section>`; };
-const gbCardHTML = (p, key) => `<section class="card motif gb-claimcard"><p class=muted>${E('gb.cl.from', { name: p.gateName })}</p><h3>🎫 ${esc(p.gateName)}</h3><p class=gb-bless>“${esc(p.blessing)}”</p><p class=gb-val>💠 ${E('gb.cl.value', { v: gbMoney(p.valueUsd || 0) })}</p><div class=gb-note><h4>${E('gb.cl.noteT')}</h4><p dir=auto>${p.redeemNote ? esc(p.redeemNote) : E('gb.cl.noNote')}</p></div>${gbAtt(p.attachments, key)}<p class=gb-disc role=note>⚠️ ${E('gb.cl.disc')}</p><p class=muted>${E('gb.cl.note')}</p></section>`;
+// 团购卡面（与单张共用封面 / 内页模板与上传组件）：face = { cover, inside, cimg, nimg, text }；未设置 → 沿用默认样式（旧批次无 face）
+const faceCoverSrc = f => f.cimg ? attSrc(f.cimg) : WTCovers.url(f.cover ?? 0, 300, 400), faceInSrc = f => f.nimg ? attSrc(f.nimg) : WTInsides.url(f.inside ?? 0, 300, 400);
+const gbFaceView = (f, p) => !f ? '' : `<div class=gb-face-v><figure class=gb-fc><img alt="${E('wish.cover')}" src="${esc(faceCoverSrc(f))}"><figcaption>${E('wish.cover')}</figcaption></figure><figure class=gb-fi style="--bg:url('${esc(faceInSrc(f))}')"><div class=gb-fib><p class=gb-bless dir=auto>“${esc(p.blessing || '—')}”</p>${f.text ? `<p class=gb-ftx dir=auto>${esc(f.text)}</p>` : ''}<p class=muted>🎫 ${esc(p.gateName || '—')}</p></div><figcaption>${E('wish.inside')}</figcaption></figure></div>`;
+const faceEditorHtml = px => `<fieldset class="cover-design gb-face" id=${px}face><legend>🎨 ${E('gb.face.t')}</legend><p class=muted>${E('gb.face.h')}</p>
+  <h4 class=cg-t>${E('wish.coverStyle')}</h4>${coverGridHtml(px)}
+  <h4 class=cg-t>${E('wish.inside')}</h4><div class=cover-grid id=${px}insides>${WTInsides.list.map((c, i) => `<button type=button data-inside=${i} aria-pressed=false title="${esc(catName(c[0]))}" aria-label="${E('wish.inside')} ${i + 1}"><img alt="" src="${WTInsides.url(i)}"></button>`).join('')}</div>
+  <div class=up-row><label class="up-box sm"><input type=file id=${px}upN accept="image/*" class=sr-only><img id=${px}upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label><button type=button id=${px}clrN class=link hidden>${E('wish.clearUp')}</button></div>
+  <label class=gb-l for=${px}text>${E('gb.face.text')}</label><textarea id=${px}text maxlength=140 rows=2 aria-describedby=${px}tc></textarea><p class=muted id=${px}tc>0/140</p>
+  <div class=row style="gap:8px"><button type=button id=${px}reset class=link>↺ ${E('gb.face.reset')}</button><span class=muted id=${px}st role=status aria-live=polite></span></div>
+  <h4 class=cg-t>👁️ ${E('pv.title')}</h4><div class=gb-facepv id=${px}pv aria-live=polite></div></fieldset>`;
+function faceBind(px, onChange, init, ctx) { const $x = id => $('#' + px + id); if (!$x('face')) return null;
+  const F = { cover: null, inside: null, cimg: '', nimg: '', text: '' }, busy = { C: false, N: false }, prev = { C: '', N: '' };
+  if (init && typeof init === 'object') { if (Number.isInteger(init.cover) && init.cover < WTCovers.count) F.cover = init.cover; if (Number.isInteger(init.inside) && init.inside < WTInsides.count) F.inside = init.inside; for (const k of ['cimg', 'nimg']) if (/^\/api\/img\/[0-9a-f]{32}$/.test(init[k] || '')) F[k] = init[k]; F.text = String(init.text || '').slice(0, 140); }
+  const set = () => F.cover != null || F.inside != null || F.cimg || F.nimg || F.text.trim();
+  const face = () => set() ? { cover: F.cover, inside: F.inside, cimg: F.cimg, nimg: F.nimg, text: F.text.trim() } : null;
+  function draw() { $x('covers').querySelectorAll('[data-cover]').forEach(b => { const on = !F.cimg && +b.dataset.cover === F.cover; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    $x('insides').querySelectorAll('[data-inside]').forEach(b => { const on = !F.nimg && +b.dataset.inside === F.inside; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    for (const k of ['C', 'N']) { const u = k === 'C' ? F.cimg : F.nimg, im = $x('up' + k + 'i'); if (u) { im.src = prev[k] || attSrc(u); im.hidden = false; } else { im.removeAttribute('src'); im.hidden = true; } $x('clr' + k).hidden = !u; }
+    $x('tc').textContent = `${[...F.text].length}/140`; $x('st').textContent = busy.C || busy.N ? '⏳ ' + t('gb.att.up') : set() ? '' : t('gb.face.def');
+    $x('pv').innerHTML = gbFaceView(face() || { cover: null, inside: null }, ctx()); }
+  const ch = () => { draw(); onChange?.(); };
+  $x('covers').addEventListener('click', e => { const b = e.target.closest('[data-cover]'); if (b) { F.cover = +b.dataset.cover; F.cimg = ''; ch(); } });
+  $x('insides').addEventListener('click', e => { const b = e.target.closest('[data-inside]'); if (b) { F.inside = +b.dataset.inside; F.nimg = ''; ch(); } });
+  for (const k of ['C', 'N']) { $x('up' + k).addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; busy[k] = true; draw();
+      try { const bl = await shrinkAtt(f), h = await uploadImg(bl, null, true); prev[k] = URL.createObjectURL(bl); F[k === 'C' ? 'cimg' : 'nimg'] = '/api/img/' + h; } catch (er) { toast(esc(er.message || String(er)), 'err'); } busy[k] = false; ch(); });
+    $x('clr' + k).addEventListener('click', () => { F[k === 'C' ? 'cimg' : 'nimg'] = ''; prev[k] = ''; ch(); }); }
+  $x('text').value = F.text; $x('text').addEventListener('input', e => { F.text = e.target.value.slice(0, 140); ch(); });
+  $x('reset').addEventListener('click', () => { Object.assign(F, { cover: null, inside: null, cimg: '', nimg: '', text: '' }); $x('text').value = ''; ch(); });
+  draw(); return { face, raw: () => ({ ...F }), busy: () => busy.C || busy.N, draw }; }
+const gbCardHTML = (p, key) => `<section class="card motif gb-claimcard${p.face ? ' has-face' : ''}">${gbFaceView(p.face, p)}<p class=muted>${E('gb.cl.from', { name: p.gateName })}</p><h3>🎫 ${esc(p.gateName)}</h3><p class=gb-bless>“${esc(p.blessing)}”</p><p class=gb-val>💠 ${E('gb.cl.value', { v: gbMoney(p.valueUsd || 0) })}</p><div class=gb-note><h4>${E('gb.cl.noteT')}</h4><p dir=auto>${p.redeemNote ? esc(p.redeemNote) : E('gb.cl.noNote')}</p></div>${gbAtt(p.attachments, key)}<p class=gb-disc role=note>⚠️ ${E('gb.cl.disc')}</p><p class=muted>${E('gb.cl.note')}</p></section>`;
 function gbLightbox(list, at) { const imgs = list.map((a, i) => ({ a, i })).filter(x => x.a.type === 'image'); if (!imgs.length) return; let k = Math.max(0, imgs.findIndex(x => x.i === at));
   modal(`<h3 style="margin-top:0">🖼️ ${E('gb.att.lbT')} <span id=lbn aria-live=polite></span></h3><div class=gb-lb><button type=button id=lbp aria-label="${E('gb.att.prev')}">‹</button><img id=lbimg alt="${E('gb.att.lbT')}"><button type=button id=lbx aria-label="${E('gb.att.next')}">›</button></div><div class=row style="justify-content:flex-end"><button type=button data-close>${E('common.close')}</button></div>`, 'lb');
   const draw = () => { $('#lbimg').src = attSrc(imgs[k].a.url); $('#lbn').textContent = `${k + 1}/${imgs.length}`; }, go = d => { k = (k + d + imgs.length) % imgs.length; draw(); }, box = $('#modal-box'), live = () => { if ($('#lbimg')) return true; box.onkeydown = box.ontouchstart = box.ontouchend = null; return false; };
@@ -911,15 +945,51 @@ async function shrinkAtt(file) { if (!/^image\//.test(file.type)) throw new Erro
   c.width = Math.max(16, Math.round(bm.width * k)); c.height = Math.max(16, Math.round(bm.height * k)); c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
   for (const q of [.8, .7, .6, .45]) for (const ty of ['image/webp', 'image/jpeg']) { const b = await new Promise(r => c.toBlob(r, ty, q)); if (b && b.type === ty && b.size < 2 * 1024 * 1024) return b; }
   throw new Error(t('gb.att.big')); }
+// 附加内容编辑器（团购 / 单张共用）：图片 + 商品链接，合计 ≤ 20；上传走 /api/img（审核），链接预览走 /api/batch/link-preview；▲▼ / 拖拽排序、删除、失败重试
+const attEditorInner = (p, hk = 'gb.att.h') => `<div class=gb-att-h><h4 id=${p}ath>${E('gb.att.t')}</h4><span id=${p}atc class=gb-atc role=status aria-live=polite></span></div><p class=muted id=${p}ath2>${E(hk)}</p>
+<div class=gb-att-b><button type=button id=${p}ai>📷 ${E('gb.att.addImg')}</button><button type=button id=${p}ap>🔗 ${E('gb.att.addLink')}</button></div><input type=file id=${p}af accept="image/*" multiple hidden aria-label="${E('gb.att.addImg')}">
+<p class="muted gb-amax" id=${p}amax role=status hidden>${E('gb.att.max')}</p><ul id=${p}al class=gb-al aria-label="${E('gb.att.t')}"></ul><p class="muted gb-attd">${E('gb.att.disc')}</p>`;
+function attBind(p, onChange, init) { const $p = x => $('#' + p + x), MAXA = 20, A = []; if (!$p('al')) return null;
+  const okList = () => A.filter(x => x.st === 'ok').map(x => ({ type: x.type, url: x.url, title: x.title || '', cover: x.cover || '' }));
+  function drawA(focus) { const ul = $p('al'); if (!ul) return; $p('atc').textContent = t('gb.att.count', { n: A.length }); const full = A.length >= MAXA; $p('ai').disabled = $p('ap').disabled = full; $p('amax').hidden = !full;
+    ul.innerHTML = A.map((a, i) => { const src = a.prev || (a.type === 'image' ? a.url && attSrc(a.url) : a.cover && attSrc(a.cover)), th = src ? `<img alt="" src="${esc(src)}">` : `<span class=gb-ph aria-hidden=true>🛍️</span>`, nm = a.type === 'image' ? t('gb.att.image') + ' ' + (i + 1) : (a.title || attDom(a.url));
+      return `<li class="gb-ait st-${a.st}" data-i="${i}"><span class=gb-dh aria-hidden=true title="${E('gb.att.drag')}">⠿</span><span class=gb-th>${th}</span><div class=gb-ainfo><b dir=auto>${esc(nm)}</b><span class=muted>${a.type === 'image' ? E('gb.att.image') : esc(attDom(a.url))}${a.st === 'up' ? ' · ⏳ ' + E('gb.att.up') : a.st === 'err' ? ' · ⚠️ ' + E('gb.att.fail') : ''}</span>${a.type === 'product' ? `<input class=gb-at data-ti="${i}" maxlength=60 value="${esc(a.title || '')}" aria-label="${E('gb.att.lTitle')}: ${esc(attDom(a.url))}" placeholder="${E('gb.att.lTitle')}">` : ''}</div>
+      <div class=gb-aact>${a.st === 'err' ? `<button type=button data-rt="${i}">↻ ${E('gb.att.retry')}</button>` : ''}<button type=button data-mv="${i}" data-d=-1 aria-label="${E('gb.att.up1')} ${i + 1}" ${i === 0 ? 'disabled' : ''}>▲</button><button type=button data-mv="${i}" data-d=1 aria-label="${E('gb.att.dn')} ${i + 1}" ${i === A.length - 1 ? 'disabled' : ''}>▼</button><button type=button data-rm="${i}" aria-label="${E('gb.att.del')} ${i + 1}">✕</button></div></li>`; }).join('');
+    if (focus) ($(focus) || $p('ai'))?.focus(); onChange?.(); }
+  const mv = (i, j) => { if (j < 0 || j >= A.length || i === j) return; const [x] = A.splice(i, 1); A.splice(j, 0, x); };
+  async function up(it) { it.busy = true; it.st = 'up'; try { const blob = it.blob ||= await shrinkAtt(it.file); it.prev ||= URL.createObjectURL(blob); const h = await uploadImg(blob, null, true); it.url = '/api/img/' + h; it.st = 'ok'; } catch (e) { it.st = 'err'; } it.busy = false; if (A.includes(it)) drawA(); }
+  async function addFiles(files) { files = [...files].filter(x => /^image\//.test(x.type)); const room = MAXA - A.length; if (files.length > room) toast(esc(t('gb.att.max')), 'err'); const its = files.slice(0, room).map(file => ({ type: 'image', st: 'up', file, url: '', title: '', cover: '' })); A.push(...its); drawA(); for (const it of its) if (A.includes(it)) await up(it); }
+  $p('ai').addEventListener('click', () => { if (A.length < MAXA) $p('af').click(); }); $p('af').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+  const ul = $p('al'); ul.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+    if (d.mv != null) { const i = +d.mv, j = i + +d.d; mv(i, j); drawA(`#${p}al [data-mv="${j}"][data-d="${d.d}"]:not(:disabled)` + ',' + `#${p}al [data-mv="${j}"]:not(:disabled)`); }
+    else if (d.rm != null) { const [x] = A.splice(+d.rm, 1); if (x?.prev) URL.revokeObjectURL(x.prev); drawA('#' + p + 'ai'); } else if (d.rt != null) { const it = A[+d.rt]; if (it && !it.busy) { it.st = 'up'; drawA(); up(it); } } });
+  ul.addEventListener('input', e => { const i = e.target.dataset?.ti; if (i != null && A[+i]) { A[+i].title = e.target.value; onChange?.(); } });
+  let dragI = -1; ul.addEventListener('pointerdown', e => { ul.querySelectorAll('li').forEach(l => l.draggable = false); if (e.target.closest('.gb-dh') && e.pointerType === 'mouse') e.target.closest('li').draggable = true; }); // 鼠标拖拽（手柄）；键盘与触摸用 ▲▼ 按钮
+  ul.addEventListener('dragstart', e => { dragI = +e.target.closest('li')?.dataset.i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(dragI)); } catch {} });
+  ul.addEventListener('dragover', e => { if (dragI >= 0) { e.preventDefault(); ul.querySelectorAll('.over').forEach(l => l.classList.remove('over')); e.target.closest('li')?.classList.add('over'); } });
+  ul.addEventListener('drop', e => { e.preventDefault(); const j = +e.target.closest('li')?.dataset.i; if (dragI >= 0 && j >= 0) { mv(dragI, j); dragI = -1; drawA(); } }); ul.addEventListener('dragend', () => { dragI = -1; ul.querySelectorAll('.over').forEach(l => l.classList.remove('over')); });
+  $p('ap').addEventListener('click', () => addProductDlg());
+  function addProductDlg() { if (A.length >= MAXA) return; let cover = '';
+    modal(`<h3 style="margin-top:0">🔗 ${E('gb.att.lT')}</h3><form id=gpf novalidate><label class=gb-l for=gpu>${E('gb.att.lUrl')}</label><input id=gpu type=url inputmode=url maxlength=500 required placeholder="https://" dir=ltr autocomplete=off>
+      <div class=row style="gap:8px;margin:6px 0"><button type=button id=gpfetch>${E('gb.att.lFetch')}</button></div><p class=muted id=gpmsg role=status aria-live=polite></p>
+      <label class=gb-l for=gpt>${E('gb.att.lTitle')}</label><input id=gpt maxlength=60 autocomplete=off><label class=gb-l for=gpc>${E('gb.att.lCover')}</label><div class=gb-cv><span class=gb-th id=gpth><span class=gb-ph aria-hidden=true>🛍️</span></span><input id=gpc type=file accept="image/*"></div>
+      <p id=gperr class=tu-err role=alert hidden></p><div class=row style="justify-content:flex-end;gap:8px"><button type=button data-close>${E('common.cancel')}</button><button type=submit class=primary>${E('gb.att.add')}</button></div></form>`);
+    const msg = m => { $('#gpmsg').textContent = m; }, bad = m => { $('#gperr').hidden = !m; $('#gperr').textContent = m || ''; }, urlOk = () => { try { const x = new URL($('#gpu').value.trim()); return /^https?:$/.test(x.protocol) ? x.href : ''; } catch { return ''; } };
+    const setCover = (u, pvw) => { cover = u; $('#gpth').innerHTML = u ? `<img alt="" src="${esc(pvw || attSrc(u))}">` : '<span class=gb-ph aria-hidden=true>🛍️</span>'; };
+    $('#gpfetch').onclick = async () => { bad(''); const u = urlOk(); if (!u) return bad(t('gb.att.lBad')); const b = $('#gpfetch'); b.disabled = true; msg('⏳ ' + t('gb.att.lFetching'));
+      try { const r = await api('/api/batch/link-preview', { url: u }); if (r.title && !$('#gpt').value.trim()) $('#gpt').value = r.title.slice(0, 60); if (r.cover) setCover(r.cover); msg(r.failed ? t('gb.att.lFail') : t('gb.att.lOk')); } catch (e) { msg(''); bad(gbErr(e)); } b.disabled = false; };
+    $('#gpc').onchange = async e => { const x = e.target.files[0]; if (!x) return; bad(''); msg('⏳ ' + t('gb.att.up')); try { const bl = await shrinkAtt(x), h = await uploadImg(bl, null, true); setCover('/api/img/' + h, URL.createObjectURL(bl)); msg(''); } catch (er) { msg(''); bad(er.message); } };
+    $('#gpf').onsubmit = e => { e.preventDefault(); bad(''); const u = urlOk(); if (!u) return bad(t('gb.att.lBad')); if (A.length >= MAXA) return bad(t('gb.att.max')); A.push({ type: 'product', st: 'ok', url: u, title: $('#gpt').value.trim().slice(0, 60), cover }); closeModal(); drawA(); }; }
+  if (Array.isArray(init)) for (const x of init.slice(0, MAXA)) if (x && /^\/api\/img\/[0-9a-f]{32}$|^https?:\/\//.test(x.url || '')) A.push({ type: x.type === 'product' ? 'product' : 'image', st: 'ok', url: String(x.url), title: String(x.title || '').slice(0, 60), cover: String(x.cover || '') });
+  drawA(); return { A, okList, busy: () => A.some(x => x.st !== 'ok'), redraw: drawA }; }
 const gbPage = () => `<h3 class=gold-title>👥 ${E('gb.title')}</h3><p class=tagline>${E('gb.sub')}</p>${S.mode === 'guest' ? `<div class=card><p>${E('gb.login')}</p>${guestCta()}</div>` : ''}
 <form id=gbf class="card motif gb-form" novalidate aria-labelledby=gbfh><h3 id=gbfh>${E('gb.form')}</h3>
 <label class=gb-l for=gbb>${E('gb.f.bless')}</label><textarea id=gbb maxlength=140 rows=3 required aria-describedby=gbbn></textarea><p class=muted id=gbbn>0/140</p>
 <div class=gb-grid><div><label class=gb-l for=gbn>${E('gb.f.count')}</label><input id=gbn type=number min=1 max=10000 step=1 value=10 inputmode=numeric required></div>
 <div><label class=gb-l for=gbv>${E('gb.f.value')}</label><input id=gbv inputmode=decimal autocomplete=off value="10" aria-describedby=gbvh required></div></div><p class=muted id=gbvh>${E('gb.f.valueH')}</p>
 <label class=gb-l for=gbr>${E('gb.f.note')}</label><textarea id=gbr maxlength=200 rows=3 required aria-describedby=gbrn></textarea><p class=muted id=gbrn>${E('gb.f.noteH')} <span id=gbrc2>0/200</span></p>
-<section class=gb-att aria-labelledby=gbath><div class=gb-att-h><h4 id=gbath>${E('gb.att.t')}</h4><span id=gbatc class=gb-atc role=status aria-live=polite></span></div><p class=muted id=gbath2>${E('gb.att.h')}</p>
-<div class=gb-att-b><button type=button id=gbai>📷 ${E('gb.att.addImg')}</button><button type=button id=gbap>🔗 ${E('gb.att.addLink')}</button></div><input type=file id=gbaf accept="image/*" multiple hidden aria-label="${E('gb.att.addImg')}">
-<p class="muted gb-amax" id=gbamax role=status hidden>${E('gb.att.max')}</p><ul id=gbal class=gb-al aria-label="${E('gb.att.t')}"></ul><p class="muted gb-attd">${E('gb.att.disc')}</p>
+${faceEditorHtml('gbx')}
+<section class=gb-att aria-labelledby=gbath>${attEditorInner('gb')}
 <button type=button id=gbpv aria-expanded=false aria-controls=gbpvbox>👁️ ${E('gb.att.pv')}</button></section>
 <label class=gb-l for=gbg>${E('gb.f.gate')}</label><input id=gbg maxlength=20 required aria-describedby=gbgh><p class=muted id=gbgh>${E('gb.f.gateH')}</p>
 <div class=gb-grid><div><label class=gb-l for=gbf2>${E('gb.f.fee')}</label><input id=gbf2 inputmode=decimal autocomplete=off value="1" aria-describedby=gbfh2 required></div>
@@ -951,44 +1021,16 @@ function gbBind() { const f = $('#gbf'); if (!f) return; S.gb = { cfg: null, pri
     if (!v.ok) { for (const i of [1, 2, 3, 4]) $('#gbs' + i).textContent = '—'; $('#gbt').textContent = '—'; $('#gbpr').textContent = Number.isFinite(v.fee) && v.fee < 1 ? t('gb.err.amount') : ''; return v; }
     const amt = gbAmt(v.total, pr, v.coin); $('#gbs1').textContent = gbMoney(v.value) + ' USD'; $('#gbs2').textContent = gbMoney(v.value * v.count) + ' USD'; $('#gbs3').textContent = gbMoney(v.total) + ' USD'; $('#gbs4').textContent = amt ? String(amt) : '—'; $('#gbt').textContent = amt ? `${amt} ${v.coin} (≈ ${gbMoney(v.total)} USD)` : '—';
     $('#gbpr').textContent = pr ? t('gb.price.src', { coin: v.coin, p: gbMoney(pr) }) : ''; return v; }
-  const GBD = 'wt_gbdraft', MAXA = 20, A = S.gbA = []; let dseq = 0, pvOn = false;
-  const okList = () => A.filter(x => x.st === 'ok').map(x => ({ type: x.type, url: x.url, title: x.title || '', cover: x.cover || '' }));
-  const saveD = () => { try { localStorage[GBD] = JSON.stringify({ b: $('#gbb').value, n: $('#gbn').value, v: $('#gbv').value, r: $('#gbr').value, g: $('#gbg').value, f: $('#gbf2').value, c: $('#gbc').value, a: okList() }); } catch {} }; // 草稿：表单 + 附加内容元数据（图片已在平台存储，仅存地址）
+  const GBD = 'wt_gbdraft'; let pvOn = false, AE = null, FE = null; const okList = () => AE ? AE.okList() : [];
+  let ready = false; const saveD = () => { if (!ready) return; try { localStorage[GBD] = JSON.stringify({ b: $('#gbb').value, n: $('#gbn').value, v: $('#gbv').value, r: $('#gbr').value, g: $('#gbg').value, f: $('#gbf2').value, c: $('#gbc').value, a: okList(), face: FE?.raw() }); } catch {} }; // 草稿：表单 + 附加内容 / 卡面元数据（图片已在平台存储，仅存地址）
   const pv = () => { const box = $('#gbpvbox'); if (!box) return; box.hidden = !pvOn; $('#gbpv').setAttribute('aria-expanded', String(pvOn)); if (!pvOn) return; const v = vals();
-    box.innerHTML = `<h4>${E('gb.att.pvT')}</h4>` + gbCardHTML({ gateName: $('#gbg').value.trim() || '—', blessing: $('#gbb').value.trim() || '—', valueUsd: v.value || 0, redeemNote: $('#gbr').value.trim(), attachments: okList() }, 'pv'); };
-  function drawA(focus) { const ul = $('#gbal'); if (!ul) return; $('#gbatc').textContent = t('gb.att.count', { n: A.length }); const full = A.length >= MAXA; $('#gbai').disabled = $('#gbap').disabled = full; $('#gbamax').hidden = !full;
-    ul.innerHTML = A.map((a, i) => { const src = a.prev || (a.type === 'image' ? a.url && attSrc(a.url) : a.cover && attSrc(a.cover)), th = src ? `<img alt="" src="${esc(src)}">` : `<span class=gb-ph aria-hidden=true>🛍️</span>`, nm = a.type === 'image' ? t('gb.att.image') + ' ' + (i + 1) : (a.title || attDom(a.url));
-      return `<li class="gb-ait st-${a.st}" data-i="${i}"><span class=gb-dh aria-hidden=true title="${E('gb.att.drag')}">⠿</span><span class=gb-th>${th}</span><div class=gb-ainfo><b dir=auto>${esc(nm)}</b><span class=muted>${a.type === 'image' ? E('gb.att.image') : esc(attDom(a.url))}${a.st === 'up' ? ' · ⏳ ' + E('gb.att.up') : a.st === 'err' ? ' · ⚠️ ' + E('gb.att.fail') : ''}</span>${a.type === 'product' ? `<input class=gb-at data-ti="${i}" maxlength=60 value="${esc(a.title || '')}" aria-label="${E('gb.att.lTitle')}: ${esc(attDom(a.url))}" placeholder="${E('gb.att.lTitle')}">` : ''}</div>
-      <div class=gb-aact>${a.st === 'err' ? `<button type=button data-rt="${i}">↻ ${E('gb.att.retry')}</button>` : ''}<button type=button data-mv="${i}" data-d=-1 aria-label="${E('gb.att.up1')} ${i + 1}" ${i === 0 ? 'disabled' : ''}>▲</button><button type=button data-mv="${i}" data-d=1 aria-label="${E('gb.att.dn')} ${i + 1}" ${i === A.length - 1 ? 'disabled' : ''}>▼</button><button type=button data-rm="${i}" aria-label="${E('gb.att.del')} ${i + 1}">✕</button></div></li>`; }).join('');
-    if (focus) ($(focus) || $('#gbai'))?.focus(); saveD(); pv(); }
-  const mv = (i, j) => { if (j < 0 || j >= A.length || i === j) return; const [x] = A.splice(i, 1); A.splice(j, 0, x); };
-  async function up(it) { it.busy = true; it.st = 'up'; try { const blob = it.blob ||= await shrinkAtt(it.file); it.prev ||= URL.createObjectURL(blob); const h = await uploadImg(blob, null, true); it.url = '/api/img/' + h; it.st = 'ok'; } catch (e) { it.st = 'err'; } it.busy = false; if (A.includes(it)) drawA(); }
-  async function addFiles(files) { files = [...files].filter(x => /^image\//.test(x.type)); const room = MAXA - A.length; if (files.length > room) toast(esc(t('gb.att.max')), 'err'); const its = files.slice(0, room).map(file => ({ type: 'image', st: 'up', file, url: '', title: '', cover: '' })); A.push(...its); drawA(); for (const it of its) if (A.includes(it)) await up(it); }
-  $('#gbai').addEventListener('click', () => { if (A.length < MAXA) $('#gbaf').click(); }); $('#gbaf').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
-  const ul = $('#gbal'); ul.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
-    if (d.mv != null) { const i = +d.mv, j = i + +d.d; mv(i, j); drawA(`[data-mv="${j}"][data-d="${d.d}"]:not(:disabled)` + ',' + `[data-mv="${j}"]:not(:disabled)`); }
-    else if (d.rm != null) { const [x] = A.splice(+d.rm, 1); if (x?.prev) URL.revokeObjectURL(x.prev); drawA('#gbai'); } else if (d.rt != null) { const it = A[+d.rt]; if (it && !it.busy) { it.st = 'up'; drawA(); up(it); } } });
-  ul.addEventListener('input', e => { const i = e.target.dataset?.ti; if (i != null && A[+i]) A[+i].title = e.target.value; });
-  let dragI = -1; ul.addEventListener('pointerdown', e => { ul.querySelectorAll('li').forEach(l => l.draggable = false); if (e.target.closest('.gb-dh') && e.pointerType === 'mouse') e.target.closest('li').draggable = true; }); // 鼠标拖拽（手柄）；键盘与触摸用 ▲▼ 按钮
-  ul.addEventListener('dragstart', e => { dragI = +e.target.closest('li')?.dataset.i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(dragI)); } catch {} });
-  ul.addEventListener('dragover', e => { if (dragI >= 0) { e.preventDefault(); ul.querySelectorAll('.over').forEach(l => l.classList.remove('over')); e.target.closest('li')?.classList.add('over'); } });
-  ul.addEventListener('drop', e => { e.preventDefault(); const j = +e.target.closest('li')?.dataset.i; if (dragI >= 0 && j >= 0) { mv(dragI, j); dragI = -1; drawA(); } }); ul.addEventListener('dragend', () => { dragI = -1; ul.querySelectorAll('.over').forEach(l => l.classList.remove('over')); });
-  $('#gbap').addEventListener('click', () => addProductDlg());
-  function addProductDlg() { if (A.length >= MAXA) return; let cover = '';
-    modal(`<h3 style="margin-top:0">🔗 ${E('gb.att.lT')}</h3><form id=gpf novalidate><label class=gb-l for=gpu>${E('gb.att.lUrl')}</label><input id=gpu type=url inputmode=url maxlength=500 required placeholder="https://" dir=ltr autocomplete=off>
-      <div class=row style="gap:8px;margin:6px 0"><button type=button id=gpfetch>${E('gb.att.lFetch')}</button></div><p class=muted id=gpmsg role=status aria-live=polite></p>
-      <label class=gb-l for=gpt>${E('gb.att.lTitle')}</label><input id=gpt maxlength=60 autocomplete=off><label class=gb-l for=gpc>${E('gb.att.lCover')}</label><div class=gb-cv><span class=gb-th id=gpth><span class=gb-ph aria-hidden=true>🛍️</span></span><input id=gpc type=file accept="image/*"></div>
-      <p id=gperr class=tu-err role=alert hidden></p><div class=row style="justify-content:flex-end;gap:8px"><button type=button data-close>${E('common.cancel')}</button><button type=submit class=primary>${E('gb.att.add')}</button></div></form>`);
-    const msg = m => { $('#gpmsg').textContent = m; }, bad = m => { $('#gperr').hidden = !m; $('#gperr').textContent = m || ''; }, urlOk = () => { try { const x = new URL($('#gpu').value.trim()); return /^https?:$/.test(x.protocol) ? x.href : ''; } catch { return ''; } };
-    const setCover = (u, pvw) => { cover = u; $('#gpth').innerHTML = u ? `<img alt="" src="${esc(pvw || attSrc(u))}">` : '<span class=gb-ph aria-hidden=true>🛍️</span>'; };
-    $('#gpfetch').onclick = async () => { bad(''); const u = urlOk(); if (!u) return bad(t('gb.att.lBad')); const b = $('#gpfetch'); b.disabled = true; msg('⏳ ' + t('gb.att.lFetching'));
-      try { const r = await api('/api/batch/link-preview', { url: u }); if (r.title && !$('#gpt').value.trim()) $('#gpt').value = r.title.slice(0, 60); if (r.cover) setCover(r.cover); msg(r.failed ? t('gb.att.lFail') : t('gb.att.lOk')); } catch (e) { msg(''); bad(gbErr(e)); } b.disabled = false; };
-    $('#gpc').onchange = async e => { const x = e.target.files[0]; if (!x) return; bad(''); msg('⏳ ' + t('gb.att.up')); try { const bl = await shrinkAtt(x), h = await uploadImg(bl, null, true); setCover('/api/img/' + h, URL.createObjectURL(bl)); msg(''); } catch (er) { msg(''); bad(er.message); } };
-    $('#gpf').onsubmit = e => { e.preventDefault(); bad(''); const u = urlOk(); if (!u) return bad(t('gb.att.lBad')); if (A.length >= MAXA) return bad(t('gb.att.max')); A.push({ type: 'product', st: 'ok', url: u, title: $('#gpt').value.trim().slice(0, 60), cover }); closeModal(); drawA(); }; }
+    box.innerHTML = `<h4>${E('gb.att.pvT')}</h4>` + gbCardHTML({ gateName: $('#gbg').value.trim() || '—', blessing: $('#gbb').value.trim() || '—', valueUsd: v.value || 0, redeemNote: $('#gbr').value.trim(), attachments: okList(), face: FE?.face() }, 'pv'); };
   $('#gbpv').addEventListener('click', () => { pvOn = !pvOn; pv(); if (pvOn) $('#gbpvbox').scrollIntoView?.({ block: 'nearest' }); });
-  try { const d = JSON.parse(localStorage[GBD] || 'null'); if (d && typeof d === 'object') { for (const [id, k] of [['gbb', 'b'], ['gbn', 'n'], ['gbv', 'v'], ['gbr', 'r'], ['gbg', 'g'], ['gbf2', 'f']]) if (typeof d[k] === 'string') $('#' + id).value = d[k].slice(0, 300);
-    if (typeof d.c === 'string' && [...$('#gbc').options].some(o => o.value === d.c && !o.disabled)) $('#gbc').value = d.c; evmSel(); if (Array.isArray(d.a)) for (const x of d.a.slice(0, MAXA)) if (x && /^\/api\/img\/[0-9a-f]{32}$|^https?:\/\//.test(x.url || '')) A.push({ type: x.type === 'product' ? 'product' : 'image', st: 'ok', url: String(x.url), title: String(x.title || '').slice(0, 60), cover: String(x.cover || '') }); } } catch {}
-  drawA();
+  let d0 = null; try { d0 = JSON.parse(localStorage[GBD] || 'null'); if (d0 && typeof d0 === 'object') { for (const [id, k] of [['gbb', 'b'], ['gbn', 'n'], ['gbv', 'v'], ['gbr', 'r'], ['gbg', 'g'], ['gbf2', 'f']]) if (typeof d0[k] === 'string') $('#' + id).value = d0[k].slice(0, 300);
+    if (typeof d0.c === 'string' && [...$('#gbc').options].some(o => o.value === d0.c && !o.disabled)) $('#gbc').value = d0.c; evmSel(); } else d0 = null; } catch { d0 = null; }
+  const onCh = () => { saveD(); pv(); FE?.draw(); };
+  AE = S.gbAE = attBind('gb', onCh, d0?.a); S.gbA = AE.A; FE = S.gbFE = faceBind('gbx', onCh, d0?.face, () => ({ blessing: $('#gbb').value.trim(), gateName: $('#gbg').value.trim(), redeemNote: $('#gbr').value.trim(), valueUsd: vals().value || 0 }));
+  ready = true;
   f.addEventListener('input', () => { upd(); saveD(); pv(); }); $('#gbc').addEventListener('change', () => { evmSel(); upd(); }); $('#gbe').addEventListener('change', upd); evmSel(); upd();
   const loadMine = async () => { let rows = []; if (S.token) { try { const r = await api('/api/batch/mine'); rows = r.batches.map(b => ({ id: b.id, gate: b.gateName, count: b.count, status: b.status, percent: b.percent })); } catch {} } if (!$('#gbmine')) return;
     $('#gbmine').innerHTML = rows.length ? `<ul class=gb-list>${rows.map(b => `<li><a href="#/gift/batch/${esc(b.id)}">🎁 ${esc(b.gate || '')} · ${num(b.count)} · ${E('gb.pg.s.' + (b.status || 'queued'))} ${b.percent != null ? b.percent + '%' : ''}</a></li>`).join('')}</ul>` : `<p class=muted>${E('gb.mine.none')}</p>`; }; loadMine();
@@ -997,8 +1039,8 @@ function gbBind() { const f = $('#gbf'); if (!f) return; S.gb = { cfg: null, pri
     if (!blessing || /\|/.test(blessing)) { err(t('gb.err.input')); $('#gbb').focus(); return; } if (!(v.count >= 1 && v.count <= 10000 && Number.isInteger(v.count))) { err(t('gb.err.count')); $('#gbn').focus(); return; }
     if (!(v.value >= 1)) { err(t('gb.err.value')); $('#gbv').focus(); return; } if (!note || [...note].length > 200) { err(t('gb.err.note')); $('#gbr').focus(); return; }
     if (!(v.fee >= 1)) { err(t('gb.err.amount')); $('#gbf2').focus(); return; } if (!gate) { err(t('gb.err.input')); $('#gbg').focus(); return; } if (!coinOk(v.coin)) { err(t('gb.coin.na')); $('#gbc').focus(); return; } if (!$('#gbag').checked) { err(t('gb.err.agree')); $('#gbag').focus(); return; }
-    const optPublic = $('#gbo1').checked, optAnchor = $('#gbo2').checked, m = mode(), body = { blessing, count: v.count, coin: v.coin, valueUsd: v.value, redeemNote: note, feeUsd: v.fee, gateName: gate, optPublic, optAnchor, attachments: okList() };
-    if (A.some(x => x.st !== 'ok')) { err(t('gb.att.busy')); $('#gbal').scrollIntoView?.({ block: 'center' }); return; }
+    const optPublic = $('#gbo1').checked, optAnchor = $('#gbo2').checked, m = mode(), body = { blessing, count: v.count, coin: v.coin, valueUsd: v.value, redeemNote: note, feeUsd: v.fee, gateName: gate, optPublic, optAnchor, attachments: okList(), face: FE?.face() || undefined };
+    if (AE.busy() || FE?.busy()) { err(t('gb.att.busy')); $('#gbal').scrollIntoView?.({ block: 'center' }); return; }
     const lock = on => { f.querySelectorAll('input,textarea,select,button').forEach(x => { if (on) { x._d = x.disabled; x.disabled = true; } else x.disabled = !!x._d; }); if (on) $('#modal-box')?.focus?.(); };
     lock(true); let sig = '';
     try { state(t('gb.st.quote'), 'wait'); const q = await api('/api/batch/quote', { count: v.count, coin: v.coin, feeUsd: v.fee }); body.quote = q.quote; // 服务端锁价：支付金额以此报价为准
@@ -1023,7 +1065,7 @@ async function gbPoll(id) { const box = $('#gbpg'); if (!box || box.dataset.id !
   const keep = document.activeElement?.id, nextIn = b.nextRetryAt ? fmtT(b.nextRetryAt) : '';
   box.innerHTML = `<section class="card motif" aria-labelledby=gbph><h3 id=gbph>${esc(b.gateName)} · ${num(b.count)}</h3><p class=gb-bless>“${esc(b.blessing)}”</p>
   <p class=gb-status><b>${E('gb.pg.s.' + b.status)}</b> · ${b.legacy ? E('gb.pg.legacy') : E('gb.pg.paid', { amt: b.payAmount, coin: b.coin, usd: gbMoney(b.feeTotalUsd) })}${b.optPublic ? ' · ' + E('gb.pg.pub') : ''}</p>
-  <p>${E('gb.pg.val', { v: gbMoney(b.valueUsd), t: gbMoney(b.valueTotalUsd) })}</p><div class=gb-note><h4>${E('gb.cl.noteT')}</h4><p dir=auto>${b.redeemNote ? esc(b.redeemNote) : E('gb.cl.noNote')}</p></div>${gbAtt(b.attachments, 'pg')}<p class=gb-disc role=note>⚠️ ${E('gb.cl.disc')}</p>
+  ${gbFaceView(b.face, b)}<p>${E('gb.pg.val', { v: gbMoney(b.valueUsd), t: gbMoney(b.valueTotalUsd) })}</p><div class=gb-note><h4>${E('gb.cl.noteT')}</h4><p dir=auto>${b.redeemNote ? esc(b.redeemNote) : E('gb.cl.noNote')}</p></div>${gbAtt(b.attachments, 'pg')}<p class=gb-disc role=note>⚠️ ${E('gb.cl.disc')}</p>
   <div class=gb-bar role=progressbar aria-valuemin=0 aria-valuemax=100 aria-valuenow="${b.percent}" aria-label="${E('gb.pg.t')}"><i style="width:${b.percent}%"></i></div>
   <p>${E('gb.pg.bar', { a: num(b.issued), b: num(b.count), p: b.percent })} · ${E('gb.pg.shards', { d: sh.done, n: sh.total })}${sh.failed ? ' · ' + E('gb.pg.sf', { f: sh.failed }) : ''} · ${E('gb.pg.claimed', { n: num(b.claimed), c: num(b.count) })}</p>
   ${b.nextRetryAt && !done ? `<p class=muted role=status>↻ ${E('gb.pg.retry', { t: nextIn })}</p>` : ''}${sh.failed ? `<p class=tu-err role=alert>${E('gb.pg.failed')}</p>` : ''}
@@ -1064,7 +1106,7 @@ function list(q, only) {
 const detail = sig => { if (sig.startsWith('AD:')) return adDetail(sig.slice(3)); ensureFeed(); resolveIdx(sig); return swBar() + detailBase(sig); };
 function detailBase(sig) {
   const w = S.wishes.find(x => x.sig === sig) || (/^SYN\d+$/.test(sig) && window.WT3D?.cardById(sig.slice(3))); if (!w) return `<p>${E('detail.notFound')}</p>`;
-  if (w.kind === 'goods') loadGoodsMeta([w]);
+  if (w.kind === 'goods') loadGoodsMeta([w]); if (w.kind === 'gift') setTimeout(() => loadGiftAtt(w));
   maybeFulfillToast(w); loadCardMeta([w]);
   if (!S.fulfill[sig] && !/^SAMPLE|^SYN|^SL|^SB/.test(sig)) loadFulfillment(sig).then(fv => { if (fv?.fulfilled) { aggregate(); if (!document.querySelector('textarea:focus') && $('#modal').hidden) route(); } });
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w), L = lockPaint(w);
@@ -1162,13 +1204,13 @@ async function evmPay(payKey, amount) { // EVM：全额转入该链单一收款�
   toast(esc(t('wish.evmSending', { i: 1 })));
   const h = await p.request({ method: 'eth_sendTransaction', params: [{ from, to: r.receive, value: '0x' + wei.toString(16) }] });
   toast(esc(t('wish.evmWaiting'))); await WTW.waitReceipt(p, h); return { chainId: +chainId, txs: [h], payKey: r.key }; }
-function coverGridHtml() { // 卡片封面设计：经典（原有分组）+ 自然 / 简约 / 情感预设 + 自定义上传
+function coverGridHtml(px = '') { // 卡片封面设计：经典（原有分组）+ 自然 / 简约 / 情感预设 + 自定义上传
   const btn = i => { const c = WTCovers.list[i], nm = WTCovers.GROUPS.classic.includes(c[0]) || c[0] === MATERIAL ? catName(c[0]) : t('cover.n.' + c[1]); return `<button type=button data-cover=${i} aria-pressed=false aria-label="${esc(nm)}" title="${esc(nm)}"><img alt="" src="${WTCovers.url(i)}"></button>`; };
   const classic = WTCovers.list.map((c, i) => [c, i]).filter(([c]) => WTCovers.GROUPS.classic.includes(c[0]) || c[0] === MATERIAL).sort((a, b) => COVER_CATS.indexOf(a[0][0] === MATERIAL ? '经典' : a[0][0]) - COVER_CATS.indexOf(b[0][0] === MATERIAL ? '经典' : b[0][0]));
   const grp = (k, inner) => `<div class=cg-sec><h4 class=cg-t>${E('cover.g.' + k)}</h4><div class=cover-grid>${inner}</div></div>`;
-  return `<div id=covers>${grp('classic', classic.map(([c, i], j, A) => (j === 0 || (A[j - 1][0][0] === MATERIAL ? '经典' : A[j - 1][0][0]) !== (c[0] === MATERIAL ? '经典' : c[0]) ? `<b class=cg-h>${esc(catName(c[0]))}</b>` : '') + btn(i)).join(''))}
+  return `<div id=${px}covers>${grp('classic', classic.map(([c, i], j, A) => (j === 0 || (A[j - 1][0][0] === MATERIAL ? '经典' : A[j - 1][0][0]) !== (c[0] === MATERIAL ? '经典' : c[0]) ? `<b class=cg-h>${esc(catName(c[0]))}</b>` : '') + btn(i)).join(''))}
     ${['nature', 'minimal', 'emotion'].map(g => grp(g, WTCovers.ids(g).map(btn).join(''))).join('')}</div>
-    <div class=cg-sec><h4 class=cg-t>${E('cover.g.custom')}</h4><div class=up-row><label class="up-box sm"><input type=file id=upC accept="image/*" class=sr-only><img id=upCi alt="" hidden><span>🖼️ ${E('wish.upCover')}</span></label><button type=button id=clrC class=link hidden>${E('wish.clearUp')}</button></div></div>`; }
+    <div class=cg-sec><h4 class=cg-t>${E('cover.g.custom')}</h4><div class=up-row><label class="up-box sm"><input type=file id=${px}upC accept="image/*" class=sr-only><img id=${px}upCi alt="" hidden><span>🖼️ ${E('wish.upCover')}</span></label><button type=button id=${px}clrC class=link hidden>${E('wish.clearUp')}</button></div></div>`; }
 function previewAside() { return `<aside class=mk-prev aria-labelledby=pvh><div class=pv-head><h4 id=pvh>👁️ ${E('pv.title')}</h4>
   <button type=button id=pvToggle class=pv-toggle aria-expanded=false aria-controls=pvPanel>${E('pv.show')}</button></div>
   <div id=pvPanel class=pv-panel><div class=pv-modes role=group aria-label="${E('pv.mode')}"><button type=button data-pv=single aria-pressed=true>${E('wish.typeSingle')}</button><button type=button data-pv=folded aria-pressed=false>${E('wish.typeFolded')}</button></div>
@@ -1181,7 +1223,7 @@ function previewHtml(st) { // st：表单当前值；所有用户文本经 esc
   if (k === 'social') { const tags = v('stg').split(/[,，\s]+/).filter(Boolean).slice(0, 5), gsel = $('#sgen'), loc = [v('scountry'), v('sprov'), v('scity')].filter(Boolean).join(' · ');
     const meta = [v('sage'), v('sgen') && gsel ? gsel.selectedOptions[0]?.textContent : '', v('sjob'), loc].filter(Boolean);
     body = `<span class=tag>💬 ${E('kind.social')}</span>${tags.length ? `<div class=pv-tags>${tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}<p dir=auto>${esc(v('sin') || t('pv.introPh'))}</p><p class=pv-sub dir=auto>🔎 ${esc(v('slk') || t('pv.lookPh'))}</p>${meta.length ? `<p class=pv-meta dir=auto>${meta.map(esc).join(' · ')}</p>` : ''}`; }
-  else if (k === 'gift') body = `<span class="tag pv-gift">🎁 ${E('kind.gift')}</span><p dir=auto>${esc(v('gnt') || t('pv.notePh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gto')) || '—')}</p>`;
+  else if (k === 'gift') body = `<span class="tag pv-gift">🎁 ${E('kind.gift')}</span><p dir=auto>${esc(v('gnt') || t('pv.notePh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gto')) || '—')}</p>${S.sgAE?.okList().length ? gbAtt(S.sgAE.okList(), 'spv') : ''}`;
   else if (k === 'gate') { const d = v('gexp'); if (GFACE.has(v('gid').toLowerCase())) img = '/gate/' + v('gid').toLowerCase() + '.webp'; body = `<span class="tag pv-gift">🎫 ${E('gate.badge')}</span><p dir=auto><b>${esc(v('gname') || t('gate.name'))}</b></p><p dir=auto>${esc(v('wt') || t('gate.benefitPh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gato')) || '—')}</p><p class=pv-meta>${d ? E('gate.until', { date: new Date(d + 'T00:00').toLocaleDateString(I18N.lang) }) : E('gate.forever')} · ${E('gate.soul')}</p>`; }
   else if (k === 'goods') { const gi = $('#gimg'); if (gi && !gi.hidden && gi.src) img = gi.src; let dom = ''; try { dom = new URL(v('gurl')).hostname.replace(/^www\./, ''); } catch {}
     body = `<span class=tag>🛍️ ${E('kind.goods')}</span><p dir=auto><b>${esc(v('gtitle') || t('pv.goodsPh'))}</b></p><p class=pv-price>${v('gprice') ? esc(v('gprice') + ' ' + v('gcur').toUpperCase()) : '—'}</p><p class=pv-meta>🔗 ${esc(dom || '—')}</p>`; }
@@ -1226,6 +1268,7 @@ function wishPanel() {
     <div id=gvisBox hidden><label>${E('vis.label')} <select id=gvis><option value=nearby>${E('vis.nearby')}</option><option value=recent>${E('vis.recent')}</option><option value=invite>${E('vis.invite')}</option></select></label>
       <div id=ginvBox hidden><label>${E('vis.inviteList')}<textarea id=ginv rows=2 maxlength=800 style="width:100%" placeholder="${E('vis.invitePh')}"></textarea></label></div></div>
     <div id=gpassBox hidden><label>${E('vis.password')}<input id=gpass type=password maxlength=64 autocomplete=new-password style="width:100%"></label><p class="muted hint">${E('vis.passHint')}</p></div>
+    <section class="gb-att sg-att" aria-labelledby=sgath>${attEditorInner('sg', 'gift.att.h')}</section>
     <p class="muted hint">${E('gift.hint')}</p></div>
     <div id=gateWrap class=kwrap hidden>
     <label>${E('gate.name')}<input id=gname maxlength=20 dir=auto style="width:100%"></label>
@@ -1455,6 +1498,7 @@ async function route() {
     $('#ctype')?.addEventListener('change', () => { pvMode = null; });
     $('#pvToggle')?.addEventListener('click', e => { const on = e.currentTarget.getAttribute('aria-expanded') !== 'true'; e.currentTarget.setAttribute('aria-expanded', on); e.currentTarget.textContent = t(on ? 'pv.hide' : 'pv.show'); $('.mk-prev').classList.toggle('open', on); });
     { const s0 = saveD; saveD = () => { s0(); renderPreview(); }; }
+    S.sgAE = attBind('sg', () => { D.sgA = S.sgAE?.okList(); saveD(); }, D.sgA); // 单张礼品卡附加内容（与团购同一组件 / 校验）
     syncShip(); syncKind(); const fc = ta.closest('.card'); fc.addEventListener('input', saveD); fc.addEventListener('change', saveD); ['#covers', '#insides'].forEach(sel => $(sel)?.addEventListener('click', () => setTimeout(saveD))); renderPreview();
     const upd = () => { const ok = $('#ag').checked && (!$('#ag2') || $('#ag2').checked); $('#ws').disabled = !ok; $('#ws').classList.toggle('breathe', ok);
       const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { amt: sol(l), dev: sol(l), tre: sol(l) }); };
@@ -1504,6 +1548,7 @@ async function route() {
         if (/[~|]/.test(gp.domain + gp.pid)) return toast(E('err.goodsUrl'), 'err');
         K = { kind, domain: gp.domain, pid: gp.pid, vis, country, province, city }; metaPayload = { ...metaPayload, url: gp.url, title, price, currency: cur, image: gp.image }; }
       else { K = { kind: 'wish', vis, country, province, city }; }
+      let giftAtt = []; if (kind === 'gift' && S.sgAE) { if (S.sgAE.busy()) return toast(E('gb.att.busy'), 'err'); giftAtt = S.sgAE.okList(); if (giftAtt.length) try { giftAtt = (await api('/api/gift-att/check', { attachments: giftAtt })).attachments; } catch (e) { return toast(esc(gbErr(e)), 'err'); } } // 付款前预检附加内容
       { await loadBlocklist(true); const h = window.__blkCheck?.(); if (h) return toast(esc($('#blkwarn').textContent), 'err'); } // 付款前拦截（服务器审核同样强制）
       if (!($('#pv')?.value === 'evm') && !(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
@@ -1529,7 +1574,7 @@ async function route() {
           body: JSON.stringify({ sig, cat: K?.kind === 'goods' ? MATERIAL : cat, text: priv ? '🔒' : txt, author: S.pubkey, lamports: lam, shippingNote, source: S.mode }) }).catch(() => {});
         if (K?.kind === 'social' && contact) api('/api/contact', { sig, contact, show: showCt }).catch(e => toast(esc(e.message), 'err'));
         if (K?.kind === 'goods') { S.goods[sig] = { ...metaPayload, domain: K.domain, fetchedAt: gp.fetchedAt }; api('/api/goods-meta', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err')); }
-        if (K?.kind === 'gift') api('/api/gift-sent', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err'));
+        if (K?.kind === 'gift') api('/api/gift-sent', { sig, ...metaPayload, attachments: giftAtt.length ? giftAtt : undefined }).catch(e => toast(esc(e.message), 'err'));
         if (K?.kind === 'gate') api('/api/gate-sent', { sig }).then(() => { S.gate = null; }).catch(e => toast(esc(e.message), 'err'));
         else if (metaPayload && (metaPayload.country || metaPayload.province || metaPayload.city || metaPayload.age || metaPayload.gender || metaPayload.job || K?.vis !== 'public')) api('/api/card-meta', { sig, ...metaPayload }).catch(() => {});
         if (metaPayload.city || metaPayload.province || metaPayload.country) { S.myLoc = { country: metaPayload.country, province: metaPayload.province, city: metaPayload.city }; localStorage.wt_loc = JSON.stringify(S.myLoc); api('/api/me/loc', S.myLoc).catch(() => {}); }

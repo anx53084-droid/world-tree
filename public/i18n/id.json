@@ -988,5 +988,12 @@
   "acct.toSecurity": "Keamanan (perangkat, 2FA)",
   "err.nameLen": "Nama maksimal 20 karakter",
   "err.nameLink": "Nama tidak boleh berisi tautan",
-  "err.avatar": "Gambar avatar tidak valid, unggah ulang"
+  "err.avatar": "Gambar avatar tidak valid, unggah ulang",
+  "gift.att.h": "Gambar dan tautan produk. Penerima dapat melihatnya di detail kartu; tidak dapat diubah setelah kartu tercatat on-chain.",
+  "gb.face.t": "Desain kartu (opsional)",
+  "gb.face.h": "Sampul, templat halaman dalam, gambar khusus, dan teks dalam. Semua kode klaim dalam batch ini memakai desain yang sama. Jika tidak dipilih, gaya bawaan dipakai.",
+  "gb.face.text": "Teks dalam (opsional, maks. 140 karakter)",
+  "gb.face.reset": "Kembalikan desain bawaan",
+  "gb.face.def": "Memakai gaya bawaan",
+  "gb.err.face": "Desain kartu tidak valid, silakan pilih lagi"
 }
