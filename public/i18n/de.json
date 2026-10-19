@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "Angemeldet, aber es wurde keine EVM-Wallet erstellt. Bitte später erneut versuchen",
   "wal.dynEvmOff": "Die EVM-Wallet für E-Mail- / Google-Login ist noch nicht aktiviert. Bitte vorerst eine andere EVM-Wallet nutzen",
   "wal.dynEvmNet": "Die E-Mail-Wallet unterstützt das gewählte Netzwerk ({chain}) noch nicht. Die Anmeldung wurde im aktuellen Netzwerk der Wallet signiert; vor Zahlungen in diesem Netzwerk muss es aktiviert werden",
-  "acct.idDynEvm": "E-Mail-Wallet-Inhaber (EVM)"
+  "acct.idDynEvm": "E-Mail-Wallet-Inhaber (EVM)",
+  "wal.vendorOld": "Die Wallet-Komponente wurde gerade aktualisiert. Bitte Seite neu laden und erneut versuchen",
+  "wal.copyAddr": "Adresse kopieren",
+  "wal.addrCopied": "Kopiert"
 }

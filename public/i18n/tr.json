@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "Giriş yapıldı ancak EVM cüzdanı oluşturulamadı. Lütfen daha sonra tekrar deneyin",
   "wal.dynEvmOff": "E-posta / Google girişi için EVM cüzdanı henüz etkin değil. Şimdilik başka bir EVM cüzdanı kullanın",
   "wal.dynEvmNet": "E-posta cüzdanı seçilen ağı ({chain}) henüz desteklemiyor. Giriş cüzdanın mevcut ağında imzalandı; o ağda ödeme yapmadan önce etkinleştirilmesi gerekir",
-  "acct.idDynEvm": "E-posta cüzdanı sahibi (EVM)"
+  "acct.idDynEvm": "E-posta cüzdanı sahibi (EVM)",
+  "wal.vendorOld": "Cüzdan bileşeni az önce güncellendi. Lütfen sayfayı yenileyip tekrar deneyin",
+  "wal.copyAddr": "Adresi kopyala",
+  "wal.addrCopied": "Kopyalandı"
 }

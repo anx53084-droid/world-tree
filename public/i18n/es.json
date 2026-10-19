@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "Sesión iniciada, pero no se creó la wallet EVM. Inténtalo más tarde",
   "wal.dynEvmOff": "La wallet EVM del inicio con correo / Google aún no está habilitada. Usa otra wallet EVM por ahora",
   "wal.dynEvmNet": "La wallet de correo aún no admite la red seleccionada ({chain}). Iniciaste sesión en la red actual de la wallet; debe habilitarse antes de pagar en esa red",
-  "acct.idDynEvm": "Titular de wallet de correo (EVM)"
+  "acct.idDynEvm": "Titular de wallet de correo (EVM)",
+  "wal.vendorOld": "El componente de wallet se acaba de actualizar. Recarga la página e inténtalo de nuevo",
+  "wal.copyAddr": "Copiar dirección",
+  "wal.addrCopied": "Copiado"
 }

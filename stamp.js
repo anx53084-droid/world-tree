@@ -7,6 +7,8 @@ function walk(d, out = []) { for (const f of fs.readdirSync(d, { withFileTypes: 
 function stampHtml(html, pub) {
   const build = h8(walk(pub).sort().map(p => p + ':' + h8(fs.readFileSync(p))).join('\n'));
   html = html.replace(/(<(?:link|script)\b[^>]*?\b(?:href|src)=")([a-z0-9_\-/.]+\.(?:css|js))(?:\?v=[0-9a-f]+)?(")/gi, (m, a, f, b) => { const p = path.join(pub, f.replace(/^\//, '')); if (!p.startsWith(pub) || !fs.existsSync(p)) return m; return a + f + '?v=' + h8(fs.readFileSync(p)) + b; });
+  const vd = path.join(pub, 'vendor'), vh = fs.existsSync(vd) ? fs.readdirSync(vd).filter(f => /\.js$/.test(f)).sort().map(f => f + ':' + h8(fs.readFileSync(path.join(vd, f)))).join(',') : ''; // 动态加载的 vendor 脚本内容哈希（wallets.js 的 WTV() 据此加 ?v=）
+  html = html.replace(/<meta name="wt-vendor" content="[^"]*">/, '').replace('<meta charset="utf-8">', `<meta charset="utf-8"><meta name="wt-vendor" content="${vh}">`);
   html = html.replace(/<meta name="wt-build" content="[^"]*">/, '').replace('<meta charset="utf-8">', `<meta charset="utf-8"><meta name="wt-build" content="${build}">`);
   return { html, build };
 }

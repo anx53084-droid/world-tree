@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "Connecté, mais aucun portefeuille EVM n'a été créé. Réessayez plus tard",
   "wal.dynEvmOff": "Le portefeuille EVM de la connexion e-mail / Google n'est pas encore activé. Utilisez un autre portefeuille EVM pour l'instant",
   "wal.dynEvmNet": "Le portefeuille e-mail ne prend pas encore en charge le réseau choisi ({chain}). Connexion signée sur le réseau actuel du portefeuille ; il faut l'activer avant de payer sur ce réseau",
-  "acct.idDynEvm": "Détenteur du portefeuille e-mail (EVM)"
+  "acct.idDynEvm": "Détenteur du portefeuille e-mail (EVM)",
+  "wal.vendorOld": "Le composant portefeuille vient d'être mis à jour. Actualisez la page et réessayez",
+  "wal.copyAddr": "Copier l'adresse",
+  "wal.addrCopied": "Copié"
 }

@@ -36,18 +36,25 @@
       onChange(cb) { try { p.on?.('accountChanged', k => cb(k ? k.toString() : null)); p.on?.('disconnect', () => cb(null)); } catch {} },
       async disconnect() { try { await p.disconnect?.(); } catch {} } }; }
   const b58dec = s => { let n = 0n; for (const c of s) { const i = A.indexOf(c); if (i < 0) throw new Error('b58'); n = n * 58n + BigInt(i); } const out = []; while (n > 0n) { out.unshift(Number(n & 255n)); n >>= 8n; } for (const c of s) { if (c !== '1') break; out.unshift(0); } return Uint8Array.from(out); };
-  const loadJs = src => new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = () => no(new Error('load ' + src)); document.head.append(sc); });
+  const loadJs = src => new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = vsrc(src); sc.onload = ok; sc.onerror = () => no(new Error('load ' + src)); document.head.append(sc); });
+  // vendor 脚本带内容哈希（来自 <meta name=wt-vendor>，stamp.js 生成）：部署后不会拿到浏览器 / SW 缓存里的旧版
+  function vsrc(src, bust) { const m = /^vendor\/([\w.\-]+\.js)$/.exec(src); if (!m) return src; const h = (document.querySelector('meta[name=wt-vendor]')?.content || '').split(',').map(x => x.split(':')).find(x => x[0] === m[1])?.[1];
+    const q = [h && 'v=' + h, bust && 'r=' + bust].filter(Boolean).join('&'); return q ? src + '?' + q : src; }
+  // 按需加载 vendor 并做特性检测：已加载 / 缓存的是旧版（缺少所需函数）时带新哈希 + 破缓存参数重新加载；仍缺则给出可读错误（code vendorOld），而不是 “x is not a function”
+  async function needVendor(src, g, fn) { const has = () => typeof window[g]?.[fn] === 'function'; if (has()) return window[g];
+    const load = bust => new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = vsrc(src, bust); sc.onload = ok; sc.onerror = () => no(new Error('load ' + src)); document.head.append(sc); });
+    if (!window[g]) await load(); if (!has()) { await load(Date.now().toString(36)).catch(() => {}); } if (!has()) throw Object.assign(new Error('vendor outdated: ' + src), { code: 'vendorOld' }); return window[g]; }
   const isAndroid = () => /Android/i.test(navigator.userAgent);
   // Android Chrome：Mobile Wallet Adapter（Wallet Standard 钱包；connect 与 signIn 合并为一次授权，authToken 持久化在 localStorage）
   let mwaP = null; const initMwa = () => mwaP ||= (async () => { if (!isAndroid() || !isSecureContext) return false; try { await loadJs('vendor/mwa.js'); return !!window.WTMWA?.init({ name: '光栖', uri: location.origin, icon: 'og-image.png' }); } catch { return false; } })();
   const MWA_NAME = /mobile wallet adapter/i;
   // WalletConnect（兜底）：按需加载库；需要服务端配置的项目 ID（WTW.cfg.wcProjectId）；连接二维码由站内弹窗显示（WTW.onWcUri）
-  function wcAdapter() { let inner = null; const get = async () => { if (inner) return inner; await loadJs('vendor/walletconnect.js'); const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' });
+  function wcAdapter() { let inner = null; const get = async () => { if (inner) return inner; await needVendor('vendor/walletconnect.js', 'WTWC', 'create'); const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' });
       return inner = window.WTWC.create({ projectId: pid, metadata: { name: '光栖', description: 'World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), b58, b58dec }); };
     return { id: 'walletconnect', name: 'WalletConnect', canSignIn: false, connect: async sl => (await get()).connect(sl), signAndSend: async tx => (await get()).signAndSend(tx), signMessage: async m => (await get()).signMessage(m), onChange: cb => { get().then(i => i.onChange(cb)).catch(() => {}); }, disconnect: async () => { try { await inner?.disconnect(); } catch {} } }; }
   // Dynamic（邮箱 OTP / Google → 非托管 Solana 嵌入式钱包）：按需加载 vendor/dynamic.js；需要服务端公开配置的 Environment ID（WTW.cfg.dynamicEnvId）
   function dynAdapter() { let inner = null; const get = async () => { if (inner) return inner; const id = WTW.cfg.dynamicEnvId; if (!id) throw Object.assign(new Error('Dynamic not configured'), { code: 'dynOff' });
-      if (!window.WTDYN) await loadJs('vendor/dynamic.js'); window.WTDYN.envId = id; await window.WTDYN.init(id); return inner = window.WTDYN.adapter(); };
+      await needVendor('vendor/dynamic.js', 'WTDYN', 'adapter'); window.WTDYN.envId = id; await window.WTDYN.init(id); return inner = window.WTDYN.adapter(); };
     return { id: 'dynamic', name: 'Dynamic', canSignIn: false, connect: async sl => (await get()).connect(sl), signAndSend: async tx => (await get()).signAndSend(tx), signMessage: async m => (await get()).signMessage(m), onChange: cb => { get().then(i => i.onChange(cb)).catch(() => {}); }, disconnect: async () => { try { await (await get()).disconnect(); } catch {} } }; }
   function solWallets() { // 返回四个固定钱包 + 其余 Wallet Standard 钱包；installed 表示可直接连接
     const out = [], used = new Set();
@@ -58,6 +65,10 @@
     out.push({ id: 'dynamic', name: 'Dynamic', installed: true, dyn: true, adapter: dynAdapter }); // 邮箱 / Google 登录
     out.push({ id: 'walletconnect', name: 'WalletConnect', installed: true, wc: true, adapter: wcAdapter }); // 兜底项
     return out; }
+  // 钱包弹窗显示开关：隐藏的只是入口（代码与已有会话保留）。恢复：evmTab: true / hideSol: []；也可在页面里预先设置 window.WT_WALLET_UI 覆盖
+  const ui = { evmTab: false, hideSol: ['solflare', 'backpack', 'okx'], ...(window.WT_WALLET_UI || {}) };
+  const RANK = { phantom: 0, mwa: 1, dynamic: 2, walletconnect: 4 }; // 其余检测到的 Wallet Standard 钱包排在 WalletConnect 之前
+  const solList = () => solWallets().filter(w => !ui.hideSol.includes(w.id) && !ui.hideSol.some(h => w.id.startsWith('std:') && w.name.toLowerCase().includes(h))).sort((a, b) => (RANK[a.id] ?? 3) - (RANK[b.id] ?? 3));
   // ---- EVM：EIP-6963 发现 + 注入式回退 ----
   const evm = new Map();
   addEventListener('eip6963:announceProvider', e => { const d = e.detail; if (d?.info?.rdns && d.provider) evm.set(d.info.rdns, d); });
@@ -70,10 +81,10 @@
     { id: 'bitget', name: 'Bitget Wallet', rdns: 'com.bitget.web3', inj: () => window.bitkeep?.ethereum?.request && window.bitkeep.ethereum, deep: () => `https://bkcode.vip?action=dapp&url=${enc(here())}`, site: 'https://web3.bitget.com/' }];
   // EVM 版 WalletConnect / Dynamic：都包装成 EIP-1193 provider（按需加载 vendor），复用现有 personal_sign 登录与 eth_sendTransaction 支付
   const evmRpc = id => WTW.cfg.evmRpc?.(id) || '';
-  let wcEvm = null; const wcEvmProvider = () => wcEvm ||= (() => { let inner = null; const get = async () => { if (inner) return inner; const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' }); await loadJs('vendor/walletconnect.js');
+  let wcEvm = null; const wcEvmProvider = () => wcEvm ||= (() => { let inner = null; const get = async () => { if (inner) return inner; const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' }); await needVendor('vendor/walletconnect.js', 'WTWC', 'createEvm');
       return inner = window.WTWC.createEvm({ projectId: pid, metadata: { name: '光栖', description: 'World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), chains: WTW.cfg.evmChainIds?.() || [11155111, 84532, 421614, 97], rpc: evmRpc }); }, Lq = [];
     return { isWalletConnect: true, request: async a => (await get()).request(a), on: (e, f) => { if (inner) inner.on(e, f); else Lq.push([e, f]); get().then(i => { while (Lq.length) i.on(...Lq.shift()); }).catch(() => {}); }, removeListener: (e, f) => inner?.removeListener(e, f), disconnect: async () => inner?.disconnect() }; })();
-  let dynEvm = null; const dynEvmProvider = () => dynEvm ||= (() => { let inner = null; const get = async () => { if (inner) return inner; const id = WTW.cfg.dynamicEnvId; if (!id) throw Object.assign(new Error('Dynamic not configured'), { code: 'dynOff' }); if (!window.WTDYN) await loadJs('vendor/dynamic.js'); window.WTDYN.envId = id; await window.WTDYN.init(id); return inner = window.WTDYN.evmProvider(evmRpc); };
+  let dynEvm = null; const dynEvmProvider = () => dynEvm ||= (() => { let inner = null; const get = async () => { if (inner) return inner; const id = WTW.cfg.dynamicEnvId; if (!id) throw Object.assign(new Error('Dynamic not configured'), { code: 'dynOff' }); await needVendor('vendor/dynamic.js', 'WTDYN', 'evmProvider'); window.WTDYN.envId = id; await window.WTDYN.init(id); return inner = window.WTDYN.evmProvider(evmRpc); };
     return { isDynamic: true, request: async a => (await get()).request(a), on: (e, f) => { get().then(i => i.on(e, f)).catch(() => {}); }, removeListener: (e, f) => inner?.removeListener(e, f) }; })();
   function evmWallets() { ask(); const out = [], used = new Set();
     for (const d of EVM) { const a = evm.get(d.rdns); if (a) used.add(d.rdns); const p = a?.provider || d.inj(); out.push({ ...d, icon: a?.info.icon, installed: !!p, provider: p }); }
@@ -100,5 +111,5 @@
     let c = await chainOf(p); if (LOGIN_CHAINS.includes(c) && (!want || c === +want)) return c;
     if (want) { try { await switchChain(p, want, cfg); } catch (e) { if (e?.code === 4001) throw e; } c = await chainOf(p); }
     if (!LOGIN_CHAINS.includes(c)) throw Object.assign(new Error('unsupported chain ' + c), { code: 'chainUnsupported' }); return c; }
-  window.WTW = { cfg: {}, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
+  window.WTW = { cfg: {}, ui, solList, vsrc, needVendor, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
 })();

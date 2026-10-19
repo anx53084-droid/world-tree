@@ -488,3 +488,6 @@ svg.gface { height: auto }
 .gb-face { margin: 12px 0 } .gb-face textarea { width: 100% } .gb-facepv { margin-top: 6px }
 .sg-att { margin: 10px 0 } .gift-att:empty { display: none }
 .gb-fib .gb-bless { color: #7a4a10; font-style: normal }
+
+.addrcp { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 24px; height: 24px; margin-inline-start: 2px; border-radius: 6px; color: inherit; opacity: .85 } .addrcp:hover, .addrcp:focus-visible { opacity: 1; background: #ffffff1a; outline: none }
+.acaddr { display: flex; align-items: center; gap: 2px; margin-top: 2px; font-size: 12px; color: #c9d2f0 }

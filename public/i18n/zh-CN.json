@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "登录成功，但没有创建出 EVM 钱包，请稍后再试",
   "wal.dynEvmOff": "邮箱 / Google 登录的 EVM 钱包尚未启用，请先使用其他 EVM 钱包",
   "wal.dynEvmNet": "邮箱钱包暂不支持所选网络（{chain}），已按钱包当前网络签名登录；在该网络付款前需先启用它",
-  "acct.idDynEvm": "邮箱钱包持有者（EVM）"
+  "acct.idDynEvm": "邮箱钱包持有者（EVM）",
+  "wal.vendorOld": "钱包组件刚刚更新，请刷新页面后再试",
+  "wal.copyAddr": "复制地址",
+  "wal.addrCopied": "已复制"
 }

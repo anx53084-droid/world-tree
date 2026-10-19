@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "Signed in, but no EVM wallet was created. Please try again later",
   "wal.dynEvmOff": "The EVM wallet for email / Google sign-in isn't enabled yet. Please use another EVM wallet for now",
   "wal.dynEvmNet": "The email wallet doesn't support the selected network ({chain}) yet. You signed in on the wallet's current network; it must be enabled before paying on that network",
-  "acct.idDynEvm": "Email wallet holder (EVM)"
+  "acct.idDynEvm": "Email wallet holder (EVM)",
+  "wal.vendorOld": "The wallet component was just updated. Please refresh the page and try again",
+  "wal.copyAddr": "Copy address",
+  "wal.addrCopied": "Copied"
 }

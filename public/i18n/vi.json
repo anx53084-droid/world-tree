@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "Đã đăng nhập nhưng chưa tạo được ví EVM. Vui lòng thử lại sau",
   "wal.dynEvmOff": "Ví EVM cho đăng nhập email / Google chưa được bật. Tạm thời hãy dùng ví EVM khác",
   "wal.dynEvmNet": "Ví email chưa hỗ trợ mạng đã chọn ({chain}). Đã ký đăng nhập trên mạng hiện tại của ví; cần bật mạng đó trước khi thanh toán trên mạng ấy",
-  "acct.idDynEvm": "Chủ ví email (EVM)"
+  "acct.idDynEvm": "Chủ ví email (EVM)",
+  "wal.vendorOld": "Thành phần ví vừa được cập nhật. Vui lòng tải lại trang rồi thử lại",
+  "wal.copyAddr": "Sao chép địa chỉ",
+  "wal.addrCopied": "Đã sao chép"
 }

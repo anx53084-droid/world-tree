@@ -21,12 +21,21 @@ const MOCK_PROV = `const mkP = (ch, onUri) => { const L = {}; return { on: (e, f
   const srv = cp.spawn('node', ['server.js'], { cwd: tmp, env: { ...process.env, PORT: port, ADMIN_KEY: 'k-test', D1_API_TOKEN: '', PRICE_MOCK: '1', WC_PROJECT_ID: 'pid-test', DYNAMIC_ENV_ID: 'env-test' }, stdio: 'ignore' });
   let b; try { for (let i = 0; i < 80; i++) { try { await fetch(Bs + '/api/health'); break; } catch { await new Promise(r => setTimeout(r, 250)); } }
     b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-    const page = async (dyn = {}) => { const c = await b.newContext({ ...devices['iPhone 13'], viewport: { width: 412, height: 860 } }); const p = await c.newPage(); await p.exposeFunction('nodeSign', sign); await p.addInitScript(() => { localStorage.gq_guide_dismissed = '1'; });
-      await p.route('**/vendor/walletconnect.js', r => r.fulfill({ contentType: 'text/javascript', body: `${MOCK_PROV} window.WTWC = { createEvm: o => { window.__wcOpts = o; return mkP(84532, o.onUri); } };` }));
-      await p.route('**/vendor/dynamic.js', r => r.fulfill({ contentType: 'text/javascript', body: `${MOCK_PROV} let ea = null; window.WTDYN = { init: async () => {}, address: () => null, evmAddress: () => ea, evmEnabled: () => ${dyn.evm !== false}, evmNetworks: () => [1], ensureWallet: async () => { ea = '${ADDR}'; },
-        sendEmail: async e => ({ e }), verify: async (o, c, ch) => { window.__dynChain = ch; if (c !== '123456') throw new Error('bad code'); ea = '${ADDR}'; }, evmProvider: rpc => { window.__dynRpc = typeof rpc; return mkP(1); }, logout: async () => {} };` }));
-      await p.goto(Bs + '/?lang=zh-CN'); await p.waitForFunction(() => window.WTW && typeof S !== 'undefined' && S.cfg?.evm, null, { timeout: 60000 }); return p; };
+    const page = async (dyn = {}) => { const urls = []; const c = await b.newContext({ ...devices['iPhone 13'], viewport: { width: 412, height: 860 } }); const p = await c.newPage(); await p.exposeFunction('nodeSign', sign); await p.addInitScript(ev => { localStorage.gq_guide_dismissed = '1'; if (ev) window.WT_WALLET_UI = { evmTab: true }; }, dyn.ui !== 'default');
+      await p.route('**/vendor/walletconnect.js*', r => { urls.push(r.request().url()); if (dyn.stale && !/[?&]r=/.test(r.request().url())) return r.fulfill({ contentType: 'text/javascript', body: 'window.WTWC = { create() {} };' }); return r.fulfill({ contentType: 'text/javascript', body: `${MOCK_PROV} window.WTWC = { createEvm: o => { window.__wcOpts = o; return mkP(84532, o.onUri); } };` }); });
+      await p.route('**/vendor/dynamic.js*', r => { urls.push(r.request().url()); if (dyn.stale && !/[?&]r=/.test(r.request().url())) return r.fulfill({ contentType: 'text/javascript', body: 'window.WTDYN = { init: async () => {}, adapter() {}, address: () => null };' }); return r.fulfill({ contentType: 'text/javascript', body: `${MOCK_PROV} let ea = null; window.WTDYN = { init: async () => {}, address: () => null, evmAddress: () => ea, evmEnabled: () => ${dyn.evm !== false}, evmNetworks: () => [1], ensureWallet: async () => { ea = '${ADDR}'; },
+        sendEmail: async e => ({ e }), verify: async (o, c, ch) => { window.__dynChain = ch; if (c !== '123456') throw new Error('bad code'); ea = '${ADDR}'; }, evmProvider: rpc => { window.__dynRpc = typeof rpc; return mkP(1); }, logout: async () => {} };` }); });
+      await p.goto(Bs + '/?lang=zh-CN'); await p.waitForFunction(() => window.WTW && typeof S !== 'undefined' && S.cfg?.evm, null, { timeout: 60000 }); p.urls = urls; return p; };
     const T = JSON.parse(fs.readFileSync(D + '/public/i18n/zh-CN.json', 'utf8')), toastHas = (p, s) => p.waitForFunction(s => [...document.querySelectorAll('.toast')].some(x => x.textContent.includes(s)), s, { timeout: 15000 });
+    console.log('default wallet modal (t219u)');
+    { const q = await page({ ui: 'default' }); await q.evaluate(() => connectWallet('evm')); await q.waitForSelector('.wlist');
+      ok(!(await q.$('[data-tab]')) && !(await q.$('#wch')), '默认：EVM 标签整体隐藏（即使请求 EVM 也只显示 Solana），只剩一个链时不显示标签切换');
+      const ids = await q.$$eval('.wlist .witem', a => a.map(x => x.dataset.w || (x.textContent.includes('Phantom') ? 'phantom' : x.textContent.trim().slice(0, 12))));
+      ok(!ids.some(x => /solflare|backpack|okx/i.test(x)), '默认：隐藏 Solflare / Backpack / OKX Wallet');
+      ok(ids[0] === 'phantom' && ids.slice(-2).join() === 'dynamic,walletconnect', '默认顺序：Phantom → (MWA) → 邮箱 / Google → WalletConnect：' + ids.join(','));
+      ok(!(await q.$('.wmob')) && !(await q.textContent('#modal-box')).includes(T['wal.solHint']), '说明文字精简：去掉 Solana 支持列表与手机提示');
+      ok(await q.evaluate(() => WTW.solWallets().some(w => w.id === 'solflare') && WTW.evmWallets().some(w => w.id === 'walletconnect')), '隐藏只作用于入口：钱包代码保留（已有会话照常恢复）');
+      await q.context().close(); }
     console.log('wallet list');
     let p = await page(); await p.evaluate(() => connectWallet('evm')); await p.waitForSelector('.wlist');
     const items = await p.$$eval('.wlist .witem', a => a.map(x => (x.dataset.w || '') + '|' + x.textContent));
@@ -55,6 +64,22 @@ const MOCK_PROV = `const mkP = (ch, onUri) => { const L = {}; return { on: (e, f
     await toastHas(p, T['wal.dynEvmNet'].split('{')[0].slice(0, 6)); ok(true, '所选测试网未在后台启用：提示（登录照常）');
     ok((await p.textContent('#acard')).includes(T['acct.idDynEvm']), '账户卡片显示「邮箱钱包持有者（EVM）」');
     await p.context().close();
+    console.log('copy address');
+    { const c = await b.newContext({ viewport: { width: 412, height: 860 }, permissions: ['clipboard-read', 'clipboard-write'] }); const q = await c.newPage(); await q.addInitScript(() => { localStorage.gq_guide_dismissed = '1'; });
+      await q.goto(Bs + '/?lang=zh-CN'); const lg = await (await fetch(Bs + '/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'copy@test.dev' }) })).json();
+      await q.evaluate(t => { localStorage.wt_token = t; }, lg.token); await q.reload(); await q.waitForSelector('#wscp', { timeout: 30000 });
+      await q.click('#wscp'); await toastHas(q, T['wal.addrCopied']); ok(await q.evaluate(() => navigator.clipboard.readText()) === lg.pubkey, '顶栏地址胶囊复制按钮：复制完整地址，提示「已复制」');
+      ok(await q.$('#accp') !== null && await q.$eval('#accp', e => e.dataset.addr) === lg.pubkey && await q.$eval('#accp', e => !!e.getAttribute('aria-label')), '抽屉账户卡地址后有复制按钮（完整地址、无障碍标签）');
+      ok(Object.keys(JSON.parse(fs.readFileSync(D + '/public/i18n/en.json', 'utf8'))).includes('wal.addrCopied'), '「已复制」文案在词典中'); await c.close(); }
+    console.log('stale vendor cache');
+    p = await page({ stale: true }); await p.evaluate(() => connectWallet('evm')); await p.click('.witem[data-w=walletconnect]'); await p.waitForSelector('#wcwait', { timeout: 15000 });
+    ok(p.urls.length === 2 && /\?v=[0-9a-f]{10}$/.test(p.urls[0]) && /[?&]r=/.test(p.urls[1]), '旧版 walletconnect.js（缺 createEvm）：带内容哈希加载，特性检测后破缓存重载，不报 “not a function”');
+    await p.waitForFunction(() => localStorage.wt_evm === 'walletconnect', null, { timeout: 15000 }); ok(true, '重载后 WalletConnect 登录照常');
+    await p.context().close(); p = await page({ stale: true });
+    await p.evaluate(() => connectWallet('evm')); await p.click('.witem[data-w=dynamic]'); await p.waitForSelector('#dem', { timeout: 15000 }); ok(p.urls.filter(u => /dynamic/.test(u)).length === 2, '旧版 dynamic.js（缺 evmProvider，复现 06:00 截图）：自动重载新版，邮箱登录入口正常打开');
+    await p.fill('#dem', 'evm@test.dev'); await p.click('#dsend'); await p.waitForSelector('#dcode'); await p.fill('#dcode', '123456'); await p.click('#dver'); await p.waitForFunction(() => localStorage.wt_evm === 'dynamic', null, { timeout: 15000 }); ok(true, '重载后 EVM 邮箱登录走通');
+    await p.context().close(); p = await page({ stale: true }); await p.route('**/vendor/dynamic.js*', r => r.fulfill({ contentType: 'text/javascript', body: 'window.WTDYN = { init: async () => {}, adapter() {} };' }));
+    await p.evaluate(() => connectWallet('evm')); await p.click('.witem[data-w=dynamic]'); await toastHas(p, T['wal.vendorOld']); ok(true, '始终拿到旧版：提示刷新页面（可读文案），不出现 “not a function”'); await p.context().close();
     console.log(`\nverify-evmwallets: ${n} checks passed`);
   } finally { await b?.close(); srv.kill(); }
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

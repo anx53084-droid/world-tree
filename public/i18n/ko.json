@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "로그인했지만 EVM 지갑이 생성되지 않았습니다. 잠시 후 다시 시도하세요",
   "wal.dynEvmOff": "이메일 / Google 로그인용 EVM 지갑이 아직 활성화되지 않았습니다. 다른 EVM 지갑을 사용하세요",
   "wal.dynEvmNet": "이메일 지갑은 선택한 네트워크({chain})를 아직 지원하지 않습니다. 지갑의 현재 네트워크로 서명 로그인했으며, 해당 네트워크에서 결제하려면 먼저 활성화해야 합니다",
-  "acct.idDynEvm": "이메일 지갑 보유자(EVM)"
+  "acct.idDynEvm": "이메일 지갑 보유자(EVM)",
+  "wal.vendorOld": "지갑 구성 요소가 방금 업데이트되었습니다. 페이지를 새로고침한 뒤 다시 시도하세요",
+  "wal.copyAddr": "주소 복사",
+  "wal.addrCopied": "복사됨"
 }

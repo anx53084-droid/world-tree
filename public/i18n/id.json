@@ -1003,5 +1003,8 @@
   "wal.dynNoEvm": "Berhasil masuk, tetapi dompet EVM tidak dibuat. Coba lagi nanti",
   "wal.dynEvmOff": "Dompet EVM untuk login email / Google belum diaktifkan. Gunakan dompet EVM lain untuk sementara",
   "wal.dynEvmNet": "Dompet email belum mendukung jaringan yang dipilih ({chain}). Login ditandatangani di jaringan dompet saat ini; aktifkan dulu sebelum membayar di jaringan itu",
-  "acct.idDynEvm": "Pemilik dompet email (EVM)"
+  "acct.idDynEvm": "Pemilik dompet email (EVM)",
+  "wal.vendorOld": "Komponen dompet baru saja diperbarui. Muat ulang halaman lalu coba lagi",
+  "wal.copyAddr": "Salin alamat",
+  "wal.addrCopied": "Tersalin"
 }

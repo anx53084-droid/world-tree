@@ -1,6 +1,6 @@
 // 世界树许愿树 前端（SPA，hash 路由）。链上为唯一事实来源；本文件只读链 + 发起签名。
 let W3 = window.solanaWeb3; // web3.js 仅写链时按需加载（~480KB），不阻塞首屏
-const needW3 = () => W3 ? Promise.resolve(W3) : (needW3.p ||= new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'vendor/web3.iife.min.js'; sc.onload = () => res(W3 = window.solanaWeb3); sc.onerror = rej; document.head.append(sc); }));
+const needW3 = () => W3 ? Promise.resolve(W3) : (needW3.p ||= new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = WTW.vsrc('vendor/web3.iife.min.js'); sc.onload = () => res(W3 = window.solanaWeb3); sc.onerror = rej; document.head.append(sc); }));
 const TREE = 'pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb', MEMO = 'MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z', TAG = 'WTREE1|';
 const RPC_READ = '/api/rpc'; // 读层：同源中继 → devnet RPC。换索引器（Helius/自建 Geyser）时只需改 loadWishes()
 const RPC_WRITE = 'https://api.devnet.solana.com';
@@ -329,6 +329,7 @@ let nonceP = null, nonceAt = 0; const getNonce = () => { if (!nonceP || Date.now
 const prefetchNonce = () => { if (!nonceP) { nonceAt = Date.now(); nonceP = api('/api/nonce').then(r => r.nonce).catch(() => { nonceP = null; }); } };
 const STMT = 'Sign in to World Tree. This request will not trigger a transaction or cost any fees.';
 function walErr(e) { const m = String(e?.message || e || ''); // 钱包错误 → 本地化提示
+  if (e?.code === 'vendorOld') return t('wal.vendorOld');
   if (e?.code === 4001 || e?.code === 'ACTION_REJECTED' || /reject|denied|cancel|declin/i.test(m)) return t('wal.rejected');
   if (/chain id|chainid|chain_id/i.test(m) || e?.code === 'chainId') return t('wal.chainMismatch');
   if (e?.code === 'chainUnsupported') return t('wal.chainUnsupported'); if (e?.code === 'nonce') return t('err.nonce'); if (e?.code === 'sig') return t('err.sig');
@@ -368,10 +369,10 @@ function walletMissing(w, kind) { // 未检测到：安装链接 + 在钱包内�
     <div class="row wmiss">${w.site ? `<a class="btn primary" href="${esc(w.site)}" target=_blank rel=noopener>⬇️ ${E('wal.install')}</a>` : ''}${w.deep ? `<a class=btn href="${esc(w.deep())}">📱 ${E('wal.openIn')}</a>` : ''}</div>
     <div class=row style="justify-content:space-between;margin-top:12px"><button type=button id=wback>← ${E('wal.back')}</button><button data-close>${E('common.cancel')}</button></div>`);
   $('#wback').onclick = () => connectWallet(kind); }
-function connectWallet(tab) {
-  tab = tab || localStorage.wt_wtab || 'sol'; const ch = localStorage.wt_chain || '84532', C = evmChains(), np = WTW.noProvider(tab === 'evm' ? 'evm' : 'sol');
-  modal(`<h3 style="margin-top:0">${E('wal.title')}</h3><div class="row tabs"><button type=button data-tab=sol class="${tab === 'sol' ? 'on' : ''}">◎ Solana</button><button type=button data-tab=evm class="${tab === 'evm' ? 'on' : ''}">⬡ ${E('wal.evm')}</button></div>
-    ${np ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${tab === 'sol' ? `<p class=muted>${E('wal.solHint')}</p><div class=wlist>${WTW.solWallets().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')).join('')}</div>`
+function connectWallet(tab) { const UI = WTW.ui; // 钱包入口开关（wallets.js WTW.ui）：隐藏的入口代码保留；已登录的 EVM 会话不受影响
+  tab = UI.evmTab ? (tab || localStorage.wt_wtab || 'sol') : 'sol'; const ch = localStorage.wt_chain || '84532', C = evmChains(), np = WTW.noProvider(tab === 'evm' ? 'evm' : 'sol');
+  modal(`<h3 style="margin-top:0">${E('wal.title')}</h3>${UI.evmTab ? `<div class="row tabs"><button type=button data-tab=sol class="${tab === 'sol' ? 'on' : ''}">◎ Solana</button><button type=button data-tab=evm class="${tab === 'evm' ? 'on' : ''}">⬡ ${E('wal.evm')}</button></div>` : ''}
+    ${np && UI.evmTab ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${tab === 'sol' ? `${UI.evmTab ? `<p class=muted>${E('wal.solHint')}</p>` : ''}<div class=wlist>${WTW.solList().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')).join('')}</div>`
     : `<label>${E('wal.chain')} <select id=wch>${Object.entries(C).map(([id, c]) => `<option value=${id} ${id === ch ? 'selected' : ''}>${esc(t('chain.' + (c.key || EVM_KEYS[id])))} · ${esc(c.name)}</option>`).join('')}</select></label>
       <p class=muted>${E('wal.evmHint')} ${S.cfg.evm?.pay ? '' : E('wal.evmPayOff')}</p><div class=wlist>${WTW.evmWallets().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'evm')).join('')}</div>`}
     <p class=muted style="font-size:12px">🔐 ${E('wal.nonCustody')}</p><div class=row style="justify-content:flex-end"><button data-close>${E('common.cancel')}</button></div>`);
@@ -398,7 +399,7 @@ async function connectSol(id, given) { const w = WTW.solWallets().find(x => x.id
 // Dynamic 登录弹窗：邮箱 OTP（发送验证码 → 输入验证码）或 Google（整页跳转，回来后在启动时完成）。登录成功即自动创建非托管 Solana 嵌入式钱包。
 async function dynLogin(kind = 'sol') { if (!WTW.cfg.dynamicEnvId) throw Object.assign(new Error('off'), { code: 'dynOff' }); const CH = kind === 'evm' ? 'EVM' : 'SOL'; // 同一登录在 SOL / EVM 下各有自己的嵌入式钱包地址
   modal(`<h3 style="margin-top:0">✉️ ${E('wal.dynTitle')}</h3><p id=dst class=muted role=status>⏳ ${E('wal.dynLoading')}</p>`);
-  if (!window.WTDYN) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'vendor/dynamic.js'; sc.onload = ok; sc.onerror = () => no(new Error(t('wal.dynFail'))); document.head.append(sc); });
+  await WTW.needVendor('vendor/dynamic.js', 'WTDYN', kind === 'evm' ? 'evmProvider' : 'adapter').catch(e => { closeModal(); throw e.code === 'vendorOld' ? e : new Error(t('wal.dynFail')); });
   WTDYN.envId = WTW.cfg.dynamicEnvId; await WTDYN.init(WTW.cfg.dynamicEnvId); if (CH === 'EVM' && WTDYN.evmEnabled && !WTDYN.evmEnabled()) { closeModal(); throw Object.assign(new Error('off'), { code: 'dynEvmOff' }); }
   if (CH === 'SOL' ? WTDYN.address() : WTDYN.evmAddress()) return; if (WTDYN.address() || WTDYN.evmAddress()) { await WTDYN.ensureWallet(CH); return; } // 已有会话：直接复用（另一条链的钱包缺失时补建）
   return new Promise((res, rej) => { let otp = null; const live = () => !!$('#dynbody'), st = (x, bad) => { const e = $('#dst'); if (e) { e.textContent = x; e.style.color = bad ? '#ff9b7a' : ''; } };
@@ -418,7 +419,7 @@ async function dynLogin(kind = 'sol') { if (!WTW.cfg.dynamicEnvId) throw Object.
     stepMail(); }); }
 async function dynResume() { // Google 登录跳转回来：完成登录并走正常连接流程
   const kind = localStorage.wt_dyn_pending; if (!kind) return; localStorage.removeItem('wt_dyn_pending'); if (!WTW.cfg.dynamicEnvId) return;
-  try { if (!window.WTDYN) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'vendor/dynamic.js'; sc.onload = ok; sc.onerror = no; document.head.append(sc); });
+  try { await WTW.needVendor('vendor/dynamic.js', 'WTDYN', kind === 'evm' ? 'evmProvider' : 'adapter');
     WTDYN.envId = WTW.cfg.dynamicEnvId; await WTDYN.init(WTW.cfg.dynamicEnvId); const ad = await WTDYN.finishRedirect(kind === 'evm' ? 'EVM' : 'SOL'); const ret = sessionStorage.wt_dyn_ret || '#/'; sessionStorage.removeItem('wt_dyn_ret'); history.replaceState(null, '', location.origin + '/' + ret);
     if (ad) { if (kind === 'evm') { if (S.mode === 'guest' || S.mode === 'self') await connectEvm('dynamic', false); } else if (S.mode === 'guest' || S.mode === 'self') await connectSol('dynamic'); } } catch (e) { toast(esc(t('wal.dynFail') + (e?.message ? ' · ' + e.message : '')), 'err'); } }
 async function showWcQr(uri) { await loadQr().catch(() => {}); let svg = ''; try { const q = qrcode(0, 'M'); q.addData(uri); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 3, scalable: true }); } catch {}
@@ -470,11 +471,17 @@ function confirmLarge0(usd, amt) {
 function paintBell() { const b = $('#bell'); if (!b) return; b.hidden = !S.token; const n = S.bell || 0, c = $('#bellN'); c.textContent = n > 99 ? '99+' : n; c.hidden = !n; b.title = t('inbox.bell', { n }); b.setAttribute('aria-label', b.title); }
 async function loadBell() { if (!S.token) { S.gate = null; paintGateDot(); return paintBell(); } try { const r = await api('/api/inbox'); S.inbox = r.items; S.bell = r.unread; } catch {} paintBell(); loadGateMe(); }
 async function airdrop() { const tt = toast(esc(t('airdrop.req'))); try { const r = await api('/api/airdrop', {}); tt.update(esc(t('airdrop.ok', { sig: short(r.signature) })), 'ok'); } catch (e) { tt.update(esc(e.message), 'err'); } }
+// 复制完整地址（顶栏地址胶囊、账户卡）
+const COPY_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const copyBtn = (id, addr) => `<button type=button id=${id} class=addrcp data-addr="${esc(addr)}" aria-label="${E('wal.copyAddr')}" title="${E('wal.copyAddr')}">${COPY_SVG}</button>`;
+function bindCopy(id) { const b = $('#' + id); if (!b) return; b.onclick = e => { e.stopPropagation(); const a = b.dataset.addr, done = () => toast(esc(t('wal.addrCopied')), 'ok');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(a).then(done, () => { fallbackCopy(a) ? done() : toast(esc(a)); }); else fallbackCopy(a) ? done() : toast(esc(a)); }; }
+function fallbackCopy(a) { try { const ta = document.createElement('textarea'); ta.value = a; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0'; document.body.append(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; } catch { return false; } }
 // 顶部固定的钱包状态：已连接地址 / 正在重连 / 需要重连
 function paintWstat() { const el = $('#wstat'); if (!el) return; const addr = S.mode !== 'guest' ? (S.kind === 'evm' ? S.evmAddr : S.pubkey) : '', saved = localStorage.wt_wpk, name = localStorage.wt_wname || (S.wallet?.name || '');
   const live = S.mode === 'self' ? !!S.wallet : true; el.className = 'wstat'; el.hidden = false;
   if (S.wst === 'reconnecting') { el.classList.add('wait'); el.innerHTML = `<span aria-hidden=true>◌</span> ${E('wal.reconn', { wallet: esc(name || 'Solana') })}`; return; }
-  if (addr && live) { el.classList.add('on'); el.title = `${t('wal.statusOn')} · ${name ? name + ' · ' : ''}${addr}`; el.innerHTML = `<span aria-hidden=true>●</span> <span class=wst-w>${E('wal.statusOn')} ·</span> <b>${esc(short(addr))}</b>`; return; }
+  if (addr && live) { el.classList.add('on'); el.title = `${t('wal.statusOn')} · ${name ? name + ' · ' : ''}${addr}`; el.innerHTML = `<span aria-hidden=true>●</span> <span class=wst-w>${E('wal.statusOn')} ·</span> <b>${esc(short(addr))}</b>${copyBtn('wscp', addr)}`; bindCopy('wscp'); return; }
   if ((S.mode === 'self' && addr) || (saved && S.mode === 'guest' && S.wst === 'fail')) { el.classList.add('off'); el.innerHTML = `<button type=button id=wsre>⚠ ${addr ? esc(short(addr)) + ' · ' : ''}${E('wal.reconnFail')}</button>`; $('#wsre').onclick = () => connectWallet('sol'); return; }
   el.hidden = true; }
 function renderMode() {
@@ -492,6 +499,7 @@ function profOf() { const k = acctKey(); if (!k) return null; if (S.profile && S
 function setProfile(p) { const k = acctKey(); if (!k || !p) return; S.profile = { k, name: p.name || '', avatar: p.avatar || '' }; try { localStorage.wt_prof = JSON.stringify(S.profile); } catch {} paintAcard(); }
 const TREE_SVG = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M12 21v-7M12 14l-3.5-3M12 14l3.5-3.5M12 3.5a4.5 4.5 0 0 0-4.3 3.2A4 4 0 0 0 6.5 14h11a4 4 0 0 0-1.2-7.3A4.5 4.5 0 0 0 12 3.5zM8.5 21h7"/></svg>';
 const GEAR_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8l1.6 2.3 2.7-.7.7 2.7 2.6 1-.9 2.6 1.6 2.3-2.3 1.6.1 2.8-2.8.2-1.2 2.5-2.4-1.4-2.4 1.4-1.2-2.5-2.8-.2.1-2.8L4.1 14l1.6-2.3-.9-2.6 2.6-1 .7-2.7 2.7.7z"/></svg>';
+const acAddr = () => S.mode === 'guest' ? '' : (S.kind === 'evm' ? S.evmAddr : S.pubkey) || '';
 function acDisplayName() { const p = profOf(); if (p?.name) return p.name; if (S.mode === 'host' && S.kind !== 'evm' && S.email) return S.email.split('@')[0]; return short(S.kind === 'evm' ? S.evmAddr : S.pubkey); }
 function avatarHtml(p, name) { if (p?.avatar) return `<img src="${esc(IMG(p.avatar))}" alt="" width="64" height="64" loading="lazy" decoding="async">`; const c = p?.name ? [...p.name][0] : ''; return c ? `<span class=acav-ini>${esc(c.toUpperCase())}</span>` : TREE_SVG; } // 默认头像：自定义昵称首字，否则小树图标
 function paintAcard() { const el = $('#acard'); if (!el) return;
@@ -499,9 +507,9 @@ function paintAcard() { const el = $('#acard'); if (!el) return;
     $('#acav').onclick = () => { setMenu(false); connectWallet(); }; return; }
   const p = profOf(), lv = wishLevel(), id = S.mode === 'self' ? t(localStorage.wt_wallet === 'dynamic' ? 'acct.idDyn' : 'acct.idSelf') : S.kind === 'evm' ? t(localStorage.wt_evm === 'dynamic' ? 'acct.idDynEvm' : 'acct.idEvm') : t('acct.idHost');
   el.innerHTML = `<button type=button id=acav class="acav${p?.avatar ? ' has' : ''}" aria-label="${E('acct.editAvatar')}">${avatarHtml(p)}<span class=acav-cam aria-hidden=true>✎</span></button>
-    <div class=acmeta><button type=button id=acname class=acname title="${E('acct.editName')}">${esc(acDisplayName())}</button><div class=acsub>${esc(id)}${lv ? ` · ${E('acct.level', { n: lv })}` : ''}</div></div>
+    <div class=acmeta><button type=button id=acname class=acname title="${E('acct.editName')}">${esc(acDisplayName())}</button>${acAddr() ? `<div class=acaddr dir=ltr><span>${esc(short(acAddr()))}</span>${copyBtn('accp', acAddr())}</div>` : ''}<div class=acsub>${esc(id)}${lv ? ` · ${E('acct.level', { n: lv })}` : ''}</div></div>
     <button type=button id=acgear class="acgear" aria-label="${E('acct.settings')}" title="${E('acct.settings')}">${GEAR_SVG}</button>`;
-  $('#acav').onclick = () => profileEditor('avatar'); $('#acname').onclick = () => profileEditor('name'); $('#acgear').onclick = () => profileEditor(); }
+  bindCopy('accp'); $('#acav').onclick = () => profileEditor('avatar'); $('#acname').onclick = () => profileEditor('name'); $('#acgear').onclick = () => profileEditor(); }
 async function ensureSession() { if (S.token) return true; if (S.mode !== 'self') return false; try { await siws(); return !!S.token; } catch (e) { toast(esc(walErr(e)), 'err'); return false; } } // 自托管钱包：用现有钱包签名（Sign-In-With-Solana）换会话后才能改资料
 function squareWebp(file, size = 256) { return new Promise((res, rej) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => { URL.revokeObjectURL(u); const s = Math.min(im.naturalWidth, im.naturalHeight); if (!s) return rej(new Error(t('err.imgType')));
     const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, size, size); // 居中裁成正方形
@@ -538,7 +546,7 @@ async function switchAccount() { // 切换账户 / 换个地址：EVM 重新请�
   connectWallet(); }
 function bindSiws() { if ($('#siws')) prefetchNonce(); $('#siws')?.addEventListener('click', async () => { try { await siws(); route(); } catch (e) { toast(esc(walErr(e)), 'err'); } }); }
 const security = () => needSession(E('sec.title')) || `<h2>${E('sec.title')}</h2><div id=secbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
-const loadQr = () => window.qrcode ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'vendor/qrcode.js'; s.onload = ok; s.onerror = no; document.head.append(s); }); // 本地生成二维码（不经第三方服务）
+const loadQr = () => window.qrcode ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement('script'); s.src = WTW.vsrc('vendor/qrcode.js'); s.onload = ok; s.onerror = no; document.head.append(s); }); // 本地生成二维码（不经第三方服务）
 function showRecovery(codes) { return new Promise(res => { // 恢复码只显示一次
   modal(`<h3 style="margin-top:0">🧾 ${E('sec.rcTitle')}</h3><p class=muted>${E('sec.rcBody')}</p><pre class=rcodes dir=ltr>${codes.map(esc).join('\n')}</pre>
     <div class=row style="margin-top:10px"><button id=rccp>${E('sec.rcCopy')}</button><button class=primary id=rcok>${E('sec.rcDone')}</button></div>`);

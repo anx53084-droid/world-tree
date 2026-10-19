@@ -62,7 +62,7 @@ const D = __dirname, SOL1 = '9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin';
     ok(/2\/20/.test(await pg.textContent('#sgatc')) && (await pg.$$('#sgal li')).length === 2, '单张：添加 2 个商品链接 → 2/20');
     await pg.click('#sgal [data-mv="0"][data-d="1"]'); ok((await pg.textContent('#sgal li:first-child b')).includes('商品B'), '单张：▼ 调整顺序');
     await pg.click('#sgal [data-rm="0"]'); ok((await pg.$$('#sgal li')).length === 1 && /1\/20/.test(await pg.textContent('#sgatc')), '单张：删除 → 1/20');
-    await pg.click('#pvToggle').catch(() => {}); await pg.fill('#gnt', '生日快乐'); await pg.waitForTimeout(300); ok(/商品A/.test(await pg.textContent('#pvBody')), '单张实时预览显示附加内容');
+    await pg.click('#pvToggle').catch(() => {}); await pg.fill('#gnt', '生日快乐'); await pg.waitForFunction(() => /商品A/.test(document.querySelector('#pvBody')?.textContent || ''), null, { timeout: 10000 }).catch(() => {}); ok(/商品A/.test(await pg.textContent('#pvBody')), '单张实时预览显示附加内容');
     await pg.goto(Bs + '/#/gift/batch'); await pg.waitForSelector('#gbxface', { timeout: 30000 }); await pg.fill('#gbb', '愿你天天开心'); await pg.fill('#gbg', '星光小屋');
     ok(/0\/20/.test(await pg.textContent('#gbatc')) && (await pg.$$('#gbxcovers [data-cover]')).length > 5 && (await pg.$$('#gbxinsides [data-inside]')).length > 3 && await pg.$('#gbxupC') && await pg.$('#gbxupN'), '团购模式：封面模板 / 自定义封面 / 内页模板 / 自定义内页 + 附加内容');
     const src0 = await pg.getAttribute('#gbxpv .gb-fc img', 'src'); await pg.click('#gbxcovers [data-cover="9"]'); await pg.click('#gbxinsides [data-inside="2"]'); await pg.fill('#gbxtext', '内页祝福：一路顺风');
