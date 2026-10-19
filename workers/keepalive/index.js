@@ -1,4 +1,4 @@
-// 保活 Worker：Cron Trigger 每 5 分钟请求一次 Render API 的 /api/health（不碰数据库），避免免费实例闲置 15 分钟后休眠、用户打开页面时看到「正在唤醒服务器」。
+// 保活 Worker（主方案）：Cron Trigger 每 5 分钟请求一次 Render API 的 /api/health（不碰数据库），避免免费实例闲置 15 分钟后休眠、用户打开页面时看到「正在唤醒服务器」。
 // QUIET（北京时间小时区间，如 "2-7" 表示 02:00–06:59 不保活）用于给 Render 每月 750 小时免费额度留余量；设为空字符串 = 24/7。
 export default {
   async scheduled(ev, env, ctx) { ctx.waitUntil(ping(env, 'cf-cron')); },
