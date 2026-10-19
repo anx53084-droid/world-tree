@@ -14,7 +14,7 @@
   I.t = function (k, v) { let s = I.dict[k]; if (s == null) { I.missing.add(k); s = I.base[k]; if (s == null) s = k; }
     return v ? s.replace(/\{(\w+)\}/g, (m, n) => v[n] != null ? v[n] : m) : s; };
   window.t = I.t;
-  const load = l => fetch('i18n/' + l + '.json').then(r => { if (!r.ok) throw new Error(l); return r.json(); });
+  const BV = document.querySelector('meta[name="wt-build"]')?.content, load = l => fetch('i18n/' + l + '.json' + (BV ? '?v=' + BV : '')).then(r => { if (!r.ok) throw new Error(l); return r.json(); });
   I.apply = function () { const h = document.documentElement; h.lang = I.lang; h.dir = RTL.includes(I.lang) ? 'rtl' : 'ltr'; document.title = I.t('meta.title'); try { window.WT_applySeo?.(); } catch {}
     document.querySelectorAll('[data-i18n]').forEach(e => e.textContent = I.t(e.dataset.i18n));
     document.querySelectorAll('[data-i18n-aria]').forEach(e => e.setAttribute('aria-label', I.t(e.dataset.i18nAria)));

@@ -36,6 +36,18 @@ let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); };
     const mh = html.slice(html.indexOf('id="menu"')); ok(['list', 'treehole', 'gift', 'me', 'inbox', 'notify', 'security', 'help', 'terms'].every(k => new RegExp('<a href="#/' + k + '"[^>]*><svg').test(mh)) && /href="#\/gift"[^>]*>.*?data-i18n="gift.page"/.test(mh) && /<nav id="topnav"[^\n]*data-i18n="nav.list"/.test(html), '抽屉菜单项有内联 SVG 图标；文字仍是「礼品卡」；顶栏导航不变');
     ok(/function wishLevel/.test(app) && /S\.wishes/.test(app.slice(app.indexOf('function wishLevel'), app.indexOf('function wishLevel') + 400)), '等级由真实卡片数据计算（不写死）');
     const zh = JSON.parse(fs.readFileSync(path.join(D, 'public/i18n/zh-CN.json'), 'utf8')); ok(!Object.entries(zh).some(([k, v]) => /^acct\./.test(k) && /还愿|收益|代付/.test(v)), '新文案不含「还愿 / 收益 / 代付」');
+    console.log('cache');
+    const live = await (await fetch(B + '/')).text(), vs = live.match(/(?:href|src)="[a-z0-9.\-\/]+\.(?:css|js)\?v=[0-9a-f]{10}"/g) || [];
+    ok(/href="style\.css\?v=[0-9a-f]{10}"/.test(live) && /src="app\.js\?v=[0-9a-f]{10}"/.test(live) && vs.length >= 10 && /<meta name="wt-build" content="[0-9a-f]{10}">/.test(live), '首页下发的 css/js 都带内容哈希 ?v=（部署后不会新 HTML + 旧 CSS/JS）');
+    ok(live.includes('style.css?v=' + require('crypto').createHash('sha256').update(fs.readFileSync(path.join(D, 'public/style.css'))).digest('hex').slice(0, 10)), '哈希随 style.css 内容变化');
+    ok((await fetch(B + '/style.css?v=abc')).status === 200, '带版本参数的静态资源可正常访问');
+    ok((html.match(/<svg[^>]*>/g) || []).every(x => /\bwidth="\d+"/.test(x) && /\bheight="\d+"/.test(x)), 'index.html 每个 SVG 都写了 width/height（CSS 失效也不会撑满屏宽）');
+    ok(/<style id="crit">[^<]*\.acard\{/.test(html) && /<style id="crit">[^<]*#menu \.mi\{/.test(html) && html.indexOf('<style id="crit">') < html.indexOf('rel="stylesheet"'), '抽屉头卡 / 图标的关键样式随 HTML 内联下发');
+    ok(['TREE_SVG', 'GEAR_SVG'].every(k => new RegExp('const ' + k + " = '<svg width=\"\\d+\" height=\"\\d+\"").test(app)), '头卡 SVG 也写了 width/height');
+    const sw = fs.readFileSync(path.join(D, 'public/sw.js'), 'utf8'), hd = fs.readFileSync(path.join(D, 'scripts/build-pages.js'), 'utf8');
+    ok(/wt-static-v2/.test(sw) && /mode === 'navigate'/.test(sw) && /cache: 'no-cache'/.test(sw) && /caches\.delete/.test(sw), 'Service Worker v2：页面网络优先、旧缓存清理');
+    ok(/stampHtml/.test(hd) && /\/index\.html\\n  cache-control: no-cache/.test(hd) && /\/sw\.js\\n  cache-control: no-cache/.test(hd), 'Pages 构建给资源加哈希；_headers 让 HTML 与 sw.js 不缓存');
+    ok(/function renderMode\(\)[\s\S]{0,1600}paintWstat\(\); paintAcard\(\);/.test(app), '所有登录方式（邮箱托管演示 / Dynamic / 钱包）都经 renderMode 画新头卡');
   } finally { srv.kill(); stub.close(); }
   console.log(`\n✅ ${n} checks passed`); process.exit(0);
 })().catch(e => { console.error('\n❌', e.message); process.exit(1); });

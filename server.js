@@ -93,6 +93,7 @@ const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'emai
 function allowHost(req) { const hs = new Set([req.headers.host]); const o = req.headers.origin; if (o && Domains.originOk(o)) try { hs.add(new URL(o).host); } catch {} return d => hs.has(d); }
 const fail = (res, e, code = 400) => send(res, code, { error: e.message, code: e.code || 'err' });
 
+const Stamp = require('./stamp'), stampMemo = {};
 const profRate = new Map(); // 头像 / 昵称修改限速（每账户 20 次 / 小时）
 // 昵称清洗：NFKC、去控制符 / 零宽 / 双向控制符、合并空白；1–20 个字符；不允许链接
 const cleanName = x => String(x ?? '').normalize('NFKC').replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').replace(/\s+/g, ' ').trim();
@@ -639,5 +640,6 @@ http.createServer(async (req, res) => {
     const h = { 'content-type': MIME[path.extname(f)] || 'application/octet-stream', 'cache-control': cc, etag, vary: 'accept-encoding', 'x-wt': '1' }; // x-wt：供 Service Worker 识别真实响应（排除 Render 冷启动等待页）
     if (req.headers['if-none-match'] === etag) { res.writeHead(304, h); return res.end(); }
     fs.readFile(f, (e2, d) => { if (e2) { res.writeHead(404); return res.end('404'); }
+      if (f.endsWith(path.sep + 'index.html')) { if (stampMemo.etag !== etag) { try { stampMemo.html = Stamp.stampHtml(d.toString('utf8'), path.join(__dirname, 'public')).html; stampMemo.etag = etag; } catch { stampMemo.html = d; } } d = stampMemo.html; } // css/js 带内容哈希破缓存
       res.writeHead(200, h); res.end(d); }); });
 }).listen(PORT, '0.0.0.0', () => console.log(`世界树许愿树 http://localhost:${PORT}  RPC=${RPC}`));
