@@ -995,5 +995,7 @@
   "gb.face.text": "Teks dalam (opsional, maks. 140 karakter)",
   "gb.face.reset": "Kembalikan desain bawaan",
   "gb.face.def": "Memakai gaya bawaan",
-  "gb.err.face": "Desain kartu tidak valid, silakan pilih lagi"
+  "gb.err.face": "Desain kartu tidak valid, silakan pilih lagi",
+  "gb.face.cv": "Sampul",
+  "gb.face.in": "Halaman dalam"
 }

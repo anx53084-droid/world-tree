@@ -487,3 +487,4 @@ svg.gface { height: auto }
 .gb-face-v figcaption { position: absolute; bottom: 4px; inset-inline-start: 6px; font-size: 11px; background: #000a; color: #fff; padding: 1px 6px; border-radius: 6px }
 .gb-face { margin: 12px 0 } .gb-face textarea { width: 100% } .gb-facepv { margin-top: 6px }
 .sg-att { margin: 10px 0 } .gift-att:empty { display: none }
+.gb-fib .gb-bless { color: #7a4a10; font-style: normal }

@@ -995,5 +995,7 @@
   "gb.face.text": "Innentext (optional, bis zu 140 Zeichen)",
   "gb.face.reset": "Standarddesign wiederherstellen",
   "gb.face.def": "Standardstil aktiv",
-  "gb.err.face": "Ungültiges Kartendesign, bitte erneut wählen"
+  "gb.err.face": "Ungültiges Kartendesign, bitte erneut wählen",
+  "gb.face.cv": "Cover",
+  "gb.face.in": "Innenseite"
 }

@@ -995,5 +995,7 @@
   "gb.face.text": "Texto interior (opcional, hasta 140 caracteres)",
   "gb.face.reset": "Restablecer diseño predeterminado",
   "gb.face.def": "Usando el estilo predeterminado",
-  "gb.err.face": "Diseño de tarjeta no válido, vuelve a elegir"
+  "gb.err.face": "Diseño de tarjeta no válido, vuelve a elegir",
+  "gb.face.cv": "Portada",
+  "gb.face.in": "Interior"
 }

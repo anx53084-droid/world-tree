@@ -995,5 +995,7 @@
   "gb.face.text": "Nội dung trang trong (tùy chọn, tối đa 140 ký tự)",
   "gb.face.reset": "Khôi phục thiết kế mặc định",
   "gb.face.def": "Đang dùng kiểu mặc định",
-  "gb.err.face": "Thiết kế thẻ không hợp lệ, vui lòng chọn lại"
+  "gb.err.face": "Thiết kế thẻ không hợp lệ, vui lòng chọn lại",
+  "gb.face.cv": "Bìa",
+  "gb.face.in": "Trang trong"
 }

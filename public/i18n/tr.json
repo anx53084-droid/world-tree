@@ -995,5 +995,7 @@
   "gb.face.text": "İç metin (isteğe bağlı, en fazla 140 karakter)",
   "gb.face.reset": "Varsayılan tasarıma dön",
   "gb.face.def": "Varsayılan stil kullanılıyor",
-  "gb.err.face": "Geçersiz kart tasarımı, lütfen yeniden seçin"
+  "gb.err.face": "Geçersiz kart tasarımı, lütfen yeniden seçin",
+  "gb.face.cv": "Kapak",
+  "gb.face.in": "İç sayfa"
 }

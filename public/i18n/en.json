@@ -995,5 +995,7 @@
   "gb.face.text": "Inside text (optional, up to 140 characters)",
   "gb.face.reset": "Reset to default design",
   "gb.face.def": "Using the default style",
-  "gb.err.face": "Invalid card design, please choose again"
+  "gb.err.face": "Invalid card design, please choose again",
+  "gb.face.cv": "Cover",
+  "gb.face.in": "Inside"
 }

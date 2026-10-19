@@ -995,5 +995,7 @@
   "gb.face.text": "内页内容（选填，最多 140 字）",
   "gb.face.reset": "恢复默认卡面",
   "gb.face.def": "当前为默认样式",
-  "gb.err.face": "卡面设置无效，请重新选择"
+  "gb.err.face": "卡面设置无效，请重新选择",
+  "gb.face.cv": "封面",
+  "gb.face.in": "内页"
 }

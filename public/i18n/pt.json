@@ -995,5 +995,7 @@
   "gb.face.text": "Texto interno (opcional, até 140 caracteres)",
   "gb.face.reset": "Restaurar design padrão",
   "gb.face.def": "Usando o estilo padrão",
-  "gb.err.face": "Design de cartão inválido, escolha novamente"
+  "gb.err.face": "Design de cartão inválido, escolha novamente",
+  "gb.face.cv": "Capa",
+  "gb.face.in": "Interior"
 }
