@@ -13,14 +13,28 @@ concurrency:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: ping /api/health every 5 min (~25 min)
+        # 备份方案永不标红：每次 ping 最多 3 次尝试（单次 90s 超时，覆盖 Render 冷启动），失败只记 ::warning::，脚本始终 exit 0。
+        # （10-19 那次失败的原因：循环最后一行 `[ $i -lt 6 ] && sleep 290` 在 i=6 时返回 1，成了脚本退出码——6 次 ping 其实全部 200。）
+        shell: bash
         run: |
+          set +e
+          URL=https://world-tree-ijv1.onrender.com/api/health
+          T0=$(date +%s); ok=0; bad=0
           for i in 1 2 3 4 5 6; do
+            WAIT=$(( T0 + (i - 1) * 290 - $(date +%s) )); if [ "$WAIT" -gt 0 ]; then sleep "$WAIT"; fi
             H=$(( ( 10#$(date -u +%H) + 8 ) % 24 ))
-            if [ "$H" -ge 2 ] && [ "$H" -lt 7 ] && [ "${{ github.event_name }}" = "schedule" ]; then echo "$(date -u +%FT%TZ) quiet hours (Beijing $H:00) — skip"; exit 0; fi
-            curl -sS -m 90 -o /tmp/r.json -w "$(date -u +%FT%TZ) status=%{http_code} time=%{time_total}s " -H 'x-keepalive: gh-actions' https://world-tree-ijv1.onrender.com/api/health || true
-            cat /tmp/r.json 2>/dev/null; echo
-            [ $i -lt 6 ] && sleep 290
+            if [ "$H" -ge 2 ] && [ "$H" -lt 7 ] && [ "${{ github.event_name }}" = "schedule" ]; then echo "$(date -u +%FT%TZ) quiet hours (Beijing $H:00) — skip"; break; fi
+            done_i=0
+            for try in 1 2 3; do
+              rm -f /tmp/r.json /tmp/err.txt; code=$(curl -sS --connect-timeout 30 -m 90 -o /tmp/r.json -w '%{http_code} %{time_total}' -H 'x-keepalive: gh-actions' "$URL" 2>/tmp/err.txt)
+              echo "$(date -u +%FT%TZ) ping $i try $try → ${code:-curl-error} $(head -c 200 /tmp/r.json 2>/dev/null) $(head -c 200 /tmp/err.txt)"
+              case "$code" in 2*) done_i=1; break;; esac
+              sleep 20
+            done
+            if [ "$done_i" = 1 ]; then ok=$((ok + 1)); else bad=$((bad + 1)); echo "::warning::keepalive ping $i failed after 3 tries (last: ${code:-curl-error})"; fi
           done
+          echo "summary: ok=$ok failed=$bad"
+          exit 0
