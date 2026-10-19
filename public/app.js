@@ -183,7 +183,7 @@ function aggregate() {
   // 心愿实现 memo：WTREE1|F|wishSig|noteHash|ts|attestation
   for (const t of all) { const f = t.memo.split('|'); if (f[1] === 'F' && f[2] && W[f[2]]) W[f[2]].fulfilled = { noteHash: f[3], ts: +f[4], attestation: f[5], sig: t.sig, onChain: true }; }
   for (const [sig, fv] of Object.entries(S.fulfill || {})) if (fv?.fulfilled && W[sig]) W[sig].fulfilled = Object.assign({}, W[sig].fulfilled || {}, { badge: true, note: fv.fulfillNote || '', ts: fv.fulfillTs || 0, tx: fv.fulfillTx, server: true });
-  S.wishes = Object.values(W).map(w => Object.assign(w, { likes: w.likers.size, heat: w.likers.size * 2 + w.blessings.length * 3 })).sort((a, b) => (b.time || 9e9) - (a.time || 9e9));
+  S.wishes = Object.values(W).map(w => Object.assign(w, { likes: w.likers.size, heat: w.likers.size * 2 + w.blessings.length * 3 })).sort((a, b) => (b.time || 9e9) - (a.time || 9e9)); queueMicrotask(paintAcard);
   buildRecentMap();
 }
 S.cardMeta = S.cardMeta || {}; S.unlocked = JSON.parse(sessionStorage.wt_unlock || '{}');
@@ -321,7 +321,7 @@ const evmRoutes = () => {
   return out;
 };
 function siweMsg(kind, addr, nonce, chainId) { return `${location.host} wants you to sign in with your ${kind} account:\n${addr}\n\nSign in to World Tree. This request will not trigger a transaction or cost any fees.\n\nURI: ${location.origin}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${new Date().toISOString()}`.replace(chainId == null ? /\nChain ID: [^\n]*/ : /$^/, ''); } // Solana 省略 Chain ID（钱包会按其当前网络校验）
-function setSession(r) { S.token = localStorage.wt_token = r.token; S.kind = r.kind; S.email = r.email; S.evmAddr = r.evm; S.totp = r.totp; S.verified = r.verified; S.largeUsd = r.largeUsd || S.largeUsd; }
+function setSession(r) { S.token = localStorage.wt_token = r.token; S.uid = r.uid || null; S.kind = r.kind; S.email = r.email; S.evmAddr = r.evm; S.totp = r.totp; S.verified = r.verified; S.largeUsd = r.largeUsd || S.largeUsd; if (r.profile) queueMicrotask(() => setProfile(r.profile)); }
 async function solWallet() { if (S.wallet) return S.wallet; const id = localStorage.wt_wallet, w = WTW.solWallets().find(x => x.id === id && x.installed);
   if (!w) throw new Error(t('wal.reconnect')); const a = w.adapter(); const pk = await a.connect(false); if (pk !== S.pubkey) throw new Error(t('wal.reconnect')); S.wallet = a; watchSol(a); return a; }
 // 预取一次性 nonce：点击后立刻弹出钱包签名（不在用户手势与弹窗之间插入网络请求）
@@ -453,7 +453,7 @@ function emailLogin(needTotp, em0) {
 }
 async function logout(quiet) { if (S.token) await api('/api/logout', {}).catch(() => {}); if (S.wallet) S.wallet.disconnect?.(); // 退出：清除会话、钱包选择与缓存地址，并撤销 EVM 授权（支持时）
   if (S.kind === 'evm') await revokeEvm(S.evmProv || WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed)?.provider); S.wallet = S.evmProv = null; ['wt_wallet', 'wt_evm', 'wt_wpk', 'wt_wname'].forEach(k => localStorage.removeItem(k)); window.WTMWA?.clear?.(); S.wst = null;
-  S.token = null; localStorage.removeItem('wt_token'); S.kind = S.evmAddr = null; S.bell = 0; if (quiet === true) return; S.mode = 'guest'; S.pubkey = S.email = null; renderMode(); route(); paintBell(); }
+  S.token = null; localStorage.removeItem('wt_token'); S.kind = S.evmAddr = S.uid = S.profile = null; S.bell = 0; if (quiet === true) return; S.mode = 'guest'; S.pubkey = S.email = null; renderMode(); route(); paintBell(); }
 // 大额支付确认：金额 ≥ 阈值时弹窗确认；开启两步验证的邮箱账户需输入验证码（服务器同样校验）
 async function confirmLarge(usd, amt) { const lim = S.largeUsd || S.cfg.largeUsdDefault || 20; if (!(usd >= lim)) return {};
   const ok = await confirmLarge0(usd, amt); if (!ok || !S.totp || !S.token) return ok; // 开启 2FA：先由服务器验证验证码，换取一次性支付票据
@@ -476,10 +476,48 @@ function paintWstat() { const el = $('#wstat'); if (!el) return; const addr = S.
 function renderMode() {
   const m = { guest: `<span class="badge">${esc(t('mode.guest'))}</span>`, self: `<span class="badge b-self">${esc(t('mode.self', { wallet: S.wallet?.name || (WTW.solWallets().find(w => w.id === localStorage.wt_wallet)?.name) || 'Solana', addr: short(S.pubkey) }))}</span>`, host: `<span class="badge b-host">${esc(S.kind === 'evm' ? t('mode.evm', { addr: short(S.evmAddr || ''), sol: short(S.pubkey) }) : t('mode.host', { email: S.email, addr: short(S.pubkey) }))}</span>` }[S.mode];
   $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.wallet'))}</button><button id=be class=mlink>${esc(t('btn.email'))}</button>` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + (S.kind === 'evm' || S.mode === 'self' ? `<button id=bsw class=mlink>${esc(t('wal.switchAcct'))}</button>` : '') + `<button id=bo class=mlink>${esc(t(S.mode === 'self' || S.kind === 'evm' ? 'wal.disconnect' : 'btn.logout'))}</button>`);
-  paintWstat();
+  paintWstat(); paintAcard();
   $('#bp')?.addEventListener('click', () => connectWallet()); $('#be')?.addEventListener('click', () => emailLogin()); $('#bo')?.addEventListener('click', logout); $('#bsw')?.addEventListener('click', () => switchAccount().catch(e => toast(esc(walErr(e)), 'err'))); $('#ba')?.addEventListener('click', airdrop);
 }
 
+// ---------- 抽屉账户头卡：头像 / 昵称（服务端按账户保存，修改需本人会话）+ 星愿等级（按本人链上卡片数计算）----------
+const LV_AT = [1, 3, 6, 10, 20, 35, 50, 100]; // 发布 ≥N 张星愿卡 → 等级 +1；0 张不显示等级
+function wishLevel() { if (S.mode === 'guest' || !S.pubkey) return 0; const n = (S.wishes || []).filter(w => isMine(w) && !/^SAMPLE/.test(w.sig || '')).length; return LV_AT.filter(x => n >= x).length; }
+const acctKey = () => S.mode === 'guest' ? '' : (S.uid || (S.pubkey ? 'sol:' + S.pubkey : '')); // 与服务端 uid 一致：sol:<地址> / evm:<地址> / 邮箱
+function profOf() { const k = acctKey(); if (!k) return null; if (S.profile && S.profile.k === k) return S.profile; try { const c = JSON.parse(localStorage.wt_prof || 'null'); if (c && c.k === k) return (S.profile = c); } catch {} return null; } // 本地缓存仅用于首屏快速显示，以服务端 /api/me 为准
+function setProfile(p) { const k = acctKey(); if (!k || !p) return; S.profile = { k, name: p.name || '', avatar: p.avatar || '' }; try { localStorage.wt_prof = JSON.stringify(S.profile); } catch {} paintAcard(); }
+const TREE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-7M12 14l-3.5-3M12 14l3.5-3.5M12 3.5a4.5 4.5 0 0 0-4.3 3.2A4 4 0 0 0 6.5 14h11a4 4 0 0 0-1.2-7.3A4.5 4.5 0 0 0 12 3.5zM8.5 21h7"/></svg>';
+const GEAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8l1.6 2.3 2.7-.7.7 2.7 2.6 1-.9 2.6 1.6 2.3-2.3 1.6.1 2.8-2.8.2-1.2 2.5-2.4-1.4-2.4 1.4-1.2-2.5-2.8-.2.1-2.8L4.1 14l1.6-2.3-.9-2.6 2.6-1 .7-2.7 2.7.7z"/></svg>';
+function acDisplayName() { const p = profOf(); if (p?.name) return p.name; if (S.mode === 'host' && S.kind !== 'evm' && S.email) return S.email.split('@')[0]; return short(S.kind === 'evm' ? S.evmAddr : S.pubkey); }
+function avatarHtml(p, name) { if (p?.avatar) return `<img src="${esc(IMG(p.avatar))}" alt="" loading="lazy" decoding="async">`; const c = p?.name ? [...p.name][0] : ''; return c ? `<span class=acav-ini>${esc(c.toUpperCase())}</span>` : TREE_SVG; } // 默认头像：自定义昵称首字，否则小树图标
+function paintAcard() { const el = $('#acard'); if (!el) return;
+  if (S.mode === 'guest') { el.innerHTML = `<button type=button id=acav class="acav" aria-label="${E('acct.login')}">${TREE_SVG}</button><div class=acmeta><div class=acname>${E('acct.guest')}</div><div class=acsub>${E('acct.guestHint')}</div></div>`;
+    $('#acav').onclick = () => { setMenu(false); connectWallet(); }; return; }
+  const p = profOf(), lv = wishLevel(), id = S.mode === 'self' ? t(localStorage.wt_wallet === 'dynamic' ? 'acct.idDyn' : 'acct.idSelf') : S.kind === 'evm' ? t('acct.idEvm') : t('acct.idHost');
+  el.innerHTML = `<button type=button id=acav class="acav${p?.avatar ? ' has' : ''}" aria-label="${E('acct.editAvatar')}">${avatarHtml(p)}<span class=acav-cam aria-hidden=true>✎</span></button>
+    <div class=acmeta><button type=button id=acname class=acname title="${E('acct.editName')}">${esc(acDisplayName())}</button><div class=acsub>${esc(id)}${lv ? ` · ${E('acct.level', { n: lv })}` : ''}</div></div>
+    <button type=button id=acgear class="acgear" aria-label="${E('acct.settings')}" title="${E('acct.settings')}">${GEAR_SVG}</button>`;
+  $('#acav').onclick = () => profileEditor('avatar'); $('#acname').onclick = () => profileEditor('name'); $('#acgear').onclick = () => profileEditor(); }
+async function ensureSession() { if (S.token) return true; if (S.mode !== 'self') return false; try { await siws(); return !!S.token; } catch (e) { toast(esc(walErr(e)), 'err'); return false; } } // 自托管钱包：用现有钱包签名（Sign-In-With-Solana）换会话后才能改资料
+function squareWebp(file, size = 256) { return new Promise((res, rej) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => { URL.revokeObjectURL(u); const s = Math.min(im.naturalWidth, im.naturalHeight); if (!s) return rej(new Error(t('err.imgType')));
+    const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, size, size); // 居中裁成正方形
+    c.toBlob(b => b && b.type === 'image/webp' ? res(b) : c.toBlob(j => j ? res(j) : rej(new Error(t('err.imgType'))), 'image/jpeg', .88), 'image/webp', .86); };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(new Error(t('err.imgType'))); }; im.src = u; }); }
+async function profileEditor(focus) { setMenu(false); if (S.mode === 'guest') return connectWallet(); if (!(await ensureSession())) return;
+  const p = profOf() || {}; let av = p.avatar || '', busy = false;
+  modal(`<h3 style="margin-top:0">${E('acct.editTitle')}</h3><div class=pe-av><button type=button id=peav class="acav big${av ? ' has' : ''}" aria-label="${E('acct.editAvatar')}">${avatarHtml({ ...p, avatar: av })}<span class=acav-cam aria-hidden=true>✎</span></button>
+    <div class=pe-avb><label class="btn pe-up">${E('acct.upload')}<input type=file id=pefile accept="image/jpeg,image/png,image/webp" hidden></label><button type=button id=peclr>${E('acct.resetAvatar')}</button><div class="muted small">${E('acct.avatarHint')}</div></div></div>
+    <label class=pe-l for=pename>${E('acct.name')}</label><input id=pename maxlength=40 value="${esc(p.name || '')}" placeholder="${esc(acDisplayName())}" style="width:100%" autocomplete=nickname><div class="muted small pe-n"><span id=pecnt></span> · ${E('acct.nameHint')}</div>
+    <div class=row style="margin-top:14px"><button class=primary id=pesave>${E('acct.save')}</button><button id=pecancel>${E('common.cancel')}</button></div>
+    <p class="muted small" style="margin-bottom:0"><a href="#/security" id=pesec>${E('acct.toSecurity')} →</a></p>`);
+  const nm = $('#pename'), cnt = () => { $('#pecnt').textContent = [...nm.value.trim()].length + ' / 20'; }; cnt(); nm.oninput = cnt;
+  const paintAv = () => { const b = $('#peav'); b.classList.toggle('has', !!av); b.innerHTML = avatarHtml({ ...p, name: nm.value.trim(), avatar: av }) + '<span class=acav-cam aria-hidden=true>✎</span>'; };
+  setTimeout(() => (focus === 'avatar' ? $('#peav') : nm).focus(), 50);
+  $('#peav').onclick = () => $('#pefile').click(); $('#pecancel').onclick = closeModal; $('#pesec').onclick = () => closeModal(); $('#peclr').onclick = () => { av = ''; paintAv(); };
+  $('#pefile').onchange = async e => { const f = e.target.files?.[0]; e.target.value = ''; if (!f || busy) return; busy = true; $('#peav').classList.add('busy');
+    try { av = await uploadImg(await squareWebp(f)); paintAv(); } catch (er) { toast(esc(er.message), 'err'); } finally { busy = false; $('#peav')?.classList.remove('busy'); } }; // 复用现有图片上传（R2 + 类型/尺寸/NSFW 审核）
+  $('#pesave').onclick = async () => { if (busy) return; const n = nm.value.replace(/\s+/g, ' ').trim(); if ([...n].length > 20) return toast(esc(t('err.nameLen')), 'err');
+    busy = true; $('#pesave').disabled = true; try { const r = await api('/api/me/profile', { name: n, avatar: av }); setProfile(r.profile); closeModal(); toast(esc(t('acct.saved'))); } catch (er) { if (er.status === 401) { S.token = null; localStorage.removeItem('wt_token'); } toast(esc(er.message), 'err'); } finally { busy = false; const b = $('#pesave'); if (b) b.disabled = false; } }; }
 
 // ---------- 安全设置 / 站内信 / 消息设置（打开页面时获取一次）----------
 const devName = ua => { if (!ua) return t('sec.unknownDevice'); const b = /Edg\//.test(ua) ? 'Edge' : /OPR\/|Opera/.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : /node|curl/i.test(ua) ? 'API' : '';

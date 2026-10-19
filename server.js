@@ -89,10 +89,13 @@ function auth(req, db) { const t = (req.headers.authorization || '').replace('Be
   if (Date.now() - (s.last || 0) > 300000) { s.last = Date.now(); s.ua = String(req.headers['user-agent'] || s.ua || '').slice(0, 200); save(db); } // 最近活跃（5 分钟粒度）
   return { email: s.uid, uid: s.uid, user: db.users[s.uid], token: t, sess: s }; }
 const kindOf = uid => uid.startsWith('evm:') ? 'evm' : uid.startsWith('sol:') ? 'sol' : 'email';
-const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'email' ? uid : null, pubkey: u.pubkey, evm: u.evm || null, verified: !!u.verified, totp: !!u.totp?.on, custodial: !!u.secret, largeUsd: u.largeUsd || 20, country: u.country || '', province: u.province || '', city: u.city || '' });
+const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'email' ? uid : null, pubkey: u.pubkey, evm: u.evm || null, verified: !!u.verified, totp: !!u.totp?.on, custodial: !!u.secret, largeUsd: u.largeUsd || 20, country: u.country || '', province: u.province || '', city: u.city || '', profile: { name: u.profile?.name || '', avatar: u.profile?.avatar || '' } });
 function allowHost(req) { const hs = new Set([req.headers.host]); const o = req.headers.origin; if (o && Domains.originOk(o)) try { hs.add(new URL(o).host); } catch {} return d => hs.has(d); }
 const fail = (res, e, code = 400) => send(res, code, { error: e.message, code: e.code || 'err' });
 
+const profRate = new Map(); // 头像 / 昵称修改限速（每账户 20 次 / 小时）
+// 昵称清洗：NFKC、去控制符 / 零宽 / 双向控制符、合并空白；1–20 个字符；不允许链接
+const cleanName = x => String(x ?? '').normalize('NFKC').replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').replace(/\s+/g, ' ').trim();
 const goodsCache = new Map(), goodsRate = new Map(); // 预览缓存（10 分钟）与每用户限速（20 次/10 分钟）
 async function goodsImage(u) { // 商品图：安全抓取 → sharp 转 webp ≤800px → 与用户上传同一管线（NSFW + R2）
   const r = await Goods.fetchSafe(u, Block, Goods.MAX_IMG, 'image/avif,image/webp,image/png,image/jpeg,image/*'); if (!/^image\//i.test(r.type) && r.buf.length < 64) throw Object.assign(new Error('not image'), { code: 'goodsImg' });
@@ -564,6 +567,15 @@ async function api(req, res, url) {
     const sr = new Set(U.sysRead || []); for (const m of db.sys || []) if (!want || want.has(m.id)) sr.add(m.id); U.sysRead = [...sr].slice(-300); save(db); return send(res, 200, Acc.inboxOf(db, U)); }
   if (url === '/api/notify') { if (req.method === 'POST') { const b = await body(req); U.notify = { fulfil: b.fulfil !== false, system: b.system !== false, gate: b.gate !== false }; save(db); } return send(res, 200, Acc.prefs(U)); }
   if (url === '/api/logout' && req.method === 'POST') { delete db.sessions[a.token]; save(db); return send(res, 200, { ok: true }); } // 只退出当前设备；其他设备在安全设置中退出
+  if (url === '/api/me/profile' && req.method === 'POST') { // 头像 / 昵称：按账户（钱包地址 / 邮箱 / Dynamic 钱包地址）保存在服务端；必须持有本人会话（钱包签名或邮箱登录换来的 token），只能改自己的
+    const now = Date.now(), rl = (profRate.get(a.uid) || []).filter(t => now - t < 3600000); if (rl.length >= 20) return send(res, 429, { error: 'rate', code: 'rate' });
+    const b = await body(req, 4000), P = { name: U.profile?.name || '', avatar: U.profile?.avatar || '' };
+    if ('name' in b) { const n = cleanName(b.name); if ([...n].length > 20) return send(res, 400, { error: 'name too long', code: 'nameLen' });
+      if (n) { if (/https?:|www\.|\.(com|net|org|io|xyz|app|world)\b/i.test(n)) return send(res, 400, { error: 'no links', code: 'nameLink' });
+        const bh = Block.check(n); if (bh) return send(res, 400, { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : 'blockPhish' });
+        const mr = await moderate(n); if (!mr.pass) return send(res, 400, { error: REJECT, code: 'reject' }); } P.name = n; }
+    if ('avatar' in b) { const h = b.avatar == null ? '' : String(b.avatar); if (h && (!/^[0-9a-f]{32}$/.test(h) || !(await Store.has(h).catch(() => false)))) return send(res, 400, { error: 'bad avatar', code: 'avatar' }); P.avatar = h; } // 只接受已通过 /api/img 审核并存入 R2 的图片
+    rl.push(now); profRate.set(a.uid, rl); U.profile = { ...P, at: now }; save(db); return send(res, 200, { ok: true, profile: P }); }
   if (url === '/api/me/loc' && req.method === 'POST') { // 查看者位置（国家/省/市自由填写，用于「附近」匹配；非 GPS）
     const b = await body(req); U.country = Soc.cleanLoc(b.country); U.province = Soc.cleanLoc(b.province); U.city = Soc.cleanLoc(b.city); save(db);
     return send(res, 200, { ok: true, country: U.country, province: U.province, city: U.city }); }

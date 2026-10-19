@@ -96,22 +96,47 @@ body:not(.home) header { background: linear-gradient(#03040dcc, #03040d00) !impo
 .icon-btn { all: unset; pointer-events: auto; cursor: pointer; display: inline-grid; place-items: center; width: 40px; height: 40px; color: #fff; border-radius: 6px }
 .icon-btn:hover, .icon-btn:focus-visible { background: #ffffff1a } .icon-btn:focus-visible { outline: 2px solid #7ee787 }
 #menu-bd { position: fixed; inset: 0; z-index: 40; background: #0008; animation: fade .3s ease; touch-action: none }
-#menu { position: fixed; top: 0; bottom: 0; inset-inline-end: 0; width: min(78vw, 440px); z-index: 41; background: #0d0d0d; color: #e6e6e6; overflow-y: auto; overscroll-behavior: contain;
-  padding: 84px 32px 40px; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Courier New", monospace; letter-spacing: .08em;
+#menu { --gold: #e6c27a; --gold-d: #b8913f; position: fixed; top: 0; bottom: 0; inset-inline-end: 0; width: min(82vw, 440px); z-index: 41; background: radial-gradient(1px 1px at 22% 8%, #fff8 50%, transparent 51%), radial-gradient(1px 1px at 78% 14%, #ffe6a855 50%, transparent 51%), radial-gradient(1.5px 1.5px at 60% 4%, #ffe6a877 50%, transparent 51%), radial-gradient(1px 1px at 12% 30%, #fff5 50%, transparent 51%), radial-gradient(120% 40% at 30% 0%, #1b1a2e 0%, #0d0d12 60%, #0b0b0d 100%); color: #e6e6e6; overflow-y: auto; overscroll-behavior: contain;
+  padding: 64px 26px 40px; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Courier New", monospace; letter-spacing: .08em;
   transform: translateX(100%); opacity: 0; visibility: hidden; transition: transform .38s cubic-bezier(.2,.8,.2,1), opacity .3s, visibility 0s .38s }
 [dir=rtl] #menu { transform: translateX(-100%) }
 body.menu-open #menu { transform: none; opacity: 1; visibility: visible; transition: transform .38s cubic-bezier(.2,.8,.2,1), opacity .3s }
 body.menu-open { overflow: hidden }
 #menu-x { position: absolute; top: 0; inset-inline-end: 0; width: 52px; height: 52px; border-radius: 0; background: #000 } #menu-x:hover { background: #222 }
 #menu nav { display: flex; flex-direction: column }
-#menu nav a, #mode .mlink { color: #e6e6e6; text-transform: uppercase; font-size: 14px; padding: 18px 0; margin: 0; text-decoration: none; transition: color .2s, padding .2s }
-#menu nav a:hover, #mode .mlink:hover { color: #fff; padding-inline-start: 6px }
-#menu .acc, #mode .mlink { color: #7ee787 } #menu .acc::before, #mode .mlink::before { content: "# "; font-weight: 700 }
+#menu nav a { display: flex; align-items: center; gap: 14px }
+#menu nav a, #mode .mlink { color: #e6e6e6; text-transform: uppercase; font-size: 14px; padding: 16px 0; margin: 0; text-decoration: none; transition: color .2s, padding .2s }
+#menu nav a:hover { color: #fff; padding-inline-start: 6px }
+#menu .acc { color: #7ee787 } #menu .mi { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--gold); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px #e6c27a44) }
+#menu .mi-hash { width: 20px; flex: none; text-align: center; font-weight: 700; font-size: 17px; color: #7ee787 }
+#menu nav a:hover .mi, #menu nav a.cur .mi { stroke: #ffe3a3 }
 #menu nav a.cur { color: #fff; text-decoration: underline; text-underline-offset: 6px }
 .menu-sec { margin-top: 26px; padding-top: 18px; border-top: 1px solid #ffffff1a } .menu-h { font-size: 11px; color: #a3a3a3; text-transform: uppercase; margin-bottom: 8px }
-#menu #mode { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0; font-size: 13px }
-#mode .mlink { all: unset; pointer-events: auto; cursor: pointer; color: #7ee787; text-transform: uppercase; font-size: 14px; padding: 12px 0; letter-spacing: .08em }
-#mode .badge { font-family: inherit; margin-bottom: 6px; word-break: break-all }
+/* 抽屉账户头卡（深色星空 + 金色） */
+.acct { position: relative; margin: 0 0 8px; padding: 6px 0 16px; border-bottom: 1px solid transparent; border-image: linear-gradient(90deg, transparent, var(--gold) 18%, var(--gold) 82%, transparent) 1 }
+.acct::after { content: ""; position: absolute; inset-inline-end: 4px; bottom: 14px; width: 92px; height: 92px; opacity: .07; pointer-events: none; background: no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6c27a' stroke-width='.8' stroke-linecap='round'%3E%3Cpath d='M12 22v-8M12 14l-4-3.5M12 14l4-4M12 17l2.5-2M12 2.5a5 5 0 0 0-4.8 3.6A4.6 4.6 0 0 0 6 15h12a4.6 4.6 0 0 0-1.2-8.9A5 5 0 0 0 12 2.5z'/%3E%3Cpath d='M4 4l.5 1M20 3l-.5 1.2M21 9h-1'/%3E%3C/svg%3E") }
+.acard { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; padding-inline-end: 40px; min-height: 72px }
+.acav { all: unset; box-sizing: border-box; position: relative; width: 64px; height: 64px; flex: none; border-radius: 50%; border: 2px solid var(--gold, #e6c27a); box-shadow: 0 0 0 3px #e6c27a22, 0 0 14px #e6c27a44; background: radial-gradient(circle at 50% 35%, #2a2640, #121220); display: grid; place-items: center; cursor: pointer; overflow: hidden; color: var(--gold, #e6c27a) }
+.acav img { width: 100%; height: 100%; object-fit: cover } .acav svg { width: 58%; height: 58%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round }
+.acav-ini { font: 600 26px/1 system-ui, sans-serif; letter-spacing: 0 }
+.acav-cam { position: absolute; inset-inline: 0; bottom: 0; height: 30%; background: #000a; color: #ffe3a3; font-size: 11px; display: grid; place-items: center; opacity: 0; transition: opacity .2s }
+.acav:hover .acav-cam, .acav:focus-visible .acav-cam, .acav.big .acav-cam { opacity: 1 } .acav.busy { opacity: .5; pointer-events: none }
+.acav:focus-visible, .acname:focus-visible, .acgear:focus-visible { outline: 2px solid #ffe3a3; outline-offset: 3px }
+.acmeta { min-width: 0; flex: 1 }
+.acname { all: unset; display: block; max-width: 100%; color: #fff; font: 600 21px/1.25 system-ui, -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; letter-spacing: .02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer }
+div.acname { cursor: default }
+.acsub { margin-top: 6px; color: var(--gold, #e6c27a); font-size: 12px; letter-spacing: .06em; text-transform: none }
+.acgear { all: unset; position: absolute; top: -2px; inset-inline-end: 0; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; cursor: pointer; color: var(--gold, #e6c27a) }
+.acgear:hover { background: #e6c27a1a } .acgear svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round }
+/* 账户信息（原底部「账户」区并入头卡下方） */
+#menu #mode { margin: 12px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; position: relative; z-index: 1 }
+#mode .badge { font-family: inherit; flex: 1 0 100%; margin: 0 0 2px; word-break: break-all; background: transparent; border: 0; padding: 0; color: #bdb7a6; font-size: 12px; letter-spacing: .04em }
+#mode .mlink { all: unset; pointer-events: auto; cursor: pointer; color: var(--gold, #e6c27a); font-size: 12px; padding: 6px 12px; letter-spacing: .06em; border: 1px solid #e6c27a66; border-radius: 999px; transition: background .2s, color .2s }
+#mode .mlink:hover, #mode .mlink:focus-visible { background: #e6c27a1f; color: #ffe3a3 }
+#mode #bp { background: linear-gradient(180deg, #f0d08e, #c9a24a); color: #1a1405; border-color: transparent; font-weight: 700 }
+/* 资料编辑弹窗 */
+.pe-av { display: flex; align-items: center; gap: 16px; margin: 6px 0 14px } .acav.big { width: 84px; height: 84px } .pe-avb { display: flex; flex-wrap: wrap; gap: 8px; align-items: center } .pe-avb .muted { flex-basis: 100% }
+.pe-l { display: block; font-size: 13px; margin-bottom: 6px } .pe-n { margin-top: 6px } .small { font-size: 12px }
 #menu #lang { position: static } #menu #langbtn { font-family: inherit; animation: none; background: transparent; border-color: #444; box-shadow: none }
 #menu #langmenu { position: static; margin-top: 8px; background: #161616; border-color: #333; max-height: 40vh }
 #menu #lang .lang-cur { display: inline }
