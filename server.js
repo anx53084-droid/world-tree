@@ -627,6 +627,9 @@ async function api(req, res, url) {
 Batch.start(); // 团购礼品卡任务队列：启动即恢复未完成的分片
 http.createServer(async (req, res) => {
   const url = req.url.split('?')[0];
+  if (url === '/api/health' || url === '/healthz') { // 轻量健康检查（保活用）：不读写数据库、不调第三方；带 x-keepalive 头时打一行日志，便于在 Render 日志里核对定时任务
+    const ka = String(req.headers['x-keepalive'] || '').replace(/[^\w.:-]/g, '').slice(0, 32); if (ka) console.log(`keepalive ping (${ka}) up=${Math.round(process.uptime())}s`);
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store', 'access-control-allow-origin': '*', 'x-wt': '1' }); return res.end(JSON.stringify({ ok: true, up: Math.round(process.uptime()), t: Date.now() })); }
   if (url.startsWith('/api/')) { // CORS：允许 Cloudflare Pages 前端（*.pages.dev 的 world-tree 项目及预览）与 ALLOWED_ORIGINS（自定义域名）；鉴权用 Bearer token，不用 cookie
     const o = req.headers.origin; if (o && Domains.originOk(o)) { res.setHeader('access-control-allow-origin', o); res.setHeader('vary', 'origin'); res.setHeader('access-control-allow-headers', 'content-type, authorization'); res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS'); res.setHeader('access-control-max-age', '86400'); }
     else if (url.startsWith('/api/img/') || url === '/api/domains') res.setHeader('access-control-allow-origin', '*'); // 公开图片（私密卡内页为密文）

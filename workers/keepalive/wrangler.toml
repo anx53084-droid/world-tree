@@ -1,0 +1,12 @@
+name = "guangqi-keepalive"
+main = "index.js"
+compatibility_date = "2024-09-23"
+workers_dev = true
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+TARGET = "https://world-tree-ijv1.onrender.com/api/health"
+# 北京时间 02:00–06:59 不保活（给 Render 750 小时/月免费额度留余量）；设为 "" 则 24/7
+QUIET = "2-7"

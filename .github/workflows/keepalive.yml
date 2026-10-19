@@ -1,0 +1,18 @@
+# 备份保活：GitHub Actions 定时任务（schedule 常延迟 5–30 分钟、高峰可能跳过，不能单独依赖；主方案是 Cloudflare Worker Cron）。
+# 公开仓库 Actions 分钟数免费。北京时间 02:00–06:59 不保活（与 Worker 一致，给 Render 免费额度留余量）。
+name: Keepalive (backup)
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: ping /api/health
+        run: |
+          H=$(( ( $(date -u +%H | sed 's/^0//') + 8 ) % 24 ))
+          if [ "$H" -ge 2 ] && [ "$H" -lt 7 ] && [ "${{ github.event_name }}" = "schedule" ]; then echo "quiet hours (Beijing $H:00) — skip"; exit 0; fi
+          curl -sS -m 90 -o /tmp/r.json -w 'status=%{http_code} time=%{time_total}s\n' -H 'x-keepalive: gh-actions' https://world-tree-ijv1.onrender.com/api/health || true
+          cat /tmp/r.json 2>/dev/null; echo
