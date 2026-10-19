@@ -13,7 +13,9 @@ jobs:
         with: { node-version: 20 }
       - name: wrangler deploy (Cron Trigger */5)
         working-directory: workers/keepalive
-        run: npx -y wrangler@3 deploy
+        continue-on-error: true   # 令牌缺 Workers 权限时不报红；保活由 keepalive.yml 兜底
+        run: |
+          npx -y wrangler@3 deploy || { echo "::warning::Worker 部署失败：CLOUDFLARE_API_TOKEN 需要 Account › Workers Scripts:Edit 权限（当前只有 Pages）。加权限后在 Actions 里手动重跑本工作流。保活暂由 keepalive.yml（GitHub Actions）承担。"; exit 1; }
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -1,18 +1,26 @@
-# 备份保活：GitHub Actions 定时任务（schedule 常延迟 5–30 分钟、高峰可能跳过，不能单独依赖；主方案是 Cloudflare Worker Cron）。
-# 公开仓库 Actions 分钟数免费。北京时间 02:00–06:59 不保活（与 Worker 一致，给 Render 免费额度留余量）。
-name: Keepalive (backup)
+# 保活（GitHub Actions）：每 10 分钟触发；每次运行在约 25 分钟内每 5 分钟请求一次 /api/health。
+# GitHub 的 schedule 常延迟 5–30 分钟、高峰会跳过，所以每次运行覆盖后面 25 分钟，延迟/漏跑时也能接上；concurrency 保证同时只跑一个、最多排队一个。
+# 公开仓库 Actions 分钟数免费。北京时间 02:00–06:59 不保活（给 Render 750h/月免费额度留余量）。
+# Cloudflare Worker Cron（workers/keepalive）更准时，CLOUDFLARE_API_TOKEN 加上 Workers 权限后会自动接管为主方案，本任务继续作为备份。
+name: Keepalive
 on:
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 30
     steps:
-      - name: ping /api/health
+      - name: ping /api/health every 5 min (~25 min)
         run: |
-          H=$(( ( $(date -u +%H | sed 's/^0//') + 8 ) % 24 ))
-          if [ "$H" -ge 2 ] && [ "$H" -lt 7 ] && [ "${{ github.event_name }}" = "schedule" ]; then echo "quiet hours (Beijing $H:00) — skip"; exit 0; fi
-          curl -sS -m 90 -o /tmp/r.json -w 'status=%{http_code} time=%{time_total}s\n' -H 'x-keepalive: gh-actions' https://world-tree-ijv1.onrender.com/api/health || true
-          cat /tmp/r.json 2>/dev/null; echo
+          for i in 1 2 3 4 5 6; do
+            H=$(( ( 10#$(date -u +%H) + 8 ) % 24 ))
+            if [ "$H" -ge 2 ] && [ "$H" -lt 7 ] && [ "${{ github.event_name }}" = "schedule" ]; then echo "$(date -u +%FT%TZ) quiet hours (Beijing $H:00) — skip"; exit 0; fi
+            curl -sS -m 90 -o /tmp/r.json -w "$(date -u +%FT%TZ) status=%{http_code} time=%{time_total}s " -H 'x-keepalive: gh-actions' https://world-tree-ijv1.onrender.com/api/health || true
+            cat /tmp/r.json 2>/dev/null; echo
+            [ $i -lt 6 ] && sleep 290
+          done

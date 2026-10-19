@@ -31,7 +31,7 @@ const res = (status = 200, ct = 'application/json') => ({ ok: status < 400, stat
   console.log('config');
   const w = fs.readFileSync(path.join(D, 'workers/keepalive/wrangler.toml'), 'utf8'), wi = fs.readFileSync(path.join(D, 'workers/keepalive/index.js'), 'utf8'), gh = fs.readFileSync(path.join(D, '.github/workflows/keepalive.yml'), 'utf8');
   ok(/crons = \["\*\/5 \* \* \* \*"\]/.test(w) && /world-tree-ijv1\.onrender\.com\/api\/health/.test(w), 'Cloudflare Worker Cron 每 5 分钟请求 /api/health');
-  ok(/'\*\/10 \* \* \* \*'/.test(gh) && /x-keepalive: gh-actions/.test(gh), 'GitHub Actions 备份每 10 分钟');
+  ok(/'\*\/10 \* \* \* \*'/.test(gh) && /x-keepalive: gh-actions/.test(gh) && /sleep 290/.test(gh) && /group: keepalive/.test(gh), 'GitHub Actions 每 10 分钟触发、每次覆盖 25 分钟（每 5 分钟一次），防 schedule 延迟/漏跑');
   const mod = await import('data:text/javascript,' + encodeURIComponent(wi)); let calls = []; globalThis.fetch = async (u, o) => { calls.push([u, o.headers['x-keepalive']]); return res(); };
   const r1 = await mod.default.fetch(new Request('https://w/run'), { QUIET: '' }); const j1 = await r1.json(); ok(j1.status === 200 && calls[0][1] === 'cf-manual', 'Worker /run 手动触发一次保活');
   const h = (new Date().getUTCHours() + 8) % 24, r2 = await (await mod.default.fetch(new Request('https://w/run'), { QUIET: `${h}-${(h + 1) % 24}` })).json(); ok(r2.skipped && calls.length === 1, 'QUIET 时段（北京时间）跳过，给免费额度留余量');
