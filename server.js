@@ -37,11 +37,10 @@ function verifyWishMemo(memo) { // WTREE1|W|hash|ts|sig|分类|正文  或  WTRE
 // Solana 收款地址来自 receive-config.js（Squads 金库，off-curve PDA：System Program 转账与 PublicKey 构造均不要求在曲线上）；历史地址仅用于校验已有记录
 const RC = Acc.RC, recvStr = RC.sol.address;
 const RECEIVE = new web3.PublicKey(recvStr), DEV = RECEIVE, TREASURY = RECEIVE;
-const MIN_USD = 1, SOL_USD_FALLBACK = +process.env.SOL_USD || 150; let priceCache = { usd: SOL_USD_FALLBACK, src: 'fallback', at: 0 };
-const COIN_FB = { ethereum: +process.env.ETH_USD || 3000, binancecoin: +process.env.BNB_USD || 600 }; priceCache.coins = { ...COIN_FB };
-async function solPrice() { if (Date.now() - priceCache.at < 600000) return priceCache;
-  try { const j = await (await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana,ethereum,binancecoin&vs_currencies=usd', { signal: AbortSignal.timeout(3000) })).json(); if (j.solana.usd > 0) priceCache = { usd: j.solana.usd, src: 'coingecko', at: Date.now(), coins: { ethereum: j.ethereum?.usd || COIN_FB.ethereum, binancecoin: j.binancecoin?.usd || COIN_FB.binancecoin } }; }
-  catch { priceCache = { usd: SOL_USD_FALLBACK, src: 'fallback', at: Date.now(), coins: { ...COIN_FB } }; } return priceCache; }
+const MIN_USD = 1;
+// 旧接口形状 { usd, src, at, coins:{ethereum,binancecoin}, stale }，数据来自 prices.js 的同一份缓存（与 /api/prices 一致）。src：实时时为来源列表（如 coinbase+kraken），全部失败时为 'fallback'（从未取到过）或 'stale'（沿用上次成功值）。
+async function solPrice() { const P = await Prices.get(), live = Prices.usable(P, 'SOL');
+  return { usd: P.prices.SOL, src: live ? (P.sources.SOL || []).join('+') || 'live' : (P.liveAt?.SOL ? 'stale' : 'fallback'), at: P.at, stale: !live, coins: { ethereum: P.prices.ETH, binancecoin: P.prices.BNB, solana: P.prices.SOL }, staleCoins: P.staleCoins }; }
 const minLamports = usd => Math.ceil(MIN_USD / usd * web3.LAMPORTS_PER_SOL);
 const DB = path.join(__dirname, 'data', 'users.json');
 const conn = new web3.Connection(RPC, 'confirmed');
@@ -306,7 +305,7 @@ async function api(req, res, url) {
     const chains = Object.fromEntries(Object.entries(Acc.CHAINS).map(([id, c]) => [id, { key: c.key, name: c.name, sym: c.sym, coin: c.coin, exp: c.exp, rpc: c.rpc, receive: Acc.EVM_RECV_DISPLAY[c.key] || null }]));
     const routes = {};
     for (const [id, c] of Object.entries(Acc.CHAINS)) if (Acc.EVM_RECV[c.key]) routes[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: Acc.EVM_RECV_DISPLAY[c.key] };
-    return send(res, 200, { receiveLegacy: RC.legacy.sol, receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, minLamports: minLamports(p.usd), moderator: MOD_PUB,
+    return send(res, 200, { receiveLegacy: RC.legacy.sol, receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, priceStale: p.stale, minLamports: minLamports(p.usd), moderator: MOD_PUB,
     evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV_DISPLAY }, legacy: RC.legacy.evm, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20, wcProjectId: process.env.WC_PROJECT_ID || '', dynamicEnvId: process.env.DYNAMIC_ENV_ID || '' }); } // 都是公开标识，不是密钥 // WalletConnect 项目 ID 是公开标识（不是密钥）；未配置时 WalletConnect 项显示“未配置”
   if (url === '/api/nonce') return send(res, 200, { nonce: Acc.nonce() });
   if (url === '/api/login/wallet' && req.method === 'POST') { // 钱包签名登录：EVM（personal_sign，EIP-4361 格式）或 Solana（signMessage）；不涉及私钥、不发交易

@@ -1,17 +1,22 @@
-// 币价（USD）：SOL / ETH / BNB。多源（Coinbase / Binance / CoinGecko）取中位数，缓存 60 秒；全部失败则回退最近一次成功值并标记 stale。
+// 币价（USD）：SOL / ETH / BNB。多源（Coinbase / Binance / CoinGecko / Kraken / OKX / Binance US）：只要一家成功就用实时价，两家以上取中位数；缓存 60 秒；全部失败则回退最近一次成功值（或兜底常量）并标记 stale——stale 价格永远不能用于锁定报价。
+// /api/prices 与 /api/config（server.js 的 solPrice）共用这一份缓存。
 // 前端只读 GET /api/prices，不直连第三方；团购礼品卡的支付校验使用这里的服务端报价（并在创建订单时锁价）。
 const fs = require('fs'), path = require('path');
 const COINS = ['SOL', 'ETH', 'BNB'], TTL = 60000, RETRY = 10000, CG = { SOL: 'solana', ETH: 'ethereum', BNB: 'binancecoin' };
 const FB = { SOL: +process.env.SOL_USD || 150, ETH: +process.env.ETH_USD || 3000, BNB: +process.env.BNB_USD || 600 }; // 仅当从未成功取价时的兜底（总是 stale，团购报价会拒绝使用）
-const j = async url => (await fetch(url, { signal: AbortSignal.timeout(3000) })).json();
+const j = async url => { const r = await fetch(url, { signal: AbortSignal.timeout(3000), headers: { accept: 'application/json', 'user-agent': 'guangqi-price/1.0' } }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }; // 非 2xx（如 Binance 对美国 IP 的 451、CoinGecko 的 429）记为该源失败
 // 每个源返回 { SOL, ETH, BNB } 的子集；某个源失败不影响其它源
 const sources = {
   coinbase: async () => { const o = {}; await Promise.all(COINS.map(async c => { try { o[c] = +(await j(`https://api.coinbase.com/v2/prices/${c}-USD/spot`)).data.amount; } catch {} })); return o; },
   binance: async () => { const o = {}; await Promise.all(COINS.map(async c => { try { o[c] = +(await j(`https://data-api.binance.vision/api/v3/ticker/price?symbol=${c}USDT`)).price; } catch {} })); return o; },
-  coingecko: async () => { const r = await j('https://api.coingecko.com/api/v3/simple/price?ids=solana,ethereum,binancecoin&vs_currencies=usd'), o = {}; for (const c of COINS) o[c] = +r[CG[c]]?.usd; return o; } };
+  coingecko: async () => { const r = await j('https://api.coingecko.com/api/v3/simple/price?ids=solana,ethereum,binancecoin&vs_currencies=usd'), o = {}; for (const c of COINS) o[c] = +r[CG[c]]?.usd; return o; },
+  kraken: async () => { const o = {}; await Promise.all(COINS.map(async c => { const r = await j(`https://api.kraken.com/0/public/Ticker?pair=${c}USD`).catch(() => null); const v = r && !r.error?.length && Object.values(r.result || {})[0]; if (v) o[c] = +v.c[0]; })); return o; },
+  okx: async () => { const o = {}; await Promise.all(COINS.map(async c => { try { const r = await j(`https://www.okx.com/api/v5/market/ticker?instId=${c}-USDT`); if (r.code === '0') o[c] = +r.data[0].last; } catch {} })); return o; },
+  binanceus: async () => { const o = {}; await Promise.all(COINS.map(async c => { try { o[c] = +(await j(`https://api.binance.us/api/v3/ticker/price?symbol=${c}USD`)).price; } catch {} })); return o; } };
 const median = a => { a = a.filter(x => Number.isFinite(x) && x > 0).sort((x, y) => x - y); if (!a.length) return 0; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
 let cache = null, last = null, inflight = null; const state = { sources };
-async function fetchAll(now) { const res = await Promise.all(Object.entries(state.sources).map(async ([n, f]) => { try { return [n, await f()]; } catch { return [n, {}]; } }));
+async function fetchAll(now) { const res = await Promise.all(Object.entries(state.sources).map(async ([n, f]) => { try { return [n, await f()]; } catch (e) { return [n, {}, String(e?.message || e).slice(0, 60)]; } }));
+  state.failed = Object.fromEntries(res.filter(([, o, e]) => e || !COINS.some(c => Number.isFinite(+o[c]) && +o[c] > 0)).map(([n, , e]) => [n, e || 'no data'])); // 诊断：本轮没有取到任何币价的源（不含任何密钥）
   const price = {}, used = {}, stale = {}; let any = false;
   for (const c of COINS) { const vs = res.map(([n, o]) => [n, +o[c]]).filter(([, v]) => Number.isFinite(v) && v > 0); const m = median(vs.map(x => x[1]));
     if (m) { price[c] = m; used[c] = vs.map(x => x[0]); stale[c] = false; any = true; } else if (last?.price[c]) { price[c] = last.price[c]; used[c] = []; stale[c] = true; } else { price[c] = FB[c]; used[c] = []; stale[c] = true; } }
@@ -22,8 +27,8 @@ async function fetchAll(now) { const res = await Promise.all(Object.entries(stat
 const mock = () => { try { const o = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'prices-mock.json'), 'utf8')), now = Date.now(); return { price: { SOL: +o.SOL, ETH: +o.ETH, BNB: +o.BNB }, sources: { SOL: ['mock'], ETH: ['mock'], BNB: ['mock'] }, stale: { SOL: !!o.stale, ETH: !!o.stale, BNB: !!o.stale }, at: now, live: { SOL: o.stale ? now - 3600000 : now, ETH: o.stale ? now - 3600000 : now, BNB: o.stale ? now - 3600000 : now } }; } catch { return null; } };
 async function get(now = Date.now()) { if (process.env.PRICE_MOCK === '1') { const m = mock(); if (m) return view(m, now); }
   if (cache && now - cache.at < (cache.failed ? RETRY : TTL)) return view(cache, now);
-  inflight ||= fetchAll(now).then(r => { cache = { ...r, failed: COINS.some(c => r.stale[c]) }; return cache; }).finally(() => { inflight = null; }); return view(await inflight, now); }
-const view = (c, now) => ({ prices: { ...c.price }, at: c.at, stale: COINS.some(x => c.stale[x]), staleCoins: COINS.filter(x => c.stale[x]), sources: c.sources, ageSec: Math.round((now - c.at) / 1000), liveAt: c.live || {} });
+  inflight ||= fetchAll(now).then(r => { cache = { ...r, failed: COINS.some(c => r.stale[c]), failedSources: { ...(state.failed || {}) } }; return cache; }).finally(() => { inflight = null; }); return view(await inflight, now); }
+const view = (c, now) => ({ prices: { ...c.price }, at: c.at, stale: COINS.some(x => c.stale[x]), staleCoins: COINS.filter(x => c.stale[x]), sources: c.sources, failedSources: c.failedSources || {}, ageSec: Math.round((now - c.at) / 1000), liveAt: c.live || {} });
 // 团购报价是否可用：该币必须有 15 分钟内的真实取价（回退常量永不可用）
 const usable = (v, coin, now = Date.now(), maxAge = 15 * 60000) => { const t = v.liveAt?.[coin] || 0; return v.prices[coin] > 0 && t > 0 && now - t <= maxAge; };
 const reset = () => { cache = last = inflight = null; };

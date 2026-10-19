@@ -24,7 +24,7 @@
 ## 2. 流程
 
 1. 创建页：祝福（≤140）、数量（1–10000）、卡片价值（USD，≥1，仅记录）、兑换说明（必填 ≤200）、单张平台费（USD，≥1，默认 1）、币种（SOL/ETH/BNB）、门卡名称（≤20 字）、可选项；页面实时显示卡片价值、总价值、平台费 USD 及币种数量、本次需支付，并提示「每张最低 1 美元等值：约 x SOL / y ETH / z BNB」。
-2. **价格**：`GET /api/prices`（公开）返回 SOL/ETH/BNB 的 USD 价（`prices.js`：Coinbase / Binance(data-api.binance.vision) / CoinGecko 多源取**中位数**，缓存 60 秒；全部失败时回退最近一次成功值并标记 `stale`）。前端只读该接口，不直连第三方。
+2. **价格**：`GET /api/prices`（公开）返回 SOL/ETH/BNB 的 USD 价（`prices.js`：Coinbase / Binance(data-api.binance.vision) / CoinGecko / Kraken / OKX / Binance US 多源：**一家成功就用实时价，两家以上取中位数**（`failedSources` 给出本轮失败的源及原因，如 `http 451` / `http 429`）；`/api/config` 的 `solUsd` / `priceSource` 与 `/api/prices` 共用同一份缓存，缓存 60 秒；全部失败时回退最近一次成功值并标记 `stale`）。前端只读该接口，不直连第三方。
 3. **锁价报价**：提交时先 `POST /api/batch/quote {count,coin,feeUsd}`，服务端用当前价生成**签名报价令牌**（HMAC，绑定账户/币种/数量/单价/价格/过期时间，默认 10 分钟，`BATCH_QUOTE_TTL`）。该币没有 15 分钟内的真实报价（只有缓存回退值或兜底常量）时拒绝报价（`price`），避免按过期价格收费。
 4. **一次支付**（金额 = 报价应付额）：
    - 自有 Solana 钱包（SOL）：客户端签**一笔**转账。勾选「公开 1 张」时同一笔交易带上经审核签名的心愿 memo 与 0-lamport TREE 转账；否则 memo 为 `WTREE1|BG|pay`。
