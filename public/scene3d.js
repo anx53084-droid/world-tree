@@ -17,7 +17,7 @@ const tr = (k, v) => window.I18N ? I18N.t(k, v) : k; // 国际化（见 i18n.js�
 export const SEASONS = { green: { get name() { return tr('season.green'); }, v: 0 }, bloom: { get name() { return tr('season.bloom'); }, v: 1 }, fall: { get name() { return tr('season.fall'); }, v: 2 } };
 
 const A = window.WTAddr, HUES = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270, 光栖: 285 };
-const GQ_V = 1, GQIMG = {}; const gqImg = k => { let im = GQIMG[k]; if (!im) { im = GQIMG[k] = new Image(); im.onload = () => { im.ok = 1; texCache.forEach((v, kk) => { if (kk.startsWith('GQ|')) { v.dispose(); texCache.delete(kk); } }); nearPool.forEach(s => s.userData.wish = null); }; im.src = `themes/guangqi/${k}-s.webp?v=${GQ_V}`; } return im.ok ? im : null; }; // 光栖主题卡面：k = 'front-01' 等（256px 小图，仅近景卡加载）
+const GQ_V = 2, GQIMG = {}; const gqImg = k => { let im = GQIMG[k]; if (!im) { im = GQIMG[k] = new Image(); im.onload = () => { im.ok = 1; texCache.forEach((v, kk) => { if (kk.startsWith('GQ|')) { v.dispose(); texCache.delete(kk); } }); nearPool.forEach(s => s.userData.wish = null); }; im.src = `themes/guangqi/${k}-s.webp?v=${GQ_V}`; } return im.ok ? im : null; }; // 光栖主题卡面：k = 'front-01' 等（256px 小图，仅近景卡加载）
 const MID_CAP = MOBILE ? 3000 : 5000, NEAR_CAP = MOBILE ? 120 : 200, TILE_LRU = 800, COUNT_LRU = 300;
 let cfg = { stress: false, total: 0 }, real = [], N = 0, focus = '', view = null, viewSeq = 0, inst, nearPool = [], clusters, labels = [], navEl, hlId = null, lastNav = 0, fly = null, dirty = true, loadTimer = 0;
 const tiles = new Map(), countsCache = new Map(), inflight = new Set(), frameT = [];
@@ -406,10 +406,10 @@ function ornament(x, x0, y, w) { // 顶/底部金色纹饰带：细线 + 菱形�
 const UIMG = new Map(); function uimg(h) { if (!h) return null; if (!UIMG.has(h)) { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { im.ok = 1; dirty = true; }; im.src = (window.apiUrl || (x => x))('/api/img/' + h); UIMG.set(h, im); } const im = UIMG.get(h); return im.ok ? im : null; } // 用户自定义封面
 const gqK = (w, side) => side + '-' + String(Math.min(9, Math.max(0, (w.cover ?? 0) | 0)) + 1).padStart(2, '0');
 function gqTexture(w, side) { // 光栖主题双面卡（仅近景真实卡用；远/中景仍是实例化灯笼，不增加开销）
-  const im = gqImg(gqK(w, side)), key = 'GQ|' + gqK(w, side) + '|' + (side === 'front' ? (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.id === hlId ? 1 : 0) + (w.priv ? 'P' : '') : '') + (im ? 'I' : ''); if (texCache.has(key)) return lruGet(texCache, key);
+  const im = gqImg(gqK(w, side)), key = 'GQ|' + gqK(w, side) + '|' + (window.I18N?.lang || '') + '|' + (side === 'front' ? '' + w.sig + '|' + w.likes + '|' + (w.id === hlId ? 1 : 0) + (w.priv ? 'P' : '') : '') + (im ? 'I' : ''); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
   x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
-  x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); if (im) { const k = Math.max(W / im.width, H / im.height); x.drawImage(im, X0 + (W - im.width * k) / 2, Y0 + (H - im.height * k) / 2, im.width * k, im.height * k); } else { const g = x.createLinearGradient(0, Y0, 0, Y0 + H); g.addColorStop(0, '#2a1846'); g.addColorStop(1, '#0c0820'); x.fillStyle = g; x.fillRect(X0, Y0, W, H); } x.restore();
+  x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); if (im) { const k = Math.max(W / im.width, H / im.height); x.drawImage(im, X0 + (W - im.width * k) / 2, Y0 + (H - im.height * k) / 2, im.width * k, im.height * k); window.WTCardText?.draw(x, gqK(w, side), X0 + (W - im.width * k) / 2, Y0 + (H - im.height * k) / 2, im.width * k, im.height * k); } else { const g = x.createLinearGradient(0, Y0, 0, Y0 + H); g.addColorStop(0, '#2a1846'); g.addColorStop(1, '#0c0820'); x.fillStyle = g; x.fillRect(X0, Y0, W, H); } x.restore();
   x.strokeStyle = w.id === hlId ? '#ffffff' : '#d6b060'; x.lineWidth = w.id === hlId ? 7 : 5; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke();
   if (side === 'front') { x.fillStyle = '#000a'; x.fillRect(X0, Y0 + H - 34, W, 34); x.fillStyle = '#fff'; x.font = 'bold 15px sans-serif'; x.fillText(w.priv ? '🔒 ' + tr('card.privateShort') : '📖 ' + tr('card.tapOpen'), X0 + 10, Y0 + H - 12); }
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex); return tex; }
@@ -536,5 +536,5 @@ export function camTo(dist) { const d = camera.position.clone().sub(controls.tar
 export const camInfo = () => ({ cam: camera.position.toArray().map(v => +v.toFixed(2)), target: controls.target.toArray().map(v => +v.toFixed(2)), fly: !!fly, scale: treeGroup.scale.x });
 export const resetStats = () => { frameT.length = 0; };
 export const descend = r => setFocus(r);
-function relabel() { renderNav(); }
+function relabel() { renderNav(); nearPool.forEach(s => s.userData.wish = null); dirty = true; }
 window.WT3D = { setPage, pageInfo, relabel, cardScreenPos, update, attach, setSeason, stage, growthProgress, growthFill, soft01, SEASONS, jumpTo, cardById, stats, camInfo, resetStats, camTo, descend, addr: A, _dbg: () => ({ scene, camera, controls, treeGroup, renderer }) }; window.dispatchEvent(new Event('wt3d-ready'));

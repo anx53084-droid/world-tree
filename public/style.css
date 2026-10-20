@@ -170,6 +170,7 @@ body.debug footer.debug-only { display: block !important }
 .fold.open .fold-cover { transform: rotateY(-158deg); pointer-events: none }
 .fold-front, .fold-back { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; backface-visibility: hidden; box-shadow: 0 6px 18px #0006 }
 .fold-front img { width: 100%; height: 100%; object-fit: cover; display: block }
+.fold-back-img { width: 100%; height: 100%; object-fit: cover; display: block }
 .fold-back { transform: rotateY(180deg); background: linear-gradient(200deg, #f3e4c4, #d9bd88) }
 .fold-lock { position: absolute; top: 10px; right: 10px; font-size: 26px; background: #0008; border-radius: 50%; width: 44px; height: 44px; display: grid; place-items: center }
 .fold-hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; color: #fff; font-size: 13px; text-shadow: 0 1px 3px #000 }
