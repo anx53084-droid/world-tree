@@ -8,7 +8,7 @@ const EXPLORER = s => `https://explorer.solana.com/tx/${s}${S.cfg?.network === '
 const CATS = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270, 光栖: 285 }; // 分类 → 色相
 const CAT_KEY = { 经典: 'classic', 风景: 'scenery', 人物: 'people', 动物: 'animals', 卡通: 'cartoon', 物质类: 'material', 光栖: 'guangqi' }; // 链上分类保持中文原值，仅显示时翻译
 const MATERIAL = '物质类', COVER_CATS = ['经典', '风景', '人物', '动物', '卡通'], THEME_CATS = ['经典', '光栖']; // 制作页「封面主题」只列 THEME_CATS（风景/人物/动物/卡通 数据保留，仅隐藏入口）
-const GQ_NAMES = ['gq.s1', 'gq.s2', 'gq.s3', 'gq.s4', 'gq.s5', 'gq.s6', 'gq.s7', 'gq.s8', 'gq.s9', 'gq.s10'], GQ_V = 2, GQ_N = 10, gqSet = w => Math.min(GQ_N - 1, Math.max(0, (w?.cover ?? 0) | 0)), GQ = (side, n, sm) => `themes/guangqi/${side}-${String((n | 0) + 1).padStart(2, '0')}${sm ? '-s' : ''}.webp?v=${GQ_V}`, isGQ = w => w?.cat === '光栖'; // 光栖主题：10 套（正面/背面/内页同序号一套），套号存 ~Kxx // 物质类仅为旧卡兼容（显示为心愿卡）
+const GQ_NAMES = ['gq.s1', 'gq.s2', 'gq.s3', 'gq.s4', 'gq.s5', 'gq.s6', 'gq.s7', 'gq.s8', 'gq.s9', 'gq.s10'], GQ_V = 3, GQ_N = 10, gqSet = w => Math.min(GQ_N - 1, Math.max(0, (w?.cover ?? 0) | 0)), GQ = (side, n, sm) => `themes/guangqi/${side}-${String((n | 0) + 1).padStart(2, '0')}${sm ? '-s' : ''}.webp?v=${GQ_V}`, isGQ = w => w?.cat === '光栖'; // 光栖主题：10 套（正面/背面/内页同序号一套），套号存 ~Kxx // 物质类仅为旧卡兼容（显示为心愿卡）
 const catName = c => c === '物质类' ? t('cat.classic') : CAT_KEY[c] ? t('cat.' + CAT_KEY[c]) : c;
 const MODCAT_KEY = { 违法: 'illegal', 侵权: 'infringement', 色情: 'sexual', 暴力: 'violence', 歧视: 'discrimination', 违法宣传: 'illegalPromo', 负面消极: 'negative', 'AI 语义审核': 'ai' };
 const modCat = c => MODCAT_KEY[c] ? t('modcat.' + MODCAT_KEY[c]) : c;
