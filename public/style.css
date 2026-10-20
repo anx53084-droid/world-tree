@@ -498,3 +498,19 @@ svg.gface { height: auto }
 
 .wdev { font-size: 12px; color: #c9d2f0; margin: -2px 2px 4px; line-height: 1.5 } .wdev summary { cursor: pointer; list-style: none } .wdev summary::-webkit-details-marker { display: none } .wdev u { color: #ffd36b } .wdev p { margin: 6px 0 0 }
 .devsteps { padding-inline-start: 20px; line-height: 1.7 }
+/* 光栖主题：正面 / 背面 / 内页 三格 */
+.gq-slots { border: 1px solid #f6d38a66; border-radius: 12px; padding: 8px 10px 10px; margin: 8px 0; background: linear-gradient(160deg, #2a1846aa, #120a24aa) }
+.gq-slots legend { color: #f6d38a; padding: 0 6px }
+.gq-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.gq-slot { margin: 0; text-align: center } .gq-slot img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; border: 1px solid #d6b06099; box-shadow: 0 2px 10px #0006 }
+.gq-slot figcaption { font-size: 12px; color: #e9d6a6; margin-top: 4px }
+.gq-sets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 6px 0 10px }
+.gq-sets button { padding: 0; border: 2px solid transparent; border-radius: 8px; background: none; overflow: hidden; display: flex; flex-direction: column; align-items: center; color: #e9d6a6; font-size: 11px }
+.gq-sets button img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block }
+.gq-sets button span { padding: 2px 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100% }
+.gq-sets button.on { border-color: #f6d38a; box-shadow: 0 0 0 2px #f6d38a55, 0 0 14px #f6d38a66 }
+.gq-slot img { aspect-ratio: 2/3 }
+/* 光栖内页：心愿文字写在信纸横线区（约 55%–85% 高度） */
+.gq-inside { position: relative; width: min(100%, 360px); aspect-ratio: 784/1168; margin: 0 auto; background: center/cover no-repeat; border-radius: 10px; box-shadow: 0 6px 24px #0008 }
+.gq-lines { position: absolute; left: 16%; right: 16%; top: 54%; bottom: 17%; margin: 0; overflow: hidden; color: #4a3566; font: 600 clamp(14px, 4.2vw, 17px)/2.05 "Noto Serif SC", "Songti SC", serif; white-space: pre-wrap; word-break: break-word; text-shadow: 0 0 6px #fff8 }
+.gq-meta { position: absolute; left: 0; right: 0; bottom: 9%; text-align: center; font-size: 11px; color: #6a5a86 }

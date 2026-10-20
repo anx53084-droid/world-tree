@@ -1034,5 +1034,21 @@
   "help.hostBody@main": "En mainnet no hay modo demo custodial: usa tu propia wallet de Solana (como Phantom).",
   "err.custodyOff": "Las cuentas custodiales por correo no están disponibles en mainnet. Conecta tu propia wallet",
   "wal.evmMainOff": "El inicio de sesión con wallet EVM aún no está disponible en mainnet. Usa una wallet de Solana (como Phantom)",
-  "wal.mwaSub": "Alternativa: la billetera puede avisar que no puede verificar la identidad de la app; se recomienda abrir en Phantom (arriba)"
+  "wal.mwaSub": "Alternativa: la billetera puede avisar que no puede verificar la identidad de la app; se recomienda abrir en Phantom (arriba)",
+  "cat.guangqi": "Guangqi",
+  "gq.hint": "Una tarjeta Guangqi tiene anverso, reverso y página interior: en el árbol se ve el anverso por un lado y el reverso por el otro; ábrela para ver el interior.",
+  "gq.front": "Anverso",
+  "gq.back": "Reverso",
+  "gq.inside": "Interior",
+  "gq.s1": "Reencuentro",
+  "gq.s2": "Sanación",
+  "gq.s3": "Amor eterno",
+  "gq.s4": "Sueño",
+  "gq.s5": "Guardián",
+  "gq.s6": "Libertad",
+  "gq.s7": "Sabiduría",
+  "gq.s8": "Hogar",
+  "gq.s9": "Creación",
+  "gq.s10": "Renacer",
+  "gq.pick": "Elige una tarjeta"
 }

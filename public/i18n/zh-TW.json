@@ -1034,5 +1034,21 @@
   "help.hostBody@main": "主網不提供託管示範模式：請使用你自己的 Solana 錢包（如 Phantom）。",
   "err.custodyOff": "主網不提供電子郵件託管帳戶，請連接你自己的錢包",
   "wal.evmMainOff": "主網暫不支援 EVM 錢包登入，請使用 Solana 錢包（如 Phantom）",
-  "wal.mwaSub": "備用：錢包可能提示「無法驗證應用身分」，建議用上方在 Phantom 中開啟"
+  "wal.mwaSub": "備用：錢包可能提示「無法驗證應用身分」，建議用上方在 Phantom 中開啟",
+  "cat.guangqi": "光棲",
+  "gq.hint": "光棲主題卡由正面、背面、內頁組成：掛在樹上時，從正面看到正面、從背後看到背面；打開卡片可看到內頁。",
+  "gq.front": "正面",
+  "gq.back": "背面",
+  "gq.inside": "內頁",
+  "gq.s1": "星願",
+  "gq.s2": "療癒",
+  "gq.s3": "愛",
+  "gq.s4": "夢想",
+  "gq.s5": "守護",
+  "gq.s6": "自由",
+  "gq.s7": "智慧",
+  "gq.s8": "家園",
+  "gq.s9": "創造",
+  "gq.s10": "重生",
+  "gq.pick": "選擇卡面"
 }

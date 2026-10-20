@@ -1034,5 +1034,21 @@
   "help.hostBody@main": "Ana ağda gözetimli demo modu yoktur: lütfen kendi Solana cüzdanınızı (ör. Phantom) kullanın.",
   "err.custodyOff": "Ana ağda e-posta ile gözetimli hesap yoktur. Lütfen kendi cüzdanınızı bağlayın",
   "wal.evmMainOff": "Ana ağda EVM cüzdanıyla giriş henüz yok. Lütfen bir Solana cüzdanı (ör. Phantom) kullanın",
-  "wal.mwaSub": "Yedek: cüzdan uygulama kimliğinin doğrulanamadığı uyarısı verebilir — yukarıdan Phantom'da açmanız önerilir"
+  "wal.mwaSub": "Yedek: cüzdan uygulama kimliğinin doğrulanamadığı uyarısı verebilir — yukarıdan Phantom'da açmanız önerilir",
+  "cat.guangqi": "Guangqi",
+  "gq.hint": "Guangqi kartı ön yüz, arka yüz ve iç sayfadan oluşur: ağaçta bir taraftan ön yüz, diğer taraftan arka yüz görünür; iç sayfayı görmek için kartı açın.",
+  "gq.front": "Ön yüz",
+  "gq.back": "Arka yüz",
+  "gq.inside": "İç sayfa",
+  "gq.s1": "Kavuşma",
+  "gq.s2": "Şifa",
+  "gq.s3": "Sonsuz Aşk",
+  "gq.s4": "Hayal",
+  "gq.s5": "Koruyucu",
+  "gq.s6": "Özgürlük",
+  "gq.s7": "Bilgelik",
+  "gq.s8": "Yuva",
+  "gq.s9": "Yaratış",
+  "gq.s10": "Yeniden Doğuş",
+  "gq.pick": "Kart seç"
 }

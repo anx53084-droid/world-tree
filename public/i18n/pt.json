@@ -1034,5 +1034,21 @@
   "help.hostBody@main": "Não há modo demo custodial na mainnet: use sua própria carteira Solana (como a Phantom).",
   "err.custodyOff": "Contas custodiais por e-mail não estão disponíveis na mainnet. Conecte sua própria carteira",
   "wal.evmMainOff": "O login com carteira EVM ainda não está disponível na mainnet. Use uma carteira Solana (como a Phantom)",
-  "wal.mwaSub": "Alternativa: a carteira pode avisar que não consegue verificar a identidade do app — recomenda-se abrir no Phantom (acima)"
+  "wal.mwaSub": "Alternativa: a carteira pode avisar que não consegue verificar a identidade do app — recomenda-se abrir no Phantom (acima)",
+  "cat.guangqi": "Guangqi",
+  "gq.hint": "Um cartão Guangqi tem frente, verso e página interna: na árvore, a frente aparece de um lado e o verso do outro; abra o cartão para ver o interior.",
+  "gq.front": "Frente",
+  "gq.back": "Verso",
+  "gq.inside": "Interior",
+  "gq.s1": "Reencontro",
+  "gq.s2": "Cura",
+  "gq.s3": "Amor eterno",
+  "gq.s4": "Sonho",
+  "gq.s5": "Guardião",
+  "gq.s6": "Liberdade",
+  "gq.s7": "Sabedoria",
+  "gq.s8": "Lar",
+  "gq.s9": "Criação",
+  "gq.s10": "Renascimento",
+  "gq.pick": "Escolher cartão"
 }

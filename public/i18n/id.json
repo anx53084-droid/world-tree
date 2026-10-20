@@ -1034,5 +1034,21 @@
   "help.hostBody@main": "Tidak ada mode demo kustodian di mainnet: gunakan dompet Solana milikmu (seperti Phantom).",
   "err.custodyOff": "Akun kustodian email tidak tersedia di mainnet. Hubungkan dompetmu sendiri",
   "wal.evmMainOff": "Login dompet EVM belum tersedia di mainnet. Gunakan dompet Solana (seperti Phantom)",
-  "wal.mwaSub": "Cadangan: dompet mungkin memperingatkan identitas aplikasi tak terverifikasi — disarankan buka di Phantom (di atas)"
+  "wal.mwaSub": "Cadangan: dompet mungkin memperingatkan identitas aplikasi tak terverifikasi — disarankan buka di Phantom (di atas)",
+  "cat.guangqi": "Guangqi",
+  "gq.hint": "Kartu Guangqi terdiri dari depan, belakang, dan halaman dalam: di pohon, sisi depan terlihat dari satu arah dan sisi belakang dari arah lain; buka kartu untuk melihat bagian dalam.",
+  "gq.front": "Depan",
+  "gq.back": "Belakang",
+  "gq.inside": "Dalam",
+  "gq.s1": "Reuni",
+  "gq.s2": "Penyembuhan",
+  "gq.s3": "Cinta Abadi",
+  "gq.s4": "Mimpi",
+  "gq.s5": "Penjaga",
+  "gq.s6": "Kebebasan",
+  "gq.s7": "Kebijaksanaan",
+  "gq.s8": "Rumah",
+  "gq.s9": "Kreasi",
+  "gq.s10": "Kelahiran Kembali",
+  "gq.pick": "Pilih kartu"
 }

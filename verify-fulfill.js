@@ -84,7 +84,7 @@ function req(method, path, body, headers = {}) {
   await page.evaluate(t => { localStorage.wt_token = t; localStorage.wt_terms = '1'; localStorage.gq_guide_dismissed = '1'; }, tok);
   await page.goto(BASE + '/#/wish'); await page.reload(); await page.waitForSelector('#mkbtn', { timeout: 60000 }); await page.click('#mkbtn'); await page.waitForSelector('#wc2', { timeout: 60000 });
   const cats = await page.$$eval('#wc2 option', opts => opts.map(o => o.value));
-  check('UI 新卡不再提供 物质类（仅旧卡兼容）', !cats.includes('物质类') && cats.includes('风景'), cats.join(','));
+  check('UI 封面主题只有 经典 / 光栖（风景等隐藏，物质类仅旧卡兼容）', cats.join() === '经典,光栖', cats.join(','));
   await page.selectOption('#ckind', 'goods'); await page.waitForTimeout(200);
   check('shipping field shown for goods', await page.isVisible('#shipWrap'));
   await page.selectOption('#ckind', 'wish'); await page.waitForTimeout(200);

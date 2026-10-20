@@ -1034,5 +1034,21 @@
   "help.hostBody@main": "Mainnet không có chế độ demo lưu ký: hãy dùng ví Solana của riêng bạn (như Phantom).",
   "err.custodyOff": "Mainnet không có tài khoản lưu ký bằng email. Hãy kết nối ví của bạn",
   "wal.evmMainOff": "Mainnet chưa hỗ trợ đăng nhập ví EVM. Hãy dùng ví Solana (như Phantom)",
-  "wal.mwaSub": "Dự phòng: ví có thể cảnh báo không xác minh được danh tính ứng dụng — nên mở trong Phantom (ở trên)"
+  "wal.mwaSub": "Dự phòng: ví có thể cảnh báo không xác minh được danh tính ứng dụng — nên mở trong Phantom (ở trên)",
+  "cat.guangqi": "Quang Thê",
+  "gq.hint": "Thẻ chủ đề Quang Thê gồm mặt trước, mặt sau và trang trong: trên cây, nhìn từ một phía thấy mặt trước, phía kia thấy mặt sau; mở thẻ để xem trang trong.",
+  "gq.front": "Mặt trước",
+  "gq.back": "Mặt sau",
+  "gq.inside": "Trang trong",
+  "gq.s1": "Đoàn tụ",
+  "gq.s2": "Chữa lành",
+  "gq.s3": "Tình yêu",
+  "gq.s4": "Ước mơ",
+  "gq.s5": "Thủ hộ",
+  "gq.s6": "Tự do",
+  "gq.s7": "Trí tuệ",
+  "gq.s8": "Mái nhà",
+  "gq.s9": "Sáng tạo",
+  "gq.s10": "Tái sinh",
+  "gq.pick": "Chọn thẻ"
 }

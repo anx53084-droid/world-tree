@@ -5,9 +5,10 @@ const TREE = 'pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb', MEMO = 'MemoSq4gqABA
 const RPC_READ = '/api/rpc'; // 读层：同源中继 → devnet RPC。换索引器（Helius/自建 Geyser）时只需改 loadWishes()
 let RPC_WRITE = 'https://api.devnet.solana.com'; // 由 /api/config 的 solRpcBrowser 覆盖（NETWORK=mainnet → 主网）
 const EXPLORER = s => `https://explorer.solana.com/tx/${s}${S.cfg?.network === 'mainnet' ? '' : '?cluster=devnet'}`;
-const CATS = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270 }; // 分类 → 色相
-const CAT_KEY = { 经典: 'classic', 风景: 'scenery', 人物: 'people', 动物: 'animals', 卡通: 'cartoon', 物质类: 'material' }; // 链上分类保持中文原值，仅显示时翻译
-const MATERIAL = '物质类', COVER_CATS = ['经典', '风景', '人物', '动物', '卡通']; // 物质类仅为旧卡兼容（显示为心愿卡）
+const CATS = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270, 光栖: 285 }; // 分类 → 色相
+const CAT_KEY = { 经典: 'classic', 风景: 'scenery', 人物: 'people', 动物: 'animals', 卡通: 'cartoon', 物质类: 'material', 光栖: 'guangqi' }; // 链上分类保持中文原值，仅显示时翻译
+const MATERIAL = '物质类', COVER_CATS = ['经典', '风景', '人物', '动物', '卡通'], THEME_CATS = ['经典', '光栖']; // 制作页「封面主题」只列 THEME_CATS（风景/人物/动物/卡通 数据保留，仅隐藏入口）
+const GQ_NAMES = ['gq.s1', 'gq.s2', 'gq.s3', 'gq.s4', 'gq.s5', 'gq.s6', 'gq.s7', 'gq.s8', 'gq.s9', 'gq.s10'], GQ_V = 1, GQ_N = 10, gqSet = w => Math.min(GQ_N - 1, Math.max(0, (w?.cover ?? 0) | 0)), GQ = (side, n, sm) => `themes/guangqi/${side}-${String((n | 0) + 1).padStart(2, '0')}${sm ? '-s' : ''}.webp?v=${GQ_V}`, isGQ = w => w?.cat === '光栖'; // 光栖主题：10 套（正面/背面/内页同序号一套），套号存 ~Kxx // 物质类仅为旧卡兼容（显示为心愿卡）
 const catName = c => c === '物质类' ? t('cat.classic') : CAT_KEY[c] ? t('cat.' + CAT_KEY[c]) : c;
 const MODCAT_KEY = { 违法: 'illegal', 侵权: 'infringement', 色情: 'sexual', 暴力: 'violence', 歧视: 'discrimination', 违法宣传: 'illegalPromo', 负面消极: 'negative', 'AI 语义审核': 'ai' };
 const modCat = c => MODCAT_KEY[c] ? t('modcat.' + MODCAT_KEY[c]) : c;
@@ -688,7 +689,7 @@ window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true
   tip.innerHTML = `<span class=tag>${esc(catName(w.cat))}</span> <bdi>${esc(w.text)}</bdi><div class=muted>${short(w.author)} · 💖 ${w.likes} · 🙏 ${w.blessings.length}${w.pending ? ' · ⏳' + esc(t('time.pending')) : ''}</div>`;
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 290) + 'px'; tip.style.top = e.clientY + 14 + 'px'; };
 const isMine = w => S.pubkey && w.author === S.pubkey;
-function openCardPopup(w) { if (w.folded) return openFolded(w); maybeFulfillToast(w);
+function openCardPopup(w) { if (w.folded || isGQ(w)) return openFolded(w); maybeFulfillToast(w);
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w);
   const L = lockPaint(w);
   let unlockHtml = '';
@@ -1153,15 +1154,18 @@ function sharePng(w) { // 生成分享图（本地 canvas → PNG）+ 链接
     <a class="btn primary" download="world-tree-${w.sig.slice(0, 8)}.png" href="${c.toDataURL('image/png')}">${E('share.download')}</a><button id=cp>${E('share.copy')}</button><button data-close>${E('common.close')}</button></div>`, w.cat);
   $('#cp').onclick = () => navigator.clipboard?.writeText(url).then(() => toast(E('share.copied'), 'ok'), () => toast(esc(url)));
 }
-function foldInner(w, text) { const bg = w.nimg && (!w.priv || w.nimgUrl) ? (w.priv ? w.nimgUrl : IMG(w.nimg)) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : '');
+function foldInner(w, text) { if (isGQ(w)) return gqInner(w, text); const bg = w.nimg && (!w.priv || w.nimgUrl) ? (w.priv ? w.nimgUrl : IMG(w.nimg)) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : '');
   return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody><span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>
   <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
   <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div></div>`; }
+function gqInner(w, text) { // 光栖内页：用户心愿写在信纸横线区
+  return `<div class=gq-inside style="background-image:url('${GQ('inside', gqSet(w))}')"><p class=gq-lines dir=auto>${esc(text)}</p><div class=gq-meta>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div></div>
+  <div class=row style="margin-top:10px;justify-content:center">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`; }
 function openFolded(w) { // 折页卡：封面 → 3D 翻开动画 → 内页；私密卡仅作者可解锁
   const locked = w.priv && !w.plain, mine = isMine(w);
   modal(`<div class="fold${locked ? ' locked' : ''}" id=fold><div class=fold-page id=foldPage>${locked ? `<div class=fold-lockmsg>🔒 <b>${esc(t('card.privateTitle'))}</b><p class=muted>${esc(t(mine ? 'card.privateMine' : 'card.privateOther'))}</p>
     ${mine ? `<button class=primary id=unlock>🔓 ${esc(t('card.unlock'))}</button>` : ''}<div class=row style="margin-top:10px"><button data-close>${esc(t('common.close'))}</button></div></div>` : foldInner(w, w.plain || w.text)}</div>
-    <div class=fold-cover id=foldCover><div class=fold-front><img alt="" src="${w.cimg ? IMG(w.cimg) : WTCovers.url(w.cover, 300, 400)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">${w.priv ? '<span class=fold-lock>🔒</span>' : ''}<span class=fold-hint>${esc(t(locked && !mine ? 'card.privateShort' : 'card.tapOpen'))}</span></div><div class=fold-back></div></div></div>`, w.cat);
+    <div class=fold-cover id=foldCover><div class=fold-front><img alt="" src="${isGQ(w) ? GQ('front', gqSet(w)) : w.cimg ? IMG(w.cimg) : WTCovers.url(w.cover, 300, 400)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">${w.priv ? '<span class=fold-lock>🔒</span>' : ''}<span class=fold-hint>${esc(t(locked && !mine ? 'card.privateShort' : 'card.tapOpen'))}</span></div><div class=fold-back${isGQ(w) ? ` style="background:url('${GQ('back', gqSet(w))}') center/cover"` : ''}></div></div></div>`, w.cat);
   const f = $('#fold'), open = () => f.classList.add('open');
   $('#foldCover').addEventListener('click', () => { if (locked && !mine) { f.classList.add('shake'); setTimeout(() => f.classList.remove('shake'), 500); return; } open(); });
   if (!locked) setTimeout(open, 450); else if (mine) setTimeout(open, 450);
@@ -1230,7 +1234,7 @@ async function evmPay(payKey, amount) { // EVM：全额转入该链单一收款�
   toast(esc(t('wish.evmWaiting'))); await WTW.waitReceipt(p, h); return { chainId: +chainId, txs: [h], payKey: r.key }; }
 function coverGridHtml(px = '') { // 卡片封面设计：经典（原有分组）+ 自然 / 简约 / 情感预设 + 自定义上传
   const btn = i => { const c = WTCovers.list[i], nm = WTCovers.GROUPS.classic.includes(c[0]) || c[0] === MATERIAL ? catName(c[0]) : t('cover.n.' + c[1]); return `<button type=button data-cover=${i} aria-pressed=false aria-label="${esc(nm)}" title="${esc(nm)}"><img alt="" src="${WTCovers.url(i)}"></button>`; };
-  const classic = WTCovers.list.map((c, i) => [c, i]).filter(([c]) => WTCovers.GROUPS.classic.includes(c[0]) || c[0] === MATERIAL).sort((a, b) => COVER_CATS.indexOf(a[0][0] === MATERIAL ? '经典' : a[0][0]) - COVER_CATS.indexOf(b[0][0] === MATERIAL ? '经典' : b[0][0]));
+  const classic = WTCovers.list.map((c, i) => [c, i]).filter(([c]) => (px ? WTCovers.GROUPS.classic.includes(c[0]) : c[0] === '经典') || c[0] === MATERIAL).sort((a, b) => COVER_CATS.indexOf(a[0][0] === MATERIAL ? '经典' : a[0][0]) - COVER_CATS.indexOf(b[0][0] === MATERIAL ? '经典' : b[0][0]));
   const grp = (k, inner) => `<div class=cg-sec><h4 class=cg-t>${E('cover.g.' + k)}</h4><div class=cover-grid>${inner}</div></div>`;
   return `<div id=${px}covers>${grp('classic', classic.map(([c, i], j, A) => (j === 0 || (A[j - 1][0][0] === MATERIAL ? '经典' : A[j - 1][0][0]) !== (c[0] === MATERIAL ? '经典' : c[0]) ? `<b class=cg-h>${esc(catName(c[0]))}</b>` : '') + btn(i)).join(''))}
     ${['nature', 'minimal', 'emotion'].map(g => grp(g, WTCovers.ids(g).map(btn).join(''))).join('')}</div>
@@ -1243,7 +1247,7 @@ function previewHtml(st) { // st：表单当前值；所有用户文本经 esc
   const v = id => ($('#' + id)?.value || '').trim(), k = v('ckind') || 'wish';
   const coverSrc = st.upC || WTCovers.url(st.cover, 300, 400), insideSrc = st.upN || WTInsides.url(st.inside, 300, 400);
   const badge = `<span class=pv-sample>${E('ux.sampleTag')}</span>`, me = short(S.pubkey || '') || '—';
-  let body = '', img = coverSrc;
+  let body = '', img = $('#wc2')?.value === '光栖' ? GQ('front', S.draft?.gqSet | 0) : coverSrc;
   if (k === 'social') { const tags = v('stg').split(/[,，\s]+/).filter(Boolean).slice(0, 5), gsel = $('#sgen'), loc = [v('scountry'), v('sprov'), v('scity')].filter(Boolean).join(' · ');
     const meta = [v('sage'), v('sgen') && gsel ? gsel.selectedOptions[0]?.textContent : '', v('sjob'), loc].filter(Boolean);
     body = `<span class=tag>💬 ${E('kind.social')}</span>${tags.length ? `<div class=pv-tags>${tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}<p dir=auto>${esc(v('sin') || t('pv.introPh'))}</p><p class=pv-sub dir=auto>🔎 ${esc(v('slk') || t('pv.lookPh'))}</p>${meta.length ? `<p class=pv-meta dir=auto>${meta.map(esc).join(' · ')}</p>` : ''}`; }
@@ -1261,8 +1265,11 @@ function wishPanel() {
   return `<h2>${E('wish.title')}</h2><div class="card mk-grid"><div class=mk-form>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
   <div class="row mk-kindrow"><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option><option value=gate>🎫 ${E('kind.gate')}</option></select></label><div id=gseg class=gift-seg role=tablist aria-label="${E('kind.gift')}" hidden><button type=button role=tab data-gm=single class=on aria-selected=true>🎁 ${E('gift.single')}</button><button type=button role=tab data-gm=batch aria-selected=false>👥 ${E('gift.batch')}</button></div></div>
-  <div class=row><label>${E('wish.coverCat')} <select id=wc2><optgroup label="${E('cat.classic')}">${COVER_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : esc(catName(c))}</option>`).join('')}</optgroup></select></label></div>
-  <div class=row><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
+  <div class=row><label>${E('wish.coverCat')} <select id=wc2>${THEME_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : '✨ ' + esc(catName(c))}</option>`).join('')}</select></label></div>
+  <fieldset class=gq-slots id=gqSlots hidden><legend>✨ ${E('cat.guangqi')}</legend><p class="muted hint">${E('gq.hint')}</p>
+  <div class=gq-sets id=gqSets role=radiogroup aria-label="${E('gq.pick')}">${Array.from({ length: GQ_N }, (_, i) => `<button type=button role=radio data-gqs=${i} aria-checked=false title="${E(GQ_NAMES[i])}"><img alt="" loading=lazy src="${GQ('front', i, 1)}"><span>${E(GQ_NAMES[i])}</span></button>`).join('')}</div>
+  <div class=gq-row id=gqPrev>${['front', 'back', 'inside'].map(k => `<figure class=gq-slot data-gq=${k}><img alt="" src="${GQ(k, 0)}"><figcaption>${E('gq.' + k)}</figcaption></figure>`).join('')}</div></fieldset>
+  <div class=row id=ctypeRow><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
   <fieldset class=cover-design id=coverDesign><legend>${E('wish.coverStyle')}</legend>${coverGridHtml()}</fieldset>
   <div id=coverWrap hidden>
     <div class=muted style="margin-top:10px">${E('wish.inside')}</div><div class=cover-grid id=insides>${WTInsides.list.map((c, i) => `<button type=button data-inside=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTInsides.url(i)}"></button>`).join('')}</div>
@@ -1493,6 +1500,10 @@ async function route() {
     catSel?.addEventListener('change', () => { if (!$('#covers .on') || $('#covers').dataset.auto !== '0') pickCover(WTCovers.forCat(catSel.value)[0]); if (!$('#insides .on') || $('#insides').dataset.auto !== '0') pickInside(WTInsides.forCat(catSel.value)[0]); });
     pickCover(WTCovers.forCat(catSel?.value || '经典')[0]); pickInside(WTInsides.forCat(catSel?.value || '经典')[0]); syncCard();
     catSel?.addEventListener('change', syncShip);
+    const syncGQ = () => { const g = catSel?.value === '光栖'; ['coverDesign', 'ctypeRow'].forEach(id => { if ($('#' + id)) $('#' + id).hidden = g; }); if ($('#gqSlots')) $('#gqSlots').hidden = !g; if (g && $('#ctype')) $('#ctype').value = 'single'; syncCard(); }; // 光栖主题：固定 正面/背面/内页，隐藏封面选择与卡片类型
+    const pickGQ = i => { D.gqSet = i; $('#gqSets')?.querySelectorAll('[data-gqs]').forEach(b => { const on = +b.dataset.gqs === i; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }); $('#gqPrev')?.querySelectorAll('[data-gq]').forEach(f => f.querySelector('img').src = GQ(f.dataset.gq, i)); saveD(); };
+    $('#gqSets')?.addEventListener('click', e => { const b = e.target.closest('[data-gqs]'); if (b) pickGQ(+b.dataset.gqs); });
+    catSel?.addEventListener('change', syncGQ); syncGQ(); pickGQ(D.gqSet | 0);
     // 表单草稿：后台刷新/语言切换/钱包事件会重新渲染页面，这里把用户的选择写入 S.draft 并在重渲染后恢复
     const F = { ckind: 'value', wc2: 'value', ctype: 'value', priv: 'checked', wt: 'value', amt: 'value', ship: 'value', ag: 'checked', ag2: 'checked', stg: 'value', sin: 'value', slk: 'value', sct: 'value', ssh: 'checked', sage: 'value', sgen: 'value', sjob: 'value', gto: 'value', gnt: 'value', svis: 'value', scountry: 'value', sprov: 'value', scity: 'value', gdel: 'value', gvis: 'value', ginv: 'value', gurl: 'value', gtitle: 'value', gprice: 'value', gcur: 'value', gname: 'value', gid: 'value', gato: 'value', gexp: 'value', gag: 'checked' };
     const syncGiftDel = () => { const d = $('#gdel')?.value || 'tree', part = d === 'tree_partial' || d === 'both_partial';
@@ -1579,10 +1590,10 @@ async function route() {
       { await loadBlocklist(true); const h = window.__blkCheck?.(); if (h) return toast(esc($('#blkwarn').textContent), 'err'); } // 付款前拦截（服务器审核同样强制）
       if (!($('#pv')?.value === 'evm') && !(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
-      const folded = $('#ctype').value === 'folded', cover = +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null;
-      if (up.C || (folded && up.N)) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (folded && up.N) nimg = await uploadImg(up.N, k); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
+      const gqC = cat === '光栖', folded = !gqC && $('#ctype').value === 'folded', cover = gqC ? (D.gqSet | 0) : +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null;
+      if (!gqC && (up.C || (folded && up.N))) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (folded && up.N) nimg = await uploadImg(up.N, k); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
       if (priv) { if ([...txt].length > 100) return toast(E('wish.privateLen'), 'err'); try { cipher = await WTPriv.enc(txt, await WTPriv.key()); } catch (e) { return toast(esc(t('card.unlockFail')) + ' ' + esc(e.message || ''), 'err'); } }
-      const fold = folded ? encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside) : (cimg || cover !== WTCovers.forCat(cat)[0] ? encSingle(cimg ? null : cover, cimg) : '');
+      const fold = folded ? encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside) : (gqC || cimg || cover !== WTCovers.forCat(cat)[0] ? encSingle(cimg ? null : cover, cimg) : '');
       const prefix = encKind(cat, K || { kind: 'wish', vis: 'public' }, fold);
       if (new TextEncoder().encode(prefix + '|' + (cipher || txt)).length > 600) { $('#ws').disabled = false; return tt.update(E('err.memoSize'), 'err'); }
       let memo; try { memo = await moderateThenMemo('W', prefix, txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }

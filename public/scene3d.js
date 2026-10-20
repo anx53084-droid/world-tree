@@ -16,7 +16,8 @@ const MOBILE = matchMedia('(pointer:coarse)').matches || innerWidth < 700, QS = 
 const tr = (k, v) => window.I18N ? I18N.t(k, v) : k; // 国际化（见 i18n.js）
 export const SEASONS = { green: { get name() { return tr('season.green'); }, v: 0 }, bloom: { get name() { return tr('season.bloom'); }, v: 1 }, fall: { get name() { return tr('season.fall'); }, v: 2 } };
 
-const A = window.WTAddr, HUES = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270 };
+const A = window.WTAddr, HUES = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270, 光栖: 285 };
+const GQ_V = 1, GQIMG = {}; const gqImg = k => { let im = GQIMG[k]; if (!im) { im = GQIMG[k] = new Image(); im.onload = () => { im.ok = 1; texCache.forEach((v, kk) => { if (kk.startsWith('GQ|')) { v.dispose(); texCache.delete(kk); } }); nearPool.forEach(s => s.userData.wish = null); }; im.src = `themes/guangqi/${k}-s.webp?v=${GQ_V}`; } return im.ok ? im : null; }; // 光栖主题卡面：k = 'front-01' 等（256px 小图，仅近景卡加载）
 const MID_CAP = MOBILE ? 3000 : 5000, NEAR_CAP = MOBILE ? 120 : 200, TILE_LRU = 800, COUNT_LRU = 300;
 let cfg = { stress: false, total: 0 }, real = [], N = 0, focus = '', view = null, viewSeq = 0, inst, nearPool = [], clusters, labels = [], navEl, hlId = null, lastNav = 0, fly = null, dirty = true, loadTimer = 0;
 const tiles = new Map(), countsCache = new Map(), inflight = new Set(), frameT = [];
@@ -324,10 +325,11 @@ function makeLabel(text, P, region) {
 const GLINT = `float gh(vec2 p){return fract(sin(dot(p,vec2(41.3,289.1)))*15731.7);}
   float glint(vec2 uv,float seed,float t){ vec2 q=uv*vec2(10.,15.), g=floor(q), f=fract(q)-.5; float h=gh(g+seed*17.); if(h<.9) return 0.;
     float tw=pow(max(0.,sin(t*(1.1+h*2.6)+h*61.)),18.); float d=length(f); return tw*(smoothstep(.16,0.,d)+.6*smoothstep(.035,0.,abs(f.x))*smoothstep(.45,0.,abs(f.y))+.6*smoothstep(.035,0.,abs(f.y))*smoothstep(.45,0.,abs(f.x))); }`;
-function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { map: { value: null }, uTime: BU.uTime, uHl: { value: 0 }, uSolid: { value: 0 }, uSeed: { value: (i * .618) % 1 }, uAlpha: { value: 1 }, uDetail: { value: 1 } },
+// 光栖卡：uTwo=1 时背面（!gl_FrontFacing）显示 mapB；其余卡始终朝向相机，只见正面。updateVis 中光栖卡不做背侧淡出
+function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { map: { value: null }, mapB: { value: null }, uTwo: { value: 0 }, uTime: BU.uTime, uHl: { value: 0 }, uSolid: { value: 0 }, uSeed: { value: (i * .618) % 1 }, uAlpha: { value: 1 }, uDetail: { value: 1 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-  fragmentShader: `uniform sampler2D map; uniform float uTime,uHl,uSolid,uSeed,uAlpha,uDetail; varying vec2 vUv; ${GLINT}
-    void main(){ vec4 tx=texture2D(map,vUv); if(tx.a<.04) discard; vec2 q=vUv-vec2(.5,.47); float inner=exp(-dot(q*vec2(2.2,1.5),q*vec2(2.2,1.5))*3.); // 纸灯内透光
+  fragmentShader: `uniform sampler2D map,mapB; uniform float uTime,uHl,uSolid,uSeed,uAlpha,uDetail,uTwo; varying vec2 vUv; ${GLINT}
+    void main(){ vec4 tx=(uTwo>.5&&!gl_FrontFacing)?texture2D(mapB,vec2(1.-vUv.x,vUv.y)):texture2D(map,vUv); if(tx.a<.04) discard; vec2 q=vUv-vec2(.5,.47); float inner=exp(-dot(q*vec2(2.2,1.5),q*vec2(2.2,1.5))*3.); // 纸灯内透光
       vec3 c=tx.rgb*(.86+.2*inner*(1.-uSolid*.6)) + vec3(.1,.07,.02)*inner*(1.-uSolid);
       float e=min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y)); c+=vec3(.32,.24,.1)*smoothstep(.045,0.,e); // 暖金水晶边缘
       float band=exp(-pow((vUv.x*.8+vUv.y*.6-fract(uTime*.05+uSeed)*2.6+.5)*6.,2.)); c+=vec3(.5,.42,.25)*band*.14; // 缓慢扫过的光泽
@@ -374,13 +376,13 @@ function rebuildInst() { // 把已加载、处于当前区域的瓦片写入实�
   ['position', 'anc', 'ph'].forEach(a => sa[a].needsUpdate = true); strings.geometry.setDrawRange(0, list.length * 2); updateNear(true);
 }
 // ---------- 近景：离相机最近的 ≤200 张卡升级为带文字的可交互灯笼卡 ----------
-let nearAt = 0; const wp = new THREE.Vector3();
+let nearAt = 0; const wp = new THREE.Vector3(), wp2 = new THREE.Vector3();
 // ---------- 距离分级可见性（仅分页视图）：最远不显示 → ~50 张若隐若现 → 66~100 张（只显示朝向相机一侧）→ 更近显示全部并逐步显出内容；按优先级（最新）稳定选取 + 平滑淡入淡出 ----------
 let visAt = 0, visCount = 0; const kOf = d => d >= 80 ? 0 : d >= 60 ? (80 - d) / 20 * 50 : d >= 30 ? 50 + (60 - d) / 30 * 40 : Math.min(PAGE_N, 90 + (30 - d) / 15 * 110);
 function updateVis(dt) { if (!inst?.userData.cards) return; const cards = inst.userData.cards, now = performance.now(), sc = treeGroup.scale.x;
   if (now - visAt > 120) { visAt = now; if (!view?.page) cards.forEach(c => c.tgt = 1); else {
     const d = camera.position.distanceTo(controls.target) / sc, K = kOf(d), cx = camera.position.x / sc, cz = camera.position.z / sc, cl = Math.hypot(cx, cz) || 1, front = [];
-    for (const c of cards) { const r = Math.hypot(c.p.x, c.p.z) || 1, dot = (c.p.x * cx + c.p.z * cz) / (r * cl); c.side = Math.min(1, Math.max(0, (dot + .15) / .45)); if (c.side > 0) front.push(c); else c.tgt = 0; } // 背面卡片淡出
+    for (const c of cards) { const r = Math.hypot(c.p.x, c.p.z) || 1, dot = (c.p.x * cx + c.p.z * cz) / (r * cl); c.side = c.w.cat === '光栖' ? 1 : Math.min(1, Math.max(0, (dot + .15) / .45)); if (c.side > 0) front.push(c); else c.tgt = 0; } // 背面卡片淡出
     front.sort((a, b) => a.rank - b.rank); front.forEach((c, i) => c.tgt = c.side * Math.min(1, Math.max(0, (K - i) / 8)) * (c.w.id === hlId ? 2 : 1)); } }
   const k = 1 - Math.exp(-dt / 260), g = inst.geometry, A = g.attributes.iAlpha.array, SL = strings.geometry.attributes.al.array; visCount = 0;
   cards.forEach((c, i) => { c.al += (Math.min(1, c.tgt) - c.al) * k; A[i] = c.al; SL[i * 2] = SL[i * 2 + 1] = c.al; if (c.al > .3) visCount++; });
@@ -393,7 +395,7 @@ function updateNear(force) { const now = performance.now(); if (!force && now - 
   for (let i = 0; i < cards.length; i++) { wp.copy(cards[i].p).multiplyScalar(sc); const d = wp.distanceTo(cam) / (cards[i].sz * sc); if (d < 26 || cards.length <= NEAR_CAP) cand.push([d, i]); } // 卡片总数很少时全部以近景文字卡展示
   cand.sort((a, b) => a[0] - b[0]); const S = inst.geometry.attributes.iSize.array, keep = new Set(cand.slice(0, NEAR_CAP).map(c => c[1]));
   cards.forEach((c, i) => { const want = keep.has(i) ? 0 : c.sz * (c.w.id === hlId ? 1.5 : 1); if (S[i] !== want) { S[i] = want; inst.geometry.attributes.iSize.needsUpdate = true; } });
-  let k = 0; for (const i of keep) { const s = nearPool[k++], c = cards[i]; if (s.userData.wish !== c.w) { s.material.uniforms.map.value = cardTexture(c.w); s.material.uniforms.uSolid.value = c.w.folded ? 1 : 0; s.userData.wish = c.w; s.userData.grow = s.userData.grow || 0; }
+  let k = 0; for (const i of keep) { const s = nearPool[k++], c = cards[i]; if (s.userData.wish !== c.w) { const gq = c.w.cat === '光栖'; s.material.uniforms.map.value = gq ? gqTexture(c.w, 'front') : cardTexture(c.w); s.material.uniforms.mapB.value = gq ? gqTexture(c.w, 'back') : null; s.material.uniforms.uTwo.value = gq ? 1 : 0; s.userData.gq = gq; s.material.uniforms.uSolid.value = c.w.folded ? 1 : 0; s.userData.wish = c.w; s.userData.grow = s.userData.grow || 0; }
     s.position.copy(c.p); s.userData.c = c; s.userData.sz = c.sz; s.visible = true; const hl = c.w.id === hlId; s.renderOrder = hl ? 6 : 3; s.material.depthTest = !hl; }
   for (; k < nearPool.length; k++) { nearPool[k].visible = false; nearPool[k].userData.wish = null; }
 }
@@ -402,6 +404,15 @@ function ornament(x, x0, y, w) { // 顶/底部金色纹饰带：细线 + 菱形�
   for (let i = 0, n = 9; i < n; i++) { const cx = x0 + (i + .5) * w / n, cy = y + 4.5; if (i % 2) { x.beginPath(); x.arc(cx, cy, 1.6, 0, 7); x.fill(); } else { x.beginPath(); x.moveTo(cx, cy - 3.5); x.lineTo(cx + 3.5, cy); x.lineTo(cx, cy + 3.5); x.lineTo(cx - 3.5, cy); x.closePath(); x.fill(); } }
   x.restore(); }
 const UIMG = new Map(); function uimg(h) { if (!h) return null; if (!UIMG.has(h)) { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => { im.ok = 1; dirty = true; }; im.src = (window.apiUrl || (x => x))('/api/img/' + h); UIMG.set(h, im); } const im = UIMG.get(h); return im.ok ? im : null; } // 用户自定义封面
+const gqK = (w, side) => side + '-' + String(Math.min(9, Math.max(0, (w.cover ?? 0) | 0)) + 1).padStart(2, '0');
+function gqTexture(w, side) { // 光栖主题双面卡（仅近景真实卡用；远/中景仍是实例化灯笼，不增加开销）
+  const im = gqImg(gqK(w, side)), key = 'GQ|' + gqK(w, side) + '|' + (side === 'front' ? (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.id === hlId ? 1 : 0) + (w.priv ? 'P' : '') : '') + (im ? 'I' : ''); if (texCache.has(key)) return lruGet(texCache, key);
+  const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
+  x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
+  x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); if (im) { const k = Math.max(W / im.width, H / im.height); x.drawImage(im, X0 + (W - im.width * k) / 2, Y0 + (H - im.height * k) / 2, im.width * k, im.height * k); } else { const g = x.createLinearGradient(0, Y0, 0, Y0 + H); g.addColorStop(0, '#2a1846'); g.addColorStop(1, '#0c0820'); x.fillStyle = g; x.fillRect(X0, Y0, W, H); } x.restore();
+  x.strokeStyle = w.id === hlId ? '#ffffff' : '#d6b060'; x.lineWidth = w.id === hlId ? 7 : 5; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke();
+  if (side === 'front') { x.fillStyle = '#000a'; x.fillRect(X0, Y0 + H - 34, W, 34); x.fillStyle = '#fff'; x.font = 'bold 15px sans-serif'; x.fillText(w.priv ? '🔒 ' + tr('card.privateShort') : '📖 ' + tr('card.tapOpen'), X0 + 10, Y0 + H - 12); }
+  const tex = new THREE.CanvasTexture(c); texCache.set(key, tex); return tex; }
 function cardTexture(w) { // 纸质许愿签（单卡）或折页卡封面（私密卡加锁）；哑光无发光
   const key = (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : '') + (uimg(w.cimg) ? 'U' : '') + (w.kind || '') + (w.city || '') + (w.province || '') + (w.country || ''); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
@@ -510,7 +521,7 @@ function loop() {
   if (dirty) rebuildInst(); else updateNear(false); updateVis(dt);
   nearPool.forEach(c => { if (!c.visible) return; c.userData.grow = Math.min(1, c.userData.grow + 0.05); const hv = c.userData.wish?.sig === hovered; c.userData.hl = (c.userData.hl || 0) + ((hv ? 1 : 0) - (c.userData.hl || 0)) * .2; // 悬停高亮
     c.material.uniforms.uHl.value = c.userData.hl; const g = c.userData.grow * (1 + c.userData.hl * .25) * c.userData.sz * (c.userData.wish?.id === hlId ? 1.5 : 1); c.scale.set(CW * 1.2 * g, CH * 1.2 * g, 1);
-    const cc = c.userData.c; if (cc) { const sw = swingJS(cc.a, cc.p, cc.ph, t, c.position), rx = c.position.x - cc.a.x + c.position.z - cc.a.z; c.quaternion.copy(camera.quaternion); c.rotateZ(-Math.abs(sw) * Math.sign(rx) * .6); } });
+    const cc = c.userData.c; if (cc) { const sw = swingJS(cc.a, cc.p, cc.ph, t, c.position), rx = c.position.x - cc.a.x + c.position.z - cc.a.z; if (c.userData.gq) { c.getWorldPosition(wp); wp2.set(wp.x, 0, wp.z).normalize(); c.lookAt(wp.x + wp2.x, wp.y, wp.z + wp2.z); } else c.quaternion.copy(camera.quaternion); c.rotateZ(-Math.abs(sw) * Math.sign(rx) * .6); } });
   if (now - pickT > 200) { pickT = now; checkNav(); const dbg = document.body.classList.contains('debug'); if (clusters) clusters.visible = dbg; labels.forEach(l => l.visible = dbg); } // 🏮 计数标签/光簇：仅调试可见
   controls.update(); if (useBloom) composer.render(); else renderer.render(scene, camera);
 }

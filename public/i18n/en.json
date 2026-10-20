@@ -1034,5 +1034,21 @@
   "help.hostBody@main": "There is no custodial demo mode on mainnet: please use your own Solana wallet (such as Phantom).",
   "err.custodyOff": "Email custodial accounts are not available on mainnet. Please connect your own wallet",
   "wal.evmMainOff": "EVM wallet sign-in is not available on mainnet yet. Please use a Solana wallet (such as Phantom)",
-  "wal.mwaSub": "Backup: the wallet may warn it can't verify the app identity — opening in Phantom above is recommended"
+  "wal.mwaSub": "Backup: the wallet may warn it can't verify the app identity — opening in Phantom above is recommended",
+  "cat.guangqi": "Guangqi",
+  "gq.hint": "A Guangqi card has a front, a back and an inside page: on the tree the front shows from one side and the back from the other; open the card to see the inside.",
+  "gq.front": "Front",
+  "gq.back": "Back",
+  "gq.inside": "Inside",
+  "gq.s1": "Reunion",
+  "gq.s2": "Healing",
+  "gq.s3": "Eternal Love",
+  "gq.s4": "Dream",
+  "gq.s5": "Guardian",
+  "gq.s6": "Freedom",
+  "gq.s7": "Wisdom",
+  "gq.s8": "Home",
+  "gq.s9": "Creation",
+  "gq.s10": "Rebirth",
+  "gq.pick": "Choose a card set"
 }

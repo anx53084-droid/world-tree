@@ -1034,5 +1034,21 @@
   "help.hostBody@main": "Im Mainnet gibt es keinen verwahrenden Demomodus: Bitte nutze deine eigene Solana-Wallet (z. B. Phantom).",
   "err.custodyOff": "E-Mail-Verwahrkonten sind im Mainnet nicht verfügbar. Bitte verbinde deine eigene Wallet",
   "wal.evmMainOff": "EVM-Wallet-Anmeldung ist im Mainnet noch nicht verfügbar. Bitte eine Solana-Wallet (z. B. Phantom) nutzen",
-  "wal.mwaSub": "Alternative: Die Wallet kann warnen, dass die App-Identität nicht überprüft werden kann – besser oben in Phantom öffnen"
+  "wal.mwaSub": "Alternative: Die Wallet kann warnen, dass die App-Identität nicht überprüft werden kann – besser oben in Phantom öffnen",
+  "cat.guangqi": "Guangqi",
+  "gq.hint": "Eine Guangqi-Karte hat Vorderseite, Rückseite und Innenseite: Am Baum sieht man von einer Seite die Vorderseite, von der anderen die Rückseite; öffne die Karte für die Innenseite.",
+  "gq.front": "Vorderseite",
+  "gq.back": "Rückseite",
+  "gq.inside": "Innenseite",
+  "gq.s1": "Wiedersehen",
+  "gq.s2": "Heilung",
+  "gq.s3": "Ewige Liebe",
+  "gq.s4": "Traum",
+  "gq.s5": "Hüter",
+  "gq.s6": "Freiheit",
+  "gq.s7": "Weisheit",
+  "gq.s8": "Heimat",
+  "gq.s9": "Schöpfung",
+  "gq.s10": "Wiedergeburt",
+  "gq.pick": "Karte wählen"
 }
