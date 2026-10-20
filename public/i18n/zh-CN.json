@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "邮箱钱包持有者（EVM）",
   "wal.vendorOld": "钱包组件刚刚更新，请刷新页面后再试",
   "wal.copyAddr": "复制地址",
-  "wal.addrCopied": "已复制"
+  "wal.addrCopied": "已复制",
+  "acct.guestHintW": "连接钱包后，可设置头像与昵称"
 }

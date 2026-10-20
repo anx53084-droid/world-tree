@@ -21,7 +21,7 @@ const MOCK_PROV = `const mkP = (ch, onUri) => { const L = {}; return { on: (e, f
   const srv = cp.spawn('node', ['server.js'], { cwd: tmp, env: { ...process.env, PORT: port, ADMIN_KEY: 'k-test', D1_API_TOKEN: '', PRICE_MOCK: '1', WC_PROJECT_ID: 'pid-test', DYNAMIC_ENV_ID: 'env-test' }, stdio: 'ignore' });
   let b; try { for (let i = 0; i < 80; i++) { try { await fetch(Bs + '/api/health'); break; } catch { await new Promise(r => setTimeout(r, 250)); } }
     b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-    const page = async (dyn = {}) => { const urls = []; const c = await b.newContext({ ...devices['iPhone 13'], viewport: { width: 412, height: 860 } }); const p = await c.newPage(); await p.exposeFunction('nodeSign', sign); await p.addInitScript(ev => { localStorage.gq_guide_dismissed = '1'; if (ev) window.WT_WALLET_UI = { evmTab: true }; }, dyn.ui !== 'default');
+    const page = async (dyn = {}) => { const urls = []; const c = await b.newContext({ ...devices['iPhone 13'], viewport: { width: 412, height: 860 } }); const p = await c.newPage(); await p.exposeFunction('nodeSign', sign); await p.addInitScript(ev => { localStorage.gq_guide_dismissed = '1'; if (ev) window.WT_WALLET_UI = { evmTab: true, email: true }; }, dyn.ui !== 'default');
       await p.route('**/vendor/walletconnect.js*', r => { urls.push(r.request().url()); if (dyn.stale && !/[?&]r=/.test(r.request().url())) return r.fulfill({ contentType: 'text/javascript', body: 'window.WTWC = { create() {} };' }); return r.fulfill({ contentType: 'text/javascript', body: `${MOCK_PROV} window.WTWC = { createEvm: o => { window.__wcOpts = o; return mkP(84532, o.onUri); } };` }); });
       await p.route('**/vendor/dynamic.js*', r => { urls.push(r.request().url()); if (dyn.stale && !/[?&]r=/.test(r.request().url())) return r.fulfill({ contentType: 'text/javascript', body: 'window.WTDYN = { init: async () => {}, adapter() {}, address: () => null };' }); return r.fulfill({ contentType: 'text/javascript', body: `${MOCK_PROV} let ea = null; window.WTDYN = { init: async () => {}, address: () => null, evmAddress: () => ea, evmEnabled: () => ${dyn.evm !== false}, evmNetworks: () => [1], ensureWallet: async () => { ea = '${ADDR}'; },
         sendEmail: async e => ({ e }), verify: async (o, c, ch) => { window.__dynChain = ch; if (c !== '123456') throw new Error('bad code'); ea = '${ADDR}'; }, evmProvider: rpc => { window.__dynRpc = typeof rpc; return mkP(1); }, logout: async () => {} };` }); });
@@ -32,7 +32,8 @@ const MOCK_PROV = `const mkP = (ch, onUri) => { const L = {}; return { on: (e, f
       ok(!(await q.$('[data-tab]')) && !(await q.$('#wch')), '默认：EVM 标签整体隐藏（即使请求 EVM 也只显示 Solana），只剩一个链时不显示标签切换');
       const ids = await q.$$eval('.wlist .witem', a => a.map(x => x.dataset.w || (x.textContent.includes('Phantom') ? 'phantom' : x.textContent.trim().slice(0, 12))));
       ok(!ids.some(x => /solflare|backpack|okx/i.test(x)), '默认：隐藏 Solflare / Backpack / OKX Wallet');
-      ok(ids[0] === 'phantom' && ids.slice(-2).join() === 'dynamic,walletconnect', '默认顺序：Phantom → (MWA) → 邮箱 / Google → WalletConnect：' + ids.join(','));
+      ok(ids[0] === 'phantom' && ids[ids.length - 1] === 'walletconnect' && !ids.includes('dynamic'), '默认顺序：Phantom → (MWA) → WalletConnect，邮箱 / Google 隐藏（t220u）：' + ids.join(','));
+      await q.evaluate(() => closeModal()); ok(!(await q.$('#be')) && !(await q.$('[data-cta=email]')) && (await q.textContent('#acard')).includes(T['acct.guestHintW']), '默认：未登录账户卡与引导里没有邮箱登录按钮，提示改为只连钱包');
       ok(!(await q.$('.wmob')) && !(await q.textContent('#modal-box')).includes(T['wal.solHint']), '说明文字精简：去掉 Solana 支持列表与手机提示');
       ok(await q.evaluate(() => WTW.solWallets().some(w => w.id === 'solflare') && WTW.evmWallets().some(w => w.id === 'walletconnect')), '隐藏只作用于入口：钱包代码保留（已有会话照常恢复）');
       await q.context().close(); }
@@ -68,7 +69,7 @@ const MOCK_PROV = `const mkP = (ch, onUri) => { const L = {}; return { on: (e, f
     { const c = await b.newContext({ viewport: { width: 412, height: 860 }, permissions: ['clipboard-read', 'clipboard-write'] }); const q = await c.newPage(); await q.addInitScript(() => { localStorage.gq_guide_dismissed = '1'; });
       await q.goto(Bs + '/?lang=zh-CN'); const lg = await (await fetch(Bs + '/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'copy@test.dev' }) })).json();
       await q.evaluate(t => { localStorage.wt_token = t; }, lg.token); await q.reload(); await q.waitForSelector('#wscp', { timeout: 30000 });
-      await q.click('#wscp'); await toastHas(q, T['wal.addrCopied']); ok(await q.evaluate(() => navigator.clipboard.readText()) === lg.pubkey, '顶栏地址胶囊复制按钮：复制完整地址，提示「已复制」');
+      ok(await q.$('#bo') !== null && (await q.textContent('#acard')).includes(T['acct.idHost']), '邮箱入口隐藏后：已登录的邮箱会话照常显示、可退出'); await q.click('#wscp'); await toastHas(q, T['wal.addrCopied']); ok(await q.evaluate(() => navigator.clipboard.readText()) === lg.pubkey, '顶栏地址胶囊复制按钮：复制完整地址，提示「已复制」');
       ok(await q.$('#accp') !== null && await q.$eval('#accp', e => e.dataset.addr) === lg.pubkey && await q.$eval('#accp', e => !!e.getAttribute('aria-label')), '抽屉账户卡地址后有复制按钮（完整地址、无障碍标签）');
       ok(Object.keys(JSON.parse(fs.readFileSync(D + '/public/i18n/en.json', 'utf8'))).includes('wal.addrCopied'), '「已复制」文案在词典中'); await c.close(); }
     console.log('stale vendor cache');

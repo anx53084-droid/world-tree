@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "E-posta cüzdanı sahibi (EVM)",
   "wal.vendorOld": "Cüzdan bileşeni az önce güncellendi. Lütfen sayfayı yenileyip tekrar deneyin",
   "wal.copyAddr": "Adresi kopyala",
-  "wal.addrCopied": "Kopyalandı"
+  "wal.addrCopied": "Kopyalandı",
+  "acct.guestHintW": "Avatar ve takma ad ayarlamak için bir cüzdan bağlayın"
 }

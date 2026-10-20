@@ -33,7 +33,7 @@ let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); };
     console.log('static');
     const app = fs.readFileSync(path.join(D, 'public/app.js'), 'utf8'), html = fs.readFileSync(path.join(D, 'public/index.html'), 'utf8');
     ok(/id="acard"/.test(html) && !/data-i18n="nav.account"/.test(html) && /id="mode"/.test(html), '抽屉顶部有账户头卡；底部旧「账户」区已删除，账户信息并入头卡下方');
-    const mh = html.slice(html.indexOf('id="menu"')); ok(['list', 'treehole', 'gift', 'me', 'inbox', 'notify', 'security', 'help', 'terms'].every(k => new RegExp('<a href="#/' + k + '"[^>]*><svg').test(mh)) && /href="#\/gift"[^>]*>.*?data-i18n="gift.page"/.test(mh) && /<nav id="topnav"[^\n]*data-i18n="nav.list"/.test(html), '抽屉菜单项有内联 SVG 图标；文字仍是「礼品卡」；顶栏导航不变');
+    const mh = html.slice(html.indexOf('id="menu"')); ok(['list', 'treehole', 'wish/make', 'wish', 'me', 'inbox', 'notify', 'security', 'help', 'terms'].every(k => new RegExp('<a href="#/' + k + '"[^>]*><svg').test(mh)) && /href="#\/wish\/make"[^>]*>.*?data-i18n="mine.make"/.test(mh) && !/href="#\/gift"/.test(mh) && /<nav id="topnav"[^\n]*data-i18n="nav.list"/.test(html), '抽屉菜单项有内联 SVG 图标（含我的星愿）；「礼品卡」已换成「制作我的心愿卡」；顶栏导航不变');
     ok(/function wishLevel/.test(app) && /S\.wishes/.test(app.slice(app.indexOf('function wishLevel'), app.indexOf('function wishLevel') + 400)), '等级由真实卡片数据计算（不写死）');
     const zh = JSON.parse(fs.readFileSync(path.join(D, 'public/i18n/zh-CN.json'), 'utf8')); ok(!Object.entries(zh).some(([k, v]) => /^acct\./.test(k) && /还愿|收益|代付/.test(v)), '新文案不含「还愿 / 收益 / 代付」');
     console.log('cache');

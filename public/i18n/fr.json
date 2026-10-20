@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "Détenteur du portefeuille e-mail (EVM)",
   "wal.vendorOld": "Le composant portefeuille vient d'être mis à jour. Actualisez la page et réessayez",
   "wal.copyAddr": "Copier l'adresse",
-  "wal.addrCopied": "Copié"
+  "wal.addrCopied": "Copié",
+  "acct.guestHintW": "Connectez un portefeuille pour définir votre avatar et votre pseudo"
 }

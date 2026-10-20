@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "Titular da carteira de e-mail (EVM)",
   "wal.vendorOld": "O componente da carteira acabou de ser atualizado. Recarregue a página e tente novamente",
   "wal.copyAddr": "Copiar endereço",
-  "wal.addrCopied": "Copiado"
+  "wal.addrCopied": "Copiado",
+  "acct.guestHintW": "Conecte uma carteira para definir seu avatar e apelido"
 }

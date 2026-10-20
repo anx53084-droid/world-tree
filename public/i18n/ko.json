@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "이메일 지갑 보유자(EVM)",
   "wal.vendorOld": "지갑 구성 요소가 방금 업데이트되었습니다. 페이지를 새로고침한 뒤 다시 시도하세요",
   "wal.copyAddr": "주소 복사",
-  "wal.addrCopied": "복사됨"
+  "wal.addrCopied": "복사됨",
+  "acct.guestHintW": "지갑을 연결하면 아바타와 닉네임을 설정할 수 있습니다"
 }

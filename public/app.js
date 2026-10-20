@@ -374,7 +374,7 @@ function connectWallet(tab) { const UI = WTW.ui; // 钱包入口开关（wallets
   modal(`<h3 style="margin-top:0">${E('wal.title')}</h3>${UI.evmTab ? `<div class="row tabs"><button type=button data-tab=sol class="${tab === 'sol' ? 'on' : ''}">◎ Solana</button><button type=button data-tab=evm class="${tab === 'evm' ? 'on' : ''}">⬡ ${E('wal.evm')}</button></div>` : ''}
     ${np && UI.evmTab ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${tab === 'sol' ? `${UI.evmTab ? `<p class=muted>${E('wal.solHint')}</p>` : ''}<div class=wlist>${WTW.solList().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')).join('')}</div>`
     : `<label>${E('wal.chain')} <select id=wch>${Object.entries(C).map(([id, c]) => `<option value=${id} ${id === ch ? 'selected' : ''}>${esc(t('chain.' + (c.key || EVM_KEYS[id])))} · ${esc(c.name)}</option>`).join('')}</select></label>
-      <p class=muted>${E('wal.evmHint')} ${S.cfg.evm?.pay ? '' : E('wal.evmPayOff')}</p><div class=wlist>${WTW.evmWallets().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'evm')).join('')}</div>`}
+      <p class=muted>${E('wal.evmHint')} ${S.cfg.evm?.pay ? '' : E('wal.evmPayOff')}</p><div class=wlist>${WTW.evmList().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'evm')).join('')}</div>`}
     <p class=muted style="font-size:12px">🔐 ${E('wal.nonCustody')}</p><div class=row style="justify-content:flex-end"><button data-close>${E('common.cancel')}</button></div>`);
   document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { localStorage.wt_wtab = b.dataset.tab; connectWallet(b.dataset.tab); });
   $('#wch')?.addEventListener('change', e => localStorage.wt_chain = e.target.value);
@@ -486,7 +486,7 @@ function paintWstat() { const el = $('#wstat'); if (!el) return; const addr = S.
   el.hidden = true; }
 function renderMode() {
   const m = { guest: `<span class="badge">${esc(t('mode.guest'))}</span>`, self: `<span class="badge b-self">${esc(t('mode.self', { wallet: S.wallet?.name || (WTW.solWallets().find(w => w.id === localStorage.wt_wallet)?.name) || 'Solana', addr: short(S.pubkey) }))}</span>`, host: `<span class="badge b-host">${esc(S.kind === 'evm' ? t('mode.evm', { addr: short(S.evmAddr || ''), sol: short(S.pubkey) }) : t('mode.host', { email: S.email, addr: short(S.pubkey) }))}</span>` }[S.mode];
-  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.wallet'))}</button><button id=be class=mlink>${esc(t('btn.email'))}</button>` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + (S.kind === 'evm' || S.mode === 'self' ? `<button id=bsw class=mlink>${esc(t('wal.switchAcct'))}</button>` : '') + `<button id=bo class=mlink>${esc(t(S.mode === 'self' || S.kind === 'evm' ? 'wal.disconnect' : 'btn.logout'))}</button>`);
+  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.wallet'))}</button>${WTW.ui.email ? `<button id=be class=mlink>${esc(t('btn.email'))}</button>` : ''}` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + (S.kind === 'evm' || S.mode === 'self' ? `<button id=bsw class=mlink>${esc(t('wal.switchAcct'))}</button>` : '') + `<button id=bo class=mlink>${esc(t(S.mode === 'self' || S.kind === 'evm' ? 'wal.disconnect' : 'btn.logout'))}</button>`);
   paintWstat(); paintAcard();
   $('#bp')?.addEventListener('click', () => connectWallet()); $('#be')?.addEventListener('click', () => emailLogin()); $('#bo')?.addEventListener('click', logout); $('#bsw')?.addEventListener('click', () => switchAccount().catch(e => toast(esc(walErr(e)), 'err'))); $('#ba')?.addEventListener('click', airdrop);
 }
@@ -503,7 +503,7 @@ const acAddr = () => S.mode === 'guest' ? '' : (S.kind === 'evm' ? S.evmAddr : S
 function acDisplayName() { const p = profOf(); if (p?.name) return p.name; if (S.mode === 'host' && S.kind !== 'evm' && S.email) return S.email.split('@')[0]; return short(S.kind === 'evm' ? S.evmAddr : S.pubkey); }
 function avatarHtml(p, name) { if (p?.avatar) return `<img src="${esc(IMG(p.avatar))}" alt="" width="64" height="64" loading="lazy" decoding="async">`; const c = p?.name ? [...p.name][0] : ''; return c ? `<span class=acav-ini>${esc(c.toUpperCase())}</span>` : TREE_SVG; } // 默认头像：自定义昵称首字，否则小树图标
 function paintAcard() { const el = $('#acard'); if (!el) return;
-  if (S.mode === 'guest') { el.innerHTML = `<button type=button id=acav class="acav" aria-label="${E('acct.login')}">${TREE_SVG}</button><div class=acmeta><div class=acname>${E('acct.guest')}</div><div class=acsub>${E('acct.guestHint')}</div></div>`;
+  if (S.mode === 'guest') { el.innerHTML = `<button type=button id=acav class="acav" aria-label="${E('acct.login')}">${TREE_SVG}</button><div class=acmeta><div class=acname>${E('acct.guest')}</div><div class=acsub>${E(WTW.ui.email ? 'acct.guestHint' : 'acct.guestHintW')}</div></div>`;
     $('#acav').onclick = () => { setMenu(false); connectWallet(); }; return; }
   const p = profOf(), lv = wishLevel(), id = S.mode === 'self' ? t(localStorage.wt_wallet === 'dynamic' ? 'acct.idDyn' : 'acct.idSelf') : S.kind === 'evm' ? t(localStorage.wt_evm === 'dynamic' ? 'acct.idDynEvm' : 'acct.idEvm') : t('acct.idHost');
   el.innerHTML = `<button type=button id=acav class="acav${p?.avatar ? ' has' : ''}" aria-label="${E('acct.editAvatar')}">${avatarHtml(p)}<span class=acav-cam aria-hidden=true>✎</span></button>
@@ -755,7 +755,7 @@ function home() {
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
 </form>
   <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.growing')}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
-  <div class=scene-hint><a class=gb-home href="#/gift">🎁 ${E('gift.page')}</a> · ${E('home.hint')} <span class=debug-only>· <a href="#lists" data-scroll=lists>⌄ ${E('home.rank')}</a></span></div></div>
+  <div class=scene-hint><a class=gb-home href="#/wish/make">✨ ${E('mine.make')}</a> · ${E('home.hint')} <span class=debug-only>· <a href="#lists" data-scroll=lists>⌄ ${E('home.rank')}</a></span></div></div>
   <div class="cols home-lists debug-only" id=lists><div class=glass><h2>🔥 ${E('home.hot')}</h2>${hot.map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div><div class=glass><h2>🆕 ${E('home.new')}</h2>${visibleWishes().slice(0, 5).map(wishCard).join('') || `<p class=muted>${E('common.none')}</p>`}</div></div>`;
 }
 // ---------- 合作卡 / 统一卡片点击 / 详情滑动（跨页自动加载）----------
@@ -895,10 +895,6 @@ function openTopup(id) { const ad = S.my?.ads.find(x => x.id === id); if (!ad) r
       else { state(t('ads.st.verify'), 'wait'); try { done(await api('/api/ads/pay', { id: ad.id, sol })); } catch (e) { if (e.code === 'record' && e.data?.signature) return recordFail(e.data.signature); throw e; } } } // 托管账户：服务端签名转账并核验入账
     catch (e) { lock(false); const cancelled = S.mode === 'self' && !sig && (e?.code === 4001 || /reject|denied|cancel|declin/i.test(String(e?.message || e))); state(cancelled ? t('ads.st.cancel') : t('ads.st.fail', { msg: S.mode === 'self' && !e.status ? walErr(e) : adErr(e) }), cancelled ? '' : 'err'); } };
   upd(); }
-// ---------- 礼品卡页 #/gift：顶部切换「单张 / 团购」。单张 = 制作页的礼品卡表单；团购 = 原 #/gift/batch 的完整流程（附加内容、报价、免责声明、支付不变）----------
-const giftTabs = m => `<div class=gift-seg role=tablist aria-label="${E('gift.page')}"><a role=tab id=gtab-s href="#/gift" aria-selected=${m === 'single'} class="${m === 'single' ? 'on' : ''}">🎁 ${E('gift.single')}</a><a role=tab id=gtab-b href="#/gift/batch" aria-selected=${m === 'batch'} class="${m === 'batch' ? 'on' : ''}">👥 ${E('gift.batch')}</a></div>`;
-const giftPage = () => `<h2 class=gold-title>🎁 ${E('gift.page')}</h2>${giftTabs('single')}<p class=tagline>${E('gift.singleHint')}</p><section class="card motif" aria-labelledby=gtab-s><div id=maker>${wishPanel()}</div></section>`;
-const giftBatchPage = () => `<h2 class=gold-title>🎁 ${E('gift.page')}</h2>${giftTabs('batch')}<p class=tagline>${E('gift.batchHint')}</p><div role=tabpanel aria-labelledby=gtab-b>${gbPage()}</div>`;
 // ---------- 团购礼品卡：#/gift/batch（创建）· #/gift/batch/<id>（进度）· #/claim/<code>（领取）----------
 const GB_LS = 'wt_batches', gbLocal = () => { try { return JSON.parse(localStorage[GB_LS] || '{}'); } catch { return {}; } };
 const gbRemember = (id, o) => { const m = gbLocal(); m[id] = { ...(m[id] || {}), ...o, at: m[id]?.at || Date.now() }; const ks = Object.keys(m).sort((a, b) => m[b].at - m[a].at).slice(0, 30); const n = {}; ks.forEach(k => n[k] = m[k]); localStorage[GB_LS] = JSON.stringify(n); };
@@ -1179,7 +1175,7 @@ function sampleCards(n = 2) { return `<div class=samples>${SAMPLES().slice(0, n)
 const emptyArt = msg => `<div class=empty><div class=seedling aria-hidden=true><i class=sd></i><i class=lf1></i><i class=lf2></i><b></b><b></b><b></b></div><p>${msg}</p></div>`;
 const chips = () => `<div class=chips>${['ux.chipMin', 'ux.chipSplit', 'ux.chipSbt', 'ux.chipImm'].map(k => `<a class=chip href="#/help">${E(k)}</a>`).join('')}</div>`;
 const skel = (n = 3) => `<div class=skel-wrap aria-busy=true>${Array.from({ length: n }, () => '<div class=skel><i></i><span></span><span></span></div>').join('')}<p class=muted style="text-align:center">${E('ux.chainLoading')}</p></div>`;
-const guestCta = () => `<div class="row cta"><button class="primary breathe" data-cta=wallet>🔗 ${E('ux.connect')}</button><button data-cta=email>✉️ ${E('ux.emailDemo')}</button></div>`;
+const guestCta = () => `<div class="row cta"><button class="primary breathe" data-cta=wallet>🔗 ${E('ux.connect')}</button>${WTW.ui.email ? `<button data-cta=email>✉️ ${E('ux.emailDemo')}</button>` : ''}</div>`;
 function bindCta() { document.querySelectorAll('[data-cta]').forEach(b => b.onclick = () => b.dataset.cta === 'wallet' ? connectWallet() : emailLogin()); }
 function sparkle() { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; const box = document.createElement('div'); box.className = 'sparkle'; // 登录成功：星光微反馈
   for (let i = 0; i < 14; i++) { const st = document.createElement('i'), a = Math.random() * Math.PI * 2, d = 50 + Math.random() * 90; st.style.cssText = `--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d}px;--d:${(Math.random() * .3).toFixed(2)}s`; st.textContent = '✦'; box.append(st); }
@@ -1197,11 +1193,16 @@ async function loadGifts() { // 收到的礼物：按本人地址（Solana / EVM
   const addrs = [S.pubkey, S.evmAddr].filter(Boolean), k = addrs.join(','); if (!k || giftsFor === k) return; giftsFor = k;
   try { const sigs = []; for (const a of addrs) { const r = await fetch('/api/gifts?to=' + encodeURIComponent(a)).then(x => x.json()); sigs.push(...(r.sigs || [])); }
     await fetchTxs(sigs.filter(g => !(g in txCache))); if (mergeTxs(sigs)) aggregate(); } catch { giftsFor = null; } softRefresh(); }
+// 制作页 · 礼品卡「单张 / 团购」：团购直接复用 #/gift/batch 的组件（gbPage + gbBind，只渲染一次），单张 / 其他类型恢复原表单
+function giftMode(m) { const seg = $('#gseg'), g = $('.mk-grid'), box = $('#gbmode'); if (!seg || !g || !box) return; if (m !== 'off') S.giftMode = m === 'batch' ? 'batch' : 'single';
+  seg.hidden = m === 'off'; const batch = m === 'batch'; g.classList.toggle('mk-batch', batch); box.hidden = !batch;
+  seg.querySelectorAll('[data-gm]').forEach(b => { const on = b.dataset.gm === (batch ? 'batch' : 'single'); b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  if (batch && !box.dataset.ready) { box.dataset.ready = '1'; box.innerHTML = gbPage(); gbBind(); } }
 function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
   loadMine(); if (S.mode !== 'guest') loadGifts();
   const g = S.mode === 'guest';
   return `<h2 class=gold-title>${E('nav.wish')}</h2><p class=tagline>✨ ${E('ux.tagline')}</p>${g ? guestCta() + `<h3 class=sub>${E('ux.samplesTitle')}</h3>` + sampleCards(2) : ''}${g ? '' : `<section class="card motif" aria-labelledby=gateh><h3 id=gateh>🎫 ${E('gate.sec')}</h3><div id=gatebox><p class=muted>⏳ ${E('route.loading')}</p></div></section>`}<section class="card motif"><h3>${E('mine.have')}</h3><div id=mine>${mineBlock()}</div></section>
-  <section class="card motif"><h3>${E('mine.make')}</h3>${chips()}<button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}</div></section>`; }
+  <section class="card motif"><h3>${E('mine.make')}</h3>${chips()}<button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}<div id=gbmode hidden></div></div></section>`; }
 const evmMinByRoute = key => { const r = evmRoutes()[key], p = S.cfg.evm?.usd?.[r?.coin] || 0; return p ? Math.ceil((S.cfg.minUsd || 1) / p * 1.02 * 1e5) / 1e5 : 0; };
 const evmMin = id => { const c = evmChains()[id]; return evmMinByRoute(c?.key || id); };
 function evmPayHtml() { if (S.kind !== 'evm' || !S.cfg.evm?.pay) return ''; const R = evmRoutes(), keys = Object.keys(R); if (!keys.length) return '';
@@ -1248,7 +1249,7 @@ function wishPanel() {
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
   return `<h2>${E('wish.title')}</h2><div class="card mk-grid"><div class=mk-form>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
-  <div class=row><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option><option value=gate>🎫 ${E('kind.gate')}</option></select></label></div>
+  <div class="row mk-kindrow"><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option><option value=gate>🎫 ${E('kind.gate')}</option></select></label><div id=gseg class=gift-seg role=tablist aria-label="${E('kind.gift')}" hidden><button type=button role=tab data-gm=single class=on aria-selected=true>🎁 ${E('gift.single')}</button><button type=button role=tab data-gm=batch aria-selected=false>👥 ${E('gift.batch')}</button></div></div>
   <div class=row><label>${E('wish.coverCat')} <select id=wc2><optgroup label="${E('cat.classic')}">${COVER_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : esc(catName(c))}</option>`).join('')}</optgroup></select></label></div>
   <div class=row><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
   <fieldset class=cover-design id=coverDesign><legend>${E('wish.coverStyle')}</legend>${coverGridHtml()}</fieldset>
@@ -1434,15 +1435,17 @@ async function route() {
   S.swAC?.abort(); S.swAC = null; $('#view').classList.remove('sw-loading', 'sw-nudge'); // 切换页面即关闭详情：清理滑动监听
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/gift': giftPage, '/gift/batch': giftBatchPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
+  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin };
+  if (p === '/gift' || p === '/gift/batch') return location.replace('#/wish/make?gift=' + (p === '/gift' ? 'single' : 'batch')); // 旧礼品卡入口 → 制作页预选礼品卡（/gift/batch 预选团购）
+  if (p === '/wish/make' && q.get('gift')) S.giftMode = q.get('gift') === 'batch' ? 'batch' : 'single';
   clearTimeout(S.gbT); clearInterval(S.gbPI); const gbm = p.match(/^\/gift\/batch\/(b_[0-9a-f]{16})$/), clm = p.match(/^\/claim\/([A-Za-z0-9-]{4,40})$/);
   v.innerHTML = gbm ? gbProgress(gbm[1]) : clm ? gbClaim(clm[1].toUpperCase()) : p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
   if (p.startsWith('/w/')) bindSwiper(p);
   if (p === '/ads') paintAds();
-  if (p === '/gift/batch') gbBind(); if (gbm) gbPoll(gbm[1]); if (clm) gbClaimRun(clm[1].toUpperCase());
+  if (gbm) gbPoll(gbm[1]); if (clm) gbClaimRun(clm[1].toUpperCase());
   if (S.token && (p === '/ads' || p === '/list' || p.startsWith('/w/AD') || p === '/')) loadMyAds(p === '/ads'); else paintAdNav();
-  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/') || (x.getAttribute('href') === '#/gift' && /^\/(gift|claim)\//.test(p)))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
-  if (p === '/gift') setTimeout(() => { const k = $('#ckind'); if (!k || location.hash.split('?')[0] !== '#/gift') return; k.value = 'gift'; k.dispatchEvent(new Event('change', { bubbles: true })); const lb = k.closest('label'); if (lb) lb.hidden = true; }, 0); // 礼品卡单张模式：固定为礼品卡类型
+  document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/') || (x.getAttribute('href') === '#/wish/make' && /^\/(gift\/batch\/|claim\/)/.test(p)))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify();
+  if (p === '/wish/make' && q.get('gift')) setTimeout(() => { const k = $('#ckind'); if (!k) return; k.value = 'gift'; k.dispatchEvent(new Event('change', { bubbles: true })); }, 0); // 预选礼品卡（单张 / 团购由 S.giftMode 决定）
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });
@@ -1497,7 +1500,8 @@ async function route() {
     const syncKind = () => { const k = $('#ckind')?.value || 'wish';
       $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if ($('#gateWrap')) $('#gateWrap').hidden = k !== 'gate'; $('#wt').placeholder = t(k === 'gate' ? 'gate.benefitPh' : 'wish.ph'); if ($('#goodsWrap')) $('#goodsWrap').hidden = k !== 'goods';
       if ($('#sharedVis')) $('#sharedVis').hidden = k === 'gift' && (($('#gdel')?.value || 'tree') === 'off'); // 不上树时仍可填位置，但可见性由投递决定
-      syncShip(); syncGiftDel(); if (k === 'gate' && $('#sharedVis')) $('#sharedVis').hidden = true; syncCard(); };
+      syncShip(); syncGiftDel(); if (k === 'gate' && $('#sharedVis')) $('#sharedVis').hidden = true; giftMode(k === 'gift' ? S.giftMode : 'off'); syncCard(); };
+    document.querySelectorAll('#gseg [data-gm]').forEach(b => b.onclick = () => giftMode(b.dataset.gm));
     $('#ckind')?.addEventListener('change', syncKind); $('#gdel')?.addEventListener('change', syncGiftDel); $('#gvis')?.addEventListener('change', syncGiftDel);
     saveD = () => { D.f = Object.fromEntries(Object.entries(F).filter(([id]) => $('#' + id)).map(([id, p]) => [id, $('#' + id)[p]])); D.cover = $('#covers .on')?.dataset.cover; D.inside = $('#insides .on')?.dataset.inside; D.auto = $('#covers')?.dataset.auto; D.iauto = $('#insides')?.dataset.auto; };
     if (D.f) { for (const [id, v] of Object.entries(D.f)) { const el = $('#' + id); if (el) el[F[id]] = v; }

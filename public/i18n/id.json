@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "Pemilik dompet email (EVM)",
   "wal.vendorOld": "Komponen dompet baru saja diperbarui. Muat ulang halaman lalu coba lagi",
   "wal.copyAddr": "Salin alamat",
-  "wal.addrCopied": "Tersalin"
+  "wal.addrCopied": "Tersalin",
+  "acct.guestHintW": "Hubungkan dompet untuk mengatur avatar dan nama panggilan"
 }

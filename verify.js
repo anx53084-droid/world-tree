@@ -12,7 +12,7 @@ const BASE = process.env.BASE || 'http://localhost:8080/', SH = n => 'shots/veri
   for (const h of ['#/list?sort=hot&cat=经典', '#/help', '#/terms', '#/w/SAMPLE0', '#/me']) { await p.goto(BASE + '?sample=1' + h); await p.waitForTimeout(500); }
   await p.goto(BASE + '?sample=1#/w/SAMPLE0'); await p.waitForSelector('#share', { timeout: 30000 }); await p.waitForTimeout(500); await p.click('#share'); await p.waitForTimeout(500); await p.screenshot({ path: SH('share') }); await p.click('#modal [data-close]');
   // 托管演示登录 + 许愿面板 + 审核
-  await p.click('#burger'); await p.waitForTimeout(500); await p.click('#be'); await p.fill('#em', 'demo@example.com'); await p.click('#emok'); await p.waitForTimeout(1200); // 邮箱演示登录按钮在抽屉头卡下
+  await p.evaluate(() => emailLogin()); await p.fill('#em', 'demo@example.com'); await p.click('#emok'); await p.waitForTimeout(1200); // 邮箱演示登录按钮在抽屉头卡下
   const mode = (await p.textContent('#mode')).trim(); console.log('mode:', mode); if (!/demo@example\.com/.test(mode)) bad.push('demo login');
   await p.goto(BASE + '#/wish'); await p.waitForSelector('#mkbtn', { timeout: 60000 }); await p.click('#mkbtn'); await p.waitForSelector('#wt', { timeout: 60000 }); await p.waitForTimeout(500);
   const dis0 = await p.$eval('#ws', b => b.disabled); console.log('confirm disabled before check:', dis0); if (!dis0) bad.push('submit enabled before agree');

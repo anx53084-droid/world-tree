@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "メールウォレット保有者（EVM）",
   "wal.vendorOld": "ウォレット部品が更新されました。ページを再読み込みしてもう一度お試しください",
   "wal.copyAddr": "アドレスをコピー",
-  "wal.addrCopied": "コピーしました"
+  "wal.addrCopied": "コピーしました",
+  "acct.guestHintW": "ウォレットを接続すると、アバターとニックネームを設定できます"
 }

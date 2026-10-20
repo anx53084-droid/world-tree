@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "E-Mail-Wallet-Inhaber (EVM)",
   "wal.vendorOld": "Die Wallet-Komponente wurde gerade aktualisiert. Bitte Seite neu laden und erneut versuchen",
   "wal.copyAddr": "Adresse kopieren",
-  "wal.addrCopied": "Kopiert"
+  "wal.addrCopied": "Kopiert",
+  "acct.guestHintW": "Verbinde eine Wallet, um Avatar und Spitznamen festzulegen"
 }

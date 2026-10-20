@@ -62,7 +62,7 @@ const D = __dirname, SOL1 = '9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin';
     ok(/2\/20/.test(await pg.textContent('#sgatc')) && (await pg.$$('#sgal li')).length === 2, '单张：添加 2 个商品链接 → 2/20');
     await pg.click('#sgal [data-mv="0"][data-d="1"]'); ok((await pg.textContent('#sgal li:first-child b')).includes('商品B'), '单张：▼ 调整顺序');
     await pg.click('#sgal [data-rm="0"]'); ok((await pg.$$('#sgal li')).length === 1 && /1\/20/.test(await pg.textContent('#sgatc')), '单张：删除 → 1/20');
-    await pg.click('#pvToggle').catch(() => {}); await pg.fill('#gnt', '生日快乐'); await pg.waitForFunction(() => /商品A/.test(document.querySelector('#pvBody')?.textContent || ''), null, { timeout: 10000 }).catch(() => {}); ok(/商品A/.test(await pg.textContent('#pvBody')), '单张实时预览显示附加内容');
+    await pg.click('#pvToggle').catch(() => {}); await pg.fill('#gnt', '生日快乐'); await pg.waitForFunction(() => /商品A/.test(document.querySelector('#pvBody')?.textContent || ''), null, { timeout: 10000 }).catch(() => {}); const pvt = await pg.textContent('#pvBody'); ok(/商品A/.test(pvt), '单张实时预览显示附加内容 ' + (/商品A/.test(pvt) ? '' : pvt.slice(0, 200) + ' errs=' + errs.join('|')));
     await pg.goto(Bs + '/#/gift/batch'); await pg.waitForSelector('#gbxface', { timeout: 30000 }); await pg.fill('#gbb', '愿你天天开心'); await pg.fill('#gbg', '星光小屋');
     ok(/0\/20/.test(await pg.textContent('#gbatc')) && (await pg.$$('#gbxcovers [data-cover]')).length > 5 && (await pg.$$('#gbxinsides [data-inside]')).length > 3 && await pg.$('#gbxupC') && await pg.$('#gbxupN'), '团购模式：封面模板 / 自定义封面 / 内页模板 / 自定义内页 + 附加内容');
     const src0 = await pg.getAttribute('#gbxpv .gb-fc img', 'src'); await pg.click('#gbxcovers [data-cover="9"]'); await pg.click('#gbxinsides [data-inside="2"]'); await pg.fill('#gbxtext', '内页祝福：一路顺风');
@@ -73,6 +73,21 @@ const D = __dirname, SOL1 = '9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin';
     const old = (await create(base(), 'MOCKface00005')).j.batch.id; for (let i = 0; i < 60; i++) { if ((await call('/api/batch/' + old, null, tk(M))).j.batch?.status === 'done') break; await new Promise(r => setTimeout(r, 500)); }
     const oc = [...(await call('/api/batch/' + old + '/csv', null, tk(M))).text.matchAll(/"\d+","([0-9A-Z-]{23})"/g)][0][1]; await pg.goto(Bs + '/#/claim/' + oc); await pg.waitForSelector('.gb-claimcard', { timeout: 20000 }); ok(!(await pg.$('.gb-claimcard .gb-face-v')), '未设置卡面的批次：领取页保持默认样式');
     await pg.goto(Bs + '/#/gift/batch/' + bid); await pg.waitForSelector('#gbpg .gb-face-v', { timeout: 20000 }); ok(true, '批次进度页按所选卡面渲染');
+    // ---- t221u：菜单「制作我的心愿卡」+ 制作页礼品卡单张 / 团购 ----
+    const cur = () => pg.$$eval('#menu nav a.cur, #topnav a.cur', a => a.map(x => x.getAttribute('href')));
+    const mkl = await pg.$$eval('#menu nav a, #topnav a', a => a.map(x => x.getAttribute('href') + '=' + x.textContent.trim())); ok(!mkl.some(x => x.startsWith('#/gift=')) && mkl.filter(x => x.startsWith('#/wish/make=')).length === 2 && mkl.filter(x => x.startsWith('#/wish/make=')).every(x => /制作我的心愿卡|Make my wish card/.test(x)), '抽屉菜单与桌面顶栏：「礼品卡」换成「制作我的心愿卡」→ #/wish/make');
+    ok(await pg.$eval('#menu nav a[href="#/wish/make"] svg.mi', () => true).catch(() => false) && await pg.$eval('#menu nav a[href="#/wish"] svg.mi', () => true).catch(() => false) && !(await pg.$('#menu .mi-hash')), '菜单图标：制作心愿卡与「我的星愿」都是金色线条图标（去掉绿色 #）');
+    await pg.goto(Bs + '/#/'); await pg.waitForSelector('.gb-home', { state: 'attached', timeout: 30000 }); ok(await pg.$eval('.gb-home', a => a.getAttribute('href')) === '#/wish/make', '首页入口改为「制作我的心愿卡」');
+    await pg.goto(Bs + '/#/gift'); await pg.waitForFunction(() => location.hash === '#/wish/make?gift=single' && document.querySelector('#ckind')?.value === 'gift', null, { timeout: 15000 });
+    ok(await pg.$eval('#gseg', e => !e.hidden && e.querySelector('.on').dataset.gm === 'single') && await pg.$eval('#giftWrap', e => !e.hidden) && await pg.$eval('#gbmode', e => e.hidden), '#/gift → 制作页预选礼品卡，出现「单张 / 团购」切换，默认单张（原表单）');
+    ok((await cur()).every(h => h === '#/wish/make') && (await cur()).length >= 1, '制作页：菜单高亮「制作我的心愿卡」');
+    await pg.click('#gseg [data-gm=batch]'); await pg.waitForSelector('#gbmode #gbf', { timeout: 10000 }); ok(await pg.$eval('#giftWrap', e => !e.offsetParent) && await pg.$eval('#gbxface', () => true), '选团购：显示团购完整表单（复用 gbPage / gbBind），原表单隐藏');
+    ok(await pg.$$eval('#gbf', a => a.length) === 1, '团购组件只有一份（不重复渲染）');
+    await pg.click('#gseg [data-gm=single]'); ok(await pg.$eval('#giftWrap', e => !!e.offsetParent) && await pg.$eval('#gbmode', e => e.hidden), '切回单张：恢复原表单');
+    await pg.click('#gseg [data-gm=batch]'); await pg.selectOption('#ckind', 'wish'); ok(await pg.$eval('#gseg', e => e.hidden) && await pg.$eval('#gbmode', e => e.hidden) && await pg.$eval('#wt', e => !!e.offsetParent), '换成其他类型：切换隐藏，恢复原表单');
+    await pg.goto(Bs + '/#/gift/batch'); await pg.waitForFunction(() => location.hash === '#/wish/make?gift=batch', null, { timeout: 15000 }); await pg.waitForSelector('#gbmode #gbf', { timeout: 15000 }); ok(await pg.$eval('#gseg .on', e => e.dataset.gm) === 'batch', '#/gift/batch → 制作页预选礼品卡 · 团购');
+    await pg.goto(Bs + '/#/gift/batch/' + bid); await pg.waitForSelector('#gbpg', { timeout: 15000 }); ok((await pg.evaluate(() => location.hash)) === '#/gift/batch/' + bid && (await cur()).includes('#/wish/make'), '#/gift/batch/<id> 进度页不变，菜单高亮制作项');
+    await pg.goto(Bs + '/#/claim/ABCD-EFGH'); await pg.waitForTimeout(500); ok((await pg.evaluate(() => location.hash)) === '#/claim/ABCD-EFGH' && (await cur()).includes('#/wish/make'), '#/claim/<code> 领取页不变，菜单高亮制作项');
     ok(!errs.length, '页面无 JS 错误 ' + errs.slice(0, 2).join(' | '));
   } finally { await browser?.close(); srv.kill(); }
   console.log(`\n✅ ${n} checks passed`); process.exit(0);

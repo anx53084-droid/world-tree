@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "Chủ ví email (EVM)",
   "wal.vendorOld": "Thành phần ví vừa được cập nhật. Vui lòng tải lại trang rồi thử lại",
   "wal.copyAddr": "Sao chép địa chỉ",
-  "wal.addrCopied": "Đã sao chép"
+  "wal.addrCopied": "Đã sao chép",
+  "acct.guestHintW": "Kết nối ví để đặt ảnh đại diện và biệt danh"
 }

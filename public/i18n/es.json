@@ -1006,5 +1006,6 @@
   "acct.idDynEvm": "Titular de wallet de correo (EVM)",
   "wal.vendorOld": "El componente de wallet se acaba de actualizar. Recarga la página e inténtalo de nuevo",
   "wal.copyAddr": "Copiar dirección",
-  "wal.addrCopied": "Copiado"
+  "wal.addrCopied": "Copiado",
+  "acct.guestHintW": "Conecta una wallet para configurar tu avatar y apodo"
 }

@@ -66,9 +66,9 @@
     out.push({ id: 'walletconnect', name: 'WalletConnect', installed: true, wc: true, adapter: wcAdapter }); // 兜底项
     return out; }
   // 钱包弹窗显示开关：隐藏的只是入口（代码与已有会话保留）。恢复：evmTab: true / hideSol: []；也可在页面里预先设置 window.WT_WALLET_UI 覆盖
-  const ui = { evmTab: false, hideSol: ['solflare', 'backpack', 'okx'], ...(window.WT_WALLET_UI || {}) };
+  const ui = { evmTab: false, email: false, hideSol: ['solflare', 'backpack', 'okx'], ...(window.WT_WALLET_UI || {}) };
   const RANK = { phantom: 0, mwa: 1, dynamic: 2, walletconnect: 4 }; // 其余检测到的 Wallet Standard 钱包排在 WalletConnect 之前
-  const solList = () => solWallets().filter(w => !ui.hideSol.includes(w.id) && !ui.hideSol.some(h => w.id.startsWith('std:') && w.name.toLowerCase().includes(h))).sort((a, b) => (RANK[a.id] ?? 3) - (RANK[b.id] ?? 3));
+  const solList = () => solWallets().filter(w => (ui.email || !w.dyn) && !ui.hideSol.includes(w.id) && !ui.hideSol.some(h => w.id.startsWith('std:') && w.name.toLowerCase().includes(h))).sort((a, b) => (RANK[a.id] ?? 3) - (RANK[b.id] ?? 3));
   // ---- EVM：EIP-6963 发现 + 注入式回退 ----
   const evm = new Map();
   addEventListener('eip6963:announceProvider', e => { const d = e.detail; if (d?.info?.rdns && d.provider) evm.set(d.info.rdns, d); });
@@ -111,5 +111,6 @@
     let c = await chainOf(p); if (LOGIN_CHAINS.includes(c) && (!want || c === +want)) return c;
     if (want) { try { await switchChain(p, want, cfg); } catch (e) { if (e?.code === 4001) throw e; } c = await chainOf(p); }
     if (!LOGIN_CHAINS.includes(c)) throw Object.assign(new Error('unsupported chain ' + c), { code: 'chainUnsupported' }); return c; }
-  window.WTW = { cfg: {}, ui, solList, vsrc, needVendor, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
+  const evmList = () => evmWallets().filter(w => ui.email || !w.dyn);
+  window.WTW = { cfg: {}, ui, solList, evmList, vsrc, needVendor, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
 })();
