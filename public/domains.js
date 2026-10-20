@@ -5,7 +5,7 @@
 (function (root) {
   const HOST = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/;
   const ALLOW = ['wt_lang', 'wt_terms', 'wt_chain', 'wt_stress', 'wt_total', 'wt_wtab', 'gq_guide_dismissed']; // 非敏感设置白名单
-  const VAL = /^[A-Za-z0-9_.:-]{0,40}$/, TTL_DEFAULT = [{ host: 'world-tree.pages.dev', status: 'active', primary: true }];
+  const VAL = /^[A-Za-z0-9_.:-]{0,40}$/, TTL_DEFAULT = [{ host: 'guangqi.world', status: 'active', primary: true }];
   const b64 = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64 = s => decodeURIComponent(escape(atob(String(s).replace(/-/g, '+').replace(/_/g, '/'))));
   function clean(list) { if (!Array.isArray(list)) return null; const out = list.filter(x => x && HOST.test(String(x.host || '')) && ['active', 'standby', 'blocked'].includes(x.status)).map(x => ({ host: x.host, status: x.status, primary: !!x.primary })); return out.length ? out : null; }

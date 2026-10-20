@@ -4,8 +4,8 @@ process.env.DOMAINS_ENSURE = ''; // 其余用例假定干净的默认种子；DO
 let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); }; const throws = (f, code, m) => { let c = null; try { f(); } catch (e) { c = e.code; } ok(c === code, m); };
 console.log('domains list'); const tmpd = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-dom-')); fs.mkdirSync(path.join(tmpd, 'data')); for (const f of ['domains.js', 'network.js']) fs.copyFileSync(path.join(__dirname, f), path.join(tmpd, f));
 const Dm = require(path.join(tmpd, 'domains.js'));
-let L = Dm.list(); ok(L.domains.length === 1 && L.domains[0].host === 'world-tree.pages.dev' && L.domains[0].primary && L.domains[0].status === 'active', '默认种子：world-tree.pages.dev 为主域 active');
-Dm.add('B.Example.com', 'standby'); Dm.add('https://c.example.com/', 'active'); L = Dm.list(); ok(L.domains.map(d => d.host).join() === 'world-tree.pages.dev,b.example.com,c.example.com' && L.updatedAt > 0, '增加域名：小写、去协议与斜杠，主域排最前');
+let L = Dm.list(); ok(L.domains.length === 1 && L.domains[0].host === 'guangqi.world' && L.domains[0].primary && L.domains[0].status === 'active', '默认种子：guangqi.world 为主域 active');
+Dm.add('B.Example.com', 'standby'); Dm.add('https://c.example.com/', 'active'); L = Dm.list(); ok(L.domains.map(d => d.host).join() === 'guangqi.world,b.example.com,c.example.com' && L.updatedAt > 0, '增加域名：小写、去协议与斜杠，主域排最前');
 throws(() => Dm.add('b.example.com'), 'exists', '重复添加被拒绝'); for (const bad of ['', 'localhost', '1.2.3.4', 'a.com:8080', 'a.com/x', 'user@a.com', 'a b.com', '-a.com']) throws(() => Dm.add(bad), 'host', '非法域名被拒绝：' + JSON.stringify(bad));
 throws(() => Dm.add('d.example.com', 'bogus'), 'status', '非法状态被拒绝');
 Dm.setStatus('c.example.com', 'blocked'); throws(() => Dm.setPrimary('c.example.com'), 'blocked', 'blocked 域不能设为主域');
@@ -14,7 +14,7 @@ throws(() => Dm.setStatus('b.example.com', 'blocked'), 'primary', '主域不能�
 Dm.remove('c.example.com'); ok(!Dm.list().domains.some(d => d.host === 'c.example.com'), '删除非主域');
 throws(() => Dm.setStatus('nope.example.com', 'blocked'), 'nf', '不存在的域名 → nf');
 console.log('failover'); ok(Dm.failover(() => true).changed === false, '主域健康：不切换');
-let r = Dm.failover(h => h !== 'b.example.com'); ok(r.changed && r.from === 'b.example.com' && r.to === 'world-tree.pages.dev' && r.domains.find(d => d.host === 'b.example.com').status === 'blocked', '主域不通：旧主域标 blocked，切到健康的备用域');
+let r = Dm.failover(h => h !== 'b.example.com'); ok(r.changed && r.from === 'b.example.com' && r.to === 'guangqi.world' && r.domains.find(d => d.host === 'b.example.com').status === 'blocked', '主域不通：旧主域标 blocked，切到健康的备用域');
 throws(() => Dm.failover(() => false), 'none', '没有健康的备用域 → none');
 console.log('cors'); ok(Dm.originOk('https://world-tree.pages.dev') && Dm.originOk('https://abc.world-tree.pages.dev') && Dm.originOk('https://b.example.com'), '清单内域名（含 blocked）及 pages.dev 预览域允许');
 ok(!Dm.originOk('https://evil.example.com') && !Dm.originOk('http://b.example.com') && !Dm.originOk('https://b.example.com:8443') && !Dm.originOk('https://b.example.com.evil.com') && !Dm.originOk('null') && !Dm.originOk(''), '清单外 / http / 带端口 / 后缀欺骗 / null 一律拒绝');
@@ -36,7 +36,7 @@ Dm.reset(); ok(Dm.list().domains.length === 2, '持久化：重新加载后清�
   const dst = Object.create(store); dst.s = {}; const mig = new URL(F.buildUrl('main.example.com', { settings: Object.assign({ wt_token: 'X', wt_evil: '1', wt_lang: 'ja' }, {}), from: 'old.example.com' })); const imp = F.importMig(mig.search, dst);
   ok(imp.from === 'old.example.com' && dst.s.wt_lang === 'ja' && !('wt_token' in dst.s) && !('wt_evil' in dst.s), '导入：只写白名单键；伪造的 wt_token 等被忽略');
   ok(F.importMig('?_mig=%%%bad', dst) !== undefined && F.importMig('', dst) === null, '损坏的 _mig 不抛错');
-  ok(JSON.stringify(F.fallback({ domains: ['a.example.com', 'b.example.com'] })) === JSON.stringify([{ host: 'a.example.com', status: 'active', primary: true }, { host: 'b.example.com', status: 'active', primary: false }]) && F.fallback({})[0].host === 'world-tree.pages.dev', '内置默认清单：构建变量 WT_DOMAINS，缺省为 world-tree.pages.dev');
+  ok(JSON.stringify(F.fallback({ domains: ['a.example.com', 'b.example.com'] })) === JSON.stringify([{ host: 'a.example.com', status: 'active', primary: true }, { host: 'b.example.com', status: 'active', primary: false }]) && F.fallback({})[0].host === 'guangqi.world', '内置默认清单：构建变量 WT_DOMAINS，缺省为 guangqi.world');
   ok(F.clean([{ host: 'ok.example.com', status: 'active' }, { host: 'bad host', status: 'active' }, { host: 'x.example.com', status: 'weird' }]).length === 1 && F.clean('x') === null, '清单清洗：丢弃非法项');
   // ---- 中间件 / 构建 ----
   console.log('static'); const mw = fs.readFileSync(path.join(__dirname, 'functions/_middleware.js'), 'utf8'); ok(/ORIGIN = url\.origin/.test(mw) && !/const [A-Z_]*ORIGIN = 'https:\/\/world-tree/.test(mw.replace('DEFAULT_ORIGIN', 'X')) && /link\[rel="canonical"\]/.test(mw), '中间件：og / canonical 用当前请求域名，不写死');
@@ -48,7 +48,7 @@ Dm.reset(); ok(Dm.list().domains.length === 2, '持久化：重新加载后清�
   const srv = cp.spawn('node', ['server.js'], { cwd: tmp, env: { ...process.env, PORT: port, ADMIN_KEY: 'k-test', D1_API_TOKEN: '' }, stdio: 'ignore' });
   try { for (let i = 0; i < 80; i++) { try { await fetch(B + '/api/nonce'); break; } catch { await new Promise(r => setTimeout(r, 250)); } }
     const call = async (p, body, h = {}, method) => { const x = await fetch(B + p, { method: method || (body ? 'POST' : 'GET'), headers: { 'content-type': 'application/json', ...h }, body: body ? JSON.stringify(body) : undefined }); return { s: x.status, j: await x.json().catch(() => ({})), h: x.headers }; }, adm = { 'x-admin-key': 'k-test' };
-    let g = await call('/api/domains'); ok(g.s === 200 && g.j.domains[0].host === 'world-tree.pages.dev' && g.j.domains[0].primary && typeof g.j.updatedAt === 'number' && g.h.get('access-control-allow-origin') === '*', 'GET /api/domains 公开可读：{domains:[{host,status,primary}], updatedAt}');
+    let g = await call('/api/domains'); ok(g.s === 200 && g.j.domains[0].host === 'guangqi.world' && g.j.domains[0].primary && typeof g.j.updatedAt === 'number' && g.h.get('access-control-allow-origin') === '*', 'GET /api/domains 公开可读：{domains:[{host,status,primary}], updatedAt}');
     ok(Object.keys(g.j.domains[0]).sort().join() === 'host,primary,status', '公开清单只含 host / status / primary（不含备注等内部字段）');
     ok((await call('/api/admin/domains', { action: 'add', host: 'new.example.com' })).s === 403 && (await call('/api/admin/domains', { action: 'add', host: 'new.example.com' }, { 'x-admin-key': 'wrong' })).s === 403 && (await call('/api/admin/domains')).s === 403, '管理端点无 / 错误 ADMIN_KEY → 403');
     const pre = async o => (await fetch(B + '/api/domains', { method: 'OPTIONS', headers: { origin: o, 'access-control-request-method': 'GET' } })).headers.get('access-control-allow-origin'), acao = async o => (await fetch(B + '/api/ads?page=1', { headers: { origin: o } })).headers.get('access-control-allow-origin');
@@ -56,13 +56,13 @@ Dm.reset(); ok(Dm.list().domains.length === 2, '持久化：重新加载后清�
     r = await call('/api/admin/domains', { action: 'add', host: 'new.example.com', status: 'standby' }, adm); ok(r.s === 200 && r.j.domains.some(d => d.host === 'new.example.com' && d.status === 'standby'), '管理端：增加域名');
     ok(await acao('https://new.example.com') === 'https://new.example.com', '无需重启 / 重新部署：新域名立即进入 CORS 白名单'); ok(await acao('https://evil.example.org') === null, '清单外 Origin 仍被拒绝');
     r = await call('/api/admin/domains', { action: 'primary', host: 'new.example.com' }, adm); ok(r.s === 200 && r.j.domains[0].host === 'new.example.com' && r.j.domains[0].primary, '管理端：设为主域');
-    r = await call('/api/admin/domains', { action: 'status', host: 'world-tree.pages.dev', status: 'blocked' }, adm); ok(r.s === 200 && r.j.domains.find(d => d.host === 'world-tree.pages.dev').status === 'blocked', '管理端：旧域标 blocked');
-    ok(await acao('https://world-tree.pages.dev') === 'https://world-tree.pages.dev', 'blocked 域仍可调用 API（旧域用户要能拉到换域提示）');
-    g = await call('/api/domains'); ok(g.j.domains.find(d => d.primary).host === 'new.example.com' && g.j.domains.find(d => d.host === 'world-tree.pages.dev').status === 'blocked', '公开清单立即反映切换结果');
-    ok((await call('/api/admin/domains', { action: 'primary', host: 'world-tree.pages.dev' }, adm)).s === 400, 'blocked 域不能设为主域（400）'); ok((await call('/api/admin/domains', { action: 'remove', host: 'new.example.com' }, adm)).s === 400, '主域不能删除（400）');
+    r = await call('/api/admin/domains', { action: 'status', host: 'guangqi.world', status: 'blocked' }, adm); ok(r.s === 200 && r.j.domains.find(d => d.host === 'guangqi.world').status === 'blocked', '管理端：旧域标 blocked');
+    ok(await acao('https://guangqi.world') === 'https://guangqi.world', 'blocked 域仍可调用 API（旧域用户要能拉到换域提示）');
+    g = await call('/api/domains'); ok(g.j.domains.find(d => d.primary).host === 'new.example.com' && g.j.domains.find(d => d.host === 'guangqi.world').status === 'blocked', '公开清单立即反映切换结果');
+    ok((await call('/api/admin/domains', { action: 'primary', host: 'guangqi.world' }, adm)).s === 400, 'blocked 域不能设为主域（400）'); ok((await call('/api/admin/domains', { action: 'remove', host: 'new.example.com' }, adm)).s === 400, '主域不能删除（400）');
     ok((await call('/api/admin/domains', { action: 'add', host: 'bad host' }, adm)).s === 400 && (await call('/api/admin/domains', { action: 'zzz', host: 'x.example.com' }, adm)).s === 400, '非法域名 / 未知操作 → 400');
-    r = await call('/api/admin/domains', { action: 'remove', host: 'world-tree.pages.dev' }, adm); ok(r.s === 200 && !r.j.domains.some(d => d.host === 'world-tree.pages.dev'), '管理端：删除域名');
-    const raw = JSON.parse(fs.readFileSync(tmp + '/data/domains.json', 'utf8')); ok(raw.domains['new.example.com'].primary === true && !raw.domains['world-tree.pages.dev'], '清单已落盘 data/domains.json（persist.js 同步 D1）');
+    r = await call('/api/admin/domains', { action: 'remove', host: 'guangqi.world' }, adm); ok(r.s === 200 && !r.j.domains.some(d => d.host === 'guangqi.world'), '管理端：删除域名');
+    const raw = JSON.parse(fs.readFileSync(tmp + '/data/domains.json', 'utf8')); ok(raw.domains['new.example.com'].primary === true && !raw.domains['guangqi.world'], '清单已落盘 data/domains.json（persist.js 同步 D1）');
     ok(/domains\.json/.test(fs.readFileSync(path.join(__dirname, 'persist.js'), 'utf8')), 'persist.js 已纳入 domains.json');
   } finally { srv.kill(); }
   { console.log('ensure'); const td = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-ens-')); fs.mkdirSync(td + '/data'); for (const f of ['domains.js', 'network.js']) fs.copyFileSync(path.join(__dirname, f), td + '/' + f);

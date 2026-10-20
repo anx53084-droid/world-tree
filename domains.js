@@ -4,9 +4,9 @@
 const fs = require('fs'), path = require('path');
 const F = path.join(require('./network').DATA_DIR, 'domains.json'), STATUS = ['active', 'standby', 'blocked'], MAX = 50;
 const HOST = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/; // 只接受域名（无端口 / 路径 / IP / 凭据）
-const SEED = (process.env.DOMAINS_SEED || 'world-tree.pages.dev').split(',').map(x => x.trim().toLowerCase()).filter(x => HOST.test(x));
+const SEED = (process.env.DOMAINS_SEED || 'guangqi.world').split(',').map(x => x.trim().toLowerCase()).filter(x => HOST.test(x));
 // 启动时补齐的内置域名（只补缺失项，且一律 standby；不改已有域名的状态 / 主域）。换主域仍走管理端点。要永久删除某个域，同时把它从 DOMAINS_ENSURE 去掉。
-const ENSURE = (process.env.DOMAINS_ENSURE ?? 'guangqi.world,www.guangqi.world').split(',').map(x => x.trim().toLowerCase()).filter(x => HOST.test(x));
+const ENSURE = (process.env.DOMAINS_ENSURE ?? 'world-tree.pages.dev,www.guangqi.world').split(',').map(x => x.trim().toLowerCase()).filter(x => HOST.test(x));
 let D = null; const err = c => Object.assign(new Error(c), { code: c });
 function load() { if (D) return D; let j = null; try { j = JSON.parse(fs.readFileSync(F, 'utf8')); } catch {}
   D = { domains: (j && j.domains && !Array.isArray(j.domains)) ? j.domains : {}, updatedAt: (j && j.updatedAt) || 0 };
