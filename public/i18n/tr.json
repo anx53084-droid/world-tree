@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana ana ağı",
   "help.hostBody@main": "Ana ağda gözetimli demo modu yoktur: lütfen kendi Solana cüzdanınızı (ör. Phantom) kullanın.",
   "err.custodyOff": "Ana ağda e-posta ile gözetimli hesap yoktur. Lütfen kendi cüzdanınızı bağlayın",
-  "wal.evmMainOff": "Ana ağda EVM cüzdanıyla giriş henüz yok. Lütfen bir Solana cüzdanı (ör. Phantom) kullanın"
+  "wal.evmMainOff": "Ana ağda EVM cüzdanıyla giriş henüz yok. Lütfen bir Solana cüzdanı (ör. Phantom) kullanın",
+  "wal.mwaSub": "Yedek: cüzdan uygulama kimliğinin doğrulanamadığı uyarısı verebilir — yukarıdan Phantom'da açmanız önerilir"
 }

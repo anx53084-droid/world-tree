@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana mainnet",
   "help.hostBody@main": "Tidak ada mode demo kustodian di mainnet: gunakan dompet Solana milikmu (seperti Phantom).",
   "err.custodyOff": "Akun kustodian email tidak tersedia di mainnet. Hubungkan dompetmu sendiri",
-  "wal.evmMainOff": "Login dompet EVM belum tersedia di mainnet. Gunakan dompet Solana (seperti Phantom)"
+  "wal.evmMainOff": "Login dompet EVM belum tersedia di mainnet. Gunakan dompet Solana (seperti Phantom)",
+  "wal.mwaSub": "Cadangan: dompet mungkin memperingatkan identitas aplikasi tak terverifikasi — disarankan buka di Phantom (di atas)"
 }

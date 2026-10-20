@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana mainnet",
   "help.hostBody@main": "There is no custodial demo mode on mainnet: please use your own Solana wallet (such as Phantom).",
   "err.custodyOff": "Email custodial accounts are not available on mainnet. Please connect your own wallet",
-  "wal.evmMainOff": "EVM wallet sign-in is not available on mainnet yet. Please use a Solana wallet (such as Phantom)"
+  "wal.evmMainOff": "EVM wallet sign-in is not available on mainnet yet. Please use a Solana wallet (such as Phantom)",
+  "wal.mwaSub": "Backup: the wallet may warn it can't verify the app identity — opening in Phantom above is recommended"
 }

@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana mainnet",
   "help.hostBody@main": "Mainnet không có chế độ demo lưu ký: hãy dùng ví Solana của riêng bạn (như Phantom).",
   "err.custodyOff": "Mainnet không có tài khoản lưu ký bằng email. Hãy kết nối ví của bạn",
-  "wal.evmMainOff": "Mainnet chưa hỗ trợ đăng nhập ví EVM. Hãy dùng ví Solana (như Phantom)"
+  "wal.evmMainOff": "Mainnet chưa hỗ trợ đăng nhập ví EVM. Hãy dùng ví Solana (như Phantom)",
+  "wal.mwaSub": "Dự phòng: ví có thể cảnh báo không xác minh được danh tính ứng dụng — nên mở trong Phantom (ở trên)"
 }

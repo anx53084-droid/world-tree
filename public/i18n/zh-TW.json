@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana 主網",
   "help.hostBody@main": "主網不提供託管示範模式：請使用你自己的 Solana 錢包（如 Phantom）。",
   "err.custodyOff": "主網不提供電子郵件託管帳戶，請連接你自己的錢包",
-  "wal.evmMainOff": "主網暫不支援 EVM 錢包登入，請使用 Solana 錢包（如 Phantom）"
+  "wal.evmMainOff": "主網暫不支援 EVM 錢包登入，請使用 Solana 錢包（如 Phantom）",
+  "wal.mwaSub": "備用：錢包可能提示「無法驗證應用身分」，建議用上方在 Phantom 中開啟"
 }

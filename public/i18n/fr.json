@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana mainnet",
   "help.hostBody@main": "Pas de mode démo custodial sur mainnet : utilisez votre propre portefeuille Solana (comme Phantom).",
   "err.custodyOff": "Les comptes custodiaux par e-mail ne sont pas disponibles sur mainnet. Connectez votre propre portefeuille",
-  "wal.evmMainOff": "La connexion par portefeuille EVM n’est pas encore disponible sur mainnet. Utilisez un portefeuille Solana (comme Phantom)"
+  "wal.evmMainOff": "La connexion par portefeuille EVM n’est pas encore disponible sur mainnet. Utilisez un portefeuille Solana (comme Phantom)",
+  "wal.mwaSub": "Secours : le portefeuille peut indiquer qu'il ne peut pas vérifier l'identité de l'app — ouvrez plutôt dans Phantom (ci-dessus)"
 }

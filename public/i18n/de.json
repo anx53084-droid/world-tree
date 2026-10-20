@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana-Mainnet",
   "help.hostBody@main": "Im Mainnet gibt es keinen verwahrenden Demomodus: Bitte nutze deine eigene Solana-Wallet (z. B. Phantom).",
   "err.custodyOff": "E-Mail-Verwahrkonten sind im Mainnet nicht verfügbar. Bitte verbinde deine eigene Wallet",
-  "wal.evmMainOff": "EVM-Wallet-Anmeldung ist im Mainnet noch nicht verfügbar. Bitte eine Solana-Wallet (z. B. Phantom) nutzen"
+  "wal.evmMainOff": "EVM-Wallet-Anmeldung ist im Mainnet noch nicht verfügbar. Bitte eine Solana-Wallet (z. B. Phantom) nutzen",
+  "wal.mwaSub": "Alternative: Die Wallet kann warnen, dass die App-Identität nicht überprüft werden kann – besser oben in Phantom öffnen"
 }

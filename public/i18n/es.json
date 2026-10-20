@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana mainnet",
   "help.hostBody@main": "En mainnet no hay modo demo custodial: usa tu propia wallet de Solana (como Phantom).",
   "err.custodyOff": "Las cuentas custodiales por correo no están disponibles en mainnet. Conecta tu propia wallet",
-  "wal.evmMainOff": "El inicio de sesión con wallet EVM aún no está disponible en mainnet. Usa una wallet de Solana (como Phantom)"
+  "wal.evmMainOff": "El inicio de sesión con wallet EVM aún no está disponible en mainnet. Usa una wallet de Solana (como Phantom)",
+  "wal.mwaSub": "Alternativa: la billetera puede avisar que no puede verificar la identidad de la app; se recomienda abrir en Phantom (arriba)"
 }

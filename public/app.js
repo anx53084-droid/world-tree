@@ -369,8 +369,9 @@ function watchEvm(p) { if (!p?.on || p.__wt) return; p.__wt = 1; // 钱包切换
 // 钱包图标：已注入钱包用其自带图标；否则用本站自绘的简洁字母徽标（非官方 logo）
 const WICON = { phantom: ['#ab9ff2', 'P'], solflare: ['#fc7227', 'S'], backpack: ['#e33e3f', 'B'], okx: ['#111', 'O'], dynamic: ['#4779ff', '✉'], metamask: ['#f6851b', 'M'], coinbase: ['#0052ff', 'C'], trust: ['#0500ff', 'T'], bitget: ['#00f0ff', 'B'], walletconnect: ['#3b99fc', 'W'] };
 const wIcon = w => { if (w.icon) return `<img src="${esc(w.icon)}" alt="" width=28 height=28>`; const [c, l] = WICON[w.id] || ['#556', '◎']; return `<i aria-hidden=true style="background:${c}">${l}</i>`; };
-function walletItem(w, kind) { const nm = w.mwa ? t('wal.mwa') : w.dyn ? t('wal.dyn') : w.name, sub = w.mwa ? E('wal.recommended') : w.dyn ? E(kind === 'evm' ? 'wal.dynSubEvm' : 'wal.dynSub') : w.wc ? E('wal.wcHint') : w.installed ? E('wal.detected') : E('wal.notDetected');
-  return `<button type=button class="witem${w.installed ? '' : ' off'}${w.mwa ? ' rec' : ''}" data-k=${kind} data-w="${esc(w.id)}">${wIcon(w)}<b>${esc(nm)}</b><span class=${w.installed ? 'wok' : 'muted'}>${sub}</span></button>`; }
+function walletItem(w, kind) { if (kind === 'sol' && !w.installed && w.deep && WTW.isAndroid?.()) return walletDeep(w); // Android 浏览器未注入：直接在 Phantom 内置浏览器打开（来源域名由钱包浏览器确认，不走 MWA 的「无法验证应用身份」）
+  const nm = w.mwa ? t('wal.mwa') : w.dyn ? t('wal.dyn') : w.name, sub = w.mwa ? E('wal.mwaSub') : w.dyn ? E(kind === 'evm' ? 'wal.dynSubEvm' : 'wal.dynSub') : w.wc ? E('wal.wcHint') : w.installed ? E('wal.detected') : E('wal.notDetected');
+  return `<button type=button class="witem${w.installed ? '' : ' off'}" data-k=${kind} data-w="${esc(w.id)}">${wIcon(w)}<b>${esc(nm)}</b><span class=${w.installed ? 'wok' : 'muted'}>${sub}</span></button>`; }
 // 手机浏览器没有注入钱包：每个钱包给一个一键深链接（在该钱包 App 的内置浏览器中打开本站）
 const walletDeep = w => `<a class="witem wdeep" href="${esc(w.deep())}" rel="noopener">${wIcon(w)}<b>${esc(w.name)}</b><span class=wok>📱 ${E('wal.openApp', { name: esc(w.name) })}</span></a>`;
 function walletMissing(w, kind) { // 未检测到：安装链接 + 在钱包内置浏览器中打开（universal/deep link）

@@ -1033,5 +1033,6 @@
   "wish.paySol@main": "Solana メインネット",
   "help.hostBody@main": "メインネットにはカストディ型デモモードはありません。ご自身の Solana ウォレット（Phantom など）をご利用ください。",
   "err.custodyOff": "メインネットではメールのカストディアカウントは使えません。ご自身のウォレットを接続してください",
-  "wal.evmMainOff": "メインネットでは EVM ウォレットのログインはまだ使えません。Solana ウォレット（Phantom など）をご利用ください"
+  "wal.evmMainOff": "メインネットでは EVM ウォレットのログインはまだ使えません。Solana ウォレット（Phantom など）をご利用ください",
+  "wal.mwaSub": "予備：ウォレットに「アプリの身元を確認できません」と表示される場合があります。上の Phantom で開くのがおすすめです"
 }
