@@ -12,7 +12,7 @@ const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
-const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'), Batch = require('./batch'), Prices = require('./prices'); const Soc = require('./social'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
+const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'), Batch = require('./batch'), Prices = require('./prices'); const Soc = require('./social'), CL = require('./ctlock'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
@@ -115,6 +115,31 @@ async function checkContact(c) { // 联系方式：1–60 字，审核 + 钓鱼/
   if (typeof c !== 'string' || !c.trim() || Soc.len(c.trim()) > 60) return { error: 'bad contact', code: 'contactLen' };
   const bh = Block.check(c); if (bh) return { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', detail: bh.domain };
   const r = await moderate(c); return r.pass ? null : { error: REJECT, code: 'reject' }; }
+async function checkDetails(d) { // 交友卡详情：1–300 字，审核 + 黑名单
+  if (typeof d !== 'string' || !d.trim() || Soc.len(d.trim()) > 300) return { error: 'bad details', code: 'ctDetailLen' };
+  const bh = Block.check(d); if (bh) return { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', detail: bh.domain };
+  const r = await moderate(d); return r.pass ? null : { error: REJECT, code: 'reject' }; }
+const CT_SECS = ['ct', 'dt'], ctField = k => k === 'ct' ? 'contact' : 'details';
+function ctView(st, sig, c, viewer) { // 交友卡链下内容的公开视图：受保护分区绝不返回明文/密文，只返回解锁所需的公开参数
+  if (viewer && viewer === c.owner) return { mine: true, contact: c.contact || '', details: c.details || '', show: !!c.show, sec: Object.fromEntries(CT_SECS.map(k => [k, { lock: c.sec?.[k]?.lock || null, enc: !!c.sec?.[k]?.enc }])) };
+  if (!c.sec) return c.show ? { contact: c.contact } : {}; // 旧卡：行为不变
+  const out = { sections: {} };
+  for (const k of CT_SECS) { const s = c.sec[k] || {}, f = ctField(k);
+    if (!s.lock && !s.enc) { if (c[f] && (k === 'dt' || c.show)) out.sections[k] = { open: true, text: c[f] }; continue; }
+    const paid = !s.lock || (viewer && st.ctPaid[sig + '|' + k + '|' + viewer]), o = {};
+    if (s.lock && !paid) o.locked = { ...CL.breakdown(s.lock.usd), payTo: c.owner, feeTo: RC.sol.address, chain: 'sol', login: !!viewer };
+    if (s.enc) o.enc = { salt: s.enc.salt, iter: s.enc.iter };
+    if (paid && s.enc) o.needPass = true; else if (paid) { o.open = true; o.text = c[f] || ''; }
+    out.sections[k] = o; }
+  return out; }
+async function verifyUnlockTx(tx, viewer, q) { // 核验交友意向金：交易成功、付款人 = 查看者钱包、平台技术服务费 → 平台收款地址、其余 → 作者钱包、memo 绑定报价（卡片 + 分区 + 查看者）
+  if (ADS_MOCK) { const m = adsMockRead('ct-mock-pay.json')[tx]; return !!m && m.signer === viewer && m.fee >= q.fee && m.rest >= q.rest && m.payTo === q.payTo && m.memo === 'WTREE1|UL|' + q.id; }
+  for (let i = 0; i < 4; i++) { try { const t = await conn.getParsedTransaction(tx, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+    if (t && !t.meta?.err) { const k = t.transaction.message.accountKeys[0], from = k.pubkey?.toBase58?.() || String(k.pubkey || k); if (from !== viewer) return false;
+      let fee = 0, rest = 0, memo = false; for (const ix of t.transaction.message.instructions) { const p = ix.parsed;
+        if (ix.program === 'system' && p?.type === 'transfer' && p.info.source === viewer) { if (RC.isSolRecv(p.info.destination)) fee += +p.info.lamports; else if (p.info.destination === q.payTo) rest += +p.info.lamports; }
+        if ((ix.program === 'spl-memo' || ix.programId?.toBase58?.() === MEMO.toBase58()) && ix.parsed === 'WTREE1|UL|' + q.id) memo = true; }
+      return memo && fee >= q.fee && rest >= q.rest; } } catch {} await new Promise(r => setTimeout(r, 1500)); } return false; }
 function applyMeta(st, sig, owner, K, b) { // 写入链下可见性元数据；密码仅存 scrypt 哈希；位置优先用链上字段
   const vis = K.vis || 'public', deliver = K.deliver || 'tree';
   const country = Soc.cleanLoc(b.country || K.country), province = Soc.cleanLoc(b.province || K.province), city = Soc.cleanLoc(b.city || K.city);
@@ -287,6 +312,7 @@ async function api(req, res, url) {
     if ((K.kind !== 'wish') && priv) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
     const ve = Soc.validate(K); if (ve) return send(res, 400, { pass: false, message: '参数无效', code: ve });
     if (Buffer.byteLength(prefix + '|' + (priv ? cipher : text), 'utf8') > 600) return send(res, 400, { pass: false, message: '内容过长', code: 'memoSize' });
+    if (K.kind === 'gate' && process.env.GATE_MAKE !== '1') return send(res, 200, { pass: false, code: 'gateMakeOff', message: '门卡暂不开放用户制作' }); // 门卡发行将作为树洞特权另行开放；已有门卡照常显示
     if ((K.kind === 'gift' || K.kind === 'gate') && Block.addrBlocked(K.to)) return send(res, 200, { pass: false, code: 'giftBlocked', message: '该地址已被拦截' });
     const extra = K.kind === 'social' ? [...K.tags, K.intro, K.looking].join('\n') : K.kind === 'gift' ? K.note : K.kind === 'goods' ? 'https://' + K.domain + '/' : K.kind === 'gate' ? K.name : '';
     const bh = Block.check(extra ? text + '\n' + extra : text); if (bh) return send(res, 200, { pass: false, type: bh.type, code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', domain: bh.domain, message: '内容包含被拦截的链接或地址：' + bh.domain }); // 在审核证明之前拦截
@@ -355,10 +381,16 @@ async function api(req, res, url) {
     for (const sig of list) { const g = st.goods[sig]; if (g) out[sig] = { url: g.url, domain: g.domain, title: g.title, price: g.price, currency: g.currency, image: g.image, fetchedAt: g.fetchedAt, edited: !!g.edited }; }
     return send(res, 200, { meta: out }); }
   // —— 交友卡 / 礼品卡：联系方式、可见性元数据、礼品索引 ——
-  if (url === '/api/contact/check' && req.method === 'POST') { const { contact } = await body(req); const r = await checkContact(contact); return send(res, r ? 400 : 200, r || { ok: true }); }
-  if (url.startsWith('/api/contact/') && req.method === 'GET') { const sig = decodeURIComponent(url.slice(13)); const c = Soc.load().contacts[sig]; if (!c) return send(res, 200, {});
-    const me = auth(req, db); if (me && me.user.pubkey === c.owner) return send(res, 200, { contact: c.contact, show: !!c.show, mine: true });
-    return send(res, 200, c.show ? { contact: c.contact } : {}); }
+  if (url === '/api/contact/check' && req.method === 'POST') { const { contact, details } = await body(req); let r = contact != null || details == null ? await checkContact(contact) : null; if (!r && details != null) r = await checkDetails(details); return send(res, r ? 400 : 200, r || { ok: true }); }
+  if (url === '/api/contact/open' && req.method === 'POST') { // 加密分区：校验由密码派生的校验密钥（限速），通过后才返回密文；解密在浏览器完成
+    const { sig, sec, ak } = await body(req), st = Soc.load(), c = st.contacts[sig], s = c?.sec?.[sec]; if (!s?.enc) return send(res, 400, { error: 'not encrypted', code: 'param' });
+    const me = auth(req, db), viewer = me?.user.pubkey, ip = String(req.headers['cf-connecting-ip'] || req.socket.remoteAddress || ''), rk = sig + '|' + sec + '|' + (viewer || ip);
+    if (s.lock && viewer !== c.owner && !(viewer && st.ctPaid[sig + '|' + sec + '|' + viewer])) return send(res, 402, { error: 'pay first', code: 'ctPayFirst' });
+    if (CL.limited(rk)) return send(res, 429, { error: 'too many', code: 'ctPassLimit' });
+    if (!CL.checkAk(ak, s.enc.akSalt, s.enc.akHash)) { CL.fail(rk); return send(res, 401, { error: 'bad password', code: 'ctPassBad' }); }
+    return send(res, 200, { iv: s.enc.iv, ct: s.enc.ct }); }
+  if (url.startsWith('/api/contact/') && req.method === 'GET') { const sig = decodeURIComponent(url.slice(13)), st = Soc.load(), c = st.contacts[sig]; if (!c) return send(res, 200, {});
+    const me = auth(req, db); return send(res, 200, ctView(st, sig, c, me?.user.pubkey)); }
   if (url === '/api/gifts' && req.method === 'GET') { const to = new URL(req.url, 'http://x').searchParams.get('to') || ''; if (!(Soc.solOk(to) || Soc.evmOk(to))) return send(res, 400, { error: 'bad address', code: 'giftTo' });
     return send(res, 200, { sigs: (Soc.load().gifts[Soc.addrKey(to)] || []).slice(-500) }); }
   if (url === '/api/card-meta/batch' && req.method === 'POST') { // 批量取链下可见性元数据（城市哈希、是否上锁/邀请，不含密码）
@@ -604,13 +636,39 @@ async function api(req, res, url) {
     if (!m?.passHash) return send(res, 400, { error: 'not locked', code: 'param' });
     if (!Soc.checkPass(password, m.passSalt, m.passHash)) return send(res, 401, { error: 'bad password', code: 'passBad' });
     st.unlocks[sig] = st.unlocks[sig] || {}; st.unlocks[sig][U.pubkey] = Date.now(); Soc.save(st); return send(res, 200, { ok: true, unlocked: true }); }
-  if (url === '/api/contact' && req.method === 'POST') { // 设置/修改交友卡联系方式：仅卡片作者；审核 + 黑名单
-    const { sig, contact, show } = await body(req); if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
-    const bad = await checkContact(contact); if (bad) return send(res, 400, bad);
+  if (url === '/api/contact/quote' && req.method === 'POST') { // 交友意向金报价（锁价 15 分钟）：仅自托管 Solana 钱包；平台不代发交易
+    const { sig, sec } = await body(req), st = Soc.load(), c = st.contacts[sig], s = c?.sec?.[sec]; if (!s?.lock) return send(res, 400, { error: 'not locked', code: 'param' });
+    if (!a.uid.startsWith('sol:') || U.secret) return send(res, 400, { error: 'self wallet', code: 'ctSelfWallet' }); if (U.pubkey === c.owner) return send(res, 400, { error: 'own card', code: 'param' });
+    if (st.ctPaid[sig + '|' + sec + '|' + U.pubkey]) return send(res, 200, { paid: true });
+    const P = ADS_MOCK ? { usd: 150 } : await solPrice(); if (!P.usd) return send(res, 503, { error: 'no price', code: 'price' });
+    const b = CL.breakdown(s.lock.usd), total = Math.ceil(b.usd / P.usd * 1e9), fee = Math.ceil(b.feeUsd / P.usd * 1e9), id = crypto.randomBytes(9).toString('hex'), now = Date.now();
+    for (const [k, q] of Object.entries(st.ctQuotes)) if (q.exp + 3600000 < now) delete st.ctQuotes[k];
+    const q = st.ctQuotes[id] = { id, sig, sec, viewer: U.pubkey, payTo: c.owner, fee, rest: total - fee, exp: now + CL.CFG.quoteMin * 60000 }; Soc.save(st);
+    return send(res, 200, { ...b, id, fee: q.fee, rest: q.rest, feeTo: RC.sol.address, payTo: q.payTo, memo: 'WTREE1|UL|' + id, solUsd: P.usd, exp: q.exp }); }
+  if (url === '/api/contact/unlock' && req.method === 'POST') { // 链上核验后记录解锁（按查看者钱包持久化）；一笔交易只能用一次
+    const { qid, tx } = await body(req), st = Soc.load(), q = st.ctQuotes[qid]; if (!q || q.viewer !== U.pubkey) return send(res, 400, { error: 'quote', code: 'ctQuote' });
+    if (Date.now() > q.exp + 1200000) return send(res, 400, { error: 'quote expired', code: 'ctQuote' }); if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(tx || '') && !(ADS_MOCK && /^MOCK/.test(tx || ''))) return send(res, 400, { error: 'bad tx', code: 'param' });
+    const key = q.sig + '|' + q.sec + '|' + q.viewer;
+    const c0 = st.contacts[q.sig], usd = c0?.sec?.[q.sec]?.lock?.usd || 0, base = { sig: q.sig, sec: q.sec, usd, tx }; // 站内信：付款结果通知查看者，到账通知卡片作者
+    if (st.ctUsed[tx] && st.ctUsed[tx] !== key) { Acc.pushMsg(db, U.pubkey, { kind: 'ul_fail', ...base, reason: 'used' }); save(db); return send(res, 409, { error: 'tx used', code: 'ctTxUsed' }); }
+    if (!st.ctPaid[key]) { if (!await verifyUnlockTx(tx, U.pubkey, q)) { Acc.pushMsg(db, U.pubkey, { kind: 'ul_fail', ...base, reason: 'verify' }); save(db); return send(res, 400, { error: 'verify failed', code: 'ctVerify' }); }
+      const s2 = Soc.load(); s2.ctPaid[key] = { tx, at: Date.now(), fee: q.fee, rest: q.rest }; s2.ctUsed[tx] = key; delete s2.ctQuotes[qid]; Soc.save(s2);
+      const b = CL.breakdown(usd); Acc.pushMsg(db, U.pubkey, { kind: 'ul_ok', ...base }); Acc.pushMsg(db, q.payTo, { kind: 'ul_paid', ...base, from: U.pubkey, name: String(U.profile?.name || '').slice(0, 20), feeUsd: b.feeUsd, restUsd: b.restUsd }); save(db); }
+    const s3 = Soc.load(); return send(res, 200, { ok: true, view: s3.contacts[q.sig] ? ctView(s3, q.sig, s3.contacts[q.sig], U.pubkey) : {} }); }
+  if (url === '/api/contact' && req.method === 'POST') { // 设置/修改交友卡联系方式 + 详情（可分别加锁/加密）：仅卡片作者；明文经审核 + 黑名单；加密分区只收密文
+    const { sig, contact, show, details, sec } = await body(req); if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
+    const S2 = {}; let has = false;
+    for (const k of CT_SECS) { const x = sec?.[k] || {}, o = {}, plain = k === 'ct' ? contact : details;
+      if (x.lock) { const usd = +x.lock.usd; if (!CL.usdOk(usd)) return send(res, 400, { error: 'amount', code: 'ctLockAmt' }); if (!Soc.solOk(U.pubkey)) return send(res, 400, { error: 'sol only', code: 'ctLockSol' }); o.lock = { usd }; }
+      if (x.enc) { if (!CL.encOk(x.enc)) return send(res, 400, { error: 'enc', code: 'param' }); if (plain) return send(res, 400, { error: 'plaintext with enc', code: 'param' }); const { ak, ...e } = x.enc; o.enc = { ...e, ...CL.hashAk(ak) }; has = true; }
+      else if (plain) { const bad = k === 'ct' ? await checkContact(plain) : await checkDetails(plain); if (bad) return send(res, 400, bad); has = true; }
+      if (o.lock || o.enc) S2[k] = o; }
+    if (!has) { const bad = await checkContact(contact); if (bad) return send(res, 400, bad); }
     const st = Soc.load(), cur = st.contacts[sig];
     if (cur) { if (cur.owner !== U.pubkey) return send(res, 403, { error: 'forbidden', code: 'forbidden' }); }
     else { const ti = await txInfo(sig); if (!ti || ti.author !== U.pubkey || !ti.memo || !verifyWishMemo(ti.memo) || Soc.parseKind(ti.memo.split('|')[5]).kind !== 'social') return send(res, 403, { error: 'forbidden', code: 'forbidden' }); }
-    st.contacts[sig] = { owner: U.pubkey, contact: String(contact).trim(), show: !!show, at: Date.now() }; Soc.save(st); return send(res, 200, { ok: true, contact: st.contacts[sig].contact, show: !!show }); }
+    st.contacts[sig] = { owner: U.pubkey, contact: S2.ct?.enc ? '' : String(contact || '').trim(), details: S2.dt?.enc ? '' : String(details || '').trim(), show: !!show, at: Date.now(), ...(Object.keys(S2).length ? { sec: S2 } : {}) };
+    if (!st.contacts[sig].details) delete st.contacts[sig].details; Soc.save(st); return send(res, 200, { ok: true, contact: st.contacts[sig].contact, show: !!show }); }
   if (url === '/api/contact/delete' && req.method === 'POST') { const { sig } = await body(req), st = Soc.load(), cur = st.contacts[sig];
     if (!cur) return send(res, 200, { ok: true }); if (cur.owner !== U.pubkey) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
     delete st.contacts[sig]; Soc.save(st); return send(res, 200, { ok: true }); }

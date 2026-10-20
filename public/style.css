@@ -518,3 +518,12 @@ svg.gface { height: auto }
 
 .cover-design.only-custom #covers { display: none }
 .cover-design.only-custom .up-box { min-height: 120px; font-size: 15px }
+
+.ctp { border: 1px solid #f6d38a55; border-radius: 12px; padding: 8px 10px; margin: 8px 0 }
+.ctp legend { color: #f6d38a; padding: 0 6px }
+.ctp-sec { border-top: 1px dashed #ffffff22; padding: 6px 0 } .ctp-sec:first-of-type { border-top: 0 }
+.ctp-sec b { display: block; margin-bottom: 2px } .ctp-sec input[type=password] { width: 100%; margin: 4px 0 }
+.ctp-lock { padding-left: 26px }
+.ct-sec { margin-top: 10px } .ct-text { white-space: pre-wrap; word-break: break-word; margin: 6px 0 0 }
+.ct-bd { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 14px } .ct-bd td { padding: 3px 0; border-bottom: 1px solid #ffffff14 } .ct-bd td:last-child { text-align: end; font-weight: 600 }
+.ct-bd tr:first-child td { font-size: 15px } .ct-st { min-height: 1em; margin: 6px 0 0; font-size: 13px }
