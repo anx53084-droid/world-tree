@@ -126,7 +126,7 @@
   "share.copy": "Link kopieren",
   "share.copied": "Link kopiert",
   "wish.title": "Sternenwunsch · Individuelle Karte",
-  "wish.guest": "Gäste können nur lesen. Bitte oben <b>Phantom / Solflare / Backpack / OKX / MetaMask verbinden</b> (empfohlen, Selbstverwahrung) oder <b>E-Mail (verwahrte Demo)</b> nutzen, um einen Wunsch abzugeben.",
+  "wish.guest": "Gäste haben nur Lesezugriff. <b>Verbinde Phantom oder eine andere Solana-Wallet</b> (Selbstverwahrung), um dir etwas zu wünschen.",
   "wish.mode": "Aktueller Modus:",
   "wish.modeSelf": "Selbstverwahrung —— signiert mit deiner Phantom / Solflare / Backpack / OKX / MetaMask-Wallet; Gelder gehen direkt von deiner Wallet an die Empfängeradressen",
   "wish.modeHost": "Verwahrte Demo —— der Demo-Server signiert mit deinem Devnet-Schlüssel (zuerst Devnet-SOL holen)",

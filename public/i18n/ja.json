@@ -126,7 +126,7 @@
   "share.copy": "リンクをコピー",
   "share.copied": "リンクをコピーしました",
   "wish.title": "星願 · カスタムカード",
-  "wish.guest": "ゲストは閲覧のみです。上部の <b>Phantom / Solflare / Backpack / OKX / MetaMask を接続</b>（推奨、セルフカストディ）または <b>メールでログイン（デモ）</b> から願いを書いてください。",
+  "wish.guest": "ゲストは閲覧のみです。<b>Phantom などの Solana ウォレットを接続</b>（セルフカストディ）してから願いを書いてください。",
   "wish.mode": "現在のモード：",
   "wish.modeSelf": "セルフカストディ —— Phantom / Solflare / Backpack / OKX / MetaMask ウォレットで署名し、資金はあなたのウォレットから受取アドレスへ直接送金されます",
   "wish.modeHost": "カストディアルデモ —— デモサーバーがあなたの devnet 鍵で代理署名します（先に devnet SOL を受け取ってください）",

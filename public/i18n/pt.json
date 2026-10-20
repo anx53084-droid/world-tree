@@ -126,7 +126,7 @@
   "share.copy": "Copiar link",
   "share.copied": "Link copiado",
   "wish.title": "Desejo estelar · Cartão personalizado",
-  "wish.guest": "Visitantes só podem ler. Use <b>Conectar Phantom / Solflare / Backpack / OKX / MetaMask</b> (recomendado, autocustódia) ou <b>E-mail (demo custodial)</b> no topo para fazer um desejo.",
+  "wish.guest": "Visitantes só podem ler. <b>Conecte o Phantom ou outra carteira Solana</b> (autocustódia) para fazer um desejo.",
   "wish.mode": "Modo atual:",
   "wish.modeSelf": "Autocustódia —— assinado pela sua carteira Phantom / Solflare / Backpack / OKX / MetaMask; os fundos vão diretamente da sua carteira para os endereços recebedores",
   "wish.modeHost": "Demo custodial —— o servidor de demonstração assina com sua chave devnet (obtenha SOL de devnet primeiro)",

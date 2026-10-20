@@ -126,7 +126,7 @@
   "share.copy": "Copiar enlace",
   "share.copied": "Enlace copiado",
   "wish.title": "Deseo estelar · Tarjeta a medida",
-  "wish.guest": "Los invitados solo pueden leer. Usa <b>Conectar Phantom / Solflare / Backpack / OKX / MetaMask</b> (recomendado, autocustodia) o <b>Correo (demo custodiada)</b> en la parte superior para pedir un deseo.",
+  "wish.guest": "Los invitados solo pueden leer. <b>Conecta Phantom u otra billetera de Solana</b> (autocustodia) para pedir un deseo.",
   "wish.mode": "Modo actual:",
   "wish.modeSelf": "Autocustodia —— firmado con tu billetera Phantom / Solflare / Backpack / OKX / MetaMask; los fondos van directamente de tu billetera a las direcciones receptoras",
   "wish.modeHost": "Demo custodiada —— el servidor de demostración firma con tu clave devnet (obtén SOL de devnet primero)",

@@ -126,7 +126,7 @@
   "share.copy": "Copier le lien",
   "share.copied": "Lien copié",
   "wish.title": "Vœu stellaire · Carte personnalisée",
-  "wish.guest": "Les invités sont en lecture seule. Utilisez <b>Connecter Phantom / Solflare / Backpack / OKX / MetaMask</b> (recommandé, auto-conservation) ou <b>E-mail (démo dépositaire)</b> en haut pour faire un vœu.",
+  "wish.guest": "Les invités sont en lecture seule. <b>Connectez Phantom ou un autre portefeuille Solana</b> (auto-conservation) pour faire un vœu.",
   "wish.mode": "Mode actuel :",
   "wish.modeSelf": "Auto-conservation —— signé par votre portefeuille Phantom / Solflare / Backpack / OKX / MetaMask ; les fonds vont directement de votre portefeuille aux adresses bénéficiaires",
   "wish.modeHost": "Démo dépositaire —— le serveur de démo signe avec votre clé devnet (obtenez d'abord des SOL devnet)",

@@ -126,7 +126,7 @@
   "share.copy": "Salin tautan",
   "share.copied": "Tautan disalin",
   "wish.title": "Harapan bintang · Kartu kustom",
-  "wish.guest": "Tamu hanya dapat membaca. Silakan <b>Hubungkan Phantom / Solflare / Backpack / OKX / MetaMask</b> (disarankan, kustodi mandiri) atau <b>Email (demo kustodian)</b> di bagian atas untuk membuat harapan.",
+  "wish.guest": "Tamu hanya bisa membaca. <b>Hubungkan Phantom atau dompet Solana lain</b> (kustodi mandiri) untuk membuat harapan.",
   "wish.mode": "Mode saat ini:",
   "wish.modeSelf": "Kustodi mandiri —— ditandatangani dompet Phantom / Solflare / Backpack / OKX / MetaMask Anda; dana dikirim langsung dari dompet Anda ke alamat penerima",
   "wish.modeHost": "Demo kustodian —— server demo menandatangani dengan kunci devnet Anda (ambil SOL devnet terlebih dahulu)",

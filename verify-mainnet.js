@@ -12,7 +12,7 @@ const node = (env, code) => JSON.parse(cp.execFileSync('node', ['-e', code], { c
   ok(node({ NETWORK: 'mainnet', SOLANA_RPC_MAINNET: 'https://example-rpc.invalid/k' }, "console.log(JSON.stringify(require('./network')))").SOL_RPC === 'https://example-rpc.invalid/k', '主网：SOLANA_RPC_MAINNET 覆盖 RPC');
   ok(JSON.stringify(mn.chains.sort()) === JSON.stringify(['1', '42161', '56', '8453']), 'EVM 主网链 ID：Ethereum 1 / BNB 56 / Base 8453 / Arbitrum 42161');
   ok(mn.sol === 'FPKFevoHzjPZWjWaRxwFwfNXu2LBduoGspXZSCLU81yz' && mn.evm.eth.address === '0xbfa2C12D28838bEA6C92645c195fAa907182ECed' && mn.evm.bsc.address === '0x71c04f3C4922d1A6FA2724428d4E2c51f5445837', '主网收款：Squads / Safe 多签（receive-config CONFIG_MAINNET）');
-  ok(!mn.evm.base && !mn.evm.arb && !mn.evm.uni && !mn.legacy.sol.length, 'Base / Arbitrum 主网收款地址未填 → 不收款；无测试网历史地址');
+  ok(/^0x71c04f3C4922d1A6FA2724428d4E2c51f5445837$/i.test(mn.evm.base) && mn.evm.arb === mn.evm.base && !mn.evm.uni && !mn.legacy.sol.length, 'Base / Arbitrum 主网收款 = Safe 0x71c0…5837；无 Unichain；无测试网 Solana 历史地址');
   ok(mn.dir === path.join(D, 'data', 'mainnet') && mn.pre === 'mainnet:' && mn.custody === false && mn.hot === 'FULFILL_HOT_WALLET_MAINNET', '主网数据单独存放（data/mainnet + D1 前缀），托管关闭，打赏热钱包只读主网专用变量');
   console.log('server smoke (NETWORK=mainnet)');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-main-')), port = 18951, Bs = 'http://127.0.0.1:' + port;

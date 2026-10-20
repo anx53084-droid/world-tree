@@ -126,7 +126,7 @@
   "share.copy": "複製連結",
   "share.copied": "連結已複製",
   "wish.title": "星願 · 定製卡",
-  "wish.guest": "訪客為只讀模式。請在右上角 <b>連線 Phantom / Solflare / Backpack / OKX / MetaMask</b>（推薦，自託管）或 <b>電子郵件登入（示範託管）</b> 後許願。",
+  "wish.guest": "訪客為唯讀模式。請先 <b>連接 Phantom 等 Solana 錢包</b>（自託管）後許願。",
   "wish.mode": "當前模式：",
   "wish.modeSelf": "自託管 —— 由你的 Phantom / Solflare / Backpack / OKX / MetaMask 錢包簽名，資金從你的錢包直接轉給收款地址",
   "wish.modeHost": "託管示範 —— 示範伺服器用你的 devnet 金鑰代簽（需先領 devnet SOL）",

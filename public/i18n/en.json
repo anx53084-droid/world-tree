@@ -126,7 +126,7 @@
   "share.copy": "Copy link",
   "share.copied": "Link copied",
   "wish.title": "Star Wish · Custom card",
-  "wish.guest": "Guests are read-only. Please <b>Connect Phantom / Solflare / Backpack / OKX / MetaMask</b> (recommended, self-custody) or use <b>Email login (custodial demo)</b> at the top to make a wish.",
+  "wish.guest": "Guests are read-only. <b>Connect Phantom or another Solana wallet</b> (self-custody) to make a wish.",
   "wish.mode": "Current mode:",
   "wish.modeSelf": "Self-custody — signed by your Phantom / Solflare / Backpack / OKX / MetaMask wallet; funds go directly from your wallet to the payee addresses",
   "wish.modeHost": "Custodial demo — the demo server signs with your devnet key (get devnet SOL first)",

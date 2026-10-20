@@ -126,7 +126,7 @@
   "share.copy": "Sao chép liên kết",
   "share.copied": "Đã sao chép liên kết",
   "wish.title": "Sao nguyện · Thẻ tùy chỉnh",
-  "wish.guest": "Khách chỉ có thể xem. Vui lòng <b>Kết nối Phantom / Solflare / Backpack / OKX / MetaMask</b> (khuyên dùng, tự lưu ký) hoặc <b>Email (lưu ký demo)</b> ở phía trên để ước nguyện.",
+  "wish.guest": "Khách chỉ có thể xem. <b>Kết nối Phantom hoặc ví Solana khác</b> (tự lưu ký) để ước nguyện.",
   "wish.mode": "Chế độ hiện tại:",
   "wish.modeSelf": "Tự lưu ký —— ký bằng ví Phantom / Solflare / Backpack / OKX / MetaMask của bạn; tiền chuyển trực tiếp từ ví của bạn đến địa chỉ nhận",
   "wish.modeHost": "Lưu ký demo —— máy chủ demo ký thay bằng khóa devnet của bạn (cần nhận SOL devnet trước)",
