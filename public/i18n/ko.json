@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "지갑 구성 요소가 방금 업데이트되었습니다. 페이지를 새로고침한 뒤 다시 시도하세요",
   "wal.copyAddr": "주소 복사",
   "wal.addrCopied": "복사됨",
-  "acct.guestHintW": "지갑을 연결하면 아바타와 닉네임을 설정할 수 있습니다"
+  "acct.guestHintW": "지갑을 연결하면 아바타와 닉네임을 설정할 수 있습니다",
+  "wal.devShort": "이 사이트는 현재 Solana 테스트넷(Devnet)에서 운영됩니다",
+  "wal.devHow": "켜는 방법",
+  "wal.devSteps": "Phantom에서: 설정 → 개발자 설정 → 테스트넷 모드를 켜고 Solana Devnet을 선택하세요",
+  "wal.devOther": "다른 지갑은 설정에서 네트워크를 Solana Devnet으로 바꾸세요",
+  "wal.devTitle": "지갑을 Devnet으로 전환하세요",
+  "wal.devS1": "Phantom 열기 → 설정",
+  "wal.devS2": "개발자 설정 → \"테스트넷 모드\" 켜기",
+  "wal.devS3": "네트워크에서 Solana Devnet 선택 후 사이트로 돌아와 다시 시도",
+  "wal.devOk": "확인",
+  "wal.devGeneric": "지갑이 Solana Devnet인지 확인한 뒤 다시 시도하세요",
+  "wal.devRejected": "취소되었습니다. 지갑에 \"모드가 올바르지 않음\"이 표시되면 테스트넷 모드(설정 → 개발자 설정 → 테스트넷 모드 → Solana Devnet)를 켠 뒤 다시 시도하세요"
 }

@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "Le composant portefeuille vient d'être mis à jour. Actualisez la page et réessayez",
   "wal.copyAddr": "Copier l'adresse",
   "wal.addrCopied": "Copié",
-  "acct.guestHintW": "Connectez un portefeuille pour définir votre avatar et votre pseudo"
+  "acct.guestHintW": "Connectez un portefeuille pour définir votre avatar et votre pseudo",
+  "wal.devShort": "Ce site fonctionne actuellement sur le testnet Solana (Devnet)",
+  "wal.devHow": "Comment l’activer",
+  "wal.devSteps": "Dans Phantom : Paramètres → Paramètres développeur → Mode testnet, puis choisissez Solana Devnet",
+  "wal.devOther": "Pour les autres portefeuilles, passez le réseau sur Solana Devnet dans les paramètres",
+  "wal.devTitle": "Passez votre portefeuille sur Devnet",
+  "wal.devS1": "Ouvrez Phantom → Paramètres",
+  "wal.devS2": "Paramètres développeur → activez « Mode testnet »",
+  "wal.devS3": "Choisissez Solana Devnet comme réseau, puis revenez réessayer",
+  "wal.devOk": "Compris",
+  "wal.devGeneric": "Vérifiez que votre portefeuille est sur Solana Devnet puis réessayez",
+  "wal.devRejected": "Annulé. Si le portefeuille indique « mode incorrect », activez le mode testnet (Paramètres → Paramètres développeur → Mode testnet → Solana Devnet) puis réessayez"
 }

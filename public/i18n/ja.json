@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "ウォレット部品が更新されました。ページを再読み込みしてもう一度お試しください",
   "wal.copyAddr": "アドレスをコピー",
   "wal.addrCopied": "コピーしました",
-  "acct.guestHintW": "ウォレットを接続すると、アバターとニックネームを設定できます"
+  "acct.guestHintW": "ウォレットを接続すると、アバターとニックネームを設定できます",
+  "wal.devShort": "本サイトは現在 Solana テストネット（Devnet）で動作しています",
+  "wal.devHow": "有効にする方法",
+  "wal.devSteps": "Phantom で：設定 → 開発者設定 → テストネットモードをオンにし、Solana Devnet を選択",
+  "wal.devOther": "他のウォレットは設定でネットワークを Solana Devnet に切り替えてください",
+  "wal.devTitle": "ウォレットを Devnet に切り替えてください",
+  "wal.devS1": "Phantom を開く → 設定",
+  "wal.devS2": "開発者設定 →「テストネットモード」をオン",
+  "wal.devS3": "ネットワークで Solana Devnet を選び、本サイトに戻って再試行",
+  "wal.devOk": "OK",
+  "wal.devGeneric": "ウォレットが Solana Devnet になっているか確認して再試行してください",
+  "wal.devRejected": "キャンセルされました。「モードが正しくありません」と表示された場合は、テストネットモード（設定 → 開発者設定 → テストネットモード → Solana Devnet）をオンにして再試行してください"
 }

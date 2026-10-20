@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "El componente de wallet se acaba de actualizar. Recarga la página e inténtalo de nuevo",
   "wal.copyAddr": "Copiar dirección",
   "wal.addrCopied": "Copiado",
-  "acct.guestHintW": "Conecta una wallet para configurar tu avatar y apodo"
+  "acct.guestHintW": "Conecta una wallet para configurar tu avatar y apodo",
+  "wal.devShort": "Este sitio funciona actualmente en la testnet de Solana (Devnet)",
+  "wal.devHow": "Cómo activarla",
+  "wal.devSteps": "En Phantom activa: Ajustes → Ajustes de desarrollador → Modo testnet y elige Solana Devnet",
+  "wal.devOther": "En otras wallets, cambia la red a Solana Devnet en ajustes",
+  "wal.devTitle": "Cambia tu wallet a Devnet",
+  "wal.devS1": "Abre Phantom → Ajustes",
+  "wal.devS2": "Ajustes de desarrollador → activa «Modo testnet»",
+  "wal.devS3": "Elige Solana Devnet como red y vuelve a intentarlo aquí",
+  "wal.devOk": "Entendido",
+  "wal.devGeneric": "Asegúrate de que tu wallet está en Solana Devnet e inténtalo de nuevo",
+  "wal.devRejected": "Cancelado. Si la wallet indicó «modo incorrecto», activa el modo testnet (Ajustes → Ajustes de desarrollador → Modo testnet → Solana Devnet) e inténtalo de nuevo"
 }

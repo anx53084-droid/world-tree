@@ -37,6 +37,17 @@ const MOCK_PROV = `const mkP = (ch, onUri) => { const L = {}; return { on: (e, f
       ok(!(await q.$('.wmob')) && !(await q.textContent('#modal-box')).includes(T['wal.solHint']), '说明文字精简：去掉 Solana 支持列表与手机提示');
       ok(await q.evaluate(() => WTW.solWallets().some(w => w.id === 'solflare') && WTW.evmWallets().some(w => w.id === 'walletconnect')), '隐藏只作用于入口：钱包代码保留（已有会话照常恢复）');
       await q.context().close(); }
+    console.log('devnet guide (t222u)');
+    { const q = await page({ ui: 'default' }); await q.evaluate(() => connectWallet()); await q.waitForSelector('.wlist');
+      ok(await q.$eval('.wlist .wdev', e => !e.open && /Devnet/.test(e.textContent)) && await q.$eval('.wlist', l => { const k = [...l.children]; const i = k.findIndex(x => x.classList.contains('wdev')); return i > 0 && /Phantom|MWA/.test(k[i - 1].textContent); }), '钱包弹窗：Phantom / MWA 下方有折叠的 Devnet 提示（如何开启）');
+      await q.click('.wdev summary'); ok(await q.$eval('.wdev', (e, x) => e.open && e.textContent.includes(x), T['wal.devSteps']), '点「如何开启」展开开启步骤');
+      await q.evaluate(() => { closeModal(); toast(esc(walErr({ code: 4001, message: 'User rejected the request.' })), 'err'); }); await toastHas(q, T['wal.devRejected'].slice(0, 8)); ok(true, 'Solana 钱包拒绝（关闭「模式不正确」弹窗后的返回）→ Devnet 引导文案，不显示原始报错');
+      await q.evaluate(() => toast(esc(walErr(new Error('guangqi.world is trying to use testnet, but you are not in testnet mode'))), 'err')); await q.waitForSelector('#devguide', { timeout: 5000 }); ok((await q.textContent('#modal-box')).includes(T['wal.devS2']) && !(await q.textContent('#toasts')).includes('trying to use testnet'), '识别到模式 / 网络不匹配 → 弹出开启测试网模式引导');
+      await q.evaluate(() => closeModal()); await q.evaluate(() => toast(esc(walErr(new Error('Unexpected error 0x1234'))), 'err')); await toastHas(q, T['wal.devGeneric']); ok(!(await q.textContent('#toasts')).includes('0x1234'), '识别不了的 Solana 钱包错误 → 通用「请确认钱包处于 Devnet」提示');
+      await q.evaluate(() => { S.evmBusy = true; }); ok(await q.evaluate(() => walErr({ code: 4001 })) === T['wal.rejected'], 'EVM 场景不受影响（仍是普通拒绝提示）');
+      await q.context().close(); }
+    { const q = await page({ ui: 'default' }); await q.addInitScript(() => { window.phantom = { solana: { isPhantom: true, on() {}, connect: async () => { throw Object.assign(new Error('User rejected the request.'), { code: 4001 }); } } }; }); await q.reload(); await q.waitForFunction(() => window.WTW && typeof S !== 'undefined' && S.cfg?.evm);
+      await q.evaluate(() => connectWallet()); await q.click('.witem[data-w=phantom]'); await toastHas(q, T['wal.devRejected'].slice(0, 8)); ok(true, '真实连接流程：Phantom 连接被拒 → Devnet 引导'); await q.screenshot({ path: '/tmp/devrej.png' }); await q.context().close(); }
     console.log('wallet list');
     let p = await page(); await p.evaluate(() => connectWallet('evm')); await p.waitForSelector('.wlist');
     const items = await p.$$eval('.wlist .witem', a => a.map(x => (x.dataset.w || '') + '|' + x.textContent));

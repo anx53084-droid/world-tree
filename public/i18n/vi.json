@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "Thành phần ví vừa được cập nhật. Vui lòng tải lại trang rồi thử lại",
   "wal.copyAddr": "Sao chép địa chỉ",
   "wal.addrCopied": "Đã sao chép",
-  "acct.guestHintW": "Kết nối ví để đặt ảnh đại diện và biệt danh"
+  "acct.guestHintW": "Kết nối ví để đặt ảnh đại diện và biệt danh",
+  "wal.devShort": "Trang này hiện chạy trên mạng thử nghiệm Solana (Devnet)",
+  "wal.devHow": "Cách bật",
+  "wal.devSteps": "Trong Phantom hãy bật: Cài đặt → Cài đặt nhà phát triển → Chế độ Testnet, rồi chọn Solana Devnet",
+  "wal.devOther": "Với ví khác, hãy đổi mạng sang Solana Devnet trong cài đặt",
+  "wal.devTitle": "Chuyển ví sang Devnet",
+  "wal.devS1": "Mở Phantom → Cài đặt",
+  "wal.devS2": "Cài đặt nhà phát triển → bật “Chế độ Testnet”",
+  "wal.devS3": "Chọn mạng Solana Devnet rồi quay lại thử lại",
+  "wal.devOk": "Đã hiểu",
+  "wal.devGeneric": "Hãy kiểm tra ví đang ở Solana Devnet rồi thử lại",
+  "wal.devRejected": "Đã hủy. Nếu ví báo “chế độ không đúng”, hãy bật Chế độ Testnet (Cài đặt → Cài đặt nhà phát triển → Chế độ Testnet → Solana Devnet) rồi thử lại"
 }

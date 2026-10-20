@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "O componente da carteira acabou de ser atualizado. Recarregue a página e tente novamente",
   "wal.copyAddr": "Copiar endereço",
   "wal.addrCopied": "Copiado",
-  "acct.guestHintW": "Conecte uma carteira para definir seu avatar e apelido"
+  "acct.guestHintW": "Conecte uma carteira para definir seu avatar e apelido",
+  "wal.devShort": "Este site funciona atualmente na testnet da Solana (Devnet)",
+  "wal.devHow": "Como ativar",
+  "wal.devSteps": "No Phantom ative: Configurações → Configurações de desenvolvedor → Modo testnet e escolha Solana Devnet",
+  "wal.devOther": "Em outras carteiras, mude a rede para Solana Devnet nas configurações",
+  "wal.devTitle": "Mude sua carteira para Devnet",
+  "wal.devS1": "Abra o Phantom → Configurações",
+  "wal.devS2": "Configurações de desenvolvedor → ative “Modo testnet”",
+  "wal.devS3": "Escolha Solana Devnet como rede e volte para tentar de novo",
+  "wal.devOk": "Entendi",
+  "wal.devGeneric": "Confirme que a carteira está na Solana Devnet e tente novamente",
+  "wal.devRejected": "Cancelado. Se a carteira mostrou “modo incorreto”, ative o modo testnet (Configurações → Configurações de desenvolvedor → Modo testnet → Solana Devnet) e tente de novo"
 }

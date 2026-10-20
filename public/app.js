@@ -328,11 +328,18 @@ async function solWallet() { if (S.wallet) return S.wallet; const id = localStor
 let nonceP = null, nonceAt = 0; const getNonce = () => { if (!nonceP || Date.now() - nonceAt > 240000) { nonceAt = Date.now(); nonceP = api('/api/nonce').then(r => r.nonce).catch(e => { nonceP = null; throw e; }); } const p = nonceP; nonceP = null; return p; };
 const prefetchNonce = () => { if (!nonceP) { nonceAt = Date.now(); nonceP = api('/api/nonce').then(r => r.nonce).catch(() => { nonceP = null; }); } };
 const STMT = 'Sign in to World Tree. This request will not trigger a transaction or cost any fees.';
+// Solana Devnet 引导：Phantom 未开测试网模式时会弹「模式不正确」，关闭后 dApp 只收到拒绝 / 网络类错误 → 显示引导而不是原始报错
+const devHint = () => `<details class=wdev><summary>ⓘ ${E('wal.devShort')} · <u>${E('wal.devHow')}</u></summary><p>${E('wal.devSteps')}</p><p class=muted>${E('wal.devOther')}</p></details>`;
+function devnetGuide() { if ($('#devguide')) return; modal(`<h3 style="margin-top:0" id=devguide>🧪 ${E('wal.devTitle')}</h3><p>${E('wal.devShort')}</p><ol class=devsteps><li>${E('wal.devS1')}</li><li>${E('wal.devS2')}</li><li>${E('wal.devS3')}</li></ol><p class=muted>${E('wal.devOther')}</p><div class=row style="justify-content:flex-end"><button class=primary data-close>${E('wal.devOk')}</button></div>`); }
+const isModeErr = (e, m) => /testnet|devnet|test ?network|wrong (network|cluster)|network mismatch|cluster|incorrect mode|not in .*mode|模式|测试网|-32603.*network|unsupported (network|chain)/i.test(m) || e?.code === 4900 || e?.code === 4901;
 function walErr(e) { const m = String(e?.message || e || ''); // 钱包错误 → 本地化提示
   if (e?.code === 'vendorOld') return t('wal.vendorOld');
-  if (e?.code === 4001 || e?.code === 'ACTION_REJECTED' || /reject|denied|cancel|declin/i.test(m)) return t('wal.rejected');
+  const sol = !S.evmBusy && S.kind !== 'evm'; // Solana 钱包场景（Phantom / MWA / WalletConnect-Solana）
+  if (sol && isModeErr(e, m)) { setTimeout(devnetGuide, 0); return t('wal.devGeneric'); }
+  if (e?.code === 4001 || e?.code === 'ACTION_REJECTED' || /reject|denied|cancel|declin/i.test(m)) return sol ? t('wal.devRejected') : t('wal.rejected');
   if (/chain id|chainid|chain_id/i.test(m) || e?.code === 'chainId') return t('wal.chainMismatch');
   if (e?.code === 'chainUnsupported') return t('wal.chainUnsupported'); if (e?.code === 'nonce') return t('err.nonce'); if (e?.code === 'sig') return t('err.sig');
+  if (sol) { setTimeout(devnetGuide, 0); return t('wal.devGeneric'); } // 识别不了：给出通用 Devnet 提示（不显示原始报错）
   return t('wal.fail', { msg: m }); }
 async function solSignIn(w, nonce) { // 优先用钱包原生 Sign-In（solana:signIn：连接+签名一步完成）；否则 signMessage（消息不含 Chain ID）
   if (w.canSignIn) { const o = await w.signIn({ domain: location.host, statement: STMT, uri: location.origin, version: '1', nonce, issuedAt: new Date().toISOString() });
@@ -372,7 +379,7 @@ function walletMissing(w, kind) { // 未检测到：安装链接 + 在钱包内�
 function connectWallet(tab) { const UI = WTW.ui; // 钱包入口开关（wallets.js WTW.ui）：隐藏的入口代码保留；已登录的 EVM 会话不受影响
   tab = UI.evmTab ? (tab || localStorage.wt_wtab || 'sol') : 'sol'; const ch = localStorage.wt_chain || '84532', C = evmChains(), np = WTW.noProvider(tab === 'evm' ? 'evm' : 'sol');
   modal(`<h3 style="margin-top:0">${E('wal.title')}</h3>${UI.evmTab ? `<div class="row tabs"><button type=button data-tab=sol class="${tab === 'sol' ? 'on' : ''}">◎ Solana</button><button type=button data-tab=evm class="${tab === 'evm' ? 'on' : ''}">⬡ ${E('wal.evm')}</button></div>` : ''}
-    ${np && UI.evmTab ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${tab === 'sol' ? `${UI.evmTab ? `<p class=muted>${E('wal.solHint')}</p>` : ''}<div class=wlist>${WTW.solList().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')).join('')}</div>`
+    ${np && UI.evmTab ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${tab === 'sol' ? `${UI.evmTab ? `<p class=muted>${E('wal.solHint')}</p>` : ''}<div class=wlist>${(() => { const L = WTW.solList(), last = Math.max(...L.map((w, i) => w.id === 'phantom' || w.mwa ? i : -1)); return L.map((w, i) => (np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')) + (i === last ? devHint() : '')).join(''); })()}</div>`
     : `<label>${E('wal.chain')} <select id=wch>${Object.entries(C).map(([id, c]) => `<option value=${id} ${id === ch ? 'selected' : ''}>${esc(t('chain.' + (c.key || EVM_KEYS[id])))} · ${esc(c.name)}</option>`).join('')}</select></label>
       <p class=muted>${E('wal.evmHint')} ${S.cfg.evm?.pay ? '' : E('wal.evmPayOff')}</p><div class=wlist>${WTW.evmList().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'evm')).join('')}</div>`}
     <p class=muted style="font-size:12px">🔐 ${E('wal.nonCustody')}</p><div class=row style="justify-content:flex-end"><button data-close>${E('common.cancel')}</button></div>`);
@@ -433,7 +440,8 @@ async function evmProvider() { if (S.evmProv) return S.evmProv; const w = WTW.ev
   const [a] = (await w.provider.request({ method: 'eth_accounts' }).catch(() => [])).length ? await w.provider.request({ method: 'eth_accounts' }) : await w.provider.request({ method: 'eth_requestAccounts' });
   if (a && a.toLowerCase() !== S.evmAddr) { toast(esc(t('wal.switched')), 'err'); await logout(); throw new Error(t('wal.switched')); } // 钱包当前账户与会话不一致：不沿用旧地址
   if ((a || '').toLowerCase() !== S.evmAddr) throw new Error(t('wish.evmNoWallet')); watchEvm(w.provider); return S.evmProv = w.provider; }
-async function connectEvm(id, pick = true) { const w = WTW.evmWallets().find(x => x.id === id); if (!w) return;
+async function connectEvm(id, pick = true) { S.evmBusy = true; try { return await connectEvm0(id, pick); } finally { S.evmBusy = false; } }
+async function connectEvm0(id, pick) { const w = WTW.evmWallets().find(x => x.id === id); if (!w) return;
   if (!w.installed) return walletMissing(w, 'evm');
   const chain = $('#wch')?.value || localStorage.wt_chain || '84532', p = w.provider, wc = id === 'walletconnect';
   if (wc) WTW.onWcUri = uri => showWcQr(uri);

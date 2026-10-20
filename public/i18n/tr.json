@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "Cüzdan bileşeni az önce güncellendi. Lütfen sayfayı yenileyip tekrar deneyin",
   "wal.copyAddr": "Adresi kopyala",
   "wal.addrCopied": "Kopyalandı",
-  "acct.guestHintW": "Avatar ve takma ad ayarlamak için bir cüzdan bağlayın"
+  "acct.guestHintW": "Avatar ve takma ad ayarlamak için bir cüzdan bağlayın",
+  "wal.devShort": "Bu site şu anda Solana test ağında (Devnet) çalışıyor",
+  "wal.devHow": "Nasıl açılır",
+  "wal.devSteps": "Phantom’da açın: Ayarlar → Geliştirici Ayarları → Test Ağı Modu, ardından Solana Devnet’i seçin",
+  "wal.devOther": "Diğer cüzdanlarda ağı ayarlardan Solana Devnet’e geçirin",
+  "wal.devTitle": "Cüzdanınızı Devnet’e geçirin",
+  "wal.devS1": "Phantom’u açın → Ayarlar",
+  "wal.devS2": "Geliştirici Ayarları → “Test Ağı Modu”nu açın",
+  "wal.devS3": "Ağ olarak Solana Devnet’i seçin, sonra geri dönüp tekrar deneyin",
+  "wal.devOk": "Anladım",
+  "wal.devGeneric": "Lütfen cüzdanın Solana Devnet’te olduğundan emin olup tekrar deneyin",
+  "wal.devRejected": "İptal edildi. Cüzdan “yanlış mod” dediyse Test Ağı Modu’nu açın (Ayarlar → Geliştirici Ayarları → Test Ağı Modu → Solana Devnet) ve tekrar deneyin"
 }

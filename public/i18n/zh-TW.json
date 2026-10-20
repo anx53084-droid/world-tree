@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "錢包元件剛剛更新，請重新整理頁面後再試",
   "wal.copyAddr": "複製地址",
   "wal.addrCopied": "已複製",
-  "acct.guestHintW": "連接錢包後，可設定頭像與暱稱"
+  "acct.guestHintW": "連接錢包後，可設定頭像與暱稱",
+  "wal.devShort": "本站目前在 Solana 測試網（Devnet）",
+  "wal.devHow": "如何開啟",
+  "wal.devSteps": "Phantom 請先開啟：設定 → 開發者設定 → 測試網模式，並選 Solana Devnet",
+  "wal.devOther": "其他錢包請在設定裡把網路切換到 Solana Devnet",
+  "wal.devTitle": "請把錢包切換到 Devnet 測試網",
+  "wal.devS1": "打開 Phantom → 設定",
+  "wal.devS2": "開發者設定 → 打開「測試網模式」",
+  "wal.devS3": "網路選擇 Solana Devnet，然後回到本站重試",
+  "wal.devOk": "知道了",
+  "wal.devGeneric": "請確認錢包處於 Solana Devnet 測試網後重試",
+  "wal.devRejected": "已取消。如果錢包提示「模式不正確」，請先開啟測試網模式（設定 → 開發者設定 → 測試網模式 → Solana Devnet）再重試"
 }

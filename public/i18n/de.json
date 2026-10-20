@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "Die Wallet-Komponente wurde gerade aktualisiert. Bitte Seite neu laden und erneut versuchen",
   "wal.copyAddr": "Adresse kopieren",
   "wal.addrCopied": "Kopiert",
-  "acct.guestHintW": "Verbinde eine Wallet, um Avatar und Spitznamen festzulegen"
+  "acct.guestHintW": "Verbinde eine Wallet, um Avatar und Spitznamen festzulegen",
+  "wal.devShort": "Diese Seite läuft derzeit im Solana-Testnet (Devnet)",
+  "wal.devHow": "So aktivierst du es",
+  "wal.devSteps": "In Phantom: Einstellungen → Entwicklereinstellungen → Testnet-Modus einschalten und Solana Devnet wählen",
+  "wal.devOther": "Bei anderen Wallets das Netzwerk in den Einstellungen auf Solana Devnet stellen",
+  "wal.devTitle": "Wallet auf Devnet umstellen",
+  "wal.devS1": "Phantom öffnen → Einstellungen",
+  "wal.devS2": "Entwicklereinstellungen → „Testnet-Modus“ einschalten",
+  "wal.devS3": "Solana Devnet als Netzwerk wählen und hier erneut versuchen",
+  "wal.devOk": "Verstanden",
+  "wal.devGeneric": "Bitte prüfe, dass deine Wallet auf Solana Devnet ist, und versuche es erneut",
+  "wal.devRejected": "Abgebrochen. Meldet die Wallet „falscher Modus“, schalte den Testnet-Modus ein (Einstellungen → Entwicklereinstellungen → Testnet-Modus → Solana Devnet) und versuche es erneut"
 }

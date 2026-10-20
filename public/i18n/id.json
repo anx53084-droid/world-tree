@@ -1007,5 +1007,16 @@
   "wal.vendorOld": "Komponen dompet baru saja diperbarui. Muat ulang halaman lalu coba lagi",
   "wal.copyAddr": "Salin alamat",
   "wal.addrCopied": "Tersalin",
-  "acct.guestHintW": "Hubungkan dompet untuk mengatur avatar dan nama panggilan"
+  "acct.guestHintW": "Hubungkan dompet untuk mengatur avatar dan nama panggilan",
+  "wal.devShort": "Situs ini saat ini berjalan di testnet Solana (Devnet)",
+  "wal.devHow": "Cara mengaktifkan",
+  "wal.devSteps": "Di Phantom aktifkan: Pengaturan → Pengaturan Pengembang → Mode Testnet, lalu pilih Solana Devnet",
+  "wal.devOther": "Untuk dompet lain, ganti jaringan ke Solana Devnet di pengaturan",
+  "wal.devTitle": "Alihkan dompet ke Devnet",
+  "wal.devS1": "Buka Phantom → Pengaturan",
+  "wal.devS2": "Pengaturan Pengembang → aktifkan “Mode Testnet”",
+  "wal.devS3": "Pilih Solana Devnet sebagai jaringan, lalu kembali dan coba lagi",
+  "wal.devOk": "Mengerti",
+  "wal.devGeneric": "Pastikan dompet berada di Solana Devnet lalu coba lagi",
+  "wal.devRejected": "Dibatalkan. Jika dompet menampilkan “mode salah”, aktifkan Mode Testnet (Pengaturan → Pengaturan Pengembang → Mode Testnet → Solana Devnet) lalu coba lagi"
 }
