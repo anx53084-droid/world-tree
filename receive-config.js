@@ -21,8 +21,8 @@ const CONFIG_MAINNET = {
   sol: { address: 'FPKFevoHzjPZWjWaRxwFwfNXu2LBduoGspXZSCLU81yz', legacy: [], note: 'Squads v4 vault 0 (mainnet)' },
   eth: { address: '0xbfa2C12D28838bEA6C92645c195fAa907182ECed', legacy: [], note: 'Safe 1.4.1 (2-of-3, mainnet)' },
   bsc: { address: '0x71c04f3C4922d1A6FA2724428d4E2c51f5445837', legacy: [], note: 'Safe L2 1.4.1 (2-of-3, BNB Chain)' },
-  base: { address: '', legacy: [], note: 'TODO: Base Safe 地址（部署后填写）' },
-  arb: { address: '', legacy: [], note: 'TODO: Arbitrum Safe 地址（部署后填写）' },
+  base: { address: '0x71c04f3C4922d1A6FA2724428d4E2c51f5445837', legacy: ['0x257ae349424c3047a3Acbe02351520d8e5Bd6458'], note: 'Safe L2 1.4.1 (2-of-3, Base)' },
+  arb: { address: '0x71c04f3C4922d1A6FA2724428d4E2c51f5445837', legacy: ['0x257ae349424c3047a3Acbe02351520d8e5Bd6458'], note: 'Safe L2 1.4.1 (2-of-3, Arbitrum One)' },
 };
 const MAIN = require('./network').MAIN, ACTIVE = MAIN ? CONFIG_MAINNET : CONFIG;
 const isEvm = a => /^0x[0-9a-fA-F]{40}$/.test(a || ''), B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
