@@ -140,6 +140,17 @@ async function verifyUnlockTx(tx, viewer, q) { // 核验交友意向金：交易
         if (ix.program === 'system' && p?.type === 'transfer' && p.info.source === viewer) { if (RC.isSolRecv(p.info.destination)) fee += +p.info.lamports; else if (p.info.destination === q.payTo) rest += +p.info.lamports; }
         if ((ix.program === 'spl-memo' || ix.programId?.toBase58?.() === MEMO.toBase58()) && ix.parsed === 'WTREE1|UL|' + q.id) memo = true; }
       return memo && fee >= q.fee && rest >= q.rest; } } catch {} await new Promise(r => setTimeout(r, 1500)); } return false; }
+const BIZ_THEMES = ['ivory', 'navy', 'jade'], BIZ_LAYOUTS = ['center', 'left'];
+async function bizCheck(b) { // 企业展示卡：公司名 1–30、官网 http(s)（无账号密码、非内网、过黑名单）、简介 1–300（审核）
+  const name = String(b.name || '').trim(), intro = String(b.intro || '').trim(); let x;
+  if (!name || Soc.len(name) > 30 || /[~|<>]/.test(name)) return { error: 'name', code: 'bizName' };
+  try { x = new URL(String(b.url || '').trim()); } catch { return { error: 'url', code: 'bizUrl' }; }
+  if (!/^https?:$/.test(x.protocol) || x.username || x.password || String(b.url).length > 300 || !x.hostname.includes('.') || /^(localhost|127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(x.hostname) || /^\[/.test(x.hostname) || /^\d+\.\d+\.\d+\.\d+$/.test(x.hostname)) return { error: 'url', code: 'bizUrl' };
+  const domain = x.hostname.toLowerCase().replace(/^www\./, ''); if (!/^[a-z0-9.-]{3,80}$/.test(domain)) return { error: 'url', code: 'bizUrl' };
+  if (!intro || Soc.len(intro) > 300) return { error: 'intro', code: 'bizIntro' };
+  for (const t of [x.href, name, intro]) { const bh = Block.check(t); if (bh) return { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', detail: bh.domain }; }
+  const m = await moderate(name + '\n' + intro); if (!m.pass) return { error: REJECT, code: 'reject' };
+  return { ok: true, name, url: x.href, domain, intro, theme: BIZ_THEMES.includes(b.theme) ? b.theme : 'ivory', layout: BIZ_LAYOUTS.includes(b.layout) ? b.layout : 'center' }; }
 function applyMeta(st, sig, owner, K, b) { // 写入链下可见性元数据；密码仅存 scrypt 哈希；位置优先用链上字段
   const vis = K.vis || 'public', deliver = K.deliver || 'tree';
   const country = Soc.cleanLoc(b.country || K.country), province = Soc.cleanLoc(b.province || K.province), city = Soc.cleanLoc(b.city || K.city);
@@ -314,7 +325,7 @@ async function api(req, res, url) {
     if (Buffer.byteLength(prefix + '|' + (priv ? cipher : text), 'utf8') > 600) return send(res, 400, { pass: false, message: '内容过长', code: 'memoSize' });
     if (K.kind === 'gate' && process.env.GATE_MAKE !== '1') return send(res, 200, { pass: false, code: 'gateMakeOff', message: '门卡暂不开放用户制作' }); // 门卡发行将作为树洞特权另行开放；已有门卡照常显示
     if ((K.kind === 'gift' || K.kind === 'gate') && Block.addrBlocked(K.to)) return send(res, 200, { pass: false, code: 'giftBlocked', message: '该地址已被拦截' });
-    const extra = K.kind === 'social' ? [...K.tags, K.intro, K.looking].join('\n') : K.kind === 'gift' ? K.note : K.kind === 'goods' ? 'https://' + K.domain + '/' : K.kind === 'gate' ? K.name : '';
+    const extra = K.kind === 'social' ? [...K.tags, K.intro, K.looking].join('\n') : K.kind === 'gift' ? K.note : K.kind === 'goods' ? 'https://' + K.domain + '/' : K.kind === 'gate' ? K.name : K.kind === 'biz' ? K.name + '\nhttps://' + K.domain + '/' : '';
     const bh = Block.check(extra ? text + '\n' + extra : text); if (bh) return send(res, 200, { pass: false, type: bh.type, code: bh.type === 'shortener' ? 'blockShort' : bh.type === 'address' ? 'blockAddr' : 'blockPhish', domain: bh.domain, message: '内容包含被拦截的链接或地址：' + bh.domain }); // 在审核证明之前拦截
     const r = await moderate(extra ? text + '\n' + extra : text); return send(res, 200, r.pass ? { pass: true, attestation: attest(prefix + '|' + (priv ? cipher : text)) } : { pass: false, category: r.category, message: REJECT, code: 'reject' });
   }
@@ -377,6 +388,16 @@ async function api(req, res, url) {
     const edited = !c || c.title !== title || c.price !== price;
     const st = Soc.load(); st.goods[sig] = { owner: a.user.pubkey, url: x.href, domain: k.domain, title, price, currency, image, fetchedAt: c?.fetchedAt || Date.now(), edited, at: Date.now() }; Soc.save(st);
     return send(res, 200, { ok: true }); }
+  if (url === '/api/biz/check' && req.method === 'POST') { const r = await bizCheck(await body(req)); return send(res, r.error ? 400 : 200, r); }
+  if (url === '/api/biz-meta' && req.method === 'POST') { // 企业展示卡上链后登记：官网网址 / 简介 / 内页模板（仅作者；网址域名须与链上 ~D 一致）
+    const a = auth(req, db); if (!a) return send(res, 401, { error: '未登录', code: 'auth' }); const b = await body(req), sig = b.sig;
+    if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
+    const ti = await txInfo(sig); if (!ti || ti.author !== a.user.pubkey || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
+    const K = Soc.parseKind(ti.memo.split('|')[5]); if (K.kind !== 'biz') return send(res, 400, { error: 'param', code: 'param' });
+    const r = await bizCheck(b); if (r.error) return send(res, 400, r); if (r.domain !== K.domain) return send(res, 400, { error: 'url mismatch', code: 'bizMismatch' });
+    const st = Soc.load(); if (st.biz[sig] && st.biz[sig].owner !== a.user.pubkey) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
+    st.biz[sig] = { owner: a.user.pubkey, name: K.name, url: r.url, domain: r.domain, intro: r.intro, theme: r.theme, layout: r.layout, at: Date.now() }; Soc.save(st); return send(res, 200, { ok: true }); }
+  if (url.startsWith('/api/biz-meta/') && req.method === 'GET') { const g = Soc.load().biz[decodeURIComponent(url.slice(14))]; return send(res, 200, g ? { name: g.name, url: g.url, domain: g.domain, intro: g.intro, theme: g.theme, layout: g.layout } : {}); }
   if (url === '/api/goods-meta/batch' && req.method === 'POST') { const { sigs } = await body(req), list = Array.isArray(sigs) ? sigs.slice(0, 200) : [], st = Soc.load(), out = {};
     for (const sig of list) { const g = st.goods[sig]; if (g) out[sig] = { url: g.url, domain: g.domain, title: g.title, price: g.price, currency: g.currency, image: g.image, fetchedAt: g.fetchedAt, edited: !!g.edited }; }
     return send(res, 200, { meta: out }); }
@@ -438,7 +459,7 @@ async function api(req, res, url) {
     const sig = b.sig; if (!/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(sig || '')) return send(res, 400, { error: 'bad sig', code: 'param' });
     const ti = await txInfo(sig); if (!ti || ti.author !== a.user.pubkey || !ti.memo || !verifyWishMemo(ti.memo)) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
     const K = Soc.parseKind(ti.memo.split('|')[5]); // 四类卡均可登记可见性/位置；交友卡另含年龄/性别/职业
-    if (!['social', 'gift', 'wish', 'goods'].includes(K.kind)) return send(res, 400, { error: 'param', code: 'param' });
+    if (!['social', 'gift', 'wish', 'goods', 'biz'].includes(K.kind)) return send(res, 400, { error: 'param', code: 'param' });
     if (K.kind === 'social') { const job = String(b.job || '').trim().slice(0, 20); if (job) { const bh = Block.check(job); if (bh) return send(res, 400, { error: 'blocked', code: bh.type === 'shortener' ? 'blockShort' : 'blockPhish' }); const mr = await moderate(job); if (!mr.pass) return send(res, 400, { error: REJECT, code: 'reject' }); } }
     const st = Soc.load(), err = applyMeta(st, sig, a.user.pubkey, K, b); if (err) return send(res, 400, err); Soc.save(st); return send(res, 200, { ok: true }); }
   if (url === '/api/wish-paid' && req.method === 'POST') { // 付款成功后登记记账 +（物质类）可选收货/联系备注（永不入链）

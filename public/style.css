@@ -527,3 +527,16 @@ svg.gface { height: auto }
 .ct-sec { margin-top: 10px } .ct-text { white-space: pre-wrap; word-break: break-word; margin: 6px 0 0 }
 .ct-bd { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 14px } .ct-bd td { padding: 3px 0; border-bottom: 1px solid #ffffff14 } .ct-bd td:last-child { text-align: end; font-weight: 600 }
 .ct-bd tr:first-child td { font-size: 15px } .ct-st { min-height: 1em; margin: 6px 0 0; font-size: 13px }
+/* t240 企业展示卡 */
+.bz-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0 }
+.bz-themes { display: flex; gap: 6px }
+.bz-t { border-radius: 999px; padding: 4px 12px; border: 2px solid transparent }
+.bz-t.on { border-color: #f6d38a }
+.bz-t.bz-ivory { background: #fbf6ea; color: #3a2f1c } .bz-t.bz-navy { background: #1d2b4f; color: #eef2ff } .bz-t.bz-jade { background: #1f5446; color: #eafff6 }
+.biz-in { border-radius: 14px; padding: 14px; margin: 4px 0 8px; backdrop-filter: blur(4px); overflow-wrap: anywhere }
+.biz-ivory { background: #fbf6eaee; color: #3a2f1c } .biz-navy { background: #1d2b4fee; color: #eef2ff } .biz-jade { background: #1f5446ee; color: #eafff6 }
+.biz-l-center { text-align: center } .biz-l-left { text-align: start }
+.biz-name { margin: 8px 0 6px; font-size: 1.25em } .biz-intro { white-space: pre-wrap; line-height: 1.55; margin: 0 0 10px }
+.biz-link a, .biz-link span { font-weight: 700; font-size: 1.05em; color: inherit; text-decoration: underline }
+.biz-in .hint { color: inherit; opacity: .75; font-size: .82em; margin: 4px 0 0 }
+.pv-in .biz-in { padding: 6px 7px; font-size: .6em; margin: 0; line-height: 1.35 } .pv-in .biz-in .tag { font-size: .95em } .pv-in .biz-name { margin: 4px 0 } .pv-in .biz-intro { margin-bottom: 4px; line-height: 1.35 }

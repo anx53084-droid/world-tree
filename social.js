@@ -7,8 +7,8 @@ const DEL = { T: 'tree', O: 'off', B: 'both' };
 function load() {
   try {
     const d = JSON.parse(fs.readFileSync(F));
-    return { contacts: d.contacts || {}, gifts: d.gifts || {}, giftSeen: d.giftSeen || {}, meta: d.meta || {}, unlocks: d.unlocks || {}, goods: d.goods || {}, att: d.att || {}, ctPaid: d.ctPaid || {}, ctUsed: d.ctUsed || {}, ctQuotes: d.ctQuotes || {} };
-  } catch { return { contacts: {}, gifts: {}, giftSeen: {}, meta: {}, unlocks: {}, goods: {}, att: {}, ctPaid: {}, ctUsed: {}, ctQuotes: {} }; }
+    return { contacts: d.contacts || {}, gifts: d.gifts || {}, giftSeen: d.giftSeen || {}, meta: d.meta || {}, unlocks: d.unlocks || {}, goods: d.goods || {}, att: d.att || {}, ctPaid: d.ctPaid || {}, ctUsed: d.ctUsed || {}, ctQuotes: d.ctQuotes || {}, biz: d.biz || {} };
+  } catch { return { contacts: {}, gifts: {}, giftSeen: {}, meta: {}, unlocks: {}, goods: {}, att: {}, ctPaid: {}, ctUsed: {}, ctQuotes: {}, biz: {} }; }
 }
 function save(d) { fs.mkdirSync(path.dirname(F), { recursive: true }); fs.writeFileSync(F, JSON.stringify(d), { mode: 0o600 }); }
 const solOk = a => { if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a || '')) return false; try { return b58.decode(a).length === 32; } catch { return false; } };
@@ -20,13 +20,14 @@ const cleanLoc = s => String(s || '').trim().replace(/[~|]/g, '').slice(0, 20);
 // 分类字段：~S/~G + ~v可见性 + ~d投递(礼品) + ~A国家~B省~Y市(交友，可选) + 既有字段
 function parseKind(prefix) { // 与前端 parseOpt 对齐：~S/~G/~H 可与 ~F 折页段并存；星语星愿亦可带 ~v/~A/~B/~Y
   const [, ...segs] = String(prefix || '').split('~');
-  const kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H' || x === 'Q');
+  const kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H' || x === 'Q' || x === 'E');
   const rest = segs.filter(x => x !== kindTok && !/^F[0-9a-z]{2}P?$/.test(x));
   const f = p => { const x = rest.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
   const vis = VIS[f('v')] || 'public', deliver = DEL[f('d')] || 'tree';
   const loc = { country: cleanLoc(f('A')), province: cleanLoc(f('B')), city: cleanLoc(f('Y')) };
   if (kindTok === 'Q') return { kind: 'gate', vis: 'public', deliver: 'tree', gateId: f('g'), name: f('n'), to: f('T'), expireAt: parseInt(f('e'), 10) || 0, hash: f('h') }; // 门卡：~Q ~g编号 ~n名称 ~T持有人 ~e到期秒(0/缺省=永久) ~h权益哈希
   if (kindTok === 'S') return { kind: 'social', vis, deliver: 'tree', tags: f('t') ? f('t').split(',').filter(Boolean).slice(0, 5) : [], intro: f('i'), looking: f('l'), ...loc };
+  if (kindTok === 'E') return { kind: 'biz', vis, deliver: 'tree', name: f('n'), domain: f('D'), ...loc }; // 企业展示卡：~E ~n公司名 ~D官网域名（简介 / 完整网址存链下）
   if (kindTok === 'H') return { kind: 'goods', vis, deliver: 'tree', domain: f('D').slice(0, 40), pid: f('P').slice(0, 24), ...loc };
   if (kindTok === 'G') return { kind: 'gift', vis, deliver, to: f('T'), note: f('M'), ...loc };
   return { kind: 'wish', vis, deliver: 'tree', ...loc };
@@ -50,6 +51,11 @@ function validate(K) {
     if (len(K.note) > 50) return 'field';
     if (!['public', 'nearby', 'recent', 'invite', 'locked'].includes(K.vis || 'public')) return 'vis';
     if (!['tree', 'off', 'both'].includes(K.deliver || 'tree')) return 'vis';
+  }
+  if (K.kind === 'biz') {
+    if (!['public', 'nearby', 'recent'].includes(K.vis || 'public')) return 'vis';
+    if (!K.name || len(K.name) > 30 || /[<>]/.test(K.name) || !/^[a-z0-9.-]{3,80}$/.test(K.domain || '') || !K.domain.includes('.')) return 'field';
+    if (K.vis === 'nearby' && !(K.city || K.province || K.country)) return 'cityNeed';
   }
   if (K.kind === 'wish' || K.kind === 'goods') {
     if (!['public', 'nearby', 'recent'].includes(K.vis || 'public')) return 'vis';

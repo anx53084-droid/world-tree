@@ -29,18 +29,18 @@ const hex2b = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
 // 自定义图片：~C<封面哈希32hex> ~N<内页哈希32hex>（图片存链下 /api/img/<hash>；旧客户端忽略多余段，显示内置封面）
 const parseOpt = raw => { // 向后兼容：旧 memo 无 ~v/~A/~F-in-extras；折页可出现在任意卡类型的附加段
   const [c, ...segs] = String(raw).split('~');
-  const foldTok = segs.find(x => /^F[0-9a-z]{2}P?$/.test(x)), kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H' || x === 'Q');
+  const foldTok = segs.find(x => /^F[0-9a-z]{2}P?$/.test(x)), kindTok = segs.find(x => x === 'S' || x === 'G' || x === 'H' || x === 'Q' || x === 'E');
   const rest = segs.filter(x => x !== foldTok && x !== kindTok);
   const m = foldTok && foldTok.match(/^F([0-9a-z]{2})(P?)$/);
   const g = k => (rest.find(x => new RegExp('^' + k + '[0-9a-f]{32}$').test(x)) || '').slice(1) || null;
   const ii = (rest.find(x => /^I[0-9a-z]{2}$/.test(x)) || ''), kk = rest.find(x => /^K[0-9a-z]{2}$/.test(x)); // ~Kxx：单卡预设封面（新增，旧客户端忽略）
   const fx = p => { const x = rest.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
-  const kind = kindTok === 'S' ? 'social' : kindTok === 'G' ? 'gift' : kindTok === 'Q' ? 'gate' : kindTok === 'H' || c === '物质类' ? 'goods' : 'wish';
+  const kind = kindTok === 'E' ? 'biz' : kindTok === 'S' ? 'social' : kindTok === 'G' ? 'gift' : kindTok === 'Q' ? 'gate' : kindTok === 'H' || c === '物质类' ? 'goods' : 'wish';
   const VISM = { P: 'public', N: 'nearby', R: 'recent', I: 'invite', L: 'locked' }, DELM = { T: 'tree', O: 'off', B: 'both' };
   return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : kk ? parseInt(kk.slice(1), 36) : null, priv: !!(m && m[2]), cimg: g('C'), nimg: m ? g('N') : null, inside: m && ii ? parseInt(ii.slice(1), 36) : null,
     kind, vis: VISM[fx('v')] || 'public', deliver: kind === 'gift' ? (DELM[fx('d')] || 'tree') : 'tree',
     country: fx('A'), province: fx('B'), city: fx('Y'),
-    tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' || kind === 'gate' ? fx('T') : '', gateId: kind === 'gate' ? fx('g') : '', gname: kind === 'gate' ? fx('n') : '', expireAt: kind === 'gate' ? parseInt(fx('e'), 10) || 0 : 0, ghash: kind === 'gate' ? fx('h') : '', note: kind === 'gift' ? fx('M') : '', domain: kind === 'goods' ? fx('D') : '', pid: kind === 'goods' ? fx('P') : '', legacyGoods: kindTok !== 'H' && c === '物质类' }; };
+    tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' || kind === 'gate' ? fx('T') : '', gateId: kind === 'gate' ? fx('g') : '', gname: kind === 'gate' ? fx('n') : '', expireAt: kind === 'gate' ? parseInt(fx('e'), 10) || 0 : 0, ghash: kind === 'gate' ? fx('h') : '', note: kind === 'gift' ? fx('M') : '', domain: kind === 'goods' || kind === 'biz' ? fx('D') : '', bname: kind === 'biz' ? fx('n') : '', pid: kind === 'goods' ? fx('P') : '', legacyGoods: kindTok !== 'H' && c === '物质类' }; };
 // 交友卡 / 礼品卡：~S/~G + ~v可见性 + ~d投递(礼品) + ~A国家~B省~Y市(交友可选) + 既有字段
 const VISC = { public: 'P', nearby: 'N', recent: 'R', invite: 'I', locked: 'L' }, DELC = { tree: 'T', off: 'O', both: 'B' };
 const cleanLoc = x => String(x || '').trim().replace(/[~|]/g, '').slice(0, 20);
@@ -50,6 +50,7 @@ const encSingle = (cover, cimg) => `${cover != null ? '~K' + (cover | 0).toStrin
 const encKind = (cat, K, fold = '') => {
   const v = '~v' + (VISC[K.vis] || 'P'), L = encLoc(K);
   if (K.kind === 'social') return `${cat}~S${v}${L}${K.tags.length ? '~t' + K.tags.join(',') : ''}${K.intro ? '~i' + K.intro : ''}${K.looking ? '~l' + K.looking : ''}${fold}`;
+  if (K.kind === 'biz') return `${cat}~E${v}${L}~n${K.name}~D${K.domain}${fold}`; // 企业展示卡：公司名 + 官网域名上链；简介 / 完整网址链下
   if (K.kind === 'goods') return `${cat}~H${v}${L}~D${K.domain}~P${K.pid}${fold}`;
   if (K.kind === 'gate') return `${cat}~Q~g${K.gateId}~n${K.name}~T${K.to}${K.expireAt ? '~e' + K.expireAt : ''}~h${K.hash}${fold}`; // 门卡：编号/名称/持有人/到期秒(缺省=永久)/权益哈希
   if (K.kind === 'gift') return `${cat}~G${v}~d${DELC[K.deliver] || 'T'}${L}~T${K.to}${K.note ? '~M' + K.note : ''}${fold}`;
@@ -87,7 +88,7 @@ const WTPriv = window.WTPriv = {
 const sha256hex = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
 
 const QS = new URLSearchParams(location.search);
-const S = { stress: QS.has('stress') ? QS.get('stress') !== '0' : localStorage.wt_stress === '1', total: Math.min(2.75e11, Math.floor(+QS.get('stress') || +localStorage.wt_total || 1e11)), mode: 'guest', pubkey: null, email: null, token: localStorage.wt_token || null, txs: [], wishes: [], goods: {}, hidden: 0, offline: false, pending: [],
+const S = { biz: {}, stress: QS.has('stress') ? QS.get('stress') !== '0' : localStorage.wt_stress === '1', total: Math.min(2.75e11, Math.floor(+QS.get('stress') || +localStorage.wt_total || 1e11)), mode: 'guest', pubkey: null, email: null, token: localStorage.wt_token || null, txs: [], wishes: [], goods: {}, hidden: 0, offline: false, pending: [],
   history: JSON.parse(localStorage.wt_hist || '[]'), cfg: { minLamports: 6666667, solUsd: 150, priceSource: 'fallback', receive: '', developer: '', treasury: '', moderator: window.WT_CONFIG?.moderatorPubkeyHex }, words: null, season: null, fulfill: {}, fulfillToast: JSON.parse(localStorage.wt_ful_toast || '{}') };
 window.__S = S; // 测试/诊断用
 const saveHist = () => localStorage.wt_hist = JSON.stringify(S.history.slice(0, 100));
@@ -196,7 +197,7 @@ function buildRecentMap() { // 最近互动：7 日内互相关注的点赞/祝�
   for (const w of S.wishes) { for (const L of w.likers || []) touch(w.author, L, w.time || 0);
     for (const b of w.blessings || []) touch(w.author, b.author, b.time || w.time || 0); if (w.kind === 'gift' && w.to) touch(w.author, w.to, w.time || 0); }
 }
-const typeLabels = w => w.kind === 'social' ? ['交友卡', 'social', t('kind.social')] : w.kind === 'gift' ? ['礼品卡', 'gift', t('kind.gift')] : w.kind === 'goods' ? ['心愿卡', 'goods', 'wish card', '物质类', t('kind.goods'), S.goods[w.sig]?.title, w.domain] : ['星语星愿', 'wish', t('kind.wish')];
+const typeLabels = w => w.kind === 'biz' ? ['企业展示卡', 'biz', t('kind.biz'), w.bname || '', w.domain || ''] : w.kind === 'social' ? ['交友卡', 'social', t('kind.social')] : w.kind === 'gift' ? ['礼品卡', 'gift', t('kind.gift')] : w.kind === 'goods' ? ['心愿卡', 'goods', 'wish card', '物质类', t('kind.goods'), S.goods[w.sig]?.title, w.domain] : ['星语星愿', 'wish', t('kind.wish')];
 function cardSearchText(w) { return [w.text, w.intro, w.looking, ...(w.tags || []), ...typeLabels(w), w.note, w.to, w.author, w.country, w.province, w.city].filter(Boolean).join(' ').toLowerCase(); }
 function recentOk(owner) { return !!(S.pubkey && S.recentMap?.[S.pubkey]?.has(owner)); }
 function locEq(a, b) { const n = x => String(x || '').trim().toLowerCase(); return !!(a && b && n(a) === n(b)); }
@@ -661,7 +662,7 @@ function spectrum(sig, size = 96) {
   return `<svg class=spectrum width=${size} height=${size} viewBox="0 0 100 100"><defs><radialGradient id="${id}"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="hsl(${hues[0]},100%,70%)"/><stop offset="1" stop-color="hsl(${hues[5]},80%,10%)"/></radialGradient></defs><circle cx=50 cy=50 r=50 fill="url(#${id})"/>${rings}</svg>`;
 }
 const likeBtn = w => `<button data-like="${esc(w.sig)}" ${w.pending || w.sample ? 'disabled' : ''}>${S.pubkey && w.likers.has(S.pubkey) ? '💖 ' + esc(t('card.liked')) : '🤍 ' + esc(t('label.like'))} ${w.likes}</button>`;
-const KICON = { social: '💬 ', gift: '🎁 ', goods: '🛍️ ', gate: '🎫 ' }, kIcon = w => KICON[w.kind] || '';
+const KICON = { social: '💬 ', gift: '🎁 ', goods: '🛍️ ', gate: '🎫 ', biz: '🏢 ' }, kIcon = w => KICON[w.kind] || '';
 const giftToMe = w => w.kind === 'gift' && !!w.to && ((S.pubkey && w.to === S.pubkey) || (S.evmAddr && w.to.toLowerCase() === S.evmAddr));
 const kindTag = w => w.kind !== 'gift' ? '' : isMine(w) ? `<span class="tag k-gift">${E('gift.sent')}</span>` : giftToMe(w) ? `<span class="tag k-gift">${E('gift.recv')}</span>` : '';
 const sha16 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
@@ -682,7 +683,7 @@ function kindHtml(w, full) { // 交友卡 / 礼品卡附加信息（全部转义
     return `<div class=goods>${g.image ? `<img class=goods-img alt="" loading=lazy src="${IMG(g.image)}">` : ''}<div class=goods-info><p class=goods-title dir=auto>${esc(g.title || g.domain)}</p>${pr}<p class="muted hint">${E('goods.priceAt', { time: fmtMs(g.fetchedAt) })}</p>
       <a class="goods-link" href="${esc(g.url)}" target=_blank rel="noopener noreferrer nofollow" data-ext="${esc(g.domain)}">↗ ${esc(g.domain)}</a></div></div>`; }
   return ''; }
-const typeTag = w => w.kind === 'social' || w.kind === 'gift' || w.kind === 'goods' || w.kind === 'gate' ? `<span class="tag ktype">${esc(t('kind.' + w.kind))}</span>` : '';
+const typeTag = w => w.kind === 'social' || w.kind === 'gift' || w.kind === 'goods' || w.kind === 'gate' || w.kind === 'biz' ? `<span class="tag ktype">${esc(t('kind.' + w.kind))}</span>` : '';
 const visBadge = w => w.vis && w.vis !== 'public' ? `<span class="tag kvis">${E('vis.' + w.vis)}</span>` : (w.deliver === 'off' ? `<span class="tag kvis">${E('vis.offTree')}</span>` : '');
 const wishCard = (w, pos, F) => { const L = lockPaint(w), fa = F === true ? ` data-cid="${esc(w.sig)}" data-pos="${pos}"` : ''; return `<div class="card hover k-${w.kind || 'wish'}${L.lockedView ? ' locked-card' : ''}" data-cat="${w.cat}"${fa}>${locCorner(w)}<div>${w.pending ? '⏳ ' : ''}${kIcon(w)}${esc(L.text)} ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}</div>${L.lockedView ? `<p class=muted>${E('vis.unlockHint')}</p>` : kindHtml(w)}<div class="row muted" style="margin-top:6px">
   <span class=tag>${esc(catName(w.cat))}</span><span>${esc(t('card.author', { addr: short(w.author) }))}</span><span>${fmtT(w.time)}</span><span>🔥 ${w.heat}</span>${L.lockedView ? '' : likeBtn(w)}<a class=btn href="#/w/${encodeURIComponent(w.sig)}${F === true ? '?i=' + pos : ''}"${fa}>${esc(t('card.details'))}</a></div></div>`; };
@@ -1206,7 +1207,17 @@ function sharePng(w) { // 生成分享图（本地 canvas → PNG）+ 链接
     <a class="btn primary" download="world-tree-${w.sig.slice(0, 8)}.png" href="${c.toDataURL('image/png')}">${E('share.download')}</a><button id=cp>${E('share.copy')}</button><button data-close>${E('common.close')}</button></div>`, w.cat);
   $('#cp').onclick = () => navigator.clipboard?.writeText(url).then(() => toast(E('share.copied'), 'ok'), () => toast(esc(url)));
 }
-function foldInner(w, text) { if (isGQ(w)) return gqInner(w, text); const bg = w.nimg && (!w.priv || w.nimgUrl) ? (w.priv ? w.nimgUrl : IMG(w.nimg)) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : '');
+// 企业展示卡：内页 = 模板底图 / 上传背景 + 主题色；官网为外链（nofollow + noopener，显示域名并提示外部链接）
+const bizDomain = u => { try { const x = new URL(String(u || '').trim()); return /^https?:$/.test(x.protocol) && x.hostname.includes('.') ? x.hostname.toLowerCase().replace(/^www\./, '') : ''; } catch { return ''; } };
+function bizBody(m, sample) { const d = m.url ? bizDomain(m.url) : m.domain || '', safe = m.url && /^https?:\/\//i.test(m.url) && !sample;
+  return `<div class="biz-in biz-${['ivory', 'navy', 'jade'].includes(m.theme) ? m.theme : 'ivory'} biz-l-${m.layout === 'left' ? 'left' : 'center'}"><span class="tag ktype">🏢 ${E('kind.biz')}</span><h3 class=biz-name dir=auto>${esc(m.name || '…')}</h3><p class=biz-intro dir=auto>${esc(m.intro || '')}</p>
+    ${d ? `<div class=biz-link>${safe ? `<a href="${esc(m.url)}" target=_blank rel="noopener noreferrer nofollow ugc" data-ext>🔗 ${esc(d)} ↗</a>` : `<span>🔗 ${esc(d)}</span>`}<p class="muted hint">⚠️ ${E('biz.extWarn', { d })}</p></div>` : ''}</div>`; }
+function bizInner(w) { const bg = w.nimg ? IMG(w.nimg) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : ''), m = S.biz[w.sig] || { name: w.bname, domain: w.domain };
+  if (!(w.sig in S.biz) && !w.sample) fetch('/api/biz-meta/' + encodeURIComponent(w.sig)).then(r => r.json()).then(j => { S.biz[w.sig] = { name: w.bname, domain: w.domain, ...j }; const el = $('#bizIn-' + CSS.escape(w.sig)); if (el) el.innerHTML = bizBody(S.biz[w.sig]); }).catch(() => {});
+  return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody><div id="bizIn-${esc(w.sig)}">${bizBody(m)}</div>
+  <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
+  <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div></div>`; }
+function foldInner(w, text) { if (isGQ(w)) return gqInner(w, text); if (w.kind === 'biz') return bizInner(w); const bg = w.nimg && (!w.priv || w.nimgUrl) ? (w.priv ? w.nimgUrl : IMG(w.nimg)) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : '');
   return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody><span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>
   <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
   <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div></div>`; }
@@ -1300,7 +1311,8 @@ function previewHtml(st) { // st：表单当前值；所有用户文本经 esc
   const coverSrc = st.upC || WTCovers.url(st.cover, 300, 400), insideSrc = st.upN || WTInsides.url(st.inside, 300, 400);
   const badge = `<span class=pv-sample>${E('ux.sampleTag')}</span>`, me = short(S.pubkey || '') || '—';
   let body = '', img = $('#wc2')?.value === '光栖' ? GQ('front', S.draft?.gqSet | 0) : coverSrc;
-  if (k === 'social') { const tags = v('stg').split(/[,，\s]+/).filter(Boolean).slice(0, 5), gsel = $('#sgen'), loc = [v('scountry'), v('sprov'), v('scity')].filter(Boolean).join(' · ');
+  if (k === 'biz') body = bizBody({ name: v('bzname') || t('biz.namePh'), intro: v('bzintro') || t('biz.introPh'), url: v('bzurl'), domain: bizDomain(v('bzurl')), theme: $('#bizWrap')?.dataset.theme || 'ivory', layout: v('bzlay') }, true);
+  else if (k === 'social') { const tags = v('stg').split(/[,，\s]+/).filter(Boolean).slice(0, 5), gsel = $('#sgen'), loc = [v('scountry'), v('sprov'), v('scity')].filter(Boolean).join(' · ');
     const meta = [v('sage'), v('sgen') && gsel ? gsel.selectedOptions[0]?.textContent : '', v('sjob'), loc].filter(Boolean);
     body = `<span class=tag>💬 ${E('kind.social')}</span>${tags.length ? `<div class=pv-tags>${tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}<p dir=auto>${esc(v('sin') || t('pv.introPh'))}</p><p class=pv-sub dir=auto>🔎 ${esc(v('slk') || t('pv.lookPh'))}</p>${meta.length ? `<p class=pv-meta dir=auto>${meta.map(esc).join(' · ')}</p>` : ''}`; }
   else if (k === 'gift') body = `<span class="tag pv-gift">🎁 ${E('kind.gift')}</span><p dir=auto>${esc(v('gnt') || t('pv.notePh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gto')) || '—')}</p>${S.sgAE?.okList().length ? gbAtt(S.sgAE.okList(), 'spv') : ''}`;
@@ -1316,7 +1328,7 @@ function wishPanel() {
   const min = S.cfg.minLamports, agreedTerms = localStorage.wt_terms === '1';
   return `<h2>${E('wish.title')}</h2><div class="card mk-grid"><div class=mk-form>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
-  <div class="row mk-kindrow"><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option>${GATE_MAKE ? `<option value=gate>🎫 ${E('kind.gate')}</option>` : ''}</select></label><div id=gseg class=gift-seg role=tablist aria-label="${E('kind.gift')}" hidden><button type=button role=tab data-gm=single class=on aria-selected=true>🎁 ${E('gift.single')}</button><button type=button role=tab data-gm=batch aria-selected=false>👥 ${E('gift.batch')}</button></div></div>
+  <div class="row mk-kindrow"><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option><option value=biz>🏢 ${E('kind.biz')}</option>${GATE_MAKE ? `<option value=gate>🎫 ${E('kind.gate')}</option>` : ''}</select></label><div id=gseg class=gift-seg role=tablist aria-label="${E('kind.gift')}" hidden><button type=button role=tab data-gm=single class=on aria-selected=true>🎁 ${E('gift.single')}</button><button type=button role=tab data-gm=batch aria-selected=false>👥 ${E('gift.batch')}</button></div></div>
   <div class=row><label>${E('wish.coverCat')} <select id=wc2>${THEME_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : '✨ ' + esc(catName(c))}</option>`).join('')}<option value="${CUSTOM}">🖼️ ${E('cover.g.custom')}</option></select></label></div>
   <fieldset class=gq-slots id=gqSlots hidden><legend>✨ ${E('cat.guangqi')}</legend><p class="muted hint">${E('gq.hint')}</p>
   <div class=gq-sets id=gqSets role=radiogroup aria-label="${E('gq.pick')}">${Array.from({ length: GQ_N }, (_, i) => `<button type=button role=radio data-gqs=${i} aria-checked=false title="${E(GQ_NAMES[i])}"><img alt="" loading=lazy src="${GQ('front', i, 1)}"><span>${E(GQ_NAMES[i])}</span></button>`).join('')}</div>
@@ -1332,6 +1344,13 @@ function wishPanel() {
     <label>${E('vis.label')} <select id=svis><option value=public>${E('vis.public')}</option><option value=nearby>${E('vis.nearby')}</option><option value=recent>${E('vis.recent')}</option></select></label>
     <div class=loc-row><label>${E('loc.country')}<input id=scountry maxlength=20 dir=auto></label><label>${E('loc.province')}<input id=sprov maxlength=20 dir=auto></label><label>${E('loc.city')}<input id=scity maxlength=20 dir=auto></label></div>
     <p class="muted hint">${E('loc.hint')}</p></div>
+  <div id=bizWrap class=kwrap hidden>
+    <label>${E('biz.name')}<input id=bzname maxlength=30 dir=auto style="width:100%" placeholder="${E('biz.namePh')}"></label>
+    <label>${E('biz.url')}<input id=bzurl type=url inputmode=url maxlength=300 autocomplete=off spellcheck=false placeholder="https://" dir=ltr style="width:100%"></label><p class="muted hint" id=bzdom>${E('biz.urlHint')}</p>
+    <label>${E('biz.intro')}<textarea id=bzintro maxlength=300 rows=4 dir=auto style="width:100%" placeholder="${E('biz.introPh')}"></textarea></label><div class=muted id=bzic>0/300</div>
+    <div class=bz-row><span>${E('biz.theme')}</span><div class=bz-themes role=radiogroup aria-label="${E('biz.theme')}">${['ivory', 'navy', 'jade'].map((x, i) => `<button type=button role=radio data-bzt=${x} class="bz-t bz-${x}${i ? '' : ' on'}" aria-checked=${!i}>${E('biz.t.' + x)}</button>`).join('')}</div></div>
+    <label>${E('biz.layout')} <select id=bzlay><option value=center>${E('biz.l.center')}</option><option value=left>${E('biz.l.left')}</option></select></label>
+    <p class="muted hint">🖼️ ${E('biz.logoHint')}</p></div>
   <div id=goodsWrap class=kwrap hidden>
     <label>${E('goods.url')}<input id=gurl type=url inputmode=url maxlength=1000 autocomplete=off spellcheck=false placeholder="https://" style="width:100%"></label>
     <button type=button id=gfetch>🔎 ${E('goods.fetch')}</button><p class="muted hint">${E('goods.hint')}</p>
@@ -1576,7 +1595,13 @@ async function route() {
         $('#gnote').textContent = gp.failed ? t('goods.failed') : !gp.title || !gp.price ? t('goods.partial') : t('goods.priceAt', { time: fmtMs(gp.fetchedAt) }); saveD(); }
       catch (e) { gp = null; toast(esc(e.message), 'err'); }
       b.disabled = false; b.textContent = '🔎 ' + t('goods.fetch'); });
-    const syncKind = () => { const k = $('#ckind')?.value || 'wish';
+    const syncBiz = k => { const on = k === 'biz', w = $('#bizWrap'); if (!w) return; w.hidden = !on; $('#wt').hidden = $('#wc').hidden = on; const r = $('#wc2')?.closest('.row'); if (r) r.hidden = on; if ($('#ctypeRow')) $('#ctypeRow').hidden = on || catSel?.value === '光栖';
+      const pl = $('#priv')?.closest('label'); if (pl) pl.hidden = on; // 企业展示卡：折页卡（封面 = 上传的 Logo，内页可选模板 / 上传背景），不支持私密
+      if (on) { if (catSel && catSel.value !== CUSTOM) { catSel.value = CUSTOM; catSel.dispatchEvent(new Event('change')); } $('#ctype').value = 'folded'; if ($('#priv')) $('#priv').checked = false; syncCard(); if ($('#coverWrap')) $('#coverWrap').hidden = false; $('#wt').hidden = $('#wc').hidden = true; } };
+    $('#bzintro')?.addEventListener('input', e => $('#bzic').textContent = [...e.target.value].length + '/300');
+    $('#bzurl')?.addEventListener('input', e => { const d = bizDomain(e.target.value); $('#bzdom').textContent = d ? t('biz.domainIs', { d }) : t('biz.urlHint'); });
+    $('#bizWrap')?.querySelector('.bz-themes')?.addEventListener('click', e => { const b = e.target.closest('[data-bzt]'); if (!b) return; $('#bizWrap').querySelectorAll('[data-bzt]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); }); $('#bizWrap').dataset.theme = b.dataset.bzt; $('#bizWrap').dispatchEvent(new Event('input', { bubbles: true })); });
+    const syncKind = () => { const k = $('#ckind')?.value || 'wish'; syncBiz(k);
       $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if ($('#gateWrap')) $('#gateWrap').hidden = k !== 'gate'; $('#wt').placeholder = t(k === 'gate' ? 'gate.benefitPh' : 'wish.ph'); if ($('#goodsWrap')) $('#goodsWrap').hidden = k !== 'goods';
       if ($('#sharedVis')) $('#sharedVis').hidden = k === 'gift' && (($('#gdel')?.value || 'tree') === 'off'); // 不上树时仍可填位置，但可见性由投递决定
       syncShip(); syncGiftDel(); if (k === 'gate' && $('#sharedVis')) $('#sharedVis').hidden = true; giftMode(k === 'gift' ? S.giftMode : 'off'); syncCard(); };
@@ -1602,13 +1627,13 @@ async function route() {
     $('#evc')?.addEventListener('change', e => { const key = e.target.value, r = evmRoutes()[key]; paintRecv(); localStorage.wt_pay = key; localStorage.wt_chain = String(r.chainId); $('#eva').value = evmMinByRoute(key); $('#evaL').textContent = t('wish.evmAmt', { sym: r.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMinByRoute(key), sym: r.sym }); });
     const paintRecv = () => { const ev = $('#pv')?.value === 'evm', R = evmRoutes(), r = ev && R[$('#evc')?.value]; if ($('#recvaddr')) $('#recvaddr').textContent = (r ? r.receive : S.cfg.receive) || ''; }; // 当前支付链的收款地址（Solana 金库 / 各链 Safe）
     const pvSync = () => { paintRecv(); const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
-    $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = realCat($('#wc2').value); if ($('#wc2').value === CUSTOM && !up.C) { toast(esc(t('wish.upCover')), 'err'); $('#upC')?.focus(); return; }
+    $('#ws').addEventListener('click', async () => { const txt = ($('#ckind')?.value === 'biz' ? $('#bzname')?.value || '' : ta.value).trim(), lam = Math.round(+$('#amt').value * 1e9), cat = realCat($('#wc2').value); if ($('#wc2').value === CUSTOM && !up.C) { toast(esc(t('wish.upCover')), 'err'); $('#upC')?.focus(); return; }
       const shippingNote = ($('#ckind')?.value || 'wish') === 'goods' ? ($('#ship')?.value || '').trim() : '';
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
       const kind = $('#ckind')?.value || 'wish', bad = x => /[~|]/.test(x); let K = null, contact = '', showCt = false, ctp = null;
       let metaPayload = {};
       const country = cleanLoc($('#scountry')?.value), province = cleanLoc($('#sprov')?.value), city = cleanLoc($('#scity')?.value);
-      let vis = $('#svis')?.value || 'public', deliver = 'tree';
+      let vis = $('#svis')?.value || 'public', deliver = 'tree'; if (kind === 'biz') vis = 'public';
       if (kind === 'gift') { const mode = $('#gdel')?.value || 'tree';
         if (mode === 'tree') { vis = 'public'; deliver = 'tree'; }
         else if (mode === 'off') { vis = 'public'; deliver = 'off'; }
@@ -1642,6 +1667,9 @@ async function route() {
         if (!title || [...title].length > 80 || bad(title) || (price && !/^\d{1,9}(\.\d{1,2})?$/.test(price)) || (cur && !/^[A-Z]{3}$/.test(cur))) return toast(E('err.goodsField'), 'err');
         if (/[~|]/.test(gp.domain + gp.pid)) return toast(E('err.goodsUrl'), 'err');
         K = { kind, domain: gp.domain, pid: gp.pid, vis, country, province, city }; metaPayload = { ...metaPayload, url: gp.url, title, price, currency: cur, image: gp.image }; }
+      else if (kind === 'biz') { if (!up.C) { $('#upC')?.focus(); return toast(E('biz.needLogo'), 'err'); }
+        let r; try { r = await api('/api/biz/check', { name: $('#bzname').value, url: $('#bzurl').value, intro: $('#bzintro').value, theme: $('#bizWrap').dataset.theme || 'ivory', layout: $('#bzlay').value }); } catch (e) { return toast(esc(e.message), 'err'); }
+        if (/[~|]/.test(r.name)) return toast(E('err.bizName'), 'err'); K = { kind, name: r.name, domain: r.domain, vis, country, province, city }; metaPayload = { ...metaPayload, name: r.name, url: r.url, intro: r.intro, theme: r.theme, layout: r.layout }; }
       else { K = { kind: 'wish', vis, country, province, city }; }
       let giftAtt = []; if (kind === 'gift' && S.sgAE) { if (S.sgAE.busy()) return toast(E('gb.att.busy'), 'err'); giftAtt = S.sgAE.okList(); if (giftAtt.length) try { giftAtt = (await api('/api/gift-att/check', { attachments: giftAtt })).attachments; } catch (e) { return toast(esc(gbErr(e)), 'err'); } } // 付款前预检附加内容
       { await loadBlocklist(true); const h = window.__blkCheck?.(); if (h) return toast(esc($('#blkwarn').textContent), 'err'); } // 付款前拦截（服务器审核同样强制）
@@ -1668,6 +1696,7 @@ async function route() {
         fetch('/api/wish-paid', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') },
           body: JSON.stringify({ sig, cat: K?.kind === 'goods' ? MATERIAL : cat, text: priv ? '🔒' : txt, author: S.pubkey, lamports: lam, shippingNote, source: S.mode }) }).catch(() => {});
         if (K?.kind === 'social' && ctp) api('/api/contact', { sig, show: showCt, ...ctp }).catch(e => toast(esc(e.message), 'err'));
+        if (K?.kind === 'biz') { S.biz[sig] = { name: metaPayload.name, url: metaPayload.url, domain: K.domain, intro: metaPayload.intro, theme: metaPayload.theme, layout: metaPayload.layout }; api('/api/biz-meta', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err')); }
         if (K?.kind === 'goods') { S.goods[sig] = { ...metaPayload, domain: K.domain, fetchedAt: gp.fetchedAt }; api('/api/goods-meta', { sig, ...metaPayload }).catch(e => toast(esc(e.message), 'err')); }
         if (K?.kind === 'gift') api('/api/gift-sent', { sig, ...metaPayload, attachments: giftAtt.length ? giftAtt : undefined }).catch(e => toast(esc(e.message), 'err'));
         if (K?.kind === 'gate') api('/api/gate-sent', { sig }).then(() => { S.gate = null; }).catch(e => toast(esc(e.message), 'err'));
