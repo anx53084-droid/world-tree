@@ -515,3 +515,6 @@ svg.gface { height: auto }
 .gq-inside { position: relative; width: min(100%, 360px); aspect-ratio: 784/1168; margin: 0 auto; background: center/cover no-repeat; border-radius: 10px; box-shadow: 0 6px 24px #0008 }
 .gq-lines { position: absolute; left: 16%; right: 16%; top: 54%; bottom: 17%; margin: 0; overflow: hidden; color: #4a3566; font: 600 clamp(14px, 4.2vw, 17px)/2.05 "Noto Serif SC", "Songti SC", serif; white-space: pre-wrap; word-break: break-word; text-shadow: 0 0 6px #fff8 }
 .gq-meta { position: absolute; left: 0; right: 0; bottom: 9%; text-align: center; font-size: 11px; color: #6a5a86 }
+
+.cover-design.only-custom #covers { display: none }
+.cover-design.only-custom .up-box { min-height: 120px; font-size: 15px }

@@ -7,7 +7,7 @@ let RPC_WRITE = 'https://api.devnet.solana.com'; // 由 /api/config 的 solRpcBr
 const EXPLORER = s => `https://explorer.solana.com/tx/${s}${S.cfg?.network === 'mainnet' ? '' : '?cluster=devnet'}`;
 const CATS = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270, 光栖: 285 }; // 分类 → 色相
 const CAT_KEY = { 经典: 'classic', 风景: 'scenery', 人物: 'people', 动物: 'animals', 卡通: 'cartoon', 物质类: 'material', 光栖: 'guangqi' }; // 链上分类保持中文原值，仅显示时翻译
-const MATERIAL = '物质类', COVER_CATS = ['经典', '风景', '人物', '动物', '卡通'], THEME_CATS = ['经典', '光栖']; // 制作页「封面主题」只列 THEME_CATS（风景/人物/动物/卡通 数据保留，仅隐藏入口）
+const MATERIAL = '物质类', COVER_CATS = ['经典', '风景', '人物', '动物', '卡通'], THEME_CATS = ['经典', '光栖'], CUSTOM = '自定义', realCat = c => c === CUSTOM ? '经典' : c; // 「自定义」只是制作页入口：存为 经典 + ~C<hash> 自定义封面 // 制作页「封面主题」只列 THEME_CATS（风景/人物/动物/卡通 数据保留，仅隐藏入口）
 const GQ_NAMES = ['gq.s1', 'gq.s2', 'gq.s3', 'gq.s4', 'gq.s5', 'gq.s6', 'gq.s7', 'gq.s8', 'gq.s9', 'gq.s10'], GQ_V = 3, GQ_N = 10, gqSet = w => Math.min(GQ_N - 1, Math.max(0, (w?.cover ?? 0) | 0)), GQ = (side, n, sm) => `themes/guangqi/${side}-${String((n | 0) + 1).padStart(2, '0')}${sm ? '-s' : ''}.webp?v=${GQ_V}`, isGQ = w => w?.cat === '光栖'; // 光栖主题：10 套（正面/背面/内页同序号一套），套号存 ~Kxx // 物质类仅为旧卡兼容（显示为心愿卡）
 const catName = c => c === '物质类' ? t('cat.classic') : CAT_KEY[c] ? t('cat.' + CAT_KEY[c]) : c;
 const MODCAT_KEY = { 违法: 'illegal', 侵权: 'infringement', 色情: 'sexual', 暴力: 'violence', 歧视: 'discrimination', 违法宣传: 'illegalPromo', 负面消极: 'negative', 'AI 语义审核': 'ai' };
@@ -63,7 +63,7 @@ const encOpt = (cat, folded, cover, priv, cimg, nimg, inside) => folded ? `${cat
 // 折页：封面/内页各自可选内置或上传；上传优先。内置内页用 ~Ixx；旧卡无 ~I 仅显示正文
 const IMG = h => apiUrl('/api/img/' + h);
 // 上传前在浏览器内缩放压缩：最长边 ≤800px，webp（不支持则 jpeg），≤300KB
-async function shrinkImg(file) { if (!/^image\//.test(file.type)) throw new Error(t('wish.upType')); const bm = await createImageBitmap(file), k = Math.min(1, 800 / Math.max(bm.width, bm.height)), c = document.createElement('canvas');
+async function shrinkImg(file) { if (!/^image\/(png|jpe?g|webp|gif|heic|heif|avif|bmp)$/i.test(file.type)) throw new Error(t('wish.upType')); if (file.size > 20 * 1024 * 1024) throw new Error(t('wish.upSize')); const bm = await createImageBitmap(file), k = Math.min(1, 800 / Math.max(bm.width, bm.height)), c = document.createElement('canvas');
   c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k); c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
   for (const q of [.82, .7, .55, .4]) for (const ty of ['image/webp', 'image/jpeg']) { const b = await new Promise(r => c.toBlob(r, ty, q)); if (b && b.type === ty && b.size <= 300 * 1024) return b; }
   throw new Error(t('wish.upSize')); }
@@ -689,8 +689,10 @@ window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true
   tip.innerHTML = `<span class=tag>${esc(catName(w.cat))}</span> <bdi>${esc(w.text)}</bdi><div class=muted>${short(w.author)} · 💖 ${w.likes} · 🙏 ${w.blessings.length}${w.pending ? ' · ⏳' + esc(t('time.pending')) : ''}</div>`;
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 290) + 'px'; tip.style.top = e.clientY + 14 + 'px'; };
 const isMine = w => S.pubkey && w.author === S.pubkey;
-function openCardPopup(w) { if (w.folded || isGQ(w)) return openFolded(w); maybeFulfillToast(w);
+function openCardPopup(w) { if (w.folded || isGQ(w)) return openFolded(w);
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w);
+  if (!locked && w.cimg && (!w.kind || w.kind === 'wish')) return openFolded(w); // 单卡自定义封面：封面 → 翻开看心愿
+  maybeFulfillToast(w);
   const L = lockPaint(w);
   let unlockHtml = '';
   if (locked) {
@@ -1265,7 +1267,7 @@ function wishPanel() {
   return `<h2>${E('wish.title')}</h2><div class="card mk-grid"><div class=mk-form>
   <p class=muted>${E('wish.mode')} ${S.mode === 'self' ? '🔐 ' + E('wish.modeSelf') : '⚠️ ' + E('wish.modeHost')}</p>
   <div class="row mk-kindrow"><label>${E('wish.kind')} <select id=ckind><option value=wish>✨ ${E('kind.wish')}</option><option value=social>💬 ${E('kind.social')}</option><option value=gift>🎁 ${E('kind.gift')}</option><option value=goods>🛍️ ${E('kind.goods')}</option><option value=gate>🎫 ${E('kind.gate')}</option></select></label><div id=gseg class=gift-seg role=tablist aria-label="${E('kind.gift')}" hidden><button type=button role=tab data-gm=single class=on aria-selected=true>🎁 ${E('gift.single')}</button><button type=button role=tab data-gm=batch aria-selected=false>👥 ${E('gift.batch')}</button></div></div>
-  <div class=row><label>${E('wish.coverCat')} <select id=wc2>${THEME_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : '✨ ' + esc(catName(c))}</option>`).join('')}</select></label></div>
+  <div class=row><label>${E('wish.coverCat')} <select id=wc2>${THEME_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : '✨ ' + esc(catName(c))}</option>`).join('')}<option value="${CUSTOM}">🖼️ ${E('cover.g.custom')}</option></select></label></div>
   <fieldset class=gq-slots id=gqSlots hidden><legend>✨ ${E('cat.guangqi')}</legend><p class="muted hint">${E('gq.hint')}</p>
   <div class=gq-sets id=gqSets role=radiogroup aria-label="${E('gq.pick')}">${Array.from({ length: GQ_N }, (_, i) => `<button type=button role=radio data-gqs=${i} aria-checked=false title="${E(GQ_NAMES[i])}"><img alt="" loading=lazy src="${GQ('front', i, 1)}"><span>${E(GQ_NAMES[i])}</span></button>`).join('')}</div>
   <div class=gq-row id=gqPrev>${['front', 'back', 'inside'].map(k => `<figure class=gq-slot data-gq=${k}><img alt="" src="${GQ(k, 0)}"><figcaption>${E('gq.' + k)}</figcaption></figure>`).join('')}</div></fieldset>
@@ -1497,10 +1499,10 @@ async function route() {
     $('#ctype')?.addEventListener('change', syncCard); $('#priv')?.addEventListener('change', syncCard);
     $('#covers')?.addEventListener('click', e => { const b = e.target.closest('[data-cover]'); if (b) { pickCover(+b.dataset.cover); $('#covers').dataset.auto = '0'; } });
     $('#insides')?.addEventListener('click', e => { const b = e.target.closest('[data-inside]'); if (b) { pickInside(+b.dataset.inside); $('#insides').dataset.auto = '0'; } });
-    catSel?.addEventListener('change', () => { if (!$('#covers .on') || $('#covers').dataset.auto !== '0') pickCover(WTCovers.forCat(catSel.value)[0]); if (!$('#insides .on') || $('#insides').dataset.auto !== '0') pickInside(WTInsides.forCat(catSel.value)[0]); });
-    pickCover(WTCovers.forCat(catSel?.value || '经典')[0]); pickInside(WTInsides.forCat(catSel?.value || '经典')[0]); syncCard();
+    catSel?.addEventListener('change', () => { if (!$('#covers .on') || $('#covers').dataset.auto !== '0') pickCover(WTCovers.forCat(realCat(catSel.value))[0]); if (!$('#insides .on') || $('#insides').dataset.auto !== '0') pickInside(WTInsides.forCat(realCat(catSel.value))[0]); });
+    pickCover(WTCovers.forCat(realCat(catSel?.value || '经典'))[0]); pickInside(WTInsides.forCat(realCat(catSel?.value || '经典'))[0]); syncCard();
     catSel?.addEventListener('change', syncShip);
-    const syncGQ = () => { const g = catSel?.value === '光栖'; ['coverDesign', 'ctypeRow'].forEach(id => { if ($('#' + id)) $('#' + id).hidden = g; }); if ($('#gqSlots')) $('#gqSlots').hidden = !g; if (g && $('#ctype')) $('#ctype').value = 'single'; syncCard(); }; // 光栖主题：固定 正面/背面/内页，隐藏封面选择与卡片类型
+    const syncGQ = () => { const g = catSel?.value === '光栖', cu = catSel?.value === CUSTOM; $('#coverDesign')?.classList.toggle('only-custom', cu); if (cu && !up.C) setTimeout(() => $('#coverDesign')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 50); ['coverDesign', 'ctypeRow'].forEach(id => { if ($('#' + id)) $('#' + id).hidden = g; }); if ($('#gqSlots')) $('#gqSlots').hidden = !g; if (g && $('#ctype')) $('#ctype').value = 'single'; syncCard(); }; // 光栖主题：固定 正面/背面/内页，隐藏封面选择与卡片类型
     const pickGQ = i => { D.gqSet = i; $('#gqSets')?.querySelectorAll('[data-gqs]').forEach(b => { const on = +b.dataset.gqs === i; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }); $('#gqPrev')?.querySelectorAll('[data-gq]').forEach(f => f.querySelector('img').src = GQ(f.dataset.gq, i)); saveD(); };
     $('#gqSets')?.addEventListener('click', e => { const b = e.target.closest('[data-gqs]'); if (b) pickGQ(+b.dataset.gqs); });
     catSel?.addEventListener('change', syncGQ); syncGQ(); pickGQ(D.gqSet | 0);
@@ -1545,7 +1547,7 @@ async function route() {
     $('#evc')?.addEventListener('change', e => { const key = e.target.value, r = evmRoutes()[key]; paintRecv(); localStorage.wt_pay = key; localStorage.wt_chain = String(r.chainId); $('#eva').value = evmMinByRoute(key); $('#evaL').textContent = t('wish.evmAmt', { sym: r.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMinByRoute(key), sym: r.sym }); });
     const paintRecv = () => { const ev = $('#pv')?.value === 'evm', R = evmRoutes(), r = ev && R[$('#evc')?.value]; if ($('#recvaddr')) $('#recvaddr').textContent = (r ? r.receive : S.cfg.receive) || ''; }; // 当前支付链的收款地址（Solana 金库 / 各链 Safe）
     const pvSync = () => { paintRecv(); const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
-    $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = $('#wc2').value;
+    $('#ws').addEventListener('click', async () => { const txt = ta.value.trim(), lam = Math.round(+$('#amt').value * 1e9), cat = realCat($('#wc2').value); if ($('#wc2').value === CUSTOM && !up.C) { toast(esc(t('wish.upCover')), 'err'); $('#upC')?.focus(); return; }
       const shippingNote = ($('#ckind')?.value || 'wish') === 'goods' ? ($('#ship')?.value || '').trim() : '';
       if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
       const kind = $('#ckind')?.value || 'wish', bad = x => /[~|]/.test(x); let K = null, contact = '', showCt = false;
