@@ -2,7 +2,7 @@
 // 数据 data/domains.json = { domains: { host: {status, primary, note, at} }, updatedAt }，经 persist.js 同步 D1。
 // CORS 白名单 = 清单内全部域名（含 blocked：旧域上的用户仍需能拉到“请换域”的提示）+ ALLOWED_ORIGINS + CORS_ORIGIN_RE。
 const fs = require('fs'), path = require('path');
-const F = path.join(__dirname, 'data', 'domains.json'), STATUS = ['active', 'standby', 'blocked'], MAX = 50;
+const F = path.join(require('./network').DATA_DIR, 'domains.json'), STATUS = ['active', 'standby', 'blocked'], MAX = 50;
 const HOST = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/; // 只接受域名（无端口 / 路径 / IP / 凭据）
 const SEED = (process.env.DOMAINS_SEED || 'world-tree.pages.dev').split(',').map(x => x.trim().toLowerCase()).filter(x => HOST.test(x));
 // 启动时补齐的内置域名（只补缺失项，且一律 standby；不改已有域名的状态 / 主域）。换主域仍走管理端点。要永久删除某个域，同时把它从 DOMAINS_ENSURE 去掉。

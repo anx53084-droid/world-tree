@@ -1018,5 +1018,20 @@
   "wal.devS3": "Pilih Solana Devnet sebagai jaringan, lalu kembali dan coba lagi",
   "wal.devOk": "Mengerti",
   "wal.devGeneric": "Pastikan dompet berada di Solana Devnet lalu coba lagi",
-  "wal.devRejected": "Dibatalkan. Jika dompet menampilkan “mode salah”, aktifkan Mode Testnet (Pengaturan → Pengaturan Pengembang → Mode Testnet → Solana Devnet) lalu coba lagi"
+  "wal.devRejected": "Dibatalkan. Jika dompet menampilkan “mode salah”, aktifkan Mode Testnet (Pengaturan → Pengaturan Pengembang → Mode Testnet → Solana Devnet) lalu coba lagi",
+  "footer@main": "Solana mainnet · Data on-chain adalah satu-satunya sumber kebenaran · Dana langsung dari dompetmu ke alamat penerima; situs ini tidak menyimpan dana",
+  "help.riskBody@main": "Situs ini berjalan di Solana mainnet. Semua pembayaran memakai aset nyata dan tidak dapat dibatalkan atau dikembalikan setelah on-chain. Konten on-chain bersifat publik dan tidak dapat dihapus; situs dapat menyembunyikan konten melanggar di antarmuka, tetapi tidak dapat menghapusnya dari chain.",
+  "terms.1@main": "Situs ini adalah antarmuka non-kustodian: setiap penulisan ditandatangani dompetmu sendiri, biaya jaringan dibayar dompetmu, dan blockchain adalah satu-satunya sumber kebenaran.",
+  "terms.7@main": "Tidak ada mode kustodian di mainnet: situs ini tidak membuat atau menyimpan kunci privat dan tidak mengirim transaksi atas namamu.",
+  "terms.8@main": "Berjalan di Solana mainnet dengan aset nyata. Nilai kartu hadiah dan hadiah grup hanya dicatat; situs tidak menerima, menyimpan, atau menukarkannya.",
+  "route.offline@main": "Tidak dapat terhubung ke RPC Solana ({msg}); menampilkan data contoh offline",
+  "mode.evm@main": "⬡ Dompet EVM · {addr} · Solana {sol}",
+  "wal.solHint@main": "Hubungkan dengan Phantom atau dompet seluler. Harapan dicatat di Solana mainnet.",
+  "wal.evmHint@main": "Masuk dengan dompet EVM (BNB Chain, Base, Ethereum, Arbitrum). Harapan dicatat di Solana mainnet.",
+  "wal.evmPayOff@main": "Membayar kartu harapan dengan EVM belum tersedia di mainnet; gunakan dompet Solana.",
+  "wish.payEvm@main": "EVM mainnet",
+  "wish.paySol@main": "Solana mainnet",
+  "help.hostBody@main": "Tidak ada mode demo kustodian di mainnet: gunakan dompet Solana milikmu (seperti Phantom).",
+  "err.custodyOff": "Akun kustodian email tidak tersedia di mainnet. Hubungkan dompetmu sendiri",
+  "wal.evmMainOff": "Login dompet EVM belum tersedia di mainnet. Gunakan dompet Solana (seperti Phantom)"
 }

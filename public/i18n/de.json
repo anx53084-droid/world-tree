@@ -1018,5 +1018,20 @@
   "wal.devS3": "Solana Devnet als Netzwerk wählen und hier erneut versuchen",
   "wal.devOk": "Verstanden",
   "wal.devGeneric": "Bitte prüfe, dass deine Wallet auf Solana Devnet ist, und versuche es erneut",
-  "wal.devRejected": "Abgebrochen. Meldet die Wallet „falscher Modus“, schalte den Testnet-Modus ein (Einstellungen → Entwicklereinstellungen → Testnet-Modus → Solana Devnet) und versuche es erneut"
+  "wal.devRejected": "Abgebrochen. Meldet die Wallet „falscher Modus“, schalte den Testnet-Modus ein (Einstellungen → Entwicklereinstellungen → Testnet-Modus → Solana Devnet) und versuche es erneut",
+  "footer@main": "Solana-Mainnet · On-Chain-Daten sind die einzige Quelle der Wahrheit · Gelder gehen direkt von deiner Wallet an die Empfängeradresse; diese Seite verwahrt keine Gelder",
+  "help.riskBody@main": "Diese Seite läuft im Solana-Mainnet. Alle Zahlungen nutzen echte Vermögenswerte und sind on-chain unumkehrbar und nicht erstattungsfähig. On-Chain-Inhalte sind öffentlich und nicht löschbar; die Seite kann Verstöße im Frontend ausblenden, aber nicht von der Chain entfernen.",
+  "terms.1@main": "Diese Seite ist ein nicht verwahrendes Frontend: Jeder Eintrag wird mit deiner eigenen Wallet signiert, Netzwerkgebühren zahlt deine Wallet, und die Blockchain ist die einzige Quelle der Wahrheit.",
+  "terms.7@main": "Im Mainnet gibt es keinen Verwahrmodus: Diese Seite erzeugt oder speichert keine privaten Schlüssel und sendet keine Transaktionen für dich.",
+  "terms.8@main": "Läuft im Solana-Mainnet mit echten Vermögenswerten. Werte von Geschenkkarten und Gruppengeschenken sind nur vermerkt; die Seite nimmt sie nicht entgegen, verwahrt oder löst sie nicht ein.",
+  "route.offline@main": "Solana-RPC nicht erreichbar ({msg}); Offline-Beispieldaten werden angezeigt",
+  "mode.evm@main": "⬡ EVM-Wallet · {addr} · Solana {sol}",
+  "wal.solHint@main": "Mit Phantom oder einer mobilen Wallet verbinden. Wünsche werden im Solana-Mainnet gespeichert.",
+  "wal.evmHint@main": "Mit einer EVM-Wallet anmelden (BNB Chain, Base, Ethereum, Arbitrum). Wünsche werden im Solana-Mainnet gespeichert.",
+  "wal.evmPayOff@main": "Zahlung von Wunschkarten mit EVM ist im Mainnet noch nicht verfügbar – bitte eine Solana-Wallet nutzen.",
+  "wish.payEvm@main": "EVM-Mainnet",
+  "wish.paySol@main": "Solana-Mainnet",
+  "help.hostBody@main": "Im Mainnet gibt es keinen verwahrenden Demomodus: Bitte nutze deine eigene Solana-Wallet (z. B. Phantom).",
+  "err.custodyOff": "E-Mail-Verwahrkonten sind im Mainnet nicht verfügbar. Bitte verbinde deine eigene Wallet",
+  "wal.evmMainOff": "EVM-Wallet-Anmeldung ist im Mainnet noch nicht verfügbar. Bitte eine Solana-Wallet (z. B. Phantom) nutzen"
 }

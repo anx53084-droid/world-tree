@@ -42,6 +42,9 @@ for (const k of ['COOLDOWN', 'NOT_MET']) keys.add(`gate.err.${k}`);
 for (const k of ['first_light', 'growth', 'resonance', 'monthly', 'event']) keys.add(`gate.rule.${k}`);
 for (const k of ['claimable', 'received', 'expiring', 'expiring0', 'expired', 'revoked']) { keys.add(`inbox.gate_${k}T`); keys.add(`inbox.gate_${k}B`); } // terms.2 unused (mod.notice in slot)
 for (const s of ['green', 'bloom', 'fall']) keys.add(`season.${s}`);
+// 主网措辞变体：zh-CN 里所有 '@main' 键必须在每种语言都有，且不得含 devnet / 测试网字样
+const ZH = JSON.parse(fs.readFileSync(path.join(I18N_DIR, 'zh-CN.json'), 'utf8')); for (const k of Object.keys(ZH)) if (k.endsWith('@main')) keys.add(k);
+for (const f of fs.readdirSync(I18N_DIR).filter(f => f.endsWith('.json'))) { const d = JSON.parse(fs.readFileSync(path.join(I18N_DIR, f), 'utf8')); for (const [k, v] of Object.entries(d)) if (k.endsWith('@main') && /devnet|testnet|测试网|測試網|sepolia/i.test(v)) { console.error('mainnet wording contains testnet term:', f, k); process.exitCode = 1; } }
 // Drop false positives ending with bare prefix or underscore stubs
 for (const k of [...keys]) if (k.endsWith('.') || k.endsWith('_')) keys.delete(k);
 

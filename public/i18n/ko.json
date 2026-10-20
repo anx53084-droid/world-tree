@@ -1018,5 +1018,20 @@
   "wal.devS3": "네트워크에서 Solana Devnet 선택 후 사이트로 돌아와 다시 시도",
   "wal.devOk": "확인",
   "wal.devGeneric": "지갑이 Solana Devnet인지 확인한 뒤 다시 시도하세요",
-  "wal.devRejected": "취소되었습니다. 지갑에 \"모드가 올바르지 않음\"이 표시되면 테스트넷 모드(설정 → 개발자 설정 → 테스트넷 모드 → Solana Devnet)를 켠 뒤 다시 시도하세요"
+  "wal.devRejected": "취소되었습니다. 지갑에 \"모드가 올바르지 않음\"이 표시되면 테스트넷 모드(설정 → 개발자 설정 → 테스트넷 모드 → Solana Devnet)를 켠 뒤 다시 시도하세요",
+  "footer@main": "Solana 메인넷 · 온체인 데이터가 유일한 기준 · 자금은 지갑에서 수취 주소로 바로 전송되며, 이 사이트는 자금을 보관하지 않습니다",
+  "help.riskBody@main": "이 사이트는 Solana 메인넷에서 운영됩니다. 모든 결제는 실제 자산이며 온체인 후 취소·환불할 수 없습니다. 온체인 내용은 공개되며 삭제할 수 없습니다. 이 사이트는 화면에서 위반 내용을 숨길 수 있지만 체인에서 지울 수는 없습니다.",
+  "terms.1@main": "이 사이트는 비수탁 프론트엔드입니다. 모든 기록은 본인 지갑으로 서명하고 네트워크 수수료도 본인 지갑이 냅니다. 블록체인이 유일한 기준입니다.",
+  "terms.7@main": "메인넷에는 수탁 모드가 없습니다. 이 사이트는 개인 키를 생성·보관하지 않으며 대신 거래를 보내지 않습니다.",
+  "terms.8@main": "Solana 메인넷에서 실제 자산을 다룹니다. 기프트 카드와 공동 구매 카드의 가치는 기록용이며, 이 사이트는 이를 받거나 보관하거나 교환해 주지 않습니다.",
+  "route.offline@main": "Solana RPC에 연결할 수 없습니다({msg}). 오프라인 예시 데이터를 표시합니다",
+  "mode.evm@main": "⬡ EVM 지갑 · {addr} · Solana {sol}",
+  "wal.solHint@main": "Phantom 또는 모바일 지갑으로 연결하세요. 소원은 Solana 메인넷에 기록됩니다.",
+  "wal.evmHint@main": "EVM 지갑으로 서명 로그인(BNB Chain, Base, Ethereum, Arbitrum). 소원은 Solana 메인넷에 기록됩니다.",
+  "wal.evmPayOff@main": "메인넷에서는 아직 EVM으로 소원 카드를 결제할 수 없습니다. Solana 지갑을 사용하세요.",
+  "wish.payEvm@main": "EVM 메인넷",
+  "wish.paySol@main": "Solana 메인넷",
+  "help.hostBody@main": "메인넷에는 수탁 데모 모드가 없습니다. 본인 Solana 지갑(예: Phantom)을 사용하세요.",
+  "err.custodyOff": "메인넷에서는 이메일 수탁 계정을 제공하지 않습니다. 본인 지갑을 연결하세요",
+  "wal.evmMainOff": "메인넷에서는 아직 EVM 지갑 로그인을 지원하지 않습니다. Solana 지갑(예: Phantom)을 사용하세요"
 }

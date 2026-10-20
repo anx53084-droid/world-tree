@@ -11,7 +11,7 @@
   const I = window.I18N = { LANGS, lang: detect(), dict: {}, base: {}, missing: new Set() };
   I.isZh = () => I.lang.startsWith('zh');
   I.locale = () => I.lang;
-  I.t = function (k, v) { let s = I.dict[k]; if (s == null) { I.missing.add(k); s = I.base[k]; if (s == null) s = k; }
+  I.t = function (k, v) { if (I.net === 'mainnet' && (I.dict[k + '@main'] ?? I.base[k + '@main']) != null) k += '@main'; let s = I.dict[k]; // 主网措辞：同名键 + '@main' if (s == null) { I.missing.add(k); s = I.base[k]; if (s == null) s = k; }
     return v ? s.replace(/\{(\w+)\}/g, (m, n) => v[n] != null ? v[n] : m) : s; };
   window.t = I.t;
   const BV = document.querySelector('meta[name="wt-build"]')?.content, load = l => fetch('i18n/' + l + '.json' + (BV ? '?v=' + BV : '')).then(r => { if (!r.ok) throw new Error(l); return r.json(); });

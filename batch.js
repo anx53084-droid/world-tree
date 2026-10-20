@@ -5,7 +5,7 @@
 //   库里只存 sha256(code) 作索引（领取时查找）和状态；分片重试 / 续传得到完全相同的码（天然幂等）。secret 取自 BATCH_SECRET，缺省则生成后存在 batches.json（随 persist.js 同步 D1，与托管账户密钥同级保护）。
 //   代价：secret 泄露 = 所有未领取的码可被推算——所以 secret 绝不进 git / 日志 / 接口。
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), Gate = require('./gate');
-const F = path.join(__dirname, 'data', 'batches.json'), LAM = 1e9, MIN_FEE_USD = 1, MAX_COUNT = 10000, COINS = ['SOL', 'ETH', 'BNB'], SLIP = 0.02, PROMISE = /还愿|還願|分红|分紅|收益|回报|回報|返利|保本|稳赚|穩賺|年化|投资回|dividend|\byield\b|\bapy\b|\broi\b|guaranteed (return|profit)|airdrop|空投/i, ALPHA = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const F = path.join(require('./network').DATA_DIR, 'batches.json'), LAM = 1e9, MIN_FEE_USD = 1, MAX_COUNT = 10000, COINS = ['SOL', 'ETH', 'BNB'], SLIP = 0.02, PROMISE = /还愿|還願|分红|分紅|收益|回报|回報|返利|保本|稳赚|穩賺|年化|投资回|dividend|\byield\b|\bapy\b|\broi\b|guaranteed (return|profit)|airdrop|空投/i, ALPHA = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const E = process.env, CFG = () => ({ minFeeUsd: MIN_FEE_USD, minValueUsd: 1, coins: COINS, slippage: SLIP, quoteTtl: +E.BATCH_QUOTE_TTL || 600, maxCount: MAX_COUNT, shard: Math.max(1, +E.BATCH_SHARD || 500), maxTries: +E.BATCH_MAX_TRIES || 6, backoffBase: +E.BATCH_BACKOFF || 5, backoffCap: 900, lease: 120 });
 let D = null; const hooks = { shard: null, now: null }; // hooks.shard：测试注入失败
 const sha = t => crypto.createHash('sha256').update(t).digest('hex');

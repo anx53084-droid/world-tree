@@ -1018,5 +1018,20 @@
   "wal.devS3": "Choisissez Solana Devnet comme réseau, puis revenez réessayer",
   "wal.devOk": "Compris",
   "wal.devGeneric": "Vérifiez que votre portefeuille est sur Solana Devnet puis réessayez",
-  "wal.devRejected": "Annulé. Si le portefeuille indique « mode incorrect », activez le mode testnet (Paramètres → Paramètres développeur → Mode testnet → Solana Devnet) puis réessayez"
+  "wal.devRejected": "Annulé. Si le portefeuille indique « mode incorrect », activez le mode testnet (Paramètres → Paramètres développeur → Mode testnet → Solana Devnet) puis réessayez",
+  "footer@main": "Solana mainnet · Les données on-chain font foi · Les fonds vont directement de votre portefeuille à l’adresse de réception ; ce site ne détient aucun fonds",
+  "help.riskBody@main": "Ce site fonctionne sur Solana mainnet. Tous les paiements utilisent des actifs réels et sont irréversibles et non remboursables une fois on-chain. Le contenu on-chain est public et ne peut pas être supprimé ; le site peut masquer un contenu illicite dans l’interface, sans pouvoir l’effacer de la chaîne.",
+  "terms.1@main": "Ce site est une interface non custodiale : chaque écriture est signée par votre propre portefeuille, les frais de réseau sont payés par votre portefeuille et la blockchain fait foi.",
+  "terms.7@main": "Pas de mode custodial sur mainnet : ce site ne génère ni ne conserve de clés privées et n’envoie jamais de transactions à votre place.",
+  "terms.8@main": "Fonctionne sur Solana mainnet avec des actifs réels. La valeur des cartes cadeaux et cadeaux groupés n’est qu’indicative ; le site ne la perçoit, ne la détient ni ne la rembourse.",
+  "route.offline@main": "Impossible de joindre le RPC Solana ({msg}) ; affichage de données d’exemple hors ligne",
+  "mode.evm@main": "⬡ Portefeuille EVM · {addr} · Solana {sol}",
+  "wal.solHint@main": "Connectez-vous avec Phantom ou un portefeuille mobile. Les vœux sont enregistrés sur Solana mainnet.",
+  "wal.evmHint@main": "Connectez-vous avec un portefeuille EVM (BNB Chain, Base, Ethereum, Arbitrum). Les vœux sont enregistrés sur Solana mainnet.",
+  "wal.evmPayOff@main": "Le paiement des cartes de vœux en EVM n’est pas encore disponible sur mainnet ; utilisez un portefeuille Solana.",
+  "wish.payEvm@main": "EVM mainnet",
+  "wish.paySol@main": "Solana mainnet",
+  "help.hostBody@main": "Pas de mode démo custodial sur mainnet : utilisez votre propre portefeuille Solana (comme Phantom).",
+  "err.custodyOff": "Les comptes custodiaux par e-mail ne sont pas disponibles sur mainnet. Connectez votre propre portefeuille",
+  "wal.evmMainOff": "La connexion par portefeuille EVM n’est pas encore disponible sur mainnet. Utilisez un portefeuille Solana (comme Phantom)"
 }

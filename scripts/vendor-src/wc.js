@@ -1,8 +1,8 @@
 // WalletConnect（兜底）：Solana 命名空间 + EVM（eip155，WTWC.createEvm 返回 EIP-1193 provider），经 display_uri 事件交给站内二维码弹窗（不使用官方弹窗）。需要 Reown / WalletConnect 项目 ID（服务端 WC_PROJECT_ID，公开标识，不是密钥）。
 import UniversalProvider from '@walletconnect/universal-provider';
-const CH = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1', METHODS = ['solana_signMessage', 'solana_signTransaction'];
+const CH_DEV = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1', CH_MAIN = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', METHODS = ['solana_signMessage', 'solana_signTransaction'];
 const b64 = u => { let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(s); }, unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-window.WTWC = { create({ projectId, metadata, onUri, b58, b58dec }) { let prov = null, pk = null;
+window.WTWC = { create({ projectId, metadata, onUri, b58, b58dec, mainnet }) { let prov = null, pk = null; const CH = mainnet ? CH_MAIN : CH_DEV;
   const init = async () => prov ||= await UniversalProvider.init({ projectId, metadata });
   const addr = s => s.namespaces.solana.accounts[0].split(':')[2];
   return { id: 'walletconnect', name: 'WalletConnect', canSignIn: false,

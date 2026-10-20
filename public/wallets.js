@@ -19,8 +19,8 @@
     return { id, name: w.name, icon: w.icon, std: true,
       async connect(silent) { const r = await F['standard:connect'].connect(silent ? { silent: true } : undefined); acct = (r?.accounts || w.accounts)[0]; if (!acct) throw new Error('no account'); return acct.address; },
       async signAndSend(tx) { const bytes = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
-        if (F['solana:signAndSendTransaction']) { const [o] = await F['solana:signAndSendTransaction'].signAndSendTransaction({ account: acct, transaction: bytes, chain: 'solana:devnet' }); return b58(toU8(o.signature)); }
-        const [o] = await F['solana:signTransaction'].signTransaction({ account: acct, transaction: bytes, chain: 'solana:devnet' }); return { raw: toU8(o.signedTransaction) }; },
+        if (F['solana:signAndSendTransaction']) { const [o] = await F['solana:signAndSendTransaction'].signAndSendTransaction({ account: acct, transaction: bytes, chain: WTW.cfg.solChain || 'solana:devnet' }); return b58(toU8(o.signature)); }
+        const [o] = await F['solana:signTransaction'].signTransaction({ account: acct, transaction: bytes, chain: WTW.cfg.solChain || 'solana:devnet' }); return { raw: toU8(o.signedTransaction) }; },
       async signMessage(m) { if (!F['solana:signMessage']) throw new Error('signMessage unsupported'); const [o] = await F['solana:signMessage'].signMessage({ account: acct, message: m }); return toU8(o.signature); },
       canSignIn: !!F['solana:signIn'],
       async signIn(input) { if (id === 'mwa') window.WTMWA?.fresh?.(); const [o] = await F['solana:signIn'].signIn(input); acct = o.account; return { address: o.account.address, message: new TextDecoder().decode(toU8(o.signedMessage)), signature: toU8(o.signature) }; },
@@ -36,6 +36,7 @@
       onChange(cb) { try { p.on?.('accountChanged', k => cb(k ? k.toString() : null)); p.on?.('disconnect', () => cb(null)); } catch {} },
       async disconnect() { try { await p.disconnect?.(); } catch {} } }; }
   const b58dec = s => { let n = 0n; for (const c of s) { const i = A.indexOf(c); if (i < 0) throw new Error('b58'); n = n * 58n + BigInt(i); } const out = []; while (n > 0n) { out.unshift(Number(n & 255n)); n >>= 8n; } for (const c of s) { if (c !== '1') break; out.unshift(0); } return Uint8Array.from(out); };
+  let cfgDone; const cfgReady = new Promise(r => cfgDone = r); // /api/config 到达后才知道网络（MWA 注册需要 chain）
   const loadJs = src => new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = vsrc(src); sc.onload = ok; sc.onerror = () => no(new Error('load ' + src)); document.head.append(sc); });
   // vendor 脚本带内容哈希（来自 <meta name=wt-vendor>，stamp.js 生成）：部署后不会拿到浏览器 / SW 缓存里的旧版
   function vsrc(src, bust) { const m = /^vendor\/([\w.\-]+\.js)$/.exec(src); if (!m) return src; const h = (document.querySelector('meta[name=wt-vendor]')?.content || '').split(',').map(x => x.split(':')).find(x => x[0] === m[1])?.[1];
@@ -46,11 +47,11 @@
     if (!window[g]) await load(); if (!has()) { await load(Date.now().toString(36)).catch(() => {}); } if (!has()) throw Object.assign(new Error('vendor outdated: ' + src), { code: 'vendorOld' }); return window[g]; }
   const isAndroid = () => /Android/i.test(navigator.userAgent);
   // Android Chrome：Mobile Wallet Adapter（Wallet Standard 钱包；connect 与 signIn 合并为一次授权，authToken 持久化在 localStorage）
-  let mwaP = null; const initMwa = () => mwaP ||= (async () => { if (!isAndroid() || !isSecureContext) return false; try { await loadJs('vendor/mwa.js'); return !!window.WTMWA?.init({ name: '光栖', uri: location.origin, icon: 'og-image.png' }); } catch { return false; } })();
+  let mwaP = null; const initMwa = () => mwaP ||= (async () => { if (!isAndroid() || !isSecureContext) return false; try { await Promise.race([cfgReady, new Promise(r => setTimeout(r, 5000))]); await loadJs('vendor/mwa.js'); return !!window.WTMWA?.init({ name: '光栖', uri: location.origin, icon: 'og-image.png' }, WTW.cfg.solChain || 'solana:devnet'); } catch { return false; } })();
   const MWA_NAME = /mobile wallet adapter/i;
   // WalletConnect（兜底）：按需加载库；需要服务端配置的项目 ID（WTW.cfg.wcProjectId）；连接二维码由站内弹窗显示（WTW.onWcUri）
   function wcAdapter() { let inner = null; const get = async () => { if (inner) return inner; await needVendor('vendor/walletconnect.js', 'WTWC', 'create'); const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' });
-      return inner = window.WTWC.create({ projectId: pid, metadata: { name: '光栖', description: 'World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), b58, b58dec }); };
+      return inner = window.WTWC.create({ projectId: pid, metadata: { name: '光栖', description: 'World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), b58, b58dec, mainnet: WTW.cfg.network === 'mainnet' }); };
     return { id: 'walletconnect', name: 'WalletConnect', canSignIn: false, connect: async sl => (await get()).connect(sl), signAndSend: async tx => (await get()).signAndSend(tx), signMessage: async m => (await get()).signMessage(m), onChange: cb => { get().then(i => i.onChange(cb)).catch(() => {}); }, disconnect: async () => { try { await inner?.disconnect(); } catch {} } }; }
   // Dynamic（邮箱 OTP / Google → 非托管 Solana 嵌入式钱包）：按需加载 vendor/dynamic.js；需要服务端公开配置的 Environment ID（WTW.cfg.dynamicEnvId）
   function dynAdapter() { let inner = null; const get = async () => { if (inner) return inner; const id = WTW.cfg.dynamicEnvId; if (!id) throw Object.assign(new Error('Dynamic not configured'), { code: 'dynOff' });
@@ -112,5 +113,5 @@
     if (want) { try { await switchChain(p, want, cfg); } catch (e) { if (e?.code === 4001) throw e; } c = await chainOf(p); }
     if (!LOGIN_CHAINS.includes(c)) throw Object.assign(new Error('unsupported chain ' + c), { code: 'chainUnsupported' }); return c; }
   const evmList = () => evmWallets().filter(w => ui.email || !w.dyn);
-  window.WTW = { cfg: {}, ui, solList, evmList, vsrc, needVendor, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
+  window.WTW = { cfg: {}, cfgDone: () => cfgDone(), ui, solList, evmList, vsrc, needVendor, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
 })();

@@ -4,7 +4,7 @@
 // 链上锚定（撤销后追加 memo）为可选钩子 anchor()，默认关闭（GATE_ANCHOR=1 时由后续阶段实现，需要签名与手续费）。
 // 到期完全按时间戳判定，前后端一致。
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
-const F = path.join(__dirname, 'data', 'gates.json');
+const F = path.join(require('./network').DATA_DIR, 'gates.json');
 const DAY = 86400, COOL = 86400, CLAIM_DAYS = 30, PRE = [3 * DAY, DAY];
 const ID_RE = /^[a-z0-9][a-z0-9_-]{0,23}$/;
 const addrKey = a => /^0x[0-9a-fA-F]{40}$/.test(a || '') ? a.toLowerCase() : String(a || '');

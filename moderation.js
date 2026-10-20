@@ -19,7 +19,7 @@ function keywordCheck(text) {
 // 桩：接入大模型/第三方内容安全 API 做语义审核（如阿里云/腾讯云内容安全、OpenAI moderation 等）
 async function aiSemanticReview(text /*, imageUrl */) { return { pass: true, provider: 'stub' }; }
 // 人工复核队列：可疑但未命中关键词的内容可推入此队列（MVP 仅记录，不阻塞）
-const QUEUE = path.join(__dirname, 'data', 'review-queue.jsonl');
+const QUEUE = path.join(require('./network').DATA_DIR, 'review-queue.jsonl');
 function enqueueManual(item) { fs.mkdirSync(path.dirname(QUEUE), { recursive: true }); fs.appendFileSync(QUEUE, JSON.stringify({ ...item, at: Date.now() }) + '\n'); }
 async function moderate(text) {
   const k = keywordCheck(text); if (!k.pass) return k;

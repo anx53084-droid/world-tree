@@ -3,7 +3,7 @@ const fs = require('fs'), path = require('path'), os = require('os'), cp = requi
 let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); };
 const D = __dirname, SOL1 = '9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin';
 (async () => {
-  console.log('unit'); const tu = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-gfu-')); fs.mkdirSync(tu + '/data'); for (const f of ['batch.js', 'gate.js']) fs.copyFileSync(path.join(D, f), path.join(tu, f));
+  console.log('unit'); const tu = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-gfu-')); fs.mkdirSync(tu + '/data'); for (const f of ['batch.js', 'gate.js', 'network.js']) fs.copyFileSync(path.join(D, f), path.join(tu, f));
   const B = require(tu + '/batch.js'), H = 'ab'.repeat(16), mk = o => ({ blessing: '愿你被温柔以待', count: 3, coin: 'SOL', valueUsd: 5, redeemNote: '到店出示', feeUsd: 1, gateName: '星光小屋', ...o });
   ok(B.validate(mk()).ok.face === null && B.validate(mk({ face: {} })).ok.face === null, '未设置卡面 → face=null（默认样式）');
   const f1 = B.validate(mk({ face: { cover: 3, inside: 2, text: ' 内页<b>你好</b>~ ' } })).ok.face; ok(f1.cover === 3 && f1.inside === 2 && f1.text === '内页b你好/b' && f1.cimg === '' && f1.nimg === '', '封面 / 内页模板 + 内页内容（清洗 <>~）');

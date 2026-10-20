@@ -15,11 +15,21 @@ const CONFIG = {
   arb: { address: '0x257ae349424c3047a3Acbe02351520d8e5Bd6458', legacy: [], note: 'unchanged (no Safe deployed yet)' },
   uni: { address: '0x4BF1746F3e83b1fb87c9058850B4442cC9AbD740', legacy: [], note: 'unchanged (no Safe deployed yet)' },
 };
+// 主网（NETWORK=mainnet）收款地址。sol / eth / bsc 是已在主网部署的 Squads / Safe 多签（与上面相同）。
+// ⚠️ base / arb：Safe 尚未部署 → 留空 = 该链在主网不提供收款（前端不显示该链路由）。部署好 Safe 后把地址填到这里。
+const CONFIG_MAINNET = {
+  sol: { address: 'FPKFevoHzjPZWjWaRxwFwfNXu2LBduoGspXZSCLU81yz', legacy: [], note: 'Squads v4 vault 0 (mainnet)' },
+  eth: { address: '0xbfa2C12D28838bEA6C92645c195fAa907182ECed', legacy: [], note: 'Safe 1.4.1 (2-of-3, mainnet)' },
+  bsc: { address: '0x71c04f3C4922d1A6FA2724428d4E2c51f5445837', legacy: [], note: 'Safe L2 1.4.1 (2-of-3, BNB Chain)' },
+  base: { address: '', legacy: [], note: 'TODO: Base Safe 地址（部署后填写）' },
+  arb: { address: '', legacy: [], note: 'TODO: Arbitrum Safe 地址（部署后填写）' },
+};
+const MAIN = require('./network').MAIN, ACTIVE = MAIN ? CONFIG_MAINNET : CONFIG;
 const isEvm = a => /^0x[0-9a-fA-F]{40}$/.test(a || ''), B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 function checksum(a) { const l = a.toLowerCase().slice(2), h = Buffer.from(keccak_256(Buffer.from(l, 'ascii'))).toString('hex'); return '0x' + [...l].map((c, i) => parseInt(h[i], 16) >= 8 ? c.toUpperCase() : c).join(''); } // EIP-55
-const envExtra = { sol: [process.env.RECEIVE_PUBKEY, process.env.TREASURY_PUBKEY, process.env.DEV_PUBKEY], bsc: [process.env.EVM_PAY_BSC], base: [process.env.EVM_PAY_BASE], eth: [process.env.EVM_PAY_ETH], arb: [process.env.EVM_PAY_ARB], uni: [process.env.EVM_PAY_UNI] };
+const envExtra = MAIN ? {} : { sol: [process.env.RECEIVE_PUBKEY, process.env.TREASURY_PUBKEY, process.env.DEV_PUBKEY], bsc: [process.env.EVM_PAY_BSC], base: [process.env.EVM_PAY_BASE], eth: [process.env.EVM_PAY_ETH], arb: [process.env.EVM_PAY_ARB], uni: [process.env.EVM_PAY_UNI] };
 const out = { sol: null, evm: {}, legacy: { sol: [], evm: {} } };
-for (const [k, v] of Object.entries(CONFIG)) {
+for (const [k, v] of Object.entries(ACTIVE)) { if (k !== 'sol' && !v.address) continue; // 未配置的链：不收款
   const evm = k !== 'sol', ok = evm ? isEvm : a => B58.test(a || ''); if (!ok(v.address)) throw new Error('bad receive address for ' + k);
   const norm = a => evm ? a.toLowerCase() : a, cur = norm(v.address);
   const leg = [...new Set([...(v.legacy || []), ...(envExtra[k] || []).filter(Boolean)].filter(ok).map(norm))].filter(a => a !== cur);
@@ -28,5 +38,5 @@ for (const [k, v] of Object.entries(CONFIG)) {
 // 校验：当前 / 历史地址判断（EVM 一律小写比较；Solana 区分大小写）
 out.isSolRecv = a => !!a && (a === out.sol.address || out.legacy.sol.includes(a));
 out.isEvmRecv = (key, a) => { a = String(a || '').toLowerCase(); return !!out.evm[key] && (a === out.evm[key].lower || (out.legacy.evm[key] || []).includes(a)); };
-out.CONFIG = CONFIG; out.checksum = checksum; out.isEvm = isEvm;
+out.CONFIG = ACTIVE; out.CONFIG_TESTNET = CONFIG; out.CONFIG_MAINNET = CONFIG_MAINNET; out.checksum = checksum; out.isEvm = isEvm;
 module.exports = out;

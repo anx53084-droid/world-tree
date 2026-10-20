@@ -1018,5 +1018,20 @@
   "wal.devS3": "Escolha Solana Devnet como rede e volte para tentar de novo",
   "wal.devOk": "Entendi",
   "wal.devGeneric": "Confirme que a carteira está na Solana Devnet e tente novamente",
-  "wal.devRejected": "Cancelado. Se a carteira mostrou “modo incorreto”, ative o modo testnet (Configurações → Configurações de desenvolvedor → Modo testnet → Solana Devnet) e tente de novo"
+  "wal.devRejected": "Cancelado. Se a carteira mostrou “modo incorreto”, ative o modo testnet (Configurações → Configurações de desenvolvedor → Modo testnet → Solana Devnet) e tente de novo",
+  "footer@main": "Solana mainnet · Os dados on-chain são a única fonte de verdade · Os fundos vão direto da sua carteira para o endereço de recebimento; este site não custodia fundos",
+  "help.riskBody@main": "Este site funciona na Solana mainnet. Todos os pagamentos usam ativos reais e são irreversíveis e não reembolsáveis depois de on-chain. O conteúdo on-chain é público e não pode ser apagado; o site pode ocultar conteúdo indevido na interface, mas não removê-lo da cadeia.",
+  "terms.1@main": "Este site é uma interface não custodial: cada registro é assinado pela sua própria carteira, as taxas de rede são pagas pela sua carteira e a blockchain é a única fonte de verdade.",
+  "terms.7@main": "Não há modo custodial na mainnet: este site não gera nem guarda chaves privadas e não envia transações por você.",
+  "terms.8@main": "Funciona na Solana mainnet com ativos reais. O valor de cartões-presente e presentes em grupo é apenas registrado; o site não o recebe, guarda nem resgata.",
+  "route.offline@main": "Não foi possível conectar ao RPC da Solana ({msg}); exibindo dados de exemplo offline",
+  "mode.evm@main": "⬡ Carteira EVM · {addr} · Solana {sol}",
+  "wal.solHint@main": "Conecte com Phantom ou uma carteira móvel. Os desejos são registrados na Solana mainnet.",
+  "wal.evmHint@main": "Entre com uma carteira EVM (BNB Chain, Base, Ethereum, Arbitrum). Os desejos são registrados na Solana mainnet.",
+  "wal.evmPayOff@main": "Pagar cartões de desejo com EVM ainda não está disponível na mainnet; use uma carteira Solana.",
+  "wish.payEvm@main": "EVM mainnet",
+  "wish.paySol@main": "Solana mainnet",
+  "help.hostBody@main": "Não há modo demo custodial na mainnet: use sua própria carteira Solana (como a Phantom).",
+  "err.custodyOff": "Contas custodiais por e-mail não estão disponíveis na mainnet. Conecte sua própria carteira",
+  "wal.evmMainOff": "O login com carteira EVM ainda não está disponível na mainnet. Use uma carteira Solana (como a Phantom)"
 }

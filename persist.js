@@ -2,7 +2,7 @@
 // 环境变量：D1_API_TOKEN、D1_ACCOUNT_ID、D1_DATABASE_ID；未设置则仅用本地文件。
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const E = process.env, ON = !!(E.D1_API_TOKEN && E.D1_ACCOUNT_ID && E.D1_DATABASE_ID);
-const DIR = path.join(__dirname, 'data'), FILES = ['users.json', 'fulfillments.json', 'fund-ledger.json', 'moderator.json', 'payees.json', 'social.json', 'gates.json', 'ads.json', 'domains.json', 'batches.json'];
+const Net = require('./network'), DIR = Net.DATA_DIR, FK = f => Net.D1_PREFIX + f, FILES = ['users.json', 'fulfillments.json', 'fund-ledger.json', 'moderator.json', 'payees.json', 'social.json', 'gates.json', 'ads.json', 'domains.json', 'batches.json'];
 const URL_ = () => `https://api.cloudflare.com/client/v4/accounts/${E.D1_ACCOUNT_ID}/d1/database/${E.D1_DATABASE_ID}/query`;
 async function q(sql, params = []) { const r = await fetch(URL_(), { method: 'POST', headers: { authorization: 'Bearer ' + E.D1_API_TOKEN, 'content-type': 'application/json' }, body: JSON.stringify({ sql, params }) });
   const j = await r.json(); if (!j.success) throw new Error('D1 ' + JSON.stringify(j.errors)); return j.result[0].results; }
@@ -13,13 +13,13 @@ function unrows(list) { const o = {}; for (const { k, v } of list) if (!k.includ
   for (const { k, v } of list) { const i = k.indexOf('/'); if (i > 0) { const K = k.slice(0, i); if (!isObj(o[K])) o[K] = {}; o[K][k.slice(i + 1)] = JSON.parse(v); } } return o; }
 async function pull() { await q('CREATE TABLE IF NOT EXISTS kv (f TEXT NOT NULL, k TEXT NOT NULL, v TEXT NOT NULL, t INTEGER, PRIMARY KEY (f, k))');
   const all = await q('SELECT f, k, v FROM kv'), by = {}; for (const r of all) (by[r.f] ||= []).push(r); fs.mkdirSync(DIR, { recursive: true });
-  const out = {}; for (const f of FILES) { const p = path.join(DIR, f); if (by[f]) fs.writeFileSync(p, JSON.stringify(unrows(by[f]), null, 2), { mode: 0o600 }); out[f] = by[f]?.length || 0; } return out; }
+  const out = {}; for (const f of FILES) { const p = path.join(DIR, f); if (by[FK(f)]) fs.writeFileSync(p, JSON.stringify(unrows(by[FK(f)]), null, 2), { mode: 0o600 }); out[f] = by[FK(f)]?.length || 0; } return out; }
 const last = new Map(), pend = new Map(); let busy = Promise.resolve();
 async function push(f, obj) { const cur = rows(obj), prev = last.get(f) || new Map(), up = [], del = [];
   for (const [k, v] of cur) if (prev.get(k) !== v) up.push([k, v]); for (const k of prev.keys()) if (!cur.has(k)) del.push(k);
   const t = Date.now(); for (let i = 0; i < up.length; i += 25) { const c = up.slice(i, i + 25);
-    await q(`INSERT INTO kv (f, k, v, t) VALUES ${c.map(() => '(?,?,?,?)').join(',')} ON CONFLICT(f, k) DO UPDATE SET v = excluded.v, t = excluded.t`, c.flatMap(([k, v]) => [f, k, v, t])); }
-  for (let i = 0; i < del.length; i += 90) { const c = del.slice(i, i + 90); await q(`DELETE FROM kv WHERE f = ? AND k IN (${c.map(() => '?').join(',')})`, [f, ...c]); }
+    await q(`INSERT INTO kv (f, k, v, t) VALUES ${c.map(() => '(?,?,?,?)').join(',')} ON CONFLICT(f, k) DO UPDATE SET v = excluded.v, t = excluded.t`, c.flatMap(([k, v]) => [FK(f), k, v, t])); }
+  for (let i = 0; i < del.length; i += 90) { const c = del.slice(i, i + 90); await q(`DELETE FROM kv WHERE f = ? AND k IN (${c.map(() => '?').join(',')})`, [FK(f), ...c]); }
   last.set(f, cur); }
 function schedule(f, text) { pend.set(f, text); clearTimeout(pend.__t); pend.__t = setTimeout(flush, 150); }
 function flush() { const jobs = [...pend]; pend.clear(); pend.__t = null; busy = busy.then(async () => { for (const [f, text] of jobs) { try { await push(f, JSON.parse(text)); } catch (e) { console.error('D1 write failed, retrying:', e.message); pend.set(f, text); setTimeout(flush, 5000); } } }); }

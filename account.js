@@ -6,11 +6,7 @@ const b58 = bs58.default || bs58;
 const hex = u => Buffer.from(u).toString('hex'), unhex = h => Uint8Array.from(Buffer.from(h.replace(/^0x/, ''), 'hex'));
 
 // ---- EVM 测试网（可用 EVM_RPC_<chainId> 覆盖 RPC）----
-const CHAINS = { 97: { key: 'bsc', name: 'BNB Smart Chain Testnet', sym: 'tBNB', coin: 'binancecoin', rpc: 'https://data-seed-prebsc-1-s1.bnbchain.org:8545', exp: 'https://testnet.bscscan.com' },
-  84532: { key: 'base', name: 'Base Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia.base.org', exp: 'https://sepolia.basescan.org' },
-  11155111: { key: 'eth', name: 'Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://ethereum-sepolia-rpc.publicnode.com', exp: 'https://sepolia.etherscan.io' },
-  421614: { key: 'arb', name: 'Arbitrum Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia-rollup.arbitrum.io/rpc', exp: 'https://sepolia.arbiscan.io' },
-  1301: { key: 'uni', name: 'Unichain Sepolia', sym: 'ETH', coin: 'ethereum', rpc: 'https://sepolia.unichain.org', exp: 'https://sepolia.uniscan.xyz' } };
+const Net = require('./network'), CHAINS = JSON.parse(JSON.stringify(Net.EVM_CHAINS)); // NETWORK=mainnet：Ethereum / Base / Arbitrum / BNB Chain；testnet：各测试网
 for (const id in CHAINS) if (process.env['EVM_RPC_' + id]) CHAINS[id].rpc = process.env['EVM_RPC_' + id];
 const isAddr = a => /^0x[0-9a-fA-F]{40}$/.test(a || '');
 // 每链单一收款地址（无 20/80 拆分）：来自 receive-config.js（当前地址 + 历史地址）。UNI 链未实现：经以太坊路径支付，地址标为 UNI。
@@ -18,7 +14,7 @@ const RC = require('./receive-config');
 const EVM_RECV = {}; for (const [k, v] of Object.entries(RC.evm)) EVM_RECV[k] = v.lower; // 小写，用于比对
 const EVM_RECV_DISPLAY = Object.fromEntries(Object.entries(RC.evm).map(([k, v]) => [k, v.address])); // EIP-55 校验和，用于显示与交易 to
 const EVM_PAY = Object.keys(EVM_RECV).length > 0;
-const UNI_CHAIN_IMPLEMENTED = true; // Unichain Sepolia (1301)
+const UNI_CHAIN_IMPLEMENTED = !!CHAINS[1301]; // Unichain Sepolia (1301)；主网不启用
 const EVM_DEV = EVM_RECV.eth || '', EVM_TREASURY = EVM_RECV.eth || ''; // 兼容旧导出字段
 function recvFor(chainId, payKey) {
   const c = CHAINS[chainId]; if (!c) return '';

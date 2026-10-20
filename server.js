@@ -4,7 +4,7 @@ const http = require('http'), fs = require('fs'), path = require('path'), crypto
 require('./persist').init(); // D1 持久化：先拉取数据到 data/，再加载各模块
 const web3 = require('@solana/web3.js');
 const PORT = +process.env.PORT || 8080;
-const RPC = process.env.SOLANA_RPC || process.env.RPC_URL || 'https://api.devnet.solana.com';
+const Net = require('./network'), RPC = Net.SOL_RPC; // NETWORK=testnet|mainnet（network.js）
 const TREE = new web3.PublicKey('pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb');
 const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z');
 const { moderate, RULES } = require('./moderation');
@@ -17,7 +17,7 @@ const REJECT = '您的内容未通过审核（可能涉及违规或不符合正�
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
 // 审核服务 ed25519 签名密钥（演示：本地生成并保存；生产应放 KMS/HSM，并升级为多节点门限签名）
-const DATA_DIR = path.join(__dirname, 'data'); fs.mkdirSync(DATA_DIR, { recursive: true });
+const DATA_DIR = Net.DATA_DIR; fs.mkdirSync(DATA_DIR, { recursive: true });
 const MODKEY_F = path.join(DATA_DIR, 'moderator.json');
 function parseSecret(v) { v = String(v).replace(/^\s*MODERATOR_SECRET\s*=\s*/,'').replace(/[\s`'"]/g,''); if (/^[0-9a-fA-F]{128}$/.test(v)) return Buffer.from(v, 'hex'); try { const b = require('bs58').decode(v); if (b.length === 64) return Buffer.from(b); } catch {} const b = Buffer.from(v, 'base64'); if (b.length === 64) return b; throw new Error('MODERATOR_SECRET must be a 64-byte ed25519 secret key (hex/base58/base64)'); }
 let MODKEY;
@@ -42,7 +42,7 @@ const MIN_USD = 1;
 async function solPrice() { const P = await Prices.get(), live = Prices.usable(P, 'SOL');
   return { usd: P.prices.SOL, src: live ? (P.sources.SOL || []).join('+') || 'live' : (P.liveAt?.SOL ? 'stale' : 'fallback'), at: P.at, stale: !live, coins: { ethereum: P.prices.ETH, binancecoin: P.prices.BNB, solana: P.prices.SOL }, staleCoins: P.staleCoins }; }
 const minLamports = usd => Math.ceil(MIN_USD / usd * web3.LAMPORTS_PER_SOL);
-const DB = path.join(__dirname, 'data', 'users.json');
+const DB = path.join(Net.DATA_DIR, 'users.json');
 const conn = new web3.Connection(RPC, 'confirmed');
 const load = () => { try { return JSON.parse(fs.readFileSync(DB)); } catch { return { users: {}, sessions: {} }; } };
 const save = d => { fs.mkdirSync(path.dirname(DB), { recursive: true }); fs.writeFileSync(DB, JSON.stringify(d, null, 2), { mode: 0o600 }); };
@@ -261,7 +261,8 @@ async function gateApi(req, res, url, db) { // 返回 true 表示已处理
     return deny(404, 'nf'), true; }
   return false; }
 setInterval(() => { try { const db = load(), G = gateLoad(); if (gateSweep(db, G)) { Gate.save(G); save(db); } else Gate.save(G); } catch (e) { console.error('gate sweep', e.message); } }, 3600000).unref?.(); // 每小时到期提醒
-const RPCC = new Map();
+const RPCC = new Map(), RPCB = { n: 8, t: Date.now() }; // 令牌桶：公共主网 RPC 每秒最多 8 次上游请求
+const rpcToken = () => { const now = Date.now(); RPCB.n = Math.min(8, RPCB.n + (now - RPCB.t) / 125); RPCB.t = now; if (RPCB.n < 1) return false; RPCB.n--; return true; };
 async function api(req, res, url) {
   const db = load(); Acc.normSessions(db);
   if (url === '/api/rpc' && req.method === 'POST') { // 只读 RPC 中继（同源、无 CORS；可换为索引器）
@@ -269,6 +270,7 @@ async function api(req, res, url) {
     // 缓存：已确认交易不可变（永久缓存，LRU 上限）；签名列表 15s 新鲜，RPC 失败时返回旧数据（stale-if-error）
     const ttl = b.method === 'getTransaction' ? Infinity : b.method === 'getSignaturesForAddress' ? 15000 : 0;
     if (hit && Date.now() - hit.at < ttl) return send(res, 200, { jsonrpc: '2.0', id: b.id, result: hit.result });
+    if (Net.SOL_RPC_PUBLIC && !rpcToken()) { if (hit) return send(res, 200, { jsonrpc: '2.0', id: b.id, result: hit.result }); return send(res, 200, { jsonrpc: '2.0', id: b.id, error: { code: 429, message: 'RPC busy' } }); } // 主网公共 RPC：限流
     try { const r = await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b), signal: AbortSignal.timeout(8000) }); const j = await r.json();
       if (ttl && j && j.result != null && !j.error) { RPCC.set(key, { at: Date.now(), result: j.result }); if (RPCC.size > 3000) RPCC.delete(RPCC.keys().next().value); }
       if (j.error && hit) return send(res, 200, { jsonrpc: '2.0', id: b.id, result: hit.result }); return send(res, 200, j); }
@@ -311,11 +313,12 @@ async function api(req, res, url) {
     const routes = {};
     for (const [id, c] of Object.entries(Acc.CHAINS)) if (Acc.EVM_RECV[c.key]) routes[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: Acc.EVM_RECV_DISPLAY[c.key] };
     return send(res, 200, { receiveLegacy: RC.legacy.sol, receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, priceStale: p.stale, minLamports: minLamports(p.usd), moderator: MOD_PUB,
-    evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV_DISPLAY }, legacy: RC.legacy.evm, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20, wcProjectId: process.env.WC_PROJECT_ID || '', dynamicEnvId: process.env.DYNAMIC_ENV_ID || '' }); } // 都是公开标识，不是密钥 // WalletConnect 项目 ID 是公开标识（不是密钥）；未配置时 WalletConnect 项显示“未配置”
+    evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV_DISPLAY }, legacy: RC.legacy.evm, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20, network: Net.NET, solCluster: Net.SOL_CLUSTER, solChain: Net.SOL_CHAIN, solRpcBrowser: Net.SOL_RPC_BROWSER, custody: Net.CUSTODY, wcProjectId: process.env.WC_PROJECT_ID || '', dynamicEnvId: process.env.DYNAMIC_ENV_ID || '' }); } // 都是公开标识，不是密钥 // WalletConnect 项目 ID 是公开标识（不是密钥）；未配置时 WalletConnect 项显示“未配置”
   if (url === '/api/nonce') return send(res, 200, { nonce: Acc.nonce() });
   if (url === '/api/login/wallet' && req.method === 'POST') { // 钱包签名登录：EVM（personal_sign，EIP-4361 格式）或 Solana（signMessage）；不涉及私钥、不发交易
     const lb = await body(req); let v; try { v = Acc.verifyLogin(lb, allowHost(req)); } catch (e) { return fail(res, e, 401); }
     const uid = v.kind + ':' + v.address;
+    if (!db.users[uid] && v.kind === 'evm' && !Net.CUSTODY) return send(res, 403, { error: 'EVM login is not available on mainnet', code: 'evmMainOff' }); // EVM 账户依赖托管 Solana 密钥代签，主网不提供
     if (!db.users[uid]) { if (v.kind === 'evm') { const kp = web3.Keypair.generate(); db.users[uid] = { evm: v.address, pubkey: kp.publicKey.toBase58(), secret: Buffer.from(kp.secretKey).toString('base64'), created: Date.now() }; } // EVM 账户：愿望记录在 Solana devnet，由托管的 devnet 密钥签名 memo
       else db.users[uid] = { pubkey: v.address, created: Date.now() }; }
     if (db.users[uid].totp?.on && !(lb.totp && Acc.check2fa(db.users[uid], lb.totp))) { save(db); return send(res, 401, { error: '需要两步验证码', code: 'totp', ticket: Acc.issueTicket(uid, 'login') }); } // 签名已通过，第二步：验证码
@@ -474,7 +477,7 @@ async function api(req, res, url) {
       if (b.evm) { if (!U.evm) return BE('param'); const cc = Acc.CHAINS[+b.evm.chainId]; if (!cc || cc.coin !== { ETH: 'ethereum', BNB: 'binancecoin' }[coin]) return BE('coin');
         let ev; try { ev = await Acc.verifyEvmPay(db, b.evm, U.evm, q.price, feeTotalUsd); } catch (e) { return fail(res, e); } save(db); key = key0; usd = ev.usd; amount = Number(BigInt(ev.wei)) / 1e18; chain = 'evm:' + b.evm.chainId; }
       else if (b.pay) { // 托管账户：服务端用该用户的 devnet 密钥签名转账（全额转入收款地址）；大额需改用自有钱包
-        if (!U.secret) return BE('param'); if (!ADS_MOCK && feeTotalUsd >= (U.largeUsd || 20)) return BE('large'); const lam = Math.ceil(q.need * 1e9);
+        if (!U.secret || !Net.CUSTODY) return BE('param'); if (!ADS_MOCK && feeTotalUsd >= (U.largeUsd || 20)) return BE('large'); const lam = Math.ceil(q.need * 1e9);
         const kp = web3.Keypair.fromSecretKey(Buffer.from(U.secret, 'base64')); let memo = 'WTREE1|BG|pay';
         if (v.ok.optPublic) { const at = attest('经典|' + blessing); memo = `WTREE1|W|${at.hash}|${at.ts}|${at.sig}|经典|${blessing}`; }
         try { if (ADS_MOCK) key = adsMockPay(owner, lam); else { const tx = new web3.Transaction().add(web3.SystemProgram.transfer({ fromPubkey: kp.publicKey, toPubkey: RECEIVE, lamports: lam }));
@@ -510,7 +513,7 @@ async function api(req, res, url) {
       const b = await body(req, 2000), id = String(b.id || ''), sol = +b.sol, ad = Ads.load().ads[id]; if (!ad || ad.owner !== owner) return send(res, 403, { error: 'owner', code: 'owner' });
       if (!(sol >= Ads.cfg().minTopupSol) || sol > 1000) return send(res, 400, { error: 'amount', code: 'amount', min: Ads.cfg().minTopupSol });
       const P = ADS_MOCK ? { usd: 0 } : await solPrice(); if (sol * P.usd >= (U.largeUsd || 20)) return send(res, 400, { error: 'large', code: 'large' });
-      if (!U.secret) return send(res, 400, { error: 'not custodial', code: 'param' }); const kp = web3.Keypair.fromSecretKey(Buffer.from(U.secret, 'base64')), lam = Math.round(sol * 1e9);
+      if (!U.secret || !Net.CUSTODY) return send(res, 400, { error: 'not custodial', code: 'param' }); const kp = web3.Keypair.fromSecretKey(Buffer.from(U.secret, 'base64')), lam = Math.round(sol * 1e9);
       let sig; try { sig = ADS_MOCK ? adsMockPay(owner, lam) : await web3.sendAndConfirmTransaction(conn, buildMemoTx(kp.publicKey, 'WTREE1|AD|' + id, lam), [kp], { commitment: 'confirmed' }); }
       catch (e) { return send(res, 200, { error: 'chain', code: 'chain', detail: e.message }); }
       try { if (ADS_MOCK && adsMockFlag('failCredit')) throw new Error('mock record failure'); const r = await Ads.credit(id, owner, sig, 'topup', now); if (r.error) return send(res, 200, { error: 'record', code: 'record', signature: sig, reason: r.error }); return send(res, 200, { ...r, signature: sig, board: Ads.mine(owner, now).board }); }
@@ -538,6 +541,7 @@ async function api(req, res, url) {
     const b = await body(req); if (typeof b.title !== 'string' || !b.title.trim()) return send(res, 400, { error: 'title required', code: 'param' });
     db.sys = db.sys || []; const m = { id: crypto.randomBytes(6).toString('hex'), at: Date.now(), title: b.title.slice(0, 120), body: String(b.body || '').slice(0, 2000) }; db.sys.unshift(m); db.sys.length = Math.min(db.sys.length, 100); save(db); return send(res, 200, { ok: true, id: m.id }); }
   if (url === '/api/login' && req.method === 'POST') { // 演示：仅邮箱，无密码/验证码
+    if (!Net.CUSTODY) return send(res, 403, { error: 'custodial demo is off on mainnet', code: 'custodyOff' }); // 主网：服务器不生成 / 保管私钥
     const { email, totp } = await body(req);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '') || /^(evm|sol):/.test(email)) return send(res, 400, { error: '邮箱格式不正确', code: 'email' });
     if (db.users[email]?.totp?.on) { if (!totp) return send(res, 401, { error: '需要两步验证码', code: 'totp' }); if (!Acc.check2fa(db.users[email], totp)) { save(db); return send(res, 401, { error: '验证码错误', code: 'totpBad' }); } }
@@ -611,6 +615,7 @@ async function api(req, res, url) {
     if (!cur) return send(res, 200, { ok: true }); if (cur.owner !== U.pubkey) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
     delete st.contacts[sig]; Soc.save(st); return send(res, 200, { ok: true }); }
   if (!U.secret) return send(res, 403, { error: 'wallet account: sign with your wallet', code: 'noCustody' });
+  if (!Net.CUSTODY) return send(res, 403, { error: 'custodial demo is off on mainnet', code: 'custodyOff' }); // 主网：平台不替托管账户发交易、无水龙头
   const kp = web3.Keypair.fromSecretKey(Buffer.from(U.secret, 'base64'));
   if (url === '/api/privkey' && req.method === 'POST') return send(res, 200, { key: crypto.createHmac('sha256', Buffer.from(kp.secretKey)).update('WTREE-PRIV1').digest('hex') }); // 托管模式私密卡密钥（服务器可派生 → 托管模式下服务器可解密）
   if (url === '/api/airdrop' && req.method === 'POST') {

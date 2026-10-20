@@ -5,7 +5,7 @@ let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); };
 const SOL = 1e9, H = 3600;
 // ---------- 1. 纯函数（临时数据目录，不写仓库 data/）----------
 const tmpd = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-adsu-')); fs.mkdirSync(path.join(tmpd, 'data'));
-fs.copyFileSync(path.join(__dirname, 'ads.js'), path.join(tmpd, 'ads.js')); const A = require(path.join(tmpd, 'ads.js'));
+for (const f of ['ads.js', 'network.js']) fs.copyFileSync(path.join(__dirname, f), path.join(tmpd, f)); const A = require(path.join(tmpd, 'ads.js'));
 console.log('score');
 ok(near(A.score(1 * SOL, 0, 0), 1) && near(A.score(1 * SOL, 0, 24 * H), 1 / 1.72) && near(A.score(1 * SOL, 0, 72 * H), 1 / 3.16) && near(A.score(1 * SOL, 0, 168 * H), 1 / 6.04), '默认 rate 0.03：1 SOL 在 0h/24h/72h/7d = 1 / 0.581 / 0.316 / 0.166');
 ok(near(A.score(1 * SOL, 0, 1000 * H), 0.1) && near(A.score(2 * SOL, 0, 1000 * H), 0.2), '得分下限 = totalBid × 0.1（长期不追加也不会归零）');

@@ -3,8 +3,8 @@ let W3 = window.solanaWeb3; // web3.js 仅写链时按需加载（~480KB），�
 const needW3 = () => W3 ? Promise.resolve(W3) : (needW3.p ||= new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = WTW.vsrc('vendor/web3.iife.min.js'); sc.onload = () => res(W3 = window.solanaWeb3); sc.onerror = rej; document.head.append(sc); }));
 const TREE = 'pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb', MEMO = 'MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z', TAG = 'WTREE1|';
 const RPC_READ = '/api/rpc'; // 读层：同源中继 → devnet RPC。换索引器（Helius/自建 Geyser）时只需改 loadWishes()
-const RPC_WRITE = 'https://api.devnet.solana.com';
-const EXPLORER = s => `https://explorer.solana.com/tx/${s}?cluster=devnet`;
+let RPC_WRITE = 'https://api.devnet.solana.com'; // 由 /api/config 的 solRpcBrowser 覆盖（NETWORK=mainnet → 主网）
+const EXPLORER = s => `https://explorer.solana.com/tx/${s}${S.cfg?.network === 'mainnet' ? '' : '?cluster=devnet'}`;
 const CATS = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270 }; // 分类 → 色相
 const CAT_KEY = { 经典: 'classic', 风景: 'scenery', 人物: 'people', 动物: 'animals', 卡通: 'cartoon', 物质类: 'material' }; // 链上分类保持中文原值，仅显示时翻译
 const MATERIAL = '物质类', COVER_CATS = ['经典', '风景', '人物', '动物', '卡通']; // 物质类仅为旧卡兼容（显示为心愿卡）
@@ -329,12 +329,14 @@ let nonceP = null, nonceAt = 0; const getNonce = () => { if (!nonceP || Date.now
 const prefetchNonce = () => { if (!nonceP) { nonceAt = Date.now(); nonceP = api('/api/nonce').then(r => r.nonce).catch(() => { nonceP = null; }); } };
 const STMT = 'Sign in to World Tree. This request will not trigger a transaction or cost any fees.';
 // Solana Devnet 引导：Phantom 未开测试网模式时会弹「模式不正确」，关闭后 dApp 只收到拒绝 / 网络类错误 → 显示引导而不是原始报错
-const devHint = () => `<details class=wdev><summary>ⓘ ${E('wal.devShort')} · <u>${E('wal.devHow')}</u></summary><p>${E('wal.devSteps')}</p><p class=muted>${E('wal.devOther')}</p></details>`;
-function devnetGuide() { if ($('#devguide')) return; modal(`<h3 style="margin-top:0" id=devguide>🧪 ${E('wal.devTitle')}</h3><p>${E('wal.devShort')}</p><ol class=devsteps><li>${E('wal.devS1')}</li><li>${E('wal.devS2')}</li><li>${E('wal.devS3')}</li></ol><p class=muted>${E('wal.devOther')}</p><div class=row style="justify-content:flex-end"><button class=primary data-close>${E('wal.devOk')}</button></div>`); }
+const MAINNET = () => S.cfg?.network === 'mainnet';
+const devHint = () => MAINNET() ? '' : `<details class=wdev><summary>ⓘ ${E('wal.devShort')} · <u>${E('wal.devHow')}</u></summary><p>${E('wal.devSteps')}</p><p class=muted>${E('wal.devOther')}</p></details>`;
+function devnetGuide() { if ($('#devguide') || MAINNET()) return; modal(`<h3 style="margin-top:0" id=devguide>🧪 ${E('wal.devTitle')}</h3><p>${E('wal.devShort')}</p><ol class=devsteps><li>${E('wal.devS1')}</li><li>${E('wal.devS2')}</li><li>${E('wal.devS3')}</li></ol><p class=muted>${E('wal.devOther')}</p><div class=row style="justify-content:flex-end"><button class=primary data-close>${E('wal.devOk')}</button></div>`); }
 const isModeErr = (e, m) => /testnet|devnet|test ?network|wrong (network|cluster)|network mismatch|cluster|incorrect mode|not in .*mode|模式|测试网|-32603.*network|unsupported (network|chain)/i.test(m) || e?.code === 4900 || e?.code === 4901;
 function walErr(e) { const m = String(e?.message || e || ''); // 钱包错误 → 本地化提示
   if (e?.code === 'vendorOld') return t('wal.vendorOld');
-  const sol = !S.evmBusy && S.kind !== 'evm'; // Solana 钱包场景（Phantom / MWA / WalletConnect-Solana）
+  if (e?.code === 'custodyOff') return t('err.custodyOff'); if (e?.code === 'evmMainOff') return t('wal.evmMainOff');
+  const sol = !S.evmBusy && S.kind !== 'evm' && !MAINNET(); // Solana 钱包场景（Phantom / MWA / WalletConnect-Solana）
   if (sol && isModeErr(e, m)) { setTimeout(devnetGuide, 0); return t('wal.devGeneric'); }
   if (e?.code === 4001 || e?.code === 'ACTION_REJECTED' || /reject|denied|cancel|declin/i.test(m)) return sol ? t('wal.devRejected') : t('wal.rejected');
   if (/chain id|chainid|chain_id/i.test(m) || e?.code === 'chainId') return t('wal.chainMismatch');
@@ -494,7 +496,7 @@ function paintWstat() { const el = $('#wstat'); if (!el) return; const addr = S.
   el.hidden = true; }
 function renderMode() {
   const m = { guest: `<span class="badge">${esc(t('mode.guest'))}</span>`, self: `<span class="badge b-self">${esc(t('mode.self', { wallet: S.wallet?.name || (WTW.solWallets().find(w => w.id === localStorage.wt_wallet)?.name) || 'Solana', addr: short(S.pubkey) }))}</span>`, host: `<span class="badge b-host">${esc(S.kind === 'evm' ? t('mode.evm', { addr: short(S.evmAddr || ''), sol: short(S.pubkey) }) : t('mode.host', { email: S.email, addr: short(S.pubkey) }))}</span>` }[S.mode];
-  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.wallet'))}</button>${WTW.ui.email ? `<button id=be class=mlink>${esc(t('btn.email'))}</button>` : ''}` : (S.mode === 'host' ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + (S.kind === 'evm' || S.mode === 'self' ? `<button id=bsw class=mlink>${esc(t('wal.switchAcct'))}</button>` : '') + `<button id=bo class=mlink>${esc(t(S.mode === 'self' || S.kind === 'evm' ? 'wal.disconnect' : 'btn.logout'))}</button>`);
+  $('#mode').innerHTML = m + (S.mode === 'guest' ? `<button id=bp class=mlink>${esc(t('btn.wallet'))}</button>${WTW.ui.email ? `<button id=be class=mlink>${esc(t('btn.email'))}</button>` : ''}` : (S.mode === 'host' && S.cfg.custody !== false ? `<button id=ba class=mlink>${esc(t('btn.airdrop'))}</button>` : '') + (S.kind === 'evm' || S.mode === 'self' ? `<button id=bsw class=mlink>${esc(t('wal.switchAcct'))}</button>` : '') + `<button id=bo class=mlink>${esc(t(S.mode === 'self' || S.kind === 'evm' ? 'wal.disconnect' : 'btn.logout'))}</button>`);
   paintWstat(); paintAcard();
   $('#bp')?.addEventListener('click', () => connectWallet()); $('#be')?.addEventListener('click', () => emailLogin()); $('#bo')?.addEventListener('click', logout); $('#bsw')?.addEventListener('click', () => switchAccount().catch(e => toast(esc(walErr(e)), 'err'))); $('#ba')?.addEventListener('click', airdrop);
 }
@@ -1642,7 +1644,7 @@ addEventListener('langchange', () => { renderMode(); if (window.WT3D?.relabel) W
 if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.hostname) || QS.get('sw') === '1') navigator.serviceWorker?.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
 (async () => {
   await I18N.ready; renderMode(); WTW.initMwa().then(ok => { if (ok && $('.wlist')) connectWallet(localStorage.wt_wtab); }); // Android Chrome：注册 Mobile Wallet Adapter（面板已打开则刷新列表）
-  const cfgP = fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); WTW.cfg.wcProjectId = c.wcProjectId || ''; WTW.cfg.dynamicEnvId = c.dynamicEnvId || ''; WTW.cfg.evmRpc = id => evmChains()[id]?.rpc || ''; WTW.cfg.evmChainIds = () => Object.keys(evmChains()).map(Number); }).catch(() => {}); cfgP.then(() => fetch('/api/rules')).then(r => r.json()).then(r => S.words = r.words).catch(() => {});
+  const cfgP = fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); if (c.solRpcBrowser) RPC_WRITE = c.solRpcBrowser; WTW.cfg.network = c.network || 'testnet'; WTW.cfg.solChain = c.solChain || 'solana:devnet'; if (window.I18N && I18N.net !== WTW.cfg.network) { I18N.net = WTW.cfg.network; I18N.apply?.(); } WTW.cfgDone?.(); WTW.cfg.wcProjectId = c.wcProjectId || ''; WTW.cfg.dynamicEnvId = c.dynamicEnvId || ''; WTW.cfg.evmRpc = id => evmChains()[id]?.rpc || ''; WTW.cfg.evmChainIds = () => Object.keys(evmChains()).map(Number); }).catch(() => {}); cfgP.then(() => fetch('/api/rules')).then(r => r.json()).then(r => S.words = r.words).catch(() => {});
   cfgP.then(() => dynResume());
   addEventListener('wt:mwa-notfound', () => toast(esc(t('wal.mwaNone')), 'err'));
   // 自动重连：本地存了上次的钱包与公钥 → 页面加载时先静默重连（Phantom / Solflare 等注入钱包用 connect({onlyIfTrusted:true})；MWA 用缓存的 authToken；WalletConnect 恢复已有会话），不弹窗

@@ -6,7 +6,7 @@ const nacl = require('tweetnacl');
 const MATERIAL = '物质类';
 const FULFILL_FUND_BPS = Math.max(0, Math.min(10000, parseInt(process.env.FULFILL_FUND_BPS || '2000', 10) || 2000)); // 占总支付比例，默认 2000 = 20%（无 20/80 拆分后按全额计）
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = require('./network').DATA_DIR;
 const FUL_F = path.join(DATA_DIR, 'fulfillments.json');
 const LEDGER_F = path.join(DATA_DIR, 'fund-ledger.json');
 const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z');
@@ -112,7 +112,7 @@ function signFulfill(modKey, wishSig, note) {
 }
 
 function parseHotWallet() {
-  const raw = process.env.FULFILL_HOT_WALLET;
+  const raw = process.env[require('./network').HOT_WALLET_ENV]; // 主网只读 FULFILL_HOT_WALLET_MAINNET（未配则不发打赏 / 备注）
   if (!raw) return null;
   try {
     const v = String(raw).replace(/[\s`'"]/g, '');

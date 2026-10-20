@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process'), assert = require('assert');
 process.env.DOMAINS_ENSURE = ''; // 其余用例假定干净的默认种子；DOMAINS_ENSURE 在末尾单独测
 let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); }; const throws = (f, code, m) => { let c = null; try { f(); } catch (e) { c = e.code; } ok(c === code, m); };
-console.log('domains list'); const tmpd = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-dom-')); fs.mkdirSync(path.join(tmpd, 'data')); fs.copyFileSync(path.join(__dirname, 'domains.js'), path.join(tmpd, 'domains.js'));
+console.log('domains list'); const tmpd = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-dom-')); fs.mkdirSync(path.join(tmpd, 'data')); for (const f of ['domains.js', 'network.js']) fs.copyFileSync(path.join(__dirname, f), path.join(tmpd, f));
 const Dm = require(path.join(tmpd, 'domains.js'));
 let L = Dm.list(); ok(L.domains.length === 1 && L.domains[0].host === 'world-tree.pages.dev' && L.domains[0].primary && L.domains[0].status === 'active', '默认种子：world-tree.pages.dev 为主域 active');
 Dm.add('B.Example.com', 'standby'); Dm.add('https://c.example.com/', 'active'); L = Dm.list(); ok(L.domains.map(d => d.host).join() === 'world-tree.pages.dev,b.example.com,c.example.com' && L.updatedAt > 0, '增加域名：小写、去协议与斜杠，主域排最前');
@@ -65,7 +65,7 @@ Dm.reset(); ok(Dm.list().domains.length === 2, '持久化：重新加载后清�
     const raw = JSON.parse(fs.readFileSync(tmp + '/data/domains.json', 'utf8')); ok(raw.domains['new.example.com'].primary === true && !raw.domains['world-tree.pages.dev'], '清单已落盘 data/domains.json（persist.js 同步 D1）');
     ok(/domains\.json/.test(fs.readFileSync(path.join(__dirname, 'persist.js'), 'utf8')), 'persist.js 已纳入 domains.json');
   } finally { srv.kill(); }
-  { console.log('ensure'); const td = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-ens-')); fs.mkdirSync(td + '/data'); fs.copyFileSync(path.join(__dirname, 'domains.js'), td + '/domains.js');
+  { console.log('ensure'); const td = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-ens-')); fs.mkdirSync(td + '/data'); for (const f of ['domains.js', 'network.js']) fs.copyFileSync(path.join(__dirname, f), td + '/' + f);
     fs.writeFileSync(td + '/data/domains.json', JSON.stringify({ domains: { 'old.example.com': { status: 'active', primary: true, note: '', at: 1 }, 'guangqi.world': { status: 'blocked', primary: false, note: '', at: 1 } }, updatedAt: 1 }));
     const r = cp.spawnSync('node', ['-e', "const D=require('./domains.js');console.log(JSON.stringify(D.list().domains));console.log(D.originOk('https://guangqi.world'),D.originOk('https://www.guangqi.world'),D.originOk('https://evil-guangqi.world'))"], { cwd: td, env: { ...process.env, DOMAINS_ENSURE: 'guangqi.world,www.guangqi.world' }, encoding: 'utf8' });
     const [l1, l2] = r.stdout.trim().split('\n'), L2 = JSON.parse(l1);

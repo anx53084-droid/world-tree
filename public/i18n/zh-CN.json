@@ -1018,5 +1018,20 @@
   "wal.devS3": "网络选择 Solana Devnet，然后回到本站重试",
   "wal.devOk": "知道了",
   "wal.devGeneric": "请确认钱包处于 Solana Devnet 测试网后重试",
-  "wal.devRejected": "已取消。如果钱包提示「模式不正确」，请先开启测试网模式（设置 → 开发者设置 → 测试网模式 → Solana Devnet）再重试"
+  "wal.devRejected": "已取消。如果钱包提示「模式不正确」，请先开启测试网模式（设置 → 开发者设置 → 测试网模式 → Solana Devnet）再重试",
+  "footer@main": "Solana 主网 · 链上数据为唯一事实来源 · 资金由你的钱包直接转给收款地址，本站不托管资金",
+  "help.riskBody@main": "本站运行于 Solana 主网，所有支付都是真实资产，上链后不可撤销、不可退款。链上内容公开且无法删除；本站可在前端隐藏违规内容，但无法从链上抹除。",
+  "terms.1@main": "本站为非托管前端：所有写入都由你自己的钱包签名，网络费由你的钱包支付，区块链是唯一事实来源。",
+  "terms.7@main": "主网不提供托管模式：本站不生成、不保管任何私钥，也不代你发起交易。",
+  "terms.8@main": "当前运行于 Solana 主网，涉及真实资产；礼品卡与团购的卡片价值仅作记录，本站不收取、不保管、不负责兑现。",
+  "route.offline@main": "无法连接 Solana RPC（{msg}），当前显示离线示例数据",
+  "mode.evm@main": "⬡ EVM 钱包 · {addr} · Solana {sol}",
+  "wal.solHint@main": "用 Phantom 或手机钱包连接；心愿记录在 Solana 主网。",
+  "wal.evmHint@main": "用 EVM 钱包签名登录（BNB Chain、Base、Ethereum、Arbitrum），心愿记录在 Solana 主网。",
+  "wal.evmPayOff@main": "主网暂不支持用 EVM 支付制作心愿卡，请使用 Solana 钱包。",
+  "wish.payEvm@main": "EVM 主网",
+  "wish.paySol@main": "Solana 主网",
+  "help.hostBody@main": "主网不提供托管演示模式：请使用你自己的 Solana 钱包（如 Phantom）。",
+  "err.custodyOff": "主网不提供邮箱托管账户，请连接你自己的钱包",
+  "wal.evmMainOff": "主网暂不支持 EVM 钱包登录，请使用 Solana 钱包（如 Phantom）"
 }

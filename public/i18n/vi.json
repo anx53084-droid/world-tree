@@ -1018,5 +1018,20 @@
   "wal.devS3": "Chọn mạng Solana Devnet rồi quay lại thử lại",
   "wal.devOk": "Đã hiểu",
   "wal.devGeneric": "Hãy kiểm tra ví đang ở Solana Devnet rồi thử lại",
-  "wal.devRejected": "Đã hủy. Nếu ví báo “chế độ không đúng”, hãy bật Chế độ Testnet (Cài đặt → Cài đặt nhà phát triển → Chế độ Testnet → Solana Devnet) rồi thử lại"
+  "wal.devRejected": "Đã hủy. Nếu ví báo “chế độ không đúng”, hãy bật Chế độ Testnet (Cài đặt → Cài đặt nhà phát triển → Chế độ Testnet → Solana Devnet) rồi thử lại",
+  "footer@main": "Solana mainnet · Dữ liệu on-chain là nguồn sự thật duy nhất · Tiền chuyển thẳng từ ví của bạn tới địa chỉ nhận; trang không giữ tiền",
+  "help.riskBody@main": "Trang này chạy trên Solana mainnet. Mọi khoản thanh toán đều là tài sản thật, không thể hủy hay hoàn tiền sau khi lên chuỗi. Nội dung on-chain công khai và không thể xóa; trang có thể ẩn nội dung vi phạm trên giao diện nhưng không thể xóa khỏi chuỗi.",
+  "terms.1@main": "Trang này là giao diện phi lưu ký: mọi thao tác ghi đều do ví của chính bạn ký, phí mạng do ví của bạn trả, và blockchain là nguồn sự thật duy nhất.",
+  "terms.7@main": "Mainnet không có chế độ lưu ký: trang không tạo hay lưu khóa riêng và không gửi giao dịch thay bạn.",
+  "terms.8@main": "Chạy trên Solana mainnet với tài sản thật. Giá trị thẻ quà tặng và quà nhóm chỉ để ghi nhận; trang không thu, không giữ và không quy đổi.",
+  "route.offline@main": "Không thể kết nối Solana RPC ({msg}); đang hiển thị dữ liệu mẫu ngoại tuyến",
+  "mode.evm@main": "⬡ Ví EVM · {addr} · Solana {sol}",
+  "wal.solHint@main": "Kết nối bằng Phantom hoặc ví di động. Điều ước được ghi trên Solana mainnet.",
+  "wal.evmHint@main": "Đăng nhập bằng ví EVM (BNB Chain, Base, Ethereum, Arbitrum). Điều ước được ghi trên Solana mainnet.",
+  "wal.evmPayOff@main": "Trên mainnet chưa hỗ trợ trả phí thẻ điều ước bằng EVM; hãy dùng ví Solana.",
+  "wish.payEvm@main": "EVM mainnet",
+  "wish.paySol@main": "Solana mainnet",
+  "help.hostBody@main": "Mainnet không có chế độ demo lưu ký: hãy dùng ví Solana của riêng bạn (như Phantom).",
+  "err.custodyOff": "Mainnet không có tài khoản lưu ký bằng email. Hãy kết nối ví của bạn",
+  "wal.evmMainOff": "Mainnet chưa hỗ trợ đăng nhập ví EVM. Hãy dùng ví Solana (như Phantom)"
 }

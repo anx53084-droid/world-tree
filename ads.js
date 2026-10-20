@@ -4,7 +4,7 @@
 //   hoursOnline 自「首次上线（第一笔出价确认）」起算；totalBid 跨追加累计；追加后立即重算。
 // 统计仅为计数器：不存 IP、地址、UA 等个人数据。持久化经 persist.js 同步 D1（kv 表）。
 const fs = require('fs'), path = require('path');
-const F = path.join(__dirname, 'data', 'ads.json'), PAGE = 100, STEP = 5, SLOTS = PAGE / STEP, MAX_KEYS = 20000, LAM = 1e9;
+const F = path.join(require('./network').DATA_DIR, 'ads.json'), PAGE = 100, STEP = 5, SLOTS = PAGE / STEP, MAX_KEYS = 20000, LAM = 1e9;
 const DEF = { rate: 0.03, floor: 0.1, intervalMin: 15, cap: 3, minTopupSol: 0.01 };
 let D = null;
 const load = () => D || (D = (() => { try { const j = JSON.parse(fs.readFileSync(F, 'utf8')); return { ads: j.ads || {}, stats: j.stats || {}, cfg: j.cfg || {}, paid: j.paid || {} }; } catch { return { ads: {}, stats: {}, cfg: {}, paid: {} }; } })());

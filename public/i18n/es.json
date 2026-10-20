@@ -1018,5 +1018,20 @@
   "wal.devS3": "Elige Solana Devnet como red y vuelve a intentarlo aquí",
   "wal.devOk": "Entendido",
   "wal.devGeneric": "Asegúrate de que tu wallet está en Solana Devnet e inténtalo de nuevo",
-  "wal.devRejected": "Cancelado. Si la wallet indicó «modo incorrecto», activa el modo testnet (Ajustes → Ajustes de desarrollador → Modo testnet → Solana Devnet) e inténtalo de nuevo"
+  "wal.devRejected": "Cancelado. Si la wallet indicó «modo incorrecto», activa el modo testnet (Ajustes → Ajustes de desarrollador → Modo testnet → Solana Devnet) e inténtalo de nuevo",
+  "footer@main": "Solana mainnet · Los datos en cadena son la única fuente de verdad · Los fondos van directamente de tu wallet a la dirección receptora; este sitio no custodia fondos",
+  "help.riskBody@main": "Este sitio funciona en Solana mainnet. Todos los pagos usan activos reales y son irreversibles y no reembolsables una vez en cadena. El contenido en cadena es público y no se puede borrar; el sitio puede ocultar contenido infractor en la interfaz, pero no eliminarlo de la cadena.",
+  "terms.1@main": "Este sitio es una interfaz no custodial: cada escritura la firma tu propia wallet, las comisiones de red las paga tu wallet y la blockchain es la única fuente de verdad.",
+  "terms.7@main": "En mainnet no hay modo custodial: este sitio no genera ni guarda claves privadas ni envía transacciones por ti.",
+  "terms.8@main": "Funciona en Solana mainnet con activos reales. El valor de las tarjetas regalo y regalos grupales es solo un registro; el sitio no lo cobra, custodia ni canjea.",
+  "route.offline@main": "No se puede conectar con el RPC de Solana ({msg}); se muestran datos de ejemplo sin conexión",
+  "mode.evm@main": "⬡ Wallet EVM · {addr} · Solana {sol}",
+  "wal.solHint@main": "Conéctate con Phantom o una wallet móvil. Los deseos se registran en Solana mainnet.",
+  "wal.evmHint@main": "Inicia sesión con una wallet EVM (BNB Chain, Base, Ethereum, Arbitrum). Los deseos se registran en Solana mainnet.",
+  "wal.evmPayOff@main": "Pagar tarjetas de deseo con EVM aún no está disponible en mainnet; usa una wallet de Solana.",
+  "wish.payEvm@main": "EVM mainnet",
+  "wish.paySol@main": "Solana mainnet",
+  "help.hostBody@main": "En mainnet no hay modo demo custodial: usa tu propia wallet de Solana (como Phantom).",
+  "err.custodyOff": "Las cuentas custodiales por correo no están disponibles en mainnet. Conecta tu propia wallet",
+  "wal.evmMainOff": "El inicio de sesión con wallet EVM aún no está disponible en mainnet. Usa una wallet de Solana (como Phantom)"
 }

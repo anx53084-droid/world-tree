@@ -1018,5 +1018,20 @@
   "wal.devS3": "Ağ olarak Solana Devnet’i seçin, sonra geri dönüp tekrar deneyin",
   "wal.devOk": "Anladım",
   "wal.devGeneric": "Lütfen cüzdanın Solana Devnet’te olduğundan emin olup tekrar deneyin",
-  "wal.devRejected": "İptal edildi. Cüzdan “yanlış mod” dediyse Test Ağı Modu’nu açın (Ayarlar → Geliştirici Ayarları → Test Ağı Modu → Solana Devnet) ve tekrar deneyin"
+  "wal.devRejected": "İptal edildi. Cüzdan “yanlış mod” dediyse Test Ağı Modu’nu açın (Ayarlar → Geliştirici Ayarları → Test Ağı Modu → Solana Devnet) ve tekrar deneyin",
+  "footer@main": "Solana ana ağı · Zincir üstü veri tek doğruluk kaynağıdır · Fonlar cüzdanınızdan doğrudan alıcı adrese gider; bu site fon tutmaz",
+  "help.riskBody@main": "Bu site Solana ana ağında çalışır. Tüm ödemeler gerçek varlıklarla yapılır ve zincire yazıldıktan sonra geri alınamaz, iade edilmez. Zincir üstü içerik herkese açıktır ve silinemez; site ihlal içeren içeriği arayüzde gizleyebilir ama zincirden silemez.",
+  "terms.1@main": "Bu site gözetimsiz bir arayüzdür: her kayıt kendi cüzdanınızla imzalanır, ağ ücretlerini cüzdanınız öder ve blokzincir tek doğruluk kaynağıdır.",
+  "terms.7@main": "Ana ağda gözetimli mod yoktur: bu site özel anahtar oluşturmaz, saklamaz ve sizin adınıza işlem göndermez.",
+  "terms.8@main": "Solana ana ağında gerçek varlıklarla çalışır. Hediye kartı ve grup hediyesi değerleri yalnızca kayıttır; site bunları tahsil etmez, saklamaz veya bozdurmaz.",
+  "route.offline@main": "Solana RPC’ye bağlanılamıyor ({msg}); çevrimdışı örnek veriler gösteriliyor",
+  "mode.evm@main": "⬡ EVM cüzdanı · {addr} · Solana {sol}",
+  "wal.solHint@main": "Phantom veya mobil cüzdanla bağlanın. Dilekler Solana ana ağına kaydedilir.",
+  "wal.evmHint@main": "EVM cüzdanıyla giriş yapın (BNB Chain, Base, Ethereum, Arbitrum). Dilekler Solana ana ağına kaydedilir.",
+  "wal.evmPayOff@main": "Ana ağda dilek kartı ödemesi EVM ile henüz yapılamıyor; lütfen bir Solana cüzdanı kullanın.",
+  "wish.payEvm@main": "EVM ana ağı",
+  "wish.paySol@main": "Solana ana ağı",
+  "help.hostBody@main": "Ana ağda gözetimli demo modu yoktur: lütfen kendi Solana cüzdanınızı (ör. Phantom) kullanın.",
+  "err.custodyOff": "Ana ağda e-posta ile gözetimli hesap yoktur. Lütfen kendi cüzdanınızı bağlayın",
+  "wal.evmMainOff": "Ana ağda EVM cüzdanıyla giriş henüz yok. Lütfen bir Solana cüzdanı (ör. Phantom) kullanın"
 }

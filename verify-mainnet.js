@@ -1,0 +1,54 @@
+// NETWORK=mainnet 本地冒烟测试：只在本机起服务、不连接主网、不发任何交易（价格用 PRICE_MOCK，D1 关闭）。
+const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process'), assert = require('assert'), nacl = require('tweetnacl'), bs58 = require('bs58');
+const { secp256k1 } = require('@noble/curves/secp256k1'), { keccak_256 } = require('@noble/hashes/sha3'); const b58 = bs58.default || bs58;
+let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); }; const D = __dirname;
+const node = (env, code) => JSON.parse(cp.execFileSync('node', ['-e', code], { cwd: D, env: { ...process.env, D1_API_TOKEN: '', ...env } }).toString());
+(async () => {
+  console.log('config modules');
+  const tn = node({ NETWORK: '' }, "const N=require('./network'),R=require('./receive-config');console.log(JSON.stringify({net:N.NET,rpc:N.SOL_RPC,chains:Object.keys(N.EVM_CHAINS),evm:Object.keys(R.evm),dir:N.DATA_DIR}))");
+  ok(tn.net === 'testnet' && /devnet/.test(tn.rpc) && tn.chains.includes('84532') && tn.evm.includes('base') && tn.dir === path.join(D, 'data'), '默认 NETWORK=testnet：devnet RPC、测试网链、原数据目录（不变）');
+  const mn = node({ NETWORK: 'mainnet', SOLANA_RPC_MAINNET: '' }, "const N=require('./network'),R=require('./receive-config'),A=require('./account');console.log(JSON.stringify({net:N.NET,rpc:N.SOL_RPC,pub:N.SOL_RPC_PUBLIC,chains:Object.keys(A.CHAINS),evm:R.evm,sol:R.sol.address,legacy:R.legacy,dir:N.DATA_DIR,pre:N.D1_PREFIX,custody:N.CUSTODY,hot:N.HOT_WALLET_ENV}))");
+  ok(mn.net === 'mainnet' && mn.rpc === 'https://api.mainnet-beta.solana.com' && mn.pub, '主网：未配 SOLANA_RPC_MAINNET → 公共主网 RPC（中继限流）');
+  ok(node({ NETWORK: 'mainnet', SOLANA_RPC_MAINNET: 'https://example-rpc.invalid/k' }, "console.log(JSON.stringify(require('./network')))").SOL_RPC === 'https://example-rpc.invalid/k', '主网：SOLANA_RPC_MAINNET 覆盖 RPC');
+  ok(JSON.stringify(mn.chains.sort()) === JSON.stringify(['1', '42161', '56', '8453']), 'EVM 主网链 ID：Ethereum 1 / BNB 56 / Base 8453 / Arbitrum 42161');
+  ok(mn.sol === 'FPKFevoHzjPZWjWaRxwFwfNXu2LBduoGspXZSCLU81yz' && mn.evm.eth.address === '0xbfa2C12D28838bEA6C92645c195fAa907182ECed' && mn.evm.bsc.address === '0x71c04f3C4922d1A6FA2724428d4E2c51f5445837', '主网收款：Squads / Safe 多签（receive-config CONFIG_MAINNET）');
+  ok(!mn.evm.base && !mn.evm.arb && !mn.evm.uni && !mn.legacy.sol.length, 'Base / Arbitrum 主网收款地址未填 → 不收款；无测试网历史地址');
+  ok(mn.dir === path.join(D, 'data', 'mainnet') && mn.pre === 'mainnet:' && mn.custody === false && mn.hot === 'FULFILL_HOT_WALLET_MAINNET', '主网数据单独存放（data/mainnet + D1 前缀），托管关闭，打赏热钱包只读主网专用变量');
+  console.log('server smoke (NETWORK=mainnet)');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-main-')), port = 18951, Bs = 'http://127.0.0.1:' + port;
+  for (const f of fs.readdirSync(D)) if (/\.(js|json)$/.test(f) && !/^verify/.test(f) && f !== 'package-lock.json') fs.copyFileSync(path.join(D, f), path.join(tmp, f)); fs.symlinkSync(D + '/node_modules', tmp + '/node_modules'); fs.symlinkSync(D + '/public', tmp + '/public'); fs.mkdirSync(tmp + '/data', { recursive: true });
+  fs.writeFileSync(tmp + '/data/prices-mock.json', JSON.stringify({ SOL: 150, ETH: 3000, BNB: 600 })); fs.writeFileSync(tmp + '/data/users.json', JSON.stringify({ users: { 'old@test.dev': { pubkey: 'X', created: 1 } }, sessions: {} }));
+  const start = net => cp.spawn('node', ['server.js'], { cwd: tmp, env: { ...process.env, PORT: port, NETWORK: net, SOLANA_RPC_MAINNET: '', ADMIN_KEY: 'k', D1_API_TOKEN: '', PRICE_MOCK: '1' }, stdio: 'ignore' });
+  const up = async () => { for (let i = 0; i < 80; i++) { try { await fetch(Bs + '/api/health'); return; } catch { await new Promise(r => setTimeout(r, 250)); } } };
+  const call = async (p, b, h = {}) => { const r = await fetch(Bs + p, { method: b ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...h }, body: b ? JSON.stringify(b) : undefined }); let j = {}; try { j = await r.json(); } catch {} return { s: r.status, j }; };
+  let srv = start('mainnet'), br; try { await up();
+    const c = (await call('/api/config')).j; ok(c.network === 'mainnet' && c.solCluster === 'mainnet-beta' && c.solChain === 'solana:mainnet' && c.custody === false && c.solRpcBrowser === 'https://api.mainnet-beta.solana.com', '/api/config：network / cluster / chain / custody=false 给前端');
+    ok(Object.keys(c.evm.chains).sort().join() === '1,42161,56,8453' && Object.keys(c.evm.routes).sort().join() === 'bsc,eth' && c.receive === 'FPKFevoHzjPZWjWaRxwFwfNXu2LBduoGspXZSCLU81yz', '/api/config：EVM 主网链与收款路由（只含已部署 Safe 的 eth / bsc）');
+    ok(c.solUsd === 150 && c.minLamports > 0, '报价：服务端价格源（此处为 mock）换算最低金额');
+    let x = await call('/api/login', { email: 'new@test.dev' }); ok(x.s === 403 && x.j.code === 'custodyOff', '主网：邮箱托管登录关闭（不生成 / 保管私钥）');
+    ok(!fs.existsSync(tmp + '/data/mainnet/users.json') || !JSON.stringify(JSON.parse(fs.readFileSync(tmp + '/data/mainnet/users.json'))).includes('secret'), '主网数据中没有任何私钥');
+    const host = '127.0.0.1:' + port, msg = (kind, addr, nonce, cid) => `${host} wants you to sign in with your ${kind} account:\n${addr}\n\nSign in to World Tree.\n\nURI: http://${host}\nVersion: 1\n${cid ? 'Chain ID: ' + cid + '\n' : ''}Nonce: ${nonce}\nIssued At: ${new Date().toISOString()}`;
+    const PK = keccak_256(new TextEncoder().encode('wt-main-evm')), EA = '0x' + Buffer.from(keccak_256(secp256k1.getPublicKey(PK, false).slice(1)).slice(-20)).toString('hex');
+    let m = msg('Ethereum', EA, (await call('/api/nonce')).j.nonce, 1), mb = Buffer.from(m), h = keccak_256(Buffer.concat([Buffer.from('\x19Ethereum Signed Message:\n' + mb.length), mb])), sg = secp256k1.sign(h, PK);
+    x = await call('/api/login/wallet', { message: m, signature: '0x' + sg.toCompactHex() + (27 + sg.recovery).toString(16) }); ok(x.s === 403 && x.j.code === 'evmMainOff', '主网：EVM 登录（依赖托管 Solana 密钥代签）关闭');
+    const kp = nacl.sign.keyPair(), sa = b58.encode(kp.publicKey); m = msg('Solana', sa, (await call('/api/nonce')).j.nonce, 'mainnet');
+    x = await call('/api/login/wallet', { message: m, signature: b58.encode(nacl.sign.detached(Buffer.from(m), kp.secretKey)) }); ok(x.s === 200 && x.j.token, '主网：Solana 自托管钱包签名登录正常');
+    const tk = { authorization: 'Bearer ' + x.j.token }; x = await call('/api/airdrop', {}, tk); ok(x.s === 403 && !x.j.signature, '主网：/api/airdrop 水龙头不可用');
+    x = await call('/api/memo', { memo: 'x' }, tk); ok(x.s === 403, '主网：平台不替任何账户代签 / 发交易');
+    ok(fs.existsSync(tmp + '/data/mainnet/users.json') && JSON.parse(fs.readFileSync(tmp + '/data/mainnet/users.json')).users['sol:' + sa] && !JSON.parse(fs.readFileSync(tmp + '/data/users.json')).users['sol:' + sa], '主网用户写入 data/mainnet/，测试网数据文件不受影响');
+    console.log('frontend (mainnet)');
+    const { chromium } = require('playwright'); br = await chromium.launch(); const pg = await (await br.newContext({ viewport: { width: 412, height: 860 } })).newPage(); await pg.addInitScript(() => { localStorage.gq_guide_dismissed = '1'; });
+    const errs = []; pg.on('pageerror', e => errs.push(e.message));
+    await pg.route(/api\.mainnet-beta\.solana\.com/, r => r.abort()); await pg.goto(Bs + '/?lang=zh-CN'); await pg.waitForFunction(() => window.WTW?.cfg?.network === 'mainnet', null, { timeout: 60000 });
+    ok(await pg.evaluate(() => WTW.cfg.solChain === 'solana:mainnet' && RPC_WRITE === 'https://api.mainnet-beta.solana.com' && !/cluster/.test(EXPLORER('abc'))), '前端：钱包 chain = solana:mainnet，发送 RPC 与浏览器链接为主网');
+    await pg.evaluate(() => connectWallet()); await pg.waitForSelector('.wlist'); ok(!(await pg.$('.wdev')) && !/devnet|测试网/i.test(await pg.textContent('#modal-box')), '主网：钱包弹窗无 Devnet 提示');
+    ok(await pg.evaluate(() => walErr({ code: 4001 }) === t('wal.rejected') && !document.querySelector('#devguide')), '主网：拒绝等错误不再显示 Devnet 引导');
+    const ft = await pg.evaluate(() => [t('footer'), t('terms.8'), t('wish.paySol'), t('route.offline', { msg: '' })].join(' ')); ok(/主网/.test(ft) && !/devnet|测试网/i.test(ft), '主网：文案切换为主网措辞（@main 变体）');
+    ok(!errs.length, '页面无 JS 错误 ' + errs.join('|'));
+  } finally { await br?.close(); srv.kill(); }
+  console.log('rollback (NETWORK=testnet)'); await new Promise(r => setTimeout(r, 500)); srv = start('testnet'); try { await up();
+    const c = (await call('/api/config')).j; ok(c.network === 'testnet' && c.solCluster === 'devnet' && c.custody === true, '回滚：NETWORK=testnet → devnet 配置恢复');
+    ok(JSON.parse(fs.readFileSync(tmp + '/data/users.json')).users['old@test.dev'], '回滚：原测试网数据仍在');
+  } finally { srv.kill(); }
+  console.log(`\n✅ ${n} checks passed`); process.exit(0);
+})().catch(e => { console.error('\n❌', e.message); process.exit(1); });

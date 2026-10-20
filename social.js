@@ -1,7 +1,7 @@
 // 交友卡 / 礼品卡：链下元数据（联系方式、邀请、密码哈希、礼品索引、粗粒度位置备份）。持久化经 persist.js → D1。
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), bs58 = require('bs58');
 const b58 = bs58.default || bs58;
-const F = path.join(__dirname, 'data', 'social.json');
+const F = path.join(require('./network').DATA_DIR, 'social.json');
 const VIS = { P: 'public', N: 'nearby', R: 'recent', I: 'invite', L: 'locked' };
 const DEL = { T: 'tree', O: 'off', B: 'both' };
 function load() {
