@@ -37,14 +37,15 @@ const D = __dirname, SHOTS = process.env.SHOTS, IMGS = { cover: '/tmp/cs-cover.p
       await p.locator('#pvBody').scrollIntoViewIfNeeded(); await p.evaluate(() => window.scrollBy(0, -60)); await p.waitForTimeout(300); await p.screenshot({ path: SHOTS + `/t241-${nm}-preview.png` }); }
     await p.selectOption('#wc2', '经典'); await p.waitForTimeout(300); ok((await p.$$eval('#ctype option', o => o.map(x => x.value))).join() === 'single,folded', '非自定义主题：仍为 单张 / 折页 两项');
     const mk = (sig, id, o) => ({ sig, id, cat: '经典', hue: 40, author: A.pubkey, text: '愿家人平安喜乐，新的一年万事顺遂。', likes: 2, blessings: [], likers: [], vis: 'public', deliver: 'tree', kind: 'wish', cover: 0, cimg: H, ts: Date.now() / 1000, time: Math.floor(Date.now() / 1000), ...o });
-    for (const [nm, o, sel] of [['overlay', { ustyle: 'o' }, '.cflip.one .cf-over'], ['split', {}, '.cflip.flipped .cf-back'], ['folded', { folded: true, inside: 1, bimg: H2 }, '.fold.open .fold-back-img']]) {
+    for (const [nm, o, sel] of [['overlay', { ustyle: 'o' }, '.qv-page.qv-inner.on .cf-over'], ['split', {}, '.qv-page.qv-inner.on .fold-inbody'], ['folded', { folded: true, inside: 1, bimg: H2 }, '.qv-page.qv-inner.on']]) {
       p = await page(A); await p.goto(Bs + '/?lang=zh-CN#/'); await p.reload(); await p.waitForTimeout(5000);
       const sig = 'CS' + nm + crypto.randomBytes(8).toString('hex');
-      const id = await p.evaluate(w => { w.likers = new Set(); w.id = S.wishes.reduce((m, x) => Math.max(m, x.id || 0), 0) + 1; S.wishes.push(w); WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); return w.id; }, mk(sig, 0, o));
+      const id = await p.evaluate(w => { w.likers = new Set(); w.id = S.wishes.reduce((m, x) => Math.max(m, x.id || 0), 0) + 1; window.__cw = w; S.wishes.push(w); WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); return w.id; }, mk(sig, 0, o));
       const jr = await p.evaluate(i => WT3D.jumpTo(i).then(r => !!r), id); await p.waitForTimeout(4000); await p.screenshot({ path: SHOTS + `/t241-${nm}-tree.png` }); ok(jr, `树上：${nm} 卡挂上树`);
-      await p.evaluate(s => openCardPopup(S.wishes.find(w => w.sig === s)), sig); await p.waitForSelector(sel, { timeout: 15000 }); await p.waitForTimeout(1300);
+      await p.evaluate(s => openCardPopup(S.wishes.find(w => w.sig === s) || window.__cw), sig); await p.waitForSelector(sel, { timeout: 15000 }); await p.waitForTimeout(1300);
       await p.screenshot({ path: SHOTS + `/t241-${nm}-detail.png` }); ok(true, `详情：${nm}`);
-      if (nm === 'split') { await p.click('#cfFlip'); await p.waitForTimeout(1100); await p.screenshot({ path: SHOTS + '/t241-split-detail-front.png' }); ok(await p.$('.cflip:not(.flipped)'), '详情：封面 ↔ 内容 可翻面'); } }
+      if (nm === 'split') { await p.click('[data-qv="0"]'); await p.waitForTimeout(1100); await p.screenshot({ path: SHOTS + '/t241-split-detail-front.png' }); ok(await p.$('.qv-page.qv-cover.on'), '详情：封面 ↔ 内容 可翻页（t248 翻页器）'); }
+      if (nm === 'folded') { await p.click('[data-qv="2"]'); await p.waitForTimeout(1100); ok(await p.$('.qv-page.qv-back.on img.qv-art'), '折页：背面页显示上传背面'); } }
     // t242：所有用户卡类型（门卡除外）都提供三种样式
     { const SEC = 'WeChat: secret_star_42', DET = 'SECRETDETAIL 天文台'; p = await page(A); await p.goto(Bs + '/?lang=zh-CN#/wish/make'); await p.reload(); await p.waitForSelector('#ckind', { timeout: 90000 });
       await p.selectOption('#ckind', 'social'); await p.waitForTimeout(300); await p.selectOption('#wc2', '自定义'); await p.waitForTimeout(300);
@@ -66,7 +67,7 @@ const D = __dirname, SHOTS = process.env.SHOTS, IMGS = { cover: '/tmp/cs-cover.p
       const r = await p.evaluate(w => { w.likers = new Set(); w.id = S.wishes.reduce((m, x) => Math.max(m, x.id || 0), 0) + 1; window.__sw = w; S.wishes.push(w); WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); return { st: cStyle(w), sum: WTsumm(w), id: w.id }; }, sw);
       ok(r.st === 'overlay' && r.sum.includes('喜欢夜跑') && !r.sum.includes('secret') && !r.sum.includes('SECRET'), '交友卡卡面摘要：只含公开字段');
       await p.evaluate(i => WT3D.jumpTo(i), r.id); await p.waitForTimeout(4000); await p.screenshot({ path: SHOTS + '/t242-social-overlay-tree.png' });
-      await p.evaluate(() => openCardPopup(window.__sw)); await p.waitForSelector('.cf-over', { timeout: 15000 }); await p.waitForTimeout(800);
+      await p.evaluate(() => openCardPopup(window.__sw)); await p.waitForSelector('.qv-page.on .cf-over', { timeout: 15000 }); await p.waitForTimeout(800);
       const dt = await p.textContent('#modal, .modal, body'); ok(!dt.includes('secret_star') && !dt.includes('SECRETDETAIL'), '交友卡双面相同详情：不泄露联系方式 / 详情'); await p.screenshot({ path: SHOTS + '/t242-social-overlay-detail.png' }); }
     ok(!errs.length, '无页面错误');
     console.log(`\n✅ ${n} checks passed`);
