@@ -16,7 +16,7 @@ const API_DEFAULT = 'https://world-tree-ijv1.onrender.com';
 async function cardPage(ctx, url, id) { const API = (ctx.env?.WT_API_BASE || API_DEFAULT).replace(/\/$/, ''), lang = pick(url, ctx.request.headers.get('accept-language')), m = META[lang];
   let c = null; try { const r = await fetch(API + '/api/og-meta/' + encodeURIComponent(id), { signal: AbortSignal.timeout(3500) }); if (r.ok) c = await r.json(); } catch {}
   const base = await (ctx.env?.ASSETS ? ctx.env.ASSETS.fetch(new URL('/', url)) : fetch(new URL('/', url)));
-  const tag = c?.official ? '★ ' : c?.offchain ? '☁ ' : '', text = (c?.text || '').trim(), cn = /^zh/.test(lang) && c?.cat === '光栖' && Number.isInteger(c.cover) ? (lang === 'zh-TW' ? GQN_TW : GQN)[Math.min(9, Math.max(0, c.cover))] + (lang === 'zh-TW' ? '卡 · 光棲 · ' : '卡 · 光栖 · ') : '', title = text ? `${tag}「${text.length > 40 ? text.slice(0, 40) + '…' : text}」· ${cn}${m.b}` : `${m.b} · ${m.t}`;
+  const tag = c?.official ? '★ ' : c?.offchain ? '☁ ' : '', text = (c?.text || '').trim(), cn = /^zh/.test(lang) && c?.cat === '光栖' && Number.isInteger(c.cover) ? (lang === 'zh-TW' ? GQN_TW : GQN)[Math.min(9, Math.max(0, c.cover))] + '卡 · ' : '', title = text ? `${tag}「${text.length > 40 ? text.slice(0, 40) + '…' : text}」· ${cn}${m.b}` : `${m.b} · ${m.t}`;
   const gq = c?.cat === '光栖' && Number.isInteger(c.cover) ? Math.min(9, Math.max(0, c.cover)) : -1; // t248：光栖卡 → 该套卡面的分享图（与站内分享卡同风格）
   const desc = text ? `${text.slice(0, 140)} — ${m.d}` : m.d, img = c?.img ? `${API}/api/img/${c.img}` : gq >= 0 ? `${url.origin}/og/card-gq-${String(gq + 1).padStart(2, '0')}.jpg` : `${url.origin}/og/og-${lang}.png`, page = `${url.origin}/c/${encodeURIComponent(id)}`;
   const out = new HTMLRewriter()

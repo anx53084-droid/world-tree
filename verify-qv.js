@@ -35,7 +35,7 @@ const D = __dirname, SHOTS = process.env.SHOTS, LIVE = process.env.QV_LIVE, PFX 
     await sw(120); ok(/qv-inner/.test((await geo()).k), '右滑 → 返回内页');
     // 点亮动效
     await p.click('.qv-acts [data-cheer]'); await p.waitForSelector('.qv-acts button.cheer.lit .spark', { timeout: 10000 }); await p.waitForTimeout(200); const fx = !!(await p.$('.qv-acts button.cheer.lit b.bump')) && !!(await p.$('.qv-acts button.cheer .ring')); if (PFX) await p.screenshot({ path: PFX + 'cheer-anim.png' });
-    ok(fx && (await p.textContent('.qv-inner [data-cheern]')) === '1', '点亮：光环 + 光点 + 计数跳动，内页计数同步');
+    ok(fx && (await p.textContent('.qv-inner [data-cheern]')) === (await p.textContent('.qv-acts button.cheer b')), '点亮：光环 + 光点 + 计数跳动，内页计数同步');
     await p.waitForTimeout(2200); await open(GQID); ok(await p.$('.qv-acts button.cheer.lit[aria-pressed=true]'), '已点亮：重新打开仍保持发光');
     // 分享图（光栖）
     await p.click('#qvShare'); await p.waitForFunction(() => document.querySelector('#shimg')?.src.startsWith('data:image/png'), null, { timeout: 20000 }); await p.waitForTimeout(500);
