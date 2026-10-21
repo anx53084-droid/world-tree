@@ -1282,5 +1282,9 @@
   "brand.short": "Guangqi",
   "qv.swipe2": "Sayfa çevirmek için kaydır; son sayfadan sonra sonraki kart",
   "qv.prev": "Önceki kart",
-  "qv.next": "Sonraki kart"
+  "qv.next": "Sonraki kart",
+  "grow.count": "Şimdiye kadar {n} dilek kartı",
+  "grow.explain": "Kart arttıkça galaksi ve ışıltı parlaklaşır; ücretsiz dilekler de daha küçük ağırlıkla sayılır",
+  "grow.freeBtn": "Ücretsiz bir dilek yaz",
+  "grow.samples": "Resmî örnek dilekler"
 }

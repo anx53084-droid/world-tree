@@ -306,7 +306,7 @@ function lockPaint(w) { // 树上锁定剪影：未解锁礼品卡不显示正�
   if (w.vis === 'invite' && !canViewCard(w) && !isMine(w) && !giftToMe(w)) return { ...w, text: '✉️ ' + t('vis.inviteLocked'), lockedView: true, tags: [], intro: '', looking: '', note: '' };
   return w; }
 function softRefresh() { // 原地更新：首页只更新 3D 实例；列表/我的星愿只替换数据区块；不调用 route()
-  if ($('#scene') && window.WT3D) { WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); const bn = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; if ($('#banner').innerHTML !== bn) $('#banner').innerHTML = bn; return; }
+  if ($('#scene') && window.WT3D) { WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); const bn = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : ''; if ($('#banner').innerHTML !== bn) $('#banner').innerHTML = bn; paintGrow(); return; }
   const wl = $('#wl'); if (wl) { const h = list(new URLSearchParams(location.hash.split('?')[1] || ''), true); if (wl._h !== h) { wl._h = h; wl.innerHTML = h; } }
   const mm = $('#mine'); if (mm) { const h = mineBlock(); if (mm._h === undefined) mm._h = mm.innerHTML && h; if (mm._h !== h) { mm._h = h; mm.innerHTML = h; bindMine(); } } }
 async function api(url, data) {
@@ -695,15 +695,15 @@ window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 290) + 'px'; tip.style.top = e.clientY + 14 + 'px'; };
 const isMine = w => S.pubkey && w.author === S.pubkey;
 // ===== t244：官方示范 / 免费心愿（未上链）/ 点亮 / 举报 / 分享 =====
-function offMerge(W) { const o = S.offc; if (!o) return; o.hiddenSet = new Set(o.hidden || []);
-  const mk = (x, official) => ({ sig: x.id, author: '', time: Math.floor(x.at / 1000), text: x.text, cat: x.cat, hue: CATS[x.cat] ?? 40, kind: 'wish', vis: 'public', deliver: 'tree', cover: x.cat === '光栖' ? gqSet({ cover: x.cover }) : WTCovers.forCat('经典')[0], likers: new Set(), blessings: [], paid: 0, sample: true, verified: true, offchain: !official, official });
+function offMerge(W) { const o = S.offc; if (!o) return; let mineFree; try { mineFree = new Set(JSON.parse(localStorage.wt_free || '[]').map(f => f.id)); } catch { mineFree = new Set(); } o.hiddenSet = new Set(o.hidden || []);
+  const mk = (x, official) => ({ sig: x.id, author: '', time: Math.floor(x.at / 1000), text: x.text, cat: x.cat, hue: CATS[x.cat] ?? 40, kind: 'wish', vis: 'public', deliver: 'tree', cover: x.cat === '光栖' ? gqSet({ cover: x.cover }) : WTCovers.forCat('经典')[0], likers: new Set(), blessings: [], paid: 0, sample: true, verified: true, offchain: !official, official, offMine: !official && mineFree.has(x.id) }); // t251：「未上链」标签只给作者本人（本设备创建的免费心愿）看
   for (const x of o.samples || []) W[x.id] = mk(x, true); for (const x of o.free || []) W[x.id] = mk(x, false); }
 async function loadOffchain() { try { const r = await fetch('/api/offchain'); if (!r.ok) return; S.offc = await r.json(); aggregate(); if (!document.querySelector('textarea:focus,input:focus') && $('#modal').hidden && !/^#\/(wish|free)/.test(location.hash)) softRefresh(); } catch {} }
 const cheersOf = sig => S.offc?.cheers?.[sig] || 0;
 const cheerBtn = w => w.pending || /^(SAMPLE|SYN|SL|SB)/.test(w.sig) ? '' : `<button data-cheer="${esc(w.sig)}" class="cheer${S.cheered?.[w.sig] ? ' lit' : ''}" aria-pressed=${!!S.cheered?.[w.sig]} title="${E('cheer.tip')}">${S.cheered?.[w.sig] ? '🌟' : '✨'} ${E('cheer.btn')} <b>${cheersOf(w.sig)}</b></button>`;
 const reportBtn = w => /^(SAMPLE|SYN|SL|SB)/.test(w.sig) ? '' : `<button data-report="${esc(w.sig)}" class="link rep">🚩 ${E('rep.btn')}</button>`;
-const offBadge = w => w.official ? `<span class="tag t-official">★ ${E('off.official')}</span>` : w.offchain ? `<span class="tag t-offchain">☁ ${E('off.badge')}</span>` : '';
-const offNote = w => w.official ? `<p class="muted off-note">★ ${E('off.officialNote')}</p>` : w.offchain ? `<p class="muted off-note">☁ ${E('off.note')}</p>` : '';
+const offBadge = w => w.official ? `<span class="tag t-official">★ ${E('off.official')}</span>` : w.offMine ? `<span class="tag t-offchain">☁ ${E('off.badge')}</span>` : '';
+const offNote = w => w.official ? `<p class="muted off-note">★ ${E('off.officialNote')}</p>` : w.offMine ? `<p class="muted off-note">☁ ${E('off.note')}</p>` : '';
 S.cheered = JSON.parse(localStorage.wt_cheered || '{}');
 function cheerFx(x) { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; x.querySelector('b')?.classList.add('bump'); const ring = document.createElement('span'); ring.className = 'ring'; x.append(ring);
   for (let i = 0; i < 10; i++) { const p = document.createElement('span'); p.className = 'spark'; p.style.left = (10 + Math.random() * 80) + '%'; p.style.setProperty('--dx', (Math.random() * 40 - 20).toFixed(0) + 'px'); p.style.animationDelay = (i * 60) + 'ms'; x.append(p); }
@@ -846,12 +846,21 @@ function bindGuide(isHome) {
   // 点半透明背景关闭（不强制「不再提示」除非勾选）
   $('#gq-guide')?.addEventListener('click', e => { if (e.target.id === 'gq-guide') closeGuide(false); });
 }
+// ===== t251：树的成长状态（只显示总数）+ 内容较少时的引导（免费写心愿按钮 + 官方示范滚动条）=====
+const cardTotal = () => treeWishes().filter(w => !w.official && !w.synthetic && !/^SAMPLE/.test(w.sig || '')).length;
+function growHtml() { const n = cardTotal(), sm = (S.offc?.samples || []).filter(x => S.wishes.some(w => w.sig === x.id)), few = n < 50 && sm.length;
+  const item = x => `<button type=button class=hs-item data-hs="${esc(x.id)}" dir=auto>${x.cat === '光栖' ? '✦' : '🏮'} ${esc(x.text.length > 28 ? x.text.slice(0, 28) + '…' : x.text)}</button>`;
+  return `<p class=hg-line>🌳 <b id=hgc>${E('grow.count', { n: num(n) })}</b></p><p class="muted hg-sub">${E('grow.explain')}</p>
+  <div class=hg-cta><a class="btn primary hg-free" href="#/free">☁ ${E('grow.freeBtn')}</a></div>${few ? `<div class=hs-strip aria-label="${E('grow.samples')}"><div class=hs-track style="--hs-d:${Math.max(24, sm.length * 6)}s">${sm.map(item).join('')}<span aria-hidden=true class=hs-dup>${sm.map(item).join('')}</span></div></div>` : ''}`; }
+function paintGrow() { const el = $('#hgrow'); if (!el) return; const h = growHtml(); if (el._h !== h) { el._h = h; el.innerHTML = h; } }
+document.addEventListener('click', e => { const b = e.target.closest('[data-hs]'); if (!b) return; const w = treeWishes().find(x => x.sig === b.dataset.hs); if (w) openCardPopup(lockPaint(w)); });
 function home() {
   loadCardMeta(); loadGoodsMeta();
   const hot = [...visibleWishes()].sort((a, b) => b.heat - a.heat).slice(0, 5), cur = S.season || autoSeason();
   return `<div class=scene id=scene><div class="scene-ui debug-only">${SEASON_KEYS.map(k => `<button data-season=${k} class="${k === cur ? 'on' : ''}">${E('season.' + k)}${k === autoSeason() ? E('season.current') : ''}</button>`).join('')}</div></div>
   <button id=qbtn class=qbtn type=button title="${E('search.open')}" aria-label="${E('search.open')}"><svg viewBox="0 0 24 24" width=22 height=22 fill=none stroke=currentColor stroke-width=2 stroke-linecap=round><circle cx=10.5 cy=10.5 r=6.5 /><path d="M15.5 15.5 21 21"/></svg></button>
   <div class=home-spacer></div>
+  <section class=home-grow id=hgrow aria-live=polite>${growHtml()}</section>
   <div class="home-dock debug-only"><form class="row scene-tools" id=sf><label class=agree><input type=checkbox id=stress ${S.stress ? 'checked' : ''}> ${E('home.stress')}</label><input id=stotal type=number min=1 max=275000000000 step=1 value="${S.total}" title="${E('home.stressTotal')}" style="width:150px">
 </form>
   <p class=muted style="text-align:center;margin:4px 0"><span class=stage>${E('home.growing')}</span> · ${S.stress ? E('home.countStress', { total: num(S.total), real: num(S.wishes.length) }) : E('home.count', { n: num(S.wishes.length) })}${S.hidden ? ' · ' + E('home.hidden', { n: num(S.hidden) }) : ''}</p>
@@ -1238,7 +1247,7 @@ function detailBase(sig) {
   ${offNote(w)}${w.offchain && myFree().some(f => f.id === w.sig) ? `<p><a class="btn primary" href="#/free">⛓️ ${E('free.upgrade')}</a></p>` : ''}
   <div class=row>${likeBtn(w)}<button id=share>📤 ${E('detail.share')}</button>${reportBtn(w)}</div>
   ${w.official || w.offchain ? '' : `<p>${E('detail.likers')} ${[...w.likers].map(short).join(', ') || E('common.none')}</p>`}
-  <p>${w.offchain ? '☁ ' + E('off.badge') : w.official ? '★ ' + E('off.official') : w.sample ? E('detail.sample') : `${E('detail.chainTx')} <a target=_blank href="${EXPLORER(w.sig)}">${esc(short(w.sig))} ↗</a>`}</p></div>
+  <p>${w.offMine ? '☁ ' + E('off.badge') : w.offchain ? '' : w.official ? '★ ' + E('off.official') : w.sample ? E('detail.sample') : `${E('detail.chainTx')} <a target=_blank href="${EXPLORER(w.sig)}">${esc(short(w.sig))} ↗</a>`}</p></div>
   <h3>🙏 ${E('detail.blessings', { n: w.blessings.length })}</h3>${w.blessings.map(b => `<div class=card>${b.pending ? '⏳ ' : ''}<bdi>${esc(b.text)}</bdi><div class=muted>${short(b.author)} · ${fmtT(b.time)}</div></div>`).join('') || `<p class=muted>${E('detail.noBless')}</p>`}
   ${w.offchain || w.official ? '' : S.mode === 'guest' ? `<p class=muted>${E('detail.loginToBless')}</p>` : `<div class=card><textarea id=bt maxlength=140 dir=auto placeholder="${E('detail.blessPh')}"></textarea><button id=bs data-sig="${esc(w.sig)}" ${w.sample ? 'disabled' : ''}>${E('detail.sendBless')}</button></div>`}`;
 }
@@ -1252,7 +1261,7 @@ async function sharePng(w) { // t248：分享图 = 卡片自身画面（光栖�
   const g = x.createLinearGradient(0, 0, 0, Ht); g.addColorStop(0, '#0a0f2a'); g.addColorStop(1, `hsl(${w.hue ?? 285},45%,22%)`); x.fillStyle = g; x.fillRect(0, 0, Wd, Ht);
   for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(255,248,220,${(Math.random() * .7).toFixed(2)})`; x.fillRect(Math.random() * Wd, Math.random() * Ht, 2, 2); }
   x.textBaseline = 'alphabetic'; x.fillStyle = '#f6d38a'; x.font = `bold 38px ${F}`; x.fillText(cardTitle(w), 48, 82);
-  const badge = w.official ? '★ ' + t('off.official') : w.offchain ? '☁ ' + t('off.badge') : ''; if (badge) { x.font = `bold 24px ${F}`; const bw = x.measureText(badge).width + 28; x.fillStyle = w.official ? '#b8860b' : '#4b64a8'; x.beginPath(); x.roundRect(Wd - 48 - bw, 52, bw, 40, 20); x.fill(); x.fillStyle = '#fff'; x.fillText(badge, Wd - 48 - bw + 14, 81); }
+  const badge = w.official ? '★ ' + t('off.official') : w.offMine ? '☁ ' + t('off.badge') : ''; if (badge) { x.font = `bold 24px ${F}`; const bw = x.measureText(badge).width + 28; x.fillStyle = w.official ? '#b8860b' : '#4b64a8'; x.beginPath(); x.roundRect(Wd - 48 - bw, 52, bw, 40, 20); x.fill(); x.fillStyle = '#fff'; x.fillText(badge, Wd - 48 - bw + 14, 81); }
   const CW = 440, CH = gq ? Math.round(CW * 720 / 484) : Math.round(CW * 4 / 3), CX = (Wd - CW) / 2, CY = 116;
   x.save(); x.shadowColor = '#000a'; x.shadowBlur = 30; x.fillStyle = '#0b1024'; x.beginPath(); x.roundRect(CX, CY, CW, CH, 18); x.fill(); x.restore();
   x.save(); x.beginPath(); x.roundRect(CX, CY, CW, CH, 18); x.clip();
@@ -1277,7 +1286,7 @@ function bizBody(m, sample) { const d = m.url ? bizDomain(m.url) : m.domain || '
   return `<div class="biz-in biz-${['ivory', 'navy', 'jade'].includes(m.theme) ? m.theme : 'ivory'} biz-l-${m.layout === 'left' ? 'left' : 'center'}"><span class="tag ktype">🏢 ${E('kind.biz')}</span><h3 class=biz-name dir=auto>${esc(m.name || '…')}</h3><p class=biz-intro dir=auto>${esc(m.intro || '')}</p>
     ${d ? `<div class=biz-link>${safe ? `<a href="${esc(m.url)}" target=_blank rel="noopener noreferrer nofollow ugc" data-ext>🔗 ${esc(d)} ↗</a>` : `<span>🔗 ${esc(d)}</span>`}<p class="muted hint">⚠️ ${E('biz.extWarn', { d })}</p></div>` : ''}</div>`; }
 // t248：卡片快速查看（翻页器）：封面 / 内页 / 背面 各为一页，整页 contain 完整显示；下方页签 + 左右滑动翻页（翻页动画，尊重减少动态效果）；操作按钮在卡片下方
-const qvMeta = w => `<div class=qv-meta>${w.official ? '★ ' + esc(t('off.official')) + ' · ' : w.offchain ? '☁ ' + esc(t('off.badge')) + ' · ' : esc(t('card.author', { addr: short(w.author) })) + ' · 💖 ' + w.likes + ' · '}✨ <span data-cheern="${esc(w.sig)}">${cheersOf(w.sig)}</span> · 🙏 ${w.blessings.length}</div>`;
+const qvMeta = w => `<div class=qv-meta>${w.official ? '★ ' + esc(t('off.official')) + ' · ' : w.offMine ? '☁ ' + esc(t('off.badge')) + ' · ' : w.offchain ? '' : esc(t('card.author', { addr: short(w.author) })) + ' · 💖 ' + w.likes + ' · '}✨ <span data-cheern="${esc(w.sig)}">${cheersOf(w.sig)}</span> · 🙏 ${w.blessings.length}</div>`;
 function bizInner(w) { const bg = w.nimg ? IMG(w.nimg) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : ''), m = S.biz[w.sig] || { name: w.bname, domain: w.domain };
   if (!(w.sig in S.biz) && !w.sample) fetch('/api/biz-meta/' + encodeURIComponent(w.sig)).then(r => r.json()).then(j => { S.biz[w.sig] = { name: w.bname, domain: w.domain, ...j }; const el = $('#bizIn-' + CSS.escape(w.sig)); if (el) el.innerHTML = bizBody(S.biz[w.sig]); }).catch(() => {});
   return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody><div id="bizIn-${esc(w.sig)}">${bizBody(m)}</div>${qvMeta(w)}</div>`; }

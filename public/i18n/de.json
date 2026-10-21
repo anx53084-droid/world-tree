@@ -1282,5 +1282,9 @@
   "brand.short": "Guangqi",
   "qv.swipe2": "Wischen zum Umblättern; nach der letzten Seite folgt die nächste Karte",
   "qv.prev": "Vorherige Karte",
-  "qv.next": "Nächste Karte"
+  "qv.next": "Nächste Karte",
+  "grow.count": "Bisher {n} Wunschkarten",
+  "grow.explain": "Je mehr Karten, desto heller leuchten Galaxie und Schein; kostenlose Wünsche zählen auch, mit geringerem Gewicht",
+  "grow.freeBtn": "Kostenlos einen Wunsch schreiben",
+  "grow.samples": "Offizielle Beispielwünsche"
 }

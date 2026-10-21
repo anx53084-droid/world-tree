@@ -1282,5 +1282,9 @@
   "brand.short": "Guangqi",
   "qv.swipe2": "Deslize para virar páginas; após a última, vai para o próximo cartão",
   "qv.prev": "Cartão anterior",
-  "qv.next": "Próximo cartão"
+  "qv.next": "Próximo cartão",
+  "grow.count": "{n} cartões de desejo até agora",
+  "grow.explain": "Quanto mais cartões, mais brilha a galáxia; desejos gratuitos também contam, com peso menor",
+  "grow.freeBtn": "Escreva um desejo grátis",
+  "grow.samples": "Desejos de exemplo oficiais"
 }

@@ -1282,5 +1282,9 @@
   "brand.short": "Guangqi",
   "qv.swipe2": "Balayez pour tourner les pages ; après la dernière, carte suivante",
   "qv.prev": "Carte précédente",
-  "qv.next": "Carte suivante"
+  "qv.next": "Carte suivante",
+  "grow.count": "{n} cartes de vœux à ce jour",
+  "grow.explain": "Plus il y a de cartes, plus la galaxie et son halo brillent ; les vœux gratuits comptent aussi, avec un poids moindre",
+  "grow.freeBtn": "Écrire un vœu gratuitement",
+  "grow.samples": "Vœux d’exemple officiels"
 }

@@ -1282,5 +1282,9 @@
   "brand.short": "Guangqi",
   "qv.swipe2": "Swipe to turn pages; past the last page goes to the next card",
   "qv.prev": "Previous card",
-  "qv.next": "Next card"
+  "qv.next": "Next card",
+  "grow.count": "{n} wish cards so far",
+  "grow.explain": "The more cards, the brighter the galaxy and its glow; free wishes count too, with a smaller weight",
+  "grow.freeBtn": "Write a wish for free",
+  "grow.samples": "Official sample wishes"
 }

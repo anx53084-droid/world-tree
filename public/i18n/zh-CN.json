@@ -1282,5 +1282,9 @@
   "brand.short": "光栖",
   "qv.swipe2": "左右滑动翻页，翻过最后一页进入下一张",
   "qv.prev": "上一张",
-  "qv.next": "下一张"
+  "qv.next": "下一张",
+  "grow.count": "已有 {n} 张心愿卡",
+  "grow.explain": "心愿卡越多，星河越亮、光晕越盛；免费心愿也会点亮，只是权重小一些",
+  "grow.freeBtn": "免费写一个心愿",
+  "grow.samples": "官方示范心愿"
 }

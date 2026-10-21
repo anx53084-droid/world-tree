@@ -10,7 +10,7 @@ THREE.ColorManagement.enabled = false; // 全流程使用“原样”sRGB 数值
 
 let renderer, scene, camera, controls, treeGroup, cardGroup, galaxy, petals, strings, raycaster = new THREE.Raycaster(), ptr = new THREE.Vector2();
 let hovered = null, targetScale = 1, onPick = null, slot = null, cards = new Map(), texCache = new Map(), season = 'bloom', galaxyBright = .5;
-let composer, bloom, useBloom = false, seasonV = 1; const BU = { uTime: { value: 0 }, uPR: { value: 1 }, uSeason: { value: 1 } }; // 花冠/花瓣共享 uniform
+let PR_MAX = 1, QL = 0, qAt = 0, Nw = 0, composer, bloom, useBloom = false, seasonV = 1; const BU = { uTime: { value: 0 }, uPR: { value: 1 }, uSeason: { value: 1 } }; // 花冠/花瓣共享 uniform
 const rng = seed => () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
 const MOBILE = matchMedia('(pointer:coarse)').matches || innerWidth < 700, QS = new URLSearchParams(location.search);
 const tr = (k, v) => window.I18N ? I18N.t(k, v) : k; // 国际化（见 i18n.js）
@@ -18,7 +18,7 @@ export const SEASONS = { green: { get name() { return tr('season.green'); }, v: 
 
 const A = window.WTAddr, HUES = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270, 光栖: 285 };
 const GQ_V = 3, GQIMG = {}; const gqImg = k => { let im = GQIMG[k]; if (!im) { im = GQIMG[k] = new Image(); im.onload = () => { im.ok = 1; texCache.forEach((v, kk) => { if (kk.startsWith('GQ|')) { v.dispose(); texCache.delete(kk); } }); nearPool.forEach(s => s.userData.wish = null); }; im.src = `themes/guangqi/${k}-s.webp?v=${GQ_V}`; } return im.ok ? im : null; }; // 光栖主题卡面：k = 'front-01' 等（256px 小图，仅近景卡加载）
-const MID_CAP = MOBILE ? 3000 : 5000, NEAR_CAP = MOBILE ? 120 : 200, TILE_LRU = 800, COUNT_LRU = 300;
+const FREE_W = .35; const MID_CAP = MOBILE ? 3000 : 5000, NEAR_CAP = MOBILE ? 120 : 200, TILE_LRU = 800, COUNT_LRU = 300;
 let cfg = { stress: false, total: 0 }, real = [], N = 0, focus = '', view = null, viewSeq = 0, inst, nearPool = [], clusters, labels = [], navEl, hlId = null, lastNav = 0, fly = null, dirty = true, loadTimer = 0;
 const tiles = new Map(), countsCache = new Map(), inflight = new Set(), frameT = [];
 const lruGet = (m, k) => { const v = m.get(k); if (v !== undefined) { m.delete(k); m.set(k, v); } return v; };
@@ -29,7 +29,7 @@ const camDist = () => { const a = camera.aspect || 1.6; return a < 1 ? Math.min(
 const HOME_DIR = () => new THREE.Vector3(0, .17, 1).normalize();
 function init() {
   renderer = new THREE.WebGLRenderer({ antialias: !MOBILE, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, MOBILE ? 1.25 : 1.5)); renderer.setClearColor(0x02030b); renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+  PR_MAX = Math.min(devicePixelRatio || 1, MOBILE ? 1.5 : 2); renderer.setPixelRatio(PR_MAX); // t251：DPR 上限 2（移动端 1.5），低帧率时自适应降档 renderer.setClearColor(0x02030b); renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   BU.uPR.value = renderer.getPixelRatio();
   scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x050820, 0.004);
   camera = new THREE.PerspectiveCamera(55, 1, 0.1, 3000); camera.position.set(0, 12.6, 27);
@@ -43,7 +43,8 @@ function init() {
   // Bloom：桌面全分辨率；移动端降低强度与内部分辨率，帧时过长时自动关闭（?bloom=0/1 可强制）
   useBloom = QS.get('bloom') ? QS.get('bloom') === '1' : true;
   composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
-  bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), MOBILE ? .6 : .8, MOBILE ? .4 : .55, .8); composer.addPass(bloom); composer.addPass(new OutputPass());
+  bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), MOBILE ? .5 : .8, MOBILE ? .35 : .55, .8); composer.addPass(bloom);
+  { const bs = bloom.setSize.bind(bloom), k = MOBILE ? .5 : 1; bloom.setSize = (w, h) => bs(Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))); } // 移动端 bloom 内部半分辨率 composer.addPass(new OutputPass());
   let down = null; const el = renderer.domElement; el.style.touchAction = 'none';
   el.addEventListener('pointerdown', e => { if (e.isPrimary) down = [e.clientX, e.clientY, performance.now()]; else down = null; });
   el.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < (e.pointerType === 'touch' ? 14 : 8) && performance.now() - down[2] < 700) pick(e, true); down = null; }); // 轻点 = 拾取
@@ -340,10 +341,11 @@ function crystalMat(i) { return new THREE.ShaderMaterial({ transparent: true, de
 const CW = .8, CH = 1.25; // 卡片宽高（相对 sz）
 function makeInst() {
   const g = new THREE.PlaneGeometry(1, 1); inst = new THREE.InstancedMesh(g, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime },
-    vertexShader: `attribute vec3 iPos,iCol,iAnc; attribute float iSize,iPh,iAlpha; uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF,vA; ${WIND}
+    vertexShader: `attribute vec3 iPos,iCol,iAnc; attribute float iSize,iPh,iAlpha,iFree; uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF,vA,vFr; ${WIND}
       void main(){ vUv=uv; vC=iCol; vF=fract(iPos.x*7.13+iPos.z*3.7); vec3 pp=swing(iAnc,iPos,iPh,uTime); vec3 r=pp-iAnc; float g=atan(length(r.xz),-r.y)*sign(r.x+r.z);
-        vec4 mv=modelViewMatrix*vec4(pp,1.); vec2 q=position.xy*vec2(${CW},${CH})*max(iSize,.014*-mv.z); float cg=cos(g*.6),sg=sin(g*.6); mv.xy+=mat2(cg,sg,-sg,cg)*q; gl_Position=projectionMatrix*mv; vA=iAlpha; if(iSize<=0.||iAlpha<.005) gl_Position=vec4(2.,2.,2.,1.); }`,
-    fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF,vA; ${GLINT} void main(){ vec2 p=vUv-.5;
+        vec4 mv=modelViewMatrix*vec4(pp,1.); vec2 q=position.xy*vec2(${CW},${CH})*max(iSize,.014*-mv.z)*(iFree>.5?.62:1.); vFr=iFree; float cg=cos(g*.6),sg=sin(g*.6); mv.xy+=mat2(cg,sg,-sg,cg)*q; gl_Position=projectionMatrix*mv; vA=iAlpha; if(iSize<=0.||iAlpha<.005) gl_Position=vec4(2.,2.,2.,1.); }`,
+    fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF,vA,vFr; ${GLINT} void main(){ vec2 p=vUv-.5;
+      if(vFr>.5){ vec2 q=p*vec2(1.,${CH}/${CW}); float r=length(q)*2.2, g=exp(-r*r*3.2), core=exp(-r*r*14.); float tw=.8+.2*sin(uTime*1.7+vF*40.); if(g<.02) discard; gl_FragColor=vec4(mix(vec3(.62,.72,.95),vec3(.97,.95,.9),core)*(.55+.25*core),(g*.42+core*.25)*tw*vA); return; } // t251：免费心愿 = 半透明柔光小光点
       float body=step(abs(p.x),.42)*step(-.44,p.y)*step(p.y,.36), cap=step(abs(p.x),.26)*step(.36,p.y)*step(p.y,.46), ring=step(abs(length(p-vec2(0.,.48))-.03),.012);
       if(body+cap+ring<.5) discard; float e=min(.42-abs(p.x),min(p.y+.44,.36-p.y)); // 到边距离
       float sh=.82+.18*(p.y+.5)-.12*abs(p.x); // 柔和受光：上亮下暗，纸质哑光（无自发光，亮度低于 bloom 阈值）
@@ -354,9 +356,9 @@ function makeInst() {
       c=mix(c, vC*.7, .22); if(cap>.5) c=vec3(.5,.32,.14); if(ring>.5) c=vec3(.6,.5,.3);
       float inner=clamp(1.-length(p*vec2(1.9,1.25))*1.25,0.,1.); vec3 champ=mix(vec3(.74,.55,.27),vec3(.95,.86,.62),inner); // 香槟金内透光
       c=bd>.5?vec3(.52,.36,.14):champ; if(cap>.5) c=vec3(.55,.38,.16); if(ring>.5) c=vec3(.8,.65,.38); float gl=glint(vUv,vF,uTime);
-      gl_FragColor=vec4(min(c*.8+vec3(.1,.08,.04)*inner,vec3(.76,.66,.47))+gl*.4,.8*vA); }` }), MID_CAP);
+      gl_FragColor=vec4(min(c*.86+vec3(.14,.1,.03)*inner,vec3(.84,.7,.42))+gl*.4,vA); }` }), MID_CAP); // 上链 = 实心金色灯笼
   ['iPos', 'iCol', 'iAnc'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP * 3), 3).setUsage(THREE.DynamicDrawUsage)));
-  ['iSize', 'iPh', 'iAlpha'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1).setUsage(THREE.DynamicDrawUsage)));
+  ['iSize', 'iPh', 'iAlpha', 'iFree'].forEach(n => g.setAttribute(n, new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1).setUsage(THREE.DynamicDrawUsage)));
   inst.count = 0; inst.frustumCulled = false; inst.userData.cards = []; inst.renderOrder = 3; treeGroup.add(inst);
   const sg = new THREE.BufferGeometry(); ['position', 'anc'].forEach(n => sg.setAttribute(n, new THREE.BufferAttribute(new Float32Array(MID_CAP * 6), 3).setUsage(THREE.DynamicDrawUsage)));
   ['ph', 'al'].forEach(n => sg.setAttribute(n, new THREE.BufferAttribute(new Float32Array(MID_CAP * 2), 1).setUsage(THREE.DynamicDrawUsage))); sg.setDrawRange(0, 0);
@@ -367,12 +369,12 @@ function makeInst() {
   for (let i = 0; i < NEAR_CAP; i++) { const s = new THREE.Mesh(pg, crystalMat(i)); s.visible = false; s.renderOrder = 3; nearPool.push(s); cardGroup.add(s); }
 }
 function rebuildInst() { // 把已加载、处于当前区域的瓦片写入实例缓冲（上限 MID_CAP），同时生成吊绳
-  dirty = false; if (!view) return; const g = inst.geometry, P = g.attributes.iPos.array, C = g.attributes.iCol.array, S = g.attributes.iSize.array, AN = g.attributes.iAnc.array, PH = g.attributes.iPh.array, sa = strings.geometry.attributes, SP = sa.position.array, SA = sa.anc.array, SH = sa.ph.array, list = []; const col = new THREE.Color();
+  dirty = false; if (!view) return; const g = inst.geometry, P = g.attributes.iPos.array, C = g.attributes.iCol.array, S = g.attributes.iSize.array, AN = g.attributes.iAnc.array, PH = g.attributes.iPh.array, FR = g.attributes.iFree.array, sa = strings.geometry.attributes, SP = sa.position.array, SA = sa.anc.array, SH = sa.ph.array, list = []; const col = new THREE.Color();
   for (const t of view.hang) { if (!view.active.has(t.region) && view.active.size) continue; const cs = tiles.get(key(t.region)); if (!cs) continue;
     for (let s = 0; s < cs.length && list.length < MID_CAP; s++) { const w = cs[s], sl = slotOf(t, s), p = sl.p, a = sl.a, n = list.length; list.push({ w, p, a, ph: sl.ph, sz: t.sz, rank: view.page ? N - 1 - w.id - PAGE * PAGE_N : n, al: 0, tgt: 0 });
-      SP.set([a.x, a.y, a.z, a.x, a.y - sl.str, a.z], n * 6); SA.set([a.x, a.y, a.z, a.x, a.y, a.z], n * 6); SH[n * 2] = SH[n * 2 + 1] = sl.ph; AN.set([a.x, a.y, a.z], n * 3); PH[n] = sl.ph;
+      SP.set([a.x, a.y, a.z, a.x, a.y - sl.str, a.z], n * 6); SA.set([a.x, a.y, a.z, a.x, a.y, a.z], n * 6); SH[n * 2] = SH[n * 2 + 1] = sl.ph; if (w.offchain) SP.set([a.x, a.y, a.z, a.x, a.y, a.z], n * 6); AN.set([a.x, a.y, a.z], n * 3); PH[n] = sl.ph; FR[n] = w.offchain ? 1 : 0;
       P.set([p.x, p.y, p.z], n * 3); col.setHSL(((w.hue ?? 200) % 360) / 360, .85, w.id === hlId ? .85 : .68); C.set([col.r, col.g, col.b], n * 3); S[n] = t.sz * (w.id === hlId ? 1.5 : 1); } }
-  inst.count = list.length; inst.userData.cards = list; ['iPos', 'iCol', 'iSize', 'iAnc', 'iPh'].forEach(a => g.attributes[a].needsUpdate = true);
+  inst.count = list.length; inst.userData.cards = list; ['iPos', 'iCol', 'iSize', 'iAnc', 'iPh', 'iFree'].forEach(a => g.attributes[a].needsUpdate = true);
   ['position', 'anc', 'ph'].forEach(a => sa[a].needsUpdate = true); strings.geometry.setDrawRange(0, list.length * 2); updateNear(true);
 }
 // ---------- 近景：离相机最近的 ≤200 张卡升级为带文字的可交互灯笼卡 ----------
@@ -392,7 +394,7 @@ function updateVis(dt) { if (!inst?.userData.cards) return; const cards = inst.u
     const px = CH * 1.2 * c.sz * sc * f / wp.distanceTo(camera.position); u.uDetail.value = Math.min(1, Math.max(0, (px - 34) / 70)); }); }
 function updateNear(force) { const now = performance.now(); if (!force && now - nearAt < 250) return; nearAt = now;
   const cards = inst.userData.cards, cam = camera.position, sc = treeGroup.scale.x, cand = [];
-  for (let i = 0; i < cards.length; i++) { wp.copy(cards[i].p).multiplyScalar(sc); const d = wp.distanceTo(cam) / (cards[i].sz * sc); if (d < 26 || cards.length <= NEAR_CAP) cand.push([d, i]); } // 卡片总数很少时全部以近景文字卡展示
+  for (let i = 0; i < cards.length; i++) { wp.copy(cards[i].p).multiplyScalar(sc); const d = wp.distanceTo(cam) / (cards[i].sz * sc); if (cards[i].w.offchain) continue; if (d < 26 || cards.length <= NEAR_CAP) cand.push([d, i]); } // 免费心愿始终是柔光小光点（不升级为文字灯笼卡），仍可轻点打开 // 卡片总数很少时全部以近景文字卡展示
   cand.sort((a, b) => a[0] - b[0]); const S = inst.geometry.attributes.iSize.array, keep = new Set(cand.slice(0, NEAR_CAP).map(c => c[1]));
   cards.forEach((c, i) => { const want = keep.has(i) ? 0 : c.sz * (c.w.id === hlId ? 1.5 : 1); if (S[i] !== want) { S[i] = want; inst.geometry.attributes.iSize.needsUpdate = true; } });
   let k = 0; for (const i of keep) { const s = nearPool[k++], c = cards[i]; if (s.userData.wish !== c.w) { const gq = c.w.cat === '光栖', cs = cst(c.w), two = gq || cs === 'split' || cs === 'fold'; s.material.uniforms.map.value = gq ? gqTexture(c.w, 'front') : cs === 'overlay' ? overlayTexture(c.w) : cardTexture(c.w); s.material.uniforms.mapB.value = gq ? gqTexture(c.w, 'back') : cs === 'split' ? cardTexture({ ...c.w, cimg: null, folded: false }, 'C|') : cs === 'fold' ? backTexture(c.w) : null; s.material.uniforms.uTwo.value = two ? 1 : 0; s.userData.gq = two; s.material.uniforms.uSolid.value = c.w.folded ? 1 : 0; s.userData.wish = c.w; s.userData.grow = s.userData.grow || 0; }
@@ -412,7 +414,7 @@ function gqTexture(w, side) { // 光栖主题双面卡（仅近景真实卡用�
   x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); if (im) { const k = Math.max(W / im.width, H / im.height); x.drawImage(im, X0 + (W - im.width * k) / 2, Y0 + (H - im.height * k) / 2, im.width * k, im.height * k); window.WTCardText?.draw(x, gqK(w, side), X0 + (W - im.width * k) / 2, Y0 + (H - im.height * k) / 2, im.width * k, im.height * k, 1); } else { const g = x.createLinearGradient(0, Y0, 0, Y0 + H); g.addColorStop(0, '#2a1846'); g.addColorStop(1, '#0c0820'); x.fillStyle = g; x.fillRect(X0, Y0, W, H); } x.restore();
   x.strokeStyle = w.id === hlId ? '#ffffff' : '#d6b060'; x.lineWidth = w.id === hlId ? 7 : 5; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke();
   if (side === 'front') { x.fillStyle = '#000a'; x.fillRect(X0, Y0 + H - 34, W, 34); x.fillStyle = '#fff'; x.font = 'bold 15px sans-serif'; x.fillText(w.priv ? '🔒 ' + tr('card.privateShort') : '📖 ' + tr('card.tapOpen'), X0 + 10, Y0 + H - 12);
-    if (w.offchain || w.official) { const off = w.offchain, lab = off ? '☁ ' + tr('off.badge') : '★ ' + tr('off.official'); x.font = 'bold 13px sans-serif'; const tw = x.measureText(lab).width + 14; x.fillStyle = off ? '#4b64a8' : '#b8860b'; x.beginPath(); x.roundRect(X0 + W - tw - 6, Y0 + 8, tw, 20, 10); x.fill(); x.fillStyle = '#fff'; x.fillText(lab, X0 + W - tw + 1, Y0 + 23); } }
+    if (w.offMine || w.official) { const off = w.offchain, lab = off ? '☁ ' + tr('off.badge') : '★ ' + tr('off.official'); x.font = 'bold 13px sans-serif'; const tw = x.measureText(lab).width + 14; x.fillStyle = off ? '#4b64a8' : '#b8860b'; x.beginPath(); x.roundRect(X0 + W - tw - 6, Y0 + 8, tw, 20, 10); x.fill(); x.fillStyle = '#fff'; x.fillText(lab, X0 + W - tw + 1, Y0 + 23); } }
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex); return tex; }
 // 自定义封面卡（t241）：overlay 单页双面相同（朝向相机）；split 正面封面朝外、背面内容朝内；fold 正面封面、背面 = 上传背面或默认纸背
 const cst = w => window.WTcStyle ? window.WTcStyle(w) : '';
@@ -455,7 +457,7 @@ function cardTexture(w, tag = '') { // 纸质许愿签（单卡）或折页卡�
   for (const ch of (tag === 'C|' && window.WTsumm ? window.WTsumm(w).replace(/\n/g, ' · ') : (w.kind === 'social' ? '💬 ' : w.kind === 'gift' ? '🎁 ' : '') + w.text)) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 170) { line = '…'; break; } } line += ch; }
   x.fillText(line, X0 + 18, y); const loc = [w.country, w.province, w.city].filter(Boolean).join('·'); if (loc) { x.font = '11px sans-serif'; x.fillStyle = '#4a6a9a'; const tw = x.measureText('📍' + loc).width; x.fillText('📍' + (tw > 110 ? loc.slice(0, 8) + '…' : loc), X0 + W - 14 - Math.min(tw, 110), Y0 + 22); }
   x.font = '14px sans-serif'; x.fillStyle = '#4a2a08'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.time && window.WTfmtT) x.fillText(window.WTfmtT(w.time), X0 + 18, Y0 + H - 16);
-  if (w.offchain || w.official) { const off = w.offchain, lab = off ? '☁ ' + tr('off.badge') : '★ ' + tr('off.official'); // t244：未上链（虚线 + 冷色淡化）/ 官方示范（金色缎带）
+  if (w.offMine || w.official) { const off = w.offchain, lab = off ? '☁ ' + tr('off.badge') : '★ ' + tr('off.official'); // t244：未上链（虚线 + 冷色淡化）/ 官方示范（金色缎带）
     if (off) { x.fillStyle = '#dfe8ff66'; x.beginPath(); x.roundRect(X0, Y0, W, H, 10); x.fill(); x.setLineDash([7, 5]); x.strokeStyle = '#6b86c9'; x.lineWidth = 3; x.beginPath(); x.roundRect(X0 + 2, Y0 + 2, W - 4, H - 4, 9); x.stroke(); x.setLineDash([]); }
     x.font = 'bold 13px sans-serif'; const tw = x.measureText(lab).width + 14; x.fillStyle = off ? '#4b64a8' : '#b8860b'; x.beginPath(); x.roundRect(X0 + W - tw - 6, Y0 + H - 60, tw, 20, 10); x.fill(); x.fillStyle = '#fff'; x.fillText(lab, X0 + W - tw + 1, Y0 + H - 45); }
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex);
@@ -505,7 +507,8 @@ export function update(wishes, pickCb, opts = {}) { // wishes：真实愿望（�
   const changed = !view || nc.stress !== cfg.stress || nc.total !== N || r2.length !== real.length || r2.some((w, i) => real[i].sig !== w.sig || real[i].likes !== w.likes || real[i].pending !== w.pending);
   real = r2; cfg = nc; N = nc.total;
   targetScale = 0.86 + 0.5 * soft01(growthOf(N) - 1, .14); // 整树等比缓慢长大（比例不变），软上限保美观 // 树的视觉尺寸随总数对数增长
-  galaxyBright = Math.min(1.1, .45 + Math.log2(N + 1) * .03); galaxy.material.uniforms.uDensity.value = Math.min(1, .3 + Math.log10(N + 1) / 11 * .7);
+  Nw = opts.stress ? N : r2.reduce((a, w) => a + (w.offchain ? FREE_W : 1), 0); // t251：免费心愿以较小权重计入星河亮度 / 光晕
+  galaxyBright = Math.min(1.1, .45 + Math.log2(Nw + 1) * .03); galaxy.material.uniforms.uDensity.value = Math.min(1, .3 + Math.log10(Nw + 1) / 11 * .7); bloom.strength = (MOBILE ? .5 : .8) * (.85 + .35 * Math.min(1, Math.log10(Nw + 1) / 3));
   if (changed) { tiles.clear(); countsCache.clear(); if (A.count(focus, N) <= A.HANG) focus = ''; show(focus); } else renderNav();
 }
 export function attach(el) { slot = el; if (!renderer) init(); el.appendChild(renderer.domElement);
@@ -531,11 +534,17 @@ function pick(e, click) {
   if (click && reg && !w) { window.WT_hover?.(null); return setFocus(reg); }
   if (click && w) { window.WT_hover?.(null); onPick?.(w); } else window.WT_hover?.(w, e);
 }
-let lastT = performance.now(), pickT = 0, slowN = 0;
+let lastT = performance.now(), pickT = 0;
+// t251：自适应画质——近 2 秒平均帧率 < 30 时逐级降档：降低像素比 → 关闭 bloom → 像素比 0.75；?q=0 关闭自适应
+const QSTEPS = () => [[PR_MAX, 1], [Math.min(PR_MAX, 1.25), 1], [1, 1], [1, 0], [.75, 0]];
+function setQ(l) { const st = QSTEPS(); QL = Math.min(l, st.length - 1); const [pr, bl] = st[QL]; if (renderer.getPixelRatio() !== pr) { renderer.setPixelRatio(pr); composer.setPixelRatio(pr); BU.uPR.value = pr; resize(); }
+  if (!QS.get('bloom')) useBloom = !!bl; console.info('quality', QL, pr, useBloom); }
+function adapt(now) { if (QS.get('q') === '0' || document.hidden) { qAt = now; return; } if (now - qAt < 2500 || frameT.length < 60) return; const ft = frameT.slice(-60), avg = ft.reduce((a, b) => a + b, 0) / ft.length;
+  if (avg > 1000 / 30 && QL < QSTEPS().length - 1) { qAt = now; setQ(QL + 1); frameT.length = 0; } else qAt = now - 1500; }
 function loop() {
   requestAnimationFrame(loop); const now = performance.now(); if (!slot || !slot.isConnected) { lastT = now; return; } // 离开首页时暂停渲染
   const dt = now - lastT; frameT.push(dt); if (frameT.length > 240) frameT.shift(); lastT = now;
-  if (MOBILE && useBloom && !QS.get('bloom')) { slowN = dt > 55 ? slowN + 1 : Math.max(0, slowN - 1); if (slowN > 90) { useBloom = false; console.info('bloom disabled (perf)'); } } // 移动端帧时持续过长则关闭 bloom
+  adapt(now); // t251：自适应画质
   const t = now / 1000, s0 = treeGroup.scale.x, s = s0 + (targetScale - s0) * 0.04; treeGroup.scale.setScalar(s); treeGroup.updateMatrixWorld(); // 平滑生长
   if (!fly && Math.abs(s - s0) > 1e-5) { controls.target.multiplyScalar(s / s0); camera.position.multiplyScalar(s / s0); }
   BU.uTime.value = t; BU.uSeason.value += (seasonV - BU.uSeason.value) * (1 - Math.exp(-Math.min(dt, 1000) / 350)); const u = galaxy.material.uniforms; u.uBright.value += (galaxyBright - u.uBright.value) * .03; galaxy.scale.setScalar(s);
@@ -553,7 +562,7 @@ export function cardScreenPos(i = 0) { // 测试辅助：返回第 i 张近景�
 export function stats() { if (!renderer) return {}; const bl = useBloom; const ft = [...frameT].sort((a, b) => a - b), avg = ft.reduce((a, b) => a + b, 0) / (ft.length || 1);
   return { N, focus, depth: focus.length, fps: +(1000 / avg).toFixed(1), frameAvgMs: +avg.toFixed(2), frameP95Ms: +(ft[Math.floor(ft.length * .95)] || 0).toFixed(2), drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
     clusters: view?.clus.length || 0, hangTiles: view?.hang.length || 0, midCards: inst.count, visCards: visCount, nearCards: nearPool.filter(s => s.visible).length, tilesCached: tiles.size, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries,
-    bloom: bl, season, heapMB: performance.memory ? +(performance.memory.usedJSHeapSize / 1048576).toFixed(1) : null }; }
+    bloom: bl, q: QL, pr: renderer.getPixelRatio(), bloomStrength: +bloom.strength.toFixed(2), weighted: +Nw.toFixed(2), freeLights: inst.userData.cards.filter(c => c.w.offchain).length, season, heapMB: performance.memory ? +(performance.memory.usedJSHeapSize / 1048576).toFixed(1) : null }; }
 export function camTo(dist) { const d = camera.position.clone().sub(controls.target).setLength(dist * treeGroup.scale.x); camera.position.copy(controls.target).add(d); lastNav = performance.now() + 1e5; scheduleLoad(); } // 测试辅助
 export const camInfo = () => ({ cam: camera.position.toArray().map(v => +v.toFixed(2)), target: controls.target.toArray().map(v => +v.toFixed(2)), fly: !!fly, scale: treeGroup.scale.x });
 export const resetStats = () => { frameT.length = 0; };

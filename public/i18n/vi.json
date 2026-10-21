@@ -1282,5 +1282,9 @@
   "brand.short": "Guangqi",
   "qv.swipe2": "Vuốt để lật trang; qua trang cuối sẽ sang thẻ tiếp theo",
   "qv.prev": "Thẻ trước",
-  "qv.next": "Thẻ tiếp theo"
+  "qv.next": "Thẻ tiếp theo",
+  "grow.count": "Đã có {n} thẻ điều ước",
+  "grow.explain": "Càng nhiều thẻ, dải ngân hà và ánh sáng càng rực rỡ; điều ước miễn phí cũng được tính với trọng số nhỏ hơn",
+  "grow.freeBtn": "Viết một điều ước miễn phí",
+  "grow.samples": "Điều ước mẫu chính thức"
 }

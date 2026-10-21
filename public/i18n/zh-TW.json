@@ -1282,5 +1282,9 @@
   "brand.short": "光棲",
   "qv.swipe2": "左右滑動翻頁，翻過最後一頁進入下一張",
   "qv.prev": "上一張",
-  "qv.next": "下一張"
+  "qv.next": "下一張",
+  "grow.count": "已有 {n} 張心願卡",
+  "grow.explain": "心願卡越多，星河越亮、光暈越盛；免費心願也會點亮，只是權重小一些",
+  "grow.freeBtn": "免費寫一個心願",
+  "grow.samples": "官方示範心願"
 }
