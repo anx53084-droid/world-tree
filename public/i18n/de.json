@@ -1197,5 +1197,7 @@
   "cs.front": "Vorderseite",
   "cs.back": "Rückseite",
   "cs.same": "Beidseitig gleich",
-  "cs.flip": "Umdrehen"
+  "cs.flip": "Umdrehen",
+  "cs.protected": "Kontakt und Details erscheinen nie auf den Kartenseiten; sie sind auf der Detailseite gemäß Sperre / Verschlüsselung sichtbar",
+  "cs.tapMore": "Langer Inhalt erscheint als Zusammenfassung; tippen, um alles zu sehen"
 }

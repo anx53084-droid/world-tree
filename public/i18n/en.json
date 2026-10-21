@@ -1197,5 +1197,7 @@
   "cs.front": "Front",
   "cs.back": "Back",
   "cs.same": "Same on both sides",
-  "cs.flip": "Flip"
+  "cs.flip": "Flip",
+  "cs.protected": "Contact and details never appear on the card faces; view them on the detail page according to their lock / encryption settings",
+  "cs.tapMore": "Long content shows as a summary on the card; tap to view it all"
 }

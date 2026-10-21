@@ -1197,5 +1197,7 @@
   "cs.front": "Anverso",
   "cs.back": "Reverso",
   "cs.same": "Igual por ambos lados",
-  "cs.flip": "Girar"
+  "cs.flip": "Girar",
+  "cs.protected": "El contacto y los detalles nunca aparecen en las caras de la tarjeta; se ven en la página de detalle según su bloqueo / cifrado",
+  "cs.tapMore": "Si hay mucho contenido, la tarjeta muestra un resumen; tócala para verlo todo"
 }

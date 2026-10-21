@@ -694,16 +694,27 @@ window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 290) + 'px'; tip.style.top = e.clientY + 14 + 'px'; };
 const isMine = w => S.pubkey && w.author === S.pubkey;
 // 自定义封面卡样式（t241）：overlay = 单页·双面相同（内容叠在封面上）；split = 单页·封面 / 内容分开（旧自定义单卡）；fold = 折页（封面 + 内页 + 背面 ~R）
-const cStyle = w => w && w.cimg && (!w.kind || w.kind === 'wish' || w.kind === 'biz') ? (w.folded ? 'fold' : w.ustyle === 'o' ? 'overlay' : 'split') : ''; window.WTcStyle = cStyle;
+const CS_KINDS = ['wish', 'social', 'gift', 'goods', 'biz'], cStyle = w => w && w.cimg && CS_KINDS.includes(w.kind || 'wish') ? (w.folded ? 'fold' : w.ustyle === 'o' ? 'overlay' : 'split') : ''; window.WTcStyle = cStyle;
+// 卡面摘要（封面叠字 / 背面 / 树上贴图共用）：只用链上公开字段；交友卡的联系方式 / 详情（可加锁 / 加密）从不出现在卡面，只在详情页按权限显示
+const summText = w => { if (w.lockedView) return w.text; const k = w.kind || 'wish';
+  if (k === 'social') return ['💬 ' + w.text, (w.tags || []).map(x => '#' + x).join(' '), w.intro, w.looking ? '🔎 ' + w.looking : ''].filter(Boolean).join('\n');
+  if (k === 'gift') return '🎁 ' + (w.note || w.text);
+  if (k === 'goods') return '🛍️ ' + (S.goods?.[w.sig]?.title || w.text) + (w.domain ? '\n🔗 ' + w.domain : '');
+  if (k === 'biz') return '🏢 ' + (w.bname || w.text) + (w.domain ? '\n🔗 ' + w.domain : '');
+  return w.text; }; window.WTsumm = summText;
+const summHtml = w => { const k = w.kind || 'wish';
+  if (k === 'social' && !w.lockedView) return `<span class=tag>💬 ${E('kind.social')}</span><p class=cf-text dir=auto>${esc(w.text)}</p>${(w.tags || []).length ? `<div class=pv-tags>${w.tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}${w.intro ? `<p dir=auto>${esc(w.intro)}</p>` : ''}${w.looking ? `<p dir=auto>🔎 ${esc(w.looking)}</p>` : ''}<p class="muted hint">🔒 ${E('cs.protected')}</p>`;
+  return `<span class=tag>${KICON[k] || ''}${esc(k === 'wish' ? catName(w.cat) : t('kind.' + k))}</span> ${fulfillBadge(w)}<p class=cf-text dir=auto>${esc(summText(w))}</p>`; };
 function openFlip(w, cs) { const text = w.plain || w.text, meta = `<div class=cf-meta>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>`;
-  const content = `<span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=cf-text dir=auto>${esc(text)}</p>${meta}`, img = `<img alt="" src="${IMG(w.cimg)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">`;
+  const content = w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>${meta}` : `${summHtml({ ...w, text })}${meta}`, img = `<img alt="" src="${IMG(w.cimg)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">`;
   const acts = `<div class="row cf-acts">${cs === 'split' ? `<button type=button id=cfFlip>🔄 ${esc(t('cs.flip'))}</button>` : ''}${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`;
   modal(cs === 'overlay' ? `<div class="cflip one" id=cflip><div class="cf-face cf-ov">${img}<div class=cf-over>${content}</div></div></div>${acts}`
     : `<div class=cflip id=cflip><div class=cf-inner><div class="cf-face cf-front">${img}<span class=fold-hint>${esc(t('cs.flip'))}</span></div><div class="cf-face cf-back"><div class=cf-body>${content}</div></div></div></div>${acts}`, w.cat);
+  if (w.kind === 'biz' && !(w.sig in S.biz)) bizInner(w);
   if (cs === 'split') { const f = $('#cflip'), flip = () => f.classList.toggle('flipped'); f.addEventListener('click', flip); $('#cfFlip').addEventListener('click', flip); setTimeout(() => f.classList.add('flipped'), 600); } }
 function openCardPopup(w) { if (w.folded || isGQ(w)) return openFolded(w);
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w);
-  if (!locked && w.cimg && (!w.kind || w.kind === 'wish')) return openFlip(w, cStyle(w)); // 单卡自定义封面：双面相同 / 封面 ↔ 内容翻面
+  if (!locked && cStyle(w) && cStyle(w) !== 'fold') return openFlip(w, cStyle(w)); // 单卡自定义封面：双面相同 / 封面 ↔ 内容翻面
   maybeFulfillToast(w);
   const L = lockPaint(w);
   let unlockHtml = '';
@@ -1226,7 +1237,7 @@ function bizInner(w) { const bg = w.nimg ? IMG(w.nimg) : (w.inside != null && wi
   <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
   <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div></div>`; }
 function foldInner(w, text) { if (isGQ(w)) return gqInner(w, text); if (w.kind === 'biz') return bizInner(w); const bg = w.nimg && (!w.priv || w.nimgUrl) ? (w.priv ? w.nimgUrl : IMG(w.nimg)) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : '');
-  return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody><span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>
+  return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody>${(w.kind || 'wish') === 'wish' ? `<span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>` : summHtml({ ...w, text })}
   <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
   <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div></div>`; }
 function gqInner(w, text) { // 光栖内页：用户心愿写在信纸横线区
@@ -1322,15 +1333,15 @@ function previewHtml(st) { // st：表单当前值；所有用户文本经 esc
   if (k === 'biz') body = bizBody({ name: v('bzname') || t('biz.namePh'), intro: v('bzintro') || t('biz.introPh'), url: v('bzurl'), domain: bizDomain(v('bzurl')), theme: $('#bizWrap')?.dataset.theme || 'ivory', layout: v('bzlay') }, true);
   else if (k === 'social') { const tags = v('stg').split(/[,，\s]+/).filter(Boolean).slice(0, 5), gsel = $('#sgen'), loc = [v('scountry'), v('sprov'), v('scity')].filter(Boolean).join(' · ');
     const meta = [v('sage'), v('sgen') && gsel ? gsel.selectedOptions[0]?.textContent : '', v('sjob'), loc].filter(Boolean);
-    body = `<span class=tag>💬 ${E('kind.social')}</span>${tags.length ? `<div class=pv-tags>${tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}<p dir=auto>${esc(v('sin') || t('pv.introPh'))}</p><p class=pv-sub dir=auto>🔎 ${esc(v('slk') || t('pv.lookPh'))}</p>${meta.length ? `<p class=pv-meta dir=auto>${meta.map(esc).join(' · ')}</p>` : ''}`; }
+    body = `<span class=tag>💬 ${E('kind.social')}</span>${tags.length ? `<div class=pv-tags>${tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}<p dir=auto>${esc(v('sin') || t('pv.introPh'))}</p><p class=pv-sub dir=auto>🔎 ${esc(v('slk') || t('pv.lookPh'))}</p>${meta.length ? `<p class=pv-meta dir=auto>${meta.map(esc).join(' · ')}</p>` : ''}${v('sct') || v('sdt') ? `<p class="pv-meta pv-prot">🔒 ${E('cs.protected')}</p>` : ''}`; }
   else if (k === 'gift') body = `<span class="tag pv-gift">🎁 ${E('kind.gift')}</span><p dir=auto>${esc(v('gnt') || t('pv.notePh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gto')) || '—')}</p>${S.sgAE?.okList().length ? gbAtt(S.sgAE.okList(), 'spv') : ''}`;
   else if (k === 'gate') { const d = v('gexp'); if (GFACE.has(v('gid').toLowerCase())) img = '/gate/' + v('gid').toLowerCase() + '.webp?v=2'; body = `<span class="tag pv-gift">🎫 ${E('gate.badge')}</span><p dir=auto><b>${esc(v('gname') || t('gate.name'))}</b></p><p dir=auto>${esc(v('wt') || t('gate.benefitPh'))}</p><p class=pv-meta>${E('pv.to')} ${esc(short(v('gato')) || '—')}</p><p class=pv-meta>${d ? E('gate.until', { date: new Date(d + 'T00:00').toLocaleDateString(I18N.lang) }) : E('gate.forever')} · ${E('gate.soul')}</p>`; }
-  else if (k === 'goods') { const gi = $('#gimg'); if (gi && !gi.hidden && gi.src) img = gi.src; let dom = ''; try { dom = new URL(v('gurl')).hostname.replace(/^www\./, ''); } catch {}
+  else if (k === 'goods') { const gi = $('#gimg'); if (gi && !gi.hidden && gi.src && $('#wc2')?.value !== CUSTOM) img = gi.src; let dom = ''; try { dom = new URL(v('gurl')).hostname.replace(/^www\./, ''); } catch {}
     body = `<span class=tag>🛍️ ${E('kind.goods')}</span><p dir=auto><b>${esc(v('gtitle') || t('pv.goodsPh'))}</b></p><p class=pv-price>${v('gprice') ? esc(v('gprice') + ' ' + v('gcur').toUpperCase()) : '—'}</p><p class=pv-meta>🔗 ${esc(dom || '—')}</p>`; }
   else body = `<span class=tag>✨ ${E('kind.wish')}</span><p dir=auto>${esc(v('wt') || t('pv.textPh'))}</p>`;
   const foot = `<p class=pv-meta>👤 ${esc(me)}</p>`;
   const fig = (inner, cap, cls = '') => `<figure class="pv-page${cls}">${inner}<figcaption>${cap}</figcaption></figure>`;
-  if (st.style === 'overlay') return `<div class=pv-ov><img alt="" src="${img}">${badge}<div class=pv-ovtext>${body}${foot}</div><span class=pv-cap>${E('cs.same')}</span></div>`;
+  if (st.style === 'overlay') return `<div class=pv-ov><img alt="" src="${img}">${badge}<div class=pv-ovtext>${body}${foot}<p class=pv-more>${E('cs.tapMore')}</p></div><span class=pv-cap>${E('cs.same')}</span></div>`;
   if (st.style === 'split') return `<div class="pv-fold pv-split">${fig(`<img alt="" src="${img}">${badge}`, E('cs.front'))}${fig(`<div class=pv-inbody>${body}${foot}</div>`, E('cs.back'), ' pv-in pv-plain')}</div>`;
   if (st.style === 'folded') return `<div class="pv-fold pv-three">${fig(`<img alt="" src="${img}">${badge}`, E('cs.front'))}${fig(st.upB ? `<img alt="" src="${st.upB}">` : '', E('cs.back'), st.upB ? '' : ' pv-defback')}${fig(`<div class=pv-inbody>${body}${foot}</div>`, E('wish.inside'), ` pv-in" style="--bg:url('${insideSrc}')`)}</div>`;
   if (st.mode === 'folded') return `<div class=pv-fold><figure class=pv-page><img alt="" src="${img}"><figcaption>${E('wish.cover')}</figcaption>${badge}</figure><figure class="pv-page pv-in" style="--bg:url('${insideSrc}')"><div class=pv-inbody>${body}${foot}</div><figcaption>${E('wish.inside')}</figcaption></figure></div>`;
@@ -1573,10 +1584,10 @@ async function route() {
     const catSel = $('#wc2');
     const syncShip = () => { const on = ($('#ckind')?.value || 'wish') === 'goods'; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
     const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => { b.classList.toggle('on', +b.dataset.cover === i); b.setAttribute('aria-pressed', +b.dataset.cover === i); });
-    const custom3 = () => catSel?.value === CUSTOM && ($('#ckind')?.value || 'wish') === 'wish';
+    const custom3 = () => catSel?.value === CUSTOM && CS_KINDS.includes($('#ckind')?.value || 'wish');
     const syncCtype = () => { const sel = $('#ctype'); if (!sel) return; const c3 = custom3(), want = c3 ? ['overlay', 'single', 'folded'] : ['single', 'folded'];
       if ([...sel.options].map(o => o.value).join() !== want.join()) { const v = sel.value; sel.innerHTML = want.map(x => `<option value=${x}>${E(c3 ? 'cs.' + x : x === 'single' ? 'wish.typeSingle' : 'wish.typeFolded')}</option>`).join(''); sel.value = want.includes(v) ? v : 'single'; } };
-    const syncCard = () => { const f = $('#ctype')?.value === 'folded', k = $('#ckind')?.value || 'wish', cuB = catSel?.value === CUSTOM && (k === 'wish' || k === 'biz') && f;
+    const syncCard = () => { const f = $('#ctype')?.value === 'folded', k = $('#ckind')?.value || 'wish', cuB = catSel?.value === CUSTOM && CS_KINDS.includes(k) && f;
       if ($('#upBRow')) $('#upBRow').hidden = $('#upBHint').hidden = !cuB; const h = $('#csHint'); if (h) { h.hidden = !custom3(); if (custom3()) h.textContent = t('cs.h.' + ($('#ctype').value || 'single')); } if ($('#coverWrap')) $('#coverWrap').hidden = !f; const ta2 = $('#wt'); if (ta2) { ta2.maxLength = f && $('#priv')?.checked ? 100 : 140; $('#wc').textContent = [...ta2.value].length + '/' + ta2.maxLength; } };
     const D = S.draft ||= {}, up = D.up ||= { C: null, N: null }; up.B ??= null;
     const pickInside = i => $('#insides')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.inside === i));
@@ -1612,7 +1623,7 @@ async function route() {
         $('#gnote').textContent = gp.failed ? t('goods.failed') : !gp.title || !gp.price ? t('goods.partial') : t('goods.priceAt', { time: fmtMs(gp.fetchedAt) }); saveD(); }
       catch (e) { gp = null; toast(esc(e.message), 'err'); }
       b.disabled = false; b.textContent = '🔎 ' + t('goods.fetch'); });
-    const syncBiz = k => { const on = k === 'biz', w = $('#bizWrap'); if (!w) return; w.hidden = !on; $('#wt').hidden = $('#wc').hidden = on; const r = $('#wc2')?.closest('.row'); if (r) r.hidden = on; if ($('#ctypeRow')) $('#ctypeRow').hidden = on || catSel?.value === '光栖';
+    const syncBiz = k => { const on = k === 'biz', w = $('#bizWrap'); if (!w) return; w.hidden = !on; $('#wt').hidden = $('#wc').hidden = on; const r = $('#wc2')?.closest('.row'); if (r) r.hidden = on; if ($('#ctypeRow')) $('#ctypeRow').hidden = catSel?.value === '光栖';
       const pl = $('#priv')?.closest('label'); if (pl) pl.hidden = on; // 企业展示卡：折页卡（封面 = 上传的 Logo，内页可选模板 / 上传背景），不支持私密
       if (on) { if (catSel && catSel.value !== CUSTOM) { catSel.value = CUSTOM; catSel.dispatchEvent(new Event('change')); } $('#ctype').value = 'folded'; if ($('#priv')) $('#priv').checked = false; syncCard(); if ($('#coverWrap')) $('#coverWrap').hidden = false; $('#wt').hidden = $('#wc').hidden = true; } };
     $('#bzintro')?.addEventListener('input', e => $('#bzic').textContent = [...e.target.value].length + '/300');
@@ -1628,7 +1639,7 @@ async function route() {
     if (D.f) { for (const [id, v] of Object.entries(D.f)) { const el = $('#' + id); if (el) el[F[id]] = v; }
       if (D.cover != null) pickCover(+D.cover); if (D.inside != null) pickInside(+D.inside); if (D.auto) $('#covers').dataset.auto = D.auto; if (D.iauto) $('#insides').dataset.auto = D.iauto; ['C', 'N', 'B'].forEach(k => showUp(k, up[k])); syncCtype(); syncCard(); }
     let pvMode = null; const pvUrl = {}; const blobUrl = k => up[k] ? (pvUrl[k]?.b === up[k] ? pvUrl[k].u : (pvUrl[k] = { b: up[k], u: URL.createObjectURL(up[k]) }).u) : null;
-    const renderPreview = () => { const box = $('#pvBody'); if (!box) return; const k = $('#ckind')?.value || 'wish', cv = $('#ctype')?.value, style = catSel?.value === CUSTOM && (k === 'wish' || k === 'biz') ? (cv === 'folded' || k === 'biz' ? 'folded' : cv === 'overlay' ? 'overlay' : 'split') : '', mode = style ? (style === 'folded' ? 'folded' : 'single') : pvMode || (cv === 'folded' ? 'folded' : 'single'); if ($('.pv-modes')) $('.pv-modes').hidden = !!style;
+    const renderPreview = () => { const box = $('#pvBody'); if (!box) return; const k = $('#ckind')?.value || 'wish', cv = $('#ctype')?.value, style = catSel?.value === CUSTOM && CS_KINDS.includes(k) ? (cv === 'folded' ? 'folded' : cv === 'overlay' ? 'overlay' : 'split') : '', mode = style ? (style === 'folded' ? 'folded' : 'single') : pvMode || (cv === 'folded' ? 'folded' : 'single'); if ($('.pv-modes')) $('.pv-modes').hidden = !!style;
       document.querySelectorAll('[data-pv]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pv === mode));
       box.innerHTML = previewHtml({ mode, cover: +($('#covers .on')?.dataset.cover ?? 0), inside: +($('#insides .on')?.dataset.inside ?? 0), upC: blobUrl('C'), upN: blobUrl('N'), upB: blobUrl('B'), style }); };
     document.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => { pvMode = b.dataset.pv; renderPreview(); });
@@ -1695,7 +1706,7 @@ async function route() {
       const gqC = cat === '光栖', folded = !gqC && $('#ctype').value === 'folded', cover = gqC ? (D.gqSet | 0) : +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null, bimg = null;
       if (!gqC && (up.C || (folded && up.N))) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (folded && up.N) nimg = await uploadImg(up.N, k); if (folded && up.C && up.B && $('#wc2').value === CUSTOM) bimg = await uploadImg(up.B); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
       if (priv) { if ([...txt].length > 100) return toast(E('wish.privateLen'), 'err'); try { cipher = await WTPriv.enc(txt, await WTPriv.key()); } catch (e) { return toast(esc(t('card.unlockFail')) + ' ' + esc(e.message || ''), 'err'); } }
-      const fold = (folded ? encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside) + (bimg ? '~R' + bimg : '') : (gqC || cimg || cover !== WTCovers.forCat(cat)[0] ? encSingle(cimg ? null : cover, cimg) : '')) + (!folded && cimg && $('#ctype').value === 'overlay' && kind === 'wish' ? '~Uo' : '');
+      const fold = (folded ? encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside) + (bimg ? '~R' + bimg : '') : (gqC || cimg || cover !== WTCovers.forCat(cat)[0] ? encSingle(cimg ? null : cover, cimg) : '')) + (!folded && cimg && $('#ctype').value === 'overlay' && CS_KINDS.includes(kind) ? '~Uo' : '');
       const prefix = encKind(cat, K || { kind: 'wish', vis: 'public' }, fold);
       if (new TextEncoder().encode(prefix + '|' + (cipher || txt)).length > 600) { $('#ws').disabled = false; return tt.update(E('err.memoSize'), 'err'); }
       let memo; try { memo = await moderateThenMemo('W', prefix, txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }

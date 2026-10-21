@@ -1197,5 +1197,7 @@
   "cs.front": "Depan",
   "cs.back": "Belakang",
   "cs.same": "Sama di kedua sisi",
-  "cs.flip": "Balik"
+  "cs.flip": "Balik",
+  "cs.protected": "Kontak dan detail tidak pernah tampil di sisi kartu; lihat di halaman detail sesuai pengaturan kunci / enkripsi",
+  "cs.tapMore": "Konten panjang tampil sebagai ringkasan; ketuk untuk melihat semuanya"
 }

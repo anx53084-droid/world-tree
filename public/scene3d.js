@@ -417,12 +417,12 @@ function gqTexture(w, side) { // 光栖主题双面卡（仅近景真实卡用�
 const cst = w => window.WTcStyle ? window.WTcStyle(w) : '';
 function frame(x, w) { x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke(); }
 function coverImg(x, im, X0, Y0, W, H) { const k = Math.max(W / im.width, H / im.height); x.drawImage(im, X0 + (W - im.width * k) / 2, Y0 + (H - im.height * k) / 2, im.width * k, im.height * k); }
-function overlayTexture(w) { const ui = uimg(w.cimg), key = 'OV|' + (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.id === hlId ? 1 : 0) + (ui ? 'U' : '') + w.text; if (texCache.has(key)) return lruGet(texCache, key);
+function overlayTexture(w) { const ui = uimg(w.cimg), key = 'OV|' + (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.id === hlId ? 1 : 0) + (ui ? 'U' : '') + (window.WTsumm ? window.WTsumm(w) : w.text); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252; frame(x, w);
   x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); if (ui) coverImg(x, ui, X0, Y0, W, H); else { x.translate(X0, Y0); WTCovers.draw(x, w.cover, W, H); x.translate(-X0, -Y0); }
   const g = x.createLinearGradient(0, Y0 + H * .38, 0, Y0 + H); g.addColorStop(0, '#0000'); g.addColorStop(.25, '#000a'); g.addColorStop(1, '#000d'); x.fillStyle = g; x.fillRect(X0, Y0 + H * .38, W, H * .62); x.restore();
   x.fillStyle = '#fff'; x.font = 'bold 17px "Noto Sans CJK SC",sans-serif'; x.shadowColor = '#000'; x.shadowBlur = 4; const lines = []; let line = '';
-  for (const ch of w.text) { if (ch === '\n' || x.measureText(line + ch).width > W - 20) { lines.push(line); line = ch === '\n' ? '' : ch; if (lines.length >= 4) { line = ''; lines[3] += '…'; break; } } else line += ch; } if (line) lines.push(line);
+  for (const ch of (window.WTsumm ? window.WTsumm(w) : w.text)) { if (ch === '\n' || x.measureText(line + ch).width > W - 20) { lines.push(line); line = ch === '\n' ? '' : ch; if (lines.length >= 4) { line = ''; lines[3] += '…'; break; } } else line += ch; } if (line) lines.push(line);
   const y0 = Y0 + H - 36 - lines.length * 22; lines.forEach((l, i) => x.fillText(l, X0 + 10, y0 + i * 22 + 16)); x.font = '13px sans-serif'; x.fillText('💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 10, Y0 + H - 12); x.shadowBlur = 0;
   x.strokeStyle = w.id === hlId ? '#ffffff' : '#c9a052'; x.lineWidth = w.id === hlId ? 7 : 6; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke();
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex); return tex; }
@@ -434,7 +434,7 @@ function backTexture(w) { const ui = uimg(w.bimg), key = 'BK|' + w.sig + '|' + (
 function cardTexture(w, tag = '') { // 纸质许愿签（单卡）或折页卡封面（私密卡加锁）；哑光无发光
   const key = tag + (window.I18N?.lang || '') + '|' + w.sig + '|' + w.likes + '|' + (w.pending ? 1 : 0) + '|' + (w.id === hlId ? 1 : 0) + '|' + (w.folded ? w.cover : '') + (w.priv ? 'P' : '') + (uimg(w.cimg) ? 'U' : '') + (w.kind || '') + (w.city || '') + (w.province || '') + (w.country || ''); if (texCache.has(key)) return lruGet(texCache, key);
   const c = document.createElement('canvas'); c.width = 192; c.height = 300; const x = c.getContext('2d'), X0 = 16, Y0 = 34, W = 160, H = 252;
-  if ((w.folded || (w.cimg && (!w.kind || w.kind === 'wish'))) && window.WTCovers) { // 折页卡或单卡自定义封面 x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
+  if ((w.folded || (w.cimg && cst(w))) && window.WTCovers) { // 折页卡或单卡自定义封面 x.fillStyle = '#9a7232'; x.beginPath(); x.roundRect(52, 14, 88, 22, 6); x.fill(); x.strokeStyle = '#e9cf8e'; x.lineWidth = 3; x.beginPath(); x.arc(96, 9, 7, 0, Math.PI * 2); x.stroke();
     x.save(); x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.clip(); x.translate(X0, Y0); const ui = uimg(w.cimg); if (ui) { const k = Math.max(W / ui.width, H / ui.height); x.drawImage(ui, (W - ui.width * k) / 2, (H - ui.height * k) / 2, ui.width * k, ui.height * k); } else WTCovers.draw(x, w.cover, W, H); x.restore();
     const sp = x.createLinearGradient(X0, 0, X0 + 18, 0); sp.addColorStop(0, '#0007'); sp.addColorStop(1, '#0000'); x.fillStyle = sp; x.fillRect(X0, Y0, 18, H); // 书脊阴影
     x.fillStyle = '#fff3'; x.fillRect(X0 + W - 6, Y0 + 4, 3, H - 8); x.strokeStyle = w.id === hlId ? '#ffffff' : '#c9a052'; x.lineWidth = w.id === hlId ? 7 : 6; x.beginPath(); x.roundRect(X0, Y0, W, H, 8); x.stroke(); x.strokeStyle = '#8a5f1e'; x.lineWidth = 1.5; x.beginPath(); x.roundRect(X0 + 4, Y0 + 4, W - 8, H - 8, 6); x.stroke();
@@ -451,7 +451,7 @@ function cardTexture(w, tag = '') { // 纸质许愿签（单卡）或折页卡�
   x.fillStyle = '#8a4e12'; [[X0 + 9, Y0 + 9], [X0 + W - 9, Y0 + 9], [X0 + 9, Y0 + H - 9], [X0 + W - 9, Y0 + H - 9]].forEach(([a, b]) => { x.beginPath(); x.moveTo(a, b - 7); x.lineTo(a + 7, b); x.lineTo(a, b + 7); x.lineTo(a - 7, b); x.fill(); });
   x.fillStyle = `hsl(${hue},55%,48%)`; x.fillRect(X0 + 50, Y0 + 30, W - 100, 3);
   x.fillStyle = '#4a2a08'; x.font = 'bold 19px "Noto Sans CJK SC",sans-serif'; let line = '', y = Y0 + 56;
-  for (const ch of (w.kind === 'social' ? '💬 ' : w.kind === 'gift' ? '🎁 ' : '') + w.text) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 170) { line = '…'; break; } } line += ch; }
+  for (const ch of (tag === 'C|' && window.WTsumm ? window.WTsumm(w).replace(/\n/g, ' · ') : (w.kind === 'social' ? '💬 ' : w.kind === 'gift' ? '🎁 ' : '') + w.text)) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 170) { line = '…'; break; } } line += ch; }
   x.fillText(line, X0 + 18, y); const loc = [w.country, w.province, w.city].filter(Boolean).join('·'); if (loc) { x.font = '11px sans-serif'; x.fillStyle = '#4a6a9a'; const tw = x.measureText('📍' + loc).width; x.fillText('📍' + (tw > 110 ? loc.slice(0, 8) + '…' : loc), X0 + W - 14 - Math.min(tw, 110), Y0 + 22); }
   x.font = '14px sans-serif'; x.fillStyle = '#4a2a08'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.time && window.WTfmtT) x.fillText(window.WTfmtT(w.time), X0 + 18, Y0 + H - 16);
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex);

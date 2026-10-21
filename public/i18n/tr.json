@@ -1197,5 +1197,7 @@
   "cs.front": "Ön",
   "cs.back": "Arka",
   "cs.same": "İki yüz aynı",
-  "cs.flip": "Çevir"
+  "cs.flip": "Çevir",
+  "cs.protected": "İletişim ve ayrıntılar kart yüzlerinde asla görünmez; kilit / şifreleme ayarına göre ayrıntı sayfasında görüntülenir",
+  "cs.tapMore": "Uzun içerik kartta özet olarak görünür; tamamı için dokunun"
 }

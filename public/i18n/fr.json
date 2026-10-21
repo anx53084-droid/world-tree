@@ -1197,5 +1197,7 @@
   "cs.front": "Recto",
   "cs.back": "Verso",
   "cs.same": "Recto = verso",
-  "cs.flip": "Retourner"
+  "cs.flip": "Retourner",
+  "cs.protected": "Le contact et les détails n’apparaissent jamais sur les faces de la carte ; ils se consultent sur la page de détail selon leur verrouillage / chiffrement",
+  "cs.tapMore": "Un contenu long s’affiche en résumé sur la carte ; touchez pour tout voir"
 }

@@ -562,3 +562,6 @@ svg.gface { height: auto }
 .pv-plain { background: radial-gradient(circle at 50% 45%, #fff6dc, #f5dfa4 55%, #d9b166) } .pv-plain .pv-inbody { background: transparent }
 .pv-three { grid-template-columns: 1fr 1fr 1fr } .pv-three .pv-inbody { font-size: 10px; inset: 6% 5% } .pv-three .pv-page:first-child { transform: none }
 .pv-defback { background: linear-gradient(135deg, #f3e4c4, #d9bd88) } .pv-defback::after { content: '✦'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 34px; color: #a5763088 }
+/* t242 */
+.pv-ovtext { max-height: 62%; overflow: hidden } .pv-more { font-size: 11px; opacity: .85; margin: 2px 0 0 } .pv-prot { color: #7a5a3a }
+.cf-over .pv-tags .tag, .cf-over .hint { color: #fff }

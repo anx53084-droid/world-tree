@@ -1197,5 +1197,7 @@
   "cs.front": "Mặt trước",
   "cs.back": "Mặt sau",
   "cs.same": "Hai mặt giống nhau",
-  "cs.flip": "Lật"
+  "cs.flip": "Lật",
+  "cs.protected": "Thông tin liên hệ và chi tiết không bao giờ hiện trên mặt thẻ; xem ở trang chi tiết theo cài đặt khóa / mã hóa",
+  "cs.tapMore": "Nội dung dài chỉ hiện tóm tắt trên thẻ; chạm để xem toàn bộ"
 }

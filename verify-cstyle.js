@@ -45,6 +45,29 @@ const D = __dirname, SHOTS = process.env.SHOTS, IMGS = { cover: '/tmp/cs-cover.p
       await p.evaluate(s => openCardPopup(S.wishes.find(w => w.sig === s)), sig); await p.waitForSelector(sel, { timeout: 15000 }); await p.waitForTimeout(1300);
       await p.screenshot({ path: SHOTS + `/t241-${nm}-detail.png` }); ok(true, `详情：${nm}`);
       if (nm === 'split') { await p.click('#cfFlip'); await p.waitForTimeout(1100); await p.screenshot({ path: SHOTS + '/t241-split-detail-front.png' }); ok(await p.$('.cflip:not(.flipped)'), '详情：封面 ↔ 内容 可翻面'); } }
+    // t242：所有用户卡类型（门卡除外）都提供三种样式
+    { const SEC = 'WeChat: secret_star_42', DET = 'SECRETDETAIL 天文台'; p = await page(A); await p.goto(Bs + '/?lang=zh-CN#/wish/make'); await p.reload(); await p.waitForSelector('#ckind', { timeout: 90000 });
+      await p.selectOption('#ckind', 'social'); await p.waitForTimeout(300); await p.selectOption('#wc2', '自定义'); await p.waitForTimeout(300);
+      const o2 = await p.$$eval('#ctype option', o => o.map(x => x.textContent)); ok(o2.length === 3 && o2[2].includes('封面 + 内页 + 背面'), '交友卡 + 自定义：3 种样式，折页标注「封面 + 内页 + 背面」');
+      await p.setInputFiles('#upC', IMGS.cover); await p.fill('#wt', '想认识一起看星星的朋友'); await p.fill('#stg', '旅行,音乐,摄影'); await p.fill('#sin', '喜欢夜跑和天文'); await p.fill('#slk', '聊得来的朋友');
+      await p.fill('#sct', SEC); await p.fill('#sdt', DET); await p.check('#dtEnc'); await p.fill('#dtPw', 'meteor42'); await p.check('#ctLock'); await p.fill('#ctUsd', '2'); await p.dispatchEvent('#ctUsd', 'input'); await p.waitForTimeout(800);
+      await p.locator('#ctypeRow').scrollIntoViewIfNeeded(); await p.evaluate(() => { const s = document.querySelector('#ctype'); s.size = 3; window.scrollBy(0, -160); }); await p.waitForTimeout(300); await p.screenshot({ path: SHOTS + '/t242-social-select.png' }); await p.evaluate(() => { document.querySelector('#ctype').size = 0; });
+      if (await p.isVisible('#pvToggle') && await p.getAttribute('#pvToggle', 'aria-expanded') !== 'true') await p.click('#pvToggle');
+      for (const [v, nm] of [['overlay', 'overlay'], ['single', 'split'], ['folded', 'folded']]) { await p.selectOption('#ctype', v); await p.dispatchEvent('#ctype', 'input'); await p.waitForTimeout(500);
+        if (v === 'folded') { ok(await p.isVisible('#upBRow'), '交友卡折页：显示背面上传'); await p.setInputFiles('#upB', IMGS.back); await p.waitForTimeout(800); }
+        const tx = await p.textContent('#pvBody'); ok(tx.includes('喜欢夜跑') && !tx.includes('secret_star') && !tx.includes('SECRETDETAIL') && tx.includes('不会显示在卡面'), `交友卡 ${nm} 预览：显示公开资料，不含联系方式 / 详情`);
+        await p.locator('#pvBody').scrollIntoViewIfNeeded(); await p.evaluate(() => window.scrollBy(0, -60)); await p.waitForTimeout(300); await p.screenshot({ path: SHOTS + `/t242-social-${nm}-preview.png` }); }
+      for (const [k, fill, nm] of [['wish', async () => p.fill('#wt', '愿家人平安喜乐'), 'wish'], ['gift', async () => { await p.fill('#gto', A.pubkey); await p.fill('#gnt', '生日快乐，愿你被温柔以待'); }, 'gift'], ['goods', async () => { await p.fill('#wt', '想要一台天文望远镜'); }, 'goods'], ['biz', async () => { await p.fill('#bzname', '星叶科技'); await p.fill('#bzurl', 'https://starleaf.example.com'); await p.fill('#bzintro', '为小团队打造好用的协作工具。'); }, 'biz']]) {
+        await p.selectOption('#ckind', k); await p.waitForTimeout(400); if (k !== 'biz') { await p.selectOption('#wc2', '自定义'); await p.waitForTimeout(300); }
+        ok((await p.$$eval('#ctype option', o => o.length)) === 3, `${k}：自定义提供 3 种样式`); await fill(); await p.selectOption('#ctype', 'folded'); await p.dispatchEvent('#ctype', 'input'); await p.waitForTimeout(600);
+        ok(await p.isVisible('#upBRow') && await p.$('.pv-three'), `${k}：折页预览（封面 / 背面 / 内页）`); await p.locator('#pvBody').scrollIntoViewIfNeeded(); await p.evaluate(() => window.scrollBy(0, -60)); await p.waitForTimeout(300); await p.screenshot({ path: SHOTS + `/t242-${nm}-folded-preview.png` }); }
+      p = await page(A); await p.goto(Bs + '/?lang=zh-CN#/'); await p.reload(); await p.waitForTimeout(5000);
+      const sw = mk('CSsoc' + crypto.randomBytes(6).toString('hex'), 0, { kind: 'social', text: '想认识一起看星星的朋友', tags: ['旅行', '音乐'], intro: '喜欢夜跑和天文', looking: '聊得来的朋友', ustyle: 'o', contact: SEC, details: DET });
+      const r = await p.evaluate(w => { w.likers = new Set(); w.id = S.wishes.reduce((m, x) => Math.max(m, x.id || 0), 0) + 1; window.__sw = w; S.wishes.push(w); WT3D.update(treeWishes().map(lockPaint), openCardPopup, { stress: S.stress, total: S.total }); return { st: cStyle(w), sum: WTsumm(w), id: w.id }; }, sw);
+      ok(r.st === 'overlay' && r.sum.includes('喜欢夜跑') && !r.sum.includes('secret') && !r.sum.includes('SECRET'), '交友卡卡面摘要：只含公开字段');
+      await p.evaluate(i => WT3D.jumpTo(i), r.id); await p.waitForTimeout(4000); await p.screenshot({ path: SHOTS + '/t242-social-overlay-tree.png' });
+      await p.evaluate(() => openCardPopup(window.__sw)); await p.waitForSelector('.cf-over', { timeout: 15000 }); await p.waitForTimeout(800);
+      const dt = await p.textContent('#modal, .modal, body'); ok(!dt.includes('secret_star') && !dt.includes('SECRETDETAIL'), '交友卡双面相同详情：不泄露联系方式 / 详情'); await p.screenshot({ path: SHOTS + '/t242-social-overlay-detail.png' }); }
     ok(!errs.length, '无页面错误');
     console.log(`\n✅ ${n} checks passed`);
   } finally { if (browser) await browser.close(); srv.kill(); }

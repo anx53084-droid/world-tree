@@ -1197,5 +1197,7 @@
   "cs.front": "Frente",
   "cs.back": "Verso",
   "cs.same": "Igual nos dois lados",
-  "cs.flip": "Virar"
+  "cs.flip": "Virar",
+  "cs.protected": "Contato e detalhes nunca aparecem nas faces do cartão; veja-os na página de detalhes conforme o bloqueio / criptografia",
+  "cs.tapMore": "Conteúdo longo aparece resumido no cartão; toque para ver tudo"
 }
