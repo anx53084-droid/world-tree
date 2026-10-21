@@ -43,9 +43,11 @@ function normFace(f, hostOk) { if (f == null || f === '') return { ok: null }; i
   const ix = v => v == null || v === '' ? null : Number.isInteger(v) && v >= 0 && v <= MAX_TPL ? v : NaN, cover = ix(f.cover), inside = ix(f.inside);
   if (Number.isNaN(cover) || Number.isNaN(inside)) return { error: 'face' };
   let cimg = '', nimg = ''; if (f.cimg) { cimg = platImg(f.cimg, hostOk); if (!cimg) return { error: 'attImg' }; } if (f.nimg) { nimg = platImg(f.nimg, hostOk); if (!nimg) return { error: 'attImg' }; }
+  const style = f.style == null || f.style === '' ? '' : ['overlay', 'split', 'fold'].includes(f.style) ? f.style : null; if (style === null) return { error: 'face' }; // t243：自定义封面样式（仅有自定义封面时生效）
+  let bimg = ''; if (f.bimg) { bimg = platImg(f.bimg, hostOk); if (!bimg) return { error: 'attImg' }; }
   const raw = String(f.text || ''); if ([...raw.trim()].length > 140 || /[|]/.test(raw)) return { error: 'face' }; const text = clean(raw, 140).replace(/[~<>]/g, '');
-  if (cover == null && inside == null && !cimg && !nimg && !text) return { ok: null }; return { ok: { cover, inside, cimg, nimg, text } }; }
-const faceHashes = f => f ? [f.cimg, f.nimg].filter(Boolean).map(u => u.slice(9)) : [];
+  if (cover == null && inside == null && !cimg && !nimg && !text) return { ok: null }; const o = { cover, inside, cimg, nimg, text }; if (cimg && style) { o.style = style; if (style === 'fold' && bimg) o.bimg = bimg; } return { ok: o }; }
+const faceHashes = f => f ? [f.cimg, f.nimg, f.bimg].filter(Boolean).map(u => u.slice(9)) : [];
 const attHashes = l => (l || []).flatMap(a => [a.type === 'image' ? a.url : a.cover]).filter(Boolean).map(u => u.slice(9));
 function validate(p, hostOk) { const c = CFG(), blessing = [...String(p.blessing || '').trim()].length, count = p.count;
   if (!blessing || blessing > 140 || /[|]/.test(p.blessing)) return { error: 'blessing' }; if (!Number.isInteger(count) || count < 1 || count > c.maxCount) return { error: 'count' };
