@@ -583,3 +583,9 @@ button.rep { font-size: 13px; opacity: .8 }
 .cap-row { align-items: center; gap: 8px; margin: 8px 0 } .cap-q { font-weight: 700; letter-spacing: .05em }
 .wg-steps { list-style: none; padding: 0; counter-reset: wg } .wg-steps li { counter-increment: wg } .wg-steps h3::before { content: counter(wg) ". "; color: #f6d38a }
 .warn-card { border: 1px solid #f6d38a66 }
+
+/* t247：悬浮「制作卡片」按钮不遮挡页面底部内容：按钮可见时，给主内容 / 页脚留出 按钮高度 48 + 底距 18 + 间隙 + 安全区 */
+:root { --fab-clear: calc(48px + 18px + 22px + env(safe-area-inset-bottom)) }
+body.fab-on main { padding-bottom: var(--fab-clear) }
+body.fab-on.home main { padding-bottom: calc(var(--fab-clear) + 58px) }
+body.fab-on footer:last-of-type { padding-bottom: var(--fab-clear) }
