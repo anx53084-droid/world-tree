@@ -343,9 +343,9 @@ function makeInst() {
   const g = new THREE.PlaneGeometry(1, 1); inst = new THREE.InstancedMesh(g, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uTime: BU.uTime },
     vertexShader: `attribute vec3 iPos,iCol,iAnc; attribute float iSize,iPh,iAlpha,iFree; uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF,vA,vFr; ${WIND}
       void main(){ vUv=uv; vC=iCol; vF=fract(iPos.x*7.13+iPos.z*3.7); vec3 pp=swing(iAnc,iPos,iPh,uTime); vec3 r=pp-iAnc; float g=atan(length(r.xz),-r.y)*sign(r.x+r.z);
-        vec4 mv=modelViewMatrix*vec4(pp,1.); vec2 q=position.xy*vec2(${CW},${CH})*max(iSize,.014*-mv.z)*(iFree>.5?.62:1.); vFr=iFree; float cg=cos(g*.6),sg=sin(g*.6); mv.xy+=mat2(cg,sg,-sg,cg)*q; gl_Position=projectionMatrix*mv; vA=iAlpha; if(iSize<=0.||iAlpha<.005) gl_Position=vec4(2.,2.,2.,1.); }`,
+        vec4 mv=modelViewMatrix*vec4(pp,1.); vec2 q=position.xy*vec2(${CW},${CH})*max(iSize,.014*-mv.z)*(iFree>.5?.85:1.); vFr=iFree; float cg=cos(g*.6),sg=sin(g*.6); mv.xy+=mat2(cg,sg,-sg,cg)*q; gl_Position=projectionMatrix*mv; vA=iAlpha; if(iSize<=0.||iAlpha<.005) gl_Position=vec4(2.,2.,2.,1.); }`,
     fragmentShader: `uniform float uTime; varying vec2 vUv; varying vec3 vC; varying float vF,vA,vFr; ${GLINT} void main(){ vec2 p=vUv-.5;
-      if(vFr>.5){ vec2 q=p*vec2(1.,${CH}/${CW}); float r=length(q)*2.2, g=exp(-r*r*3.2), core=exp(-r*r*14.); float tw=.8+.2*sin(uTime*1.7+vF*40.); if(g<.02) discard; gl_FragColor=vec4(mix(vec3(.62,.72,.95),vec3(.97,.95,.9),core)*(.55+.25*core),(g*.42+core*.25)*tw*vA); return; } // t251：免费心愿 = 半透明柔光小光点
+      if(vFr>.5){ vec2 q=p*vec2(1.,${CH}/${CW}); float r=length(q)*2.2, g=exp(-r*r*3.2), core=exp(-r*r*14.); float tw=.8+.2*sin(uTime*1.7+vF*40.); if(g<.02) discard; gl_FragColor=vec4(mix(vec3(.62,.72,.95),vec3(.97,.95,.9),core)*(.75+.35*core),min(1.,g*.6+core*.45)*tw*vA); return; } // t251：免费心愿 = 半透明柔光小光点
       float body=step(abs(p.x),.42)*step(-.44,p.y)*step(p.y,.36), cap=step(abs(p.x),.26)*step(.36,p.y)*step(p.y,.46), ring=step(abs(length(p-vec2(0.,.48))-.03),.012);
       if(body+cap+ring<.5) discard; float e=min(.42-abs(p.x),min(p.y+.44,.36-p.y)); // 到边距离
       float sh=.82+.18*(p.y+.5)-.12*abs(p.x); // 柔和受光：上亮下暗，纸质哑光（无自发光，亮度低于 bloom 阈值）

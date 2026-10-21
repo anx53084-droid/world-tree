@@ -27,7 +27,7 @@ const D = __dirname, SHOTS = process.env.SHOTS, LIVE = process.env.T251_LIVE, PF
     ok(g.strip >= 2 && g.anim === 'hsScroll', '官方示范心愿自动滚动条');
     ok(g.r.bottom <= 844 && (!g.fab || g.r.right <= g.fab.left + 1), '引导区不被搜索按钮遮挡');
     if (PFX) await p.screenshot({ path: PFX + 'tree-mobile.png' });
-    if (PFX) { await p.evaluate(() => WT3D.camTo(14)); await p.waitForTimeout(2500); await p.screenshot({ path: PFX + 'lights.png' }); }
+    if (PFX) { await p.evaluate(() => WT3D.camTo(30)); await p.waitForTimeout(2500); await p.screenshot({ path: PFX + 'lights.png' }); }
     const lab = async (pg, id) => pg.evaluate(async id => { const w = treeWishes().find(x => x.sig === id); openCardPopup(lockPaint(w)); await new Promise(r => setTimeout(r, 900)); const t = document.querySelector('#modal-box').innerText; document.querySelector('#modal [data-close], #modal .close, #mclose')?.click(); return t; }, id);
     if (F1) { const t = await lab(p, F1.id || F1); ok(/未上链/.test(t), '作者本人：卡片显示「未上链」'); if (PFX) { await lab(p, F1.id || F1); await p.evaluate(id => openCardPopup(lockPaint(treeWishes().find(x => x.sig === id))), F1.id || F1); await p.waitForTimeout(900); await p.screenshot({ path: PFX + 'label-author.png' }); } }
     const q = await mk(null); const fid = F1?.id || F1 || (await q.evaluate(() => treeWishes().find(w => w.offchain)?.sig));

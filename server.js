@@ -11,7 +11,7 @@ const { moderate, RULES } = require('./moderation');
 const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
-const Extras = require('./extras');
+const Extras = require('./extras'), FPay = require('./fpay');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
 const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'), Batch = require('./batch'), Prices = require('./prices'); const Soc = require('./social'), CL = require('./ctlock'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
@@ -172,6 +172,13 @@ function applyMeta(st, sig, owner, K, b) { // 写入链下可见性元数据；�
     if (age) meta.age = age; if (gender) meta.gender = gender; if (job) meta.job = job;
   }
   st.meta[sig] = meta; return null; }
+async function fpTx(sig) { // t252：代付核验——付款方、全部 memo（按顺序）、转入官方收款地址的金额
+  if (ADS_MOCK) { const m = adsMockRead('tx-mock.json')[sig]; return m && m.memos ? m : null; }
+  for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
+    if (tx && !tx.meta?.err) { const k = tx.transaction.message.accountKeys[0], ins = tx.transaction.message.instructions, R = RECEIVE.toBase58();
+      return { payer: k.pubkey?.toBase58?.() || String(k.pubkey || k), blockTime: tx.blockTime || 0, memos: ins.filter(x => x.program === 'spl-memo' || x.programId?.toBase58?.() === MEMO.toBase58()).map(x => typeof x.parsed === 'string' ? x.parsed : ''),
+        paid: ins.filter(x => x.program === 'system' && x.parsed?.type === 'transfer' && x.parsed.info.destination === R).reduce((a, x) => a + (+x.parsed.info.lamports || 0), 0) }; } } catch {}
+    await new Promise(r => setTimeout(r, 1500)); } return null; }
 async function txInfo(sig) { // 读取自己刚上链的交易（最多重试 4 次）：作者 + memo
   if (process.env.ADS_MOCK_PAY === '1') { const m = adsMockRead('tx-mock.json')[sig]; if (m) return m; } // 仅测试：模拟已上链交易（不读链、不发交易）
   for (let i = 0; i < 4; i++) { try { const tx = await conn.getParsedTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: 'confirmed' });
@@ -389,6 +396,7 @@ async function api(req, res, url) {
     const edited = !c || c.title !== title || c.price !== price;
     const st = Soc.load(); st.goods[sig] = { owner: a.user.pubkey, url: x.href, domain: k.domain, title, price, currency, image, fetchedAt: c?.fetchedAt || Date.now(), edited, at: Date.now() }; Soc.save(st);
     return send(res, 200, { ok: true }); }
+  if (url.startsWith('/api/fpay') && await FPay.handle(req, res, url, { send, body, db, save, verifyWishMemo, auth: r => auth(r, db), fpTx, receive: () => RECEIVE.toBase58(), minLamports: async () => Math.floor(minLamports((await solPrice()).usd) * .97) })) return; // t252：朋友代付
   if (url.startsWith('/api/') && await Extras.handle(req, res, url, { send, body, Soc, moderate, Block, txInfo, verifyWishMemo, Acc, load, save, auth: r => auth(r, db), adminOk: r => !!(Fulfill.ADMIN_KEY && Fulfill.adminOk(r)), ip: r => String(r.headers['cf-connecting-ip'] || (String(r.headers['x-forwarded-for'] || '').split(',').pop() || '').trim() || r.socket.remoteAddress || '') })) return;
   if (url === '/api/biz/check' && req.method === 'POST') { const r = await bizCheck(await body(req)); return send(res, r.error ? 400 : 200, r); }
   if (url === '/api/biz-meta' && req.method === 'POST') { // 企业展示卡上链后登记：官网网址 / 简介 / 内页模板（仅作者；网址域名须与链上 ~D 一致）
