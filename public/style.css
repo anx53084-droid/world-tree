@@ -675,3 +675,4 @@ body.home:not(.debug) .home-grow { position: fixed; left: 10px; right: 74px; bot
 .fp-amt { font-size: 18px } .fp-recv { margin: 8px 0; padding: 10px; border: 1px solid #3fbf7f88; border-radius: 10px; background: #0f3a2a55 } .fp-recv code { display: block; word-break: break-all; margin: 6px 0; font-size: 13px }
 .fp-warn { border-color: #e8a23a !important } .fp-card label { display: block; margin: 8px 0 } .fp-card input#fpname { width: 100% }
 .fp-ok { border-color: #3fbf7f } .fp-fail, .fp-bad { border-color: #d86a6a } .fp-by { margin: 4px 0; color: #ffe7a8 } .fp-opt { margin: 6px 0 }
+body.fab-on.home:not(.debug) .home-grow { bottom: var(--fab-clear); right: 10px }
