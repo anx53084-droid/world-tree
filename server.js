@@ -11,6 +11,7 @@ const { moderate, RULES } = require('./moderation');
 const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
+const Extras = require('./extras');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
 const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'), Batch = require('./batch'), Prices = require('./prices'); const Soc = require('./social'), CL = require('./ctlock'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
@@ -388,6 +389,7 @@ async function api(req, res, url) {
     const edited = !c || c.title !== title || c.price !== price;
     const st = Soc.load(); st.goods[sig] = { owner: a.user.pubkey, url: x.href, domain: k.domain, title, price, currency, image, fetchedAt: c?.fetchedAt || Date.now(), edited, at: Date.now() }; Soc.save(st);
     return send(res, 200, { ok: true }); }
+  if (url.startsWith('/api/') && await Extras.handle(req, res, url, { send, body, Soc, moderate, Block, txInfo, verifyWishMemo, Acc, load, save, auth: r => auth(r, db), adminOk: r => !!(Fulfill.ADMIN_KEY && Fulfill.adminOk(r)), ip: r => String(r.headers['cf-connecting-ip'] || (String(r.headers['x-forwarded-for'] || '').split(',').pop() || '').trim() || r.socket.remoteAddress || '') })) return;
   if (url === '/api/biz/check' && req.method === 'POST') { const r = await bizCheck(await body(req)); return send(res, r.error ? 400 : 200, r); }
   if (url === '/api/biz-meta' && req.method === 'POST') { // 企业展示卡上链后登记：官网网址 / 简介 / 内页模板（仅作者；网址域名须与链上 ~D 一致）
     const a = auth(req, db); if (!a) return send(res, 401, { error: '未登录', code: 'auth' }); const b = await body(req), sig = b.sig;

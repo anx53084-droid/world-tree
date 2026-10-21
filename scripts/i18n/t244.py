@@ -1,0 +1,71 @@
+K=['nav.rules','nav.free','nav.walletGuide','off.badge','off.note','off.official','off.officialNote','cheer.btn','cheer.tip','cheer.done',
+'rep.btn','rep.title','rep.hint','rep.reason','rep.r.spam','rep.r.abuse','rep.r.illegal','rep.r.privacy','rep.r.scam','rep.r.other','rep.note','rep.send','rep.ok',
+'inbox.cheerT','inbox.cheerB',
+'free.title','free.intro','free.ph','free.cap','free.capLabel','free.limit','free.submit','free.ok','free.mine','free.none','free.upgrade','free.upHint','free.upNeedWallet','free.upGo','free.upDone','free.cta',
+'err.freeCaptcha','err.freeRate','err.freeVerify',
+'wg.title','wg.intro','wg.s1t','wg.s1b','wg.s2t','wg.s2b','wg.s3t','wg.s3b','wg.s4t','wg.s4b','wg.s5t','wg.s5b','wg.safeT','wg.safe','wg.note','wg.cta',
+'rl.title','rl.intro','rl.x1','rl.x2','rl.x3','rl.timeT','rl.time','rl.repT','rl.rep','rl.appealT','rl.appeal',
+'emp.inbox','emp.browse']
+T={}
+T['zh-CN']=['审核规则','免费心愿','钱包教程','未上链','这张心愿还没有上链：目前只保存在光栖服务器上，不是永久记录，可能因审核或维护被移除。作者连接自己的钱包并自行付费上链后，才会永久保存在区块链上。','官方示范','这是光栖官方发布的示范心愿，用于展示心愿卡的样子，不代表任何用户。','点亮','免费为这张卡点亮一颗星（每人每张卡每天一次）','已为这张卡点亮',
+'举报','举报这张卡片','举报会进入人工审核队列，我们会按审核规则处理。请勿滥用举报。','原因','垃圾广告 / 刷屏','辱骂 / 骚扰 / 歧视','违法违规内容','泄露个人隐私','诈骗 / 钓鱼','其他','补充说明（可选，最多 200 字）','提交举报','已收到举报，感谢你帮助维护光栖',
+'🌟 有人点亮了你的心愿','有人为你的心愿「{text}」点亮了一颗星，当前共 {n} 颗。',
+'免费写一个心愿','不需要钱包，也不需要付费：写下心愿，通过内容审核后就会以「未上链」的样子挂在世界树上。','写下你的心愿（最多 140 字）','人机验证：{q}','请输入算式结果','每个网络 / 设备每天最多 3 条；内容同样需要通过审核。','免费挂上树','已挂上世界树（未上链）','我在这个浏览器写的免费心愿','这个浏览器里还没有免费心愿。','付费上链','升级凭证只保存在当前浏览器里：清除浏览器数据会丢失，换设备也无法升级。上链时由你用自己的钱包签名并支付，光栖不会代发交易。','请先连接你自己的 Solana 钱包（见钱包教程）','已为你填好心愿内容，确认后用自己的钱包签名上链','已上链！这张心愿已永久保存在区块链上','免费写一个心愿',
+'验证答案不正确或已过期，请刷新题目后重试','今天的免费心愿次数已用完，请明天再来，或连接钱包上链','未能核验这笔上链交易（需由你本人钱包发出，且内容与免费心愿一致）',
+'钱包教程：用 Phantom 连接光栖','光栖的心愿上链需要你自己的 Solana 钱包。以下以 Phantom 为例，几分钟即可完成。光栖不保管你的资产，也不会替你发送交易。',
+'安装 Phantom','在手机应用商店或 Phantom 官网下载 Phantom 钱包（浏览器插件或手机 App）。请只从官网链接下载，谨防仿冒应用。',
+'创建钱包并备份助记词','打开 Phantom，选择「创建新钱包」，设置密码，并把 12 个助记词抄在纸上妥善保管。任何人（包括光栖）都不会向你索要助记词。',
+'在 Phantom 内获取少量 SOL','上链需要支付心愿金额和少量网络费，均由你的钱包支付。你可以在 Phantom 内的「购买」入口按其指引操作（由第三方服务提供，光栖不参与、不代购）。',
+'确认网络与余额','确保钱包处于 Solana 主网，余额足够支付心愿金额（最低约 1 美元等值）和网络费。',
+'连接光栖','回到光栖，点击「连接钱包」，选择 Phantom，并在钱包里确认签名登录。之后制作心愿卡时，每笔交易都会在你的钱包里由你确认。',
+'安全提醒','永远不要把助记词或私钥发给任何人；签名前看清钱包弹窗里的内容；光栖客服不会私信你索要任何信息。','还没准备好钱包？可以先免费写一个「未上链」心愿，以后再自行付费上链。','查看钱包教程',
+'审核规则与处理时效','光栖上所有公开内容（文字和图片）都要经过审核。以下是我们公开的审核标准与处理流程。',
+'图片：不得包含色情、血腥暴力、仇恨标志或他人隐私信息；自定义封面需与心愿内容相关且为正向内容。','链接与广告：禁止钓鱼、诈骗、短链跳转及未经许可的商业推广；官网链接需为 http(s) 公网地址。','隐私：不得公开他人的电话、住址、证件等个人信息。',
+'处理时效','自动审核在提交时即时完成（通常几秒内）；用户举报进入人工审核队列，一般在 24–72 小时内处理，节假日可能延长。',
+'如何举报','在卡片详情页点击「🚩 举报」，选择原因并提交。被确认违规的内容会从光栖页面隐藏；已上链的数据本身无法删除，但不会再在光栖展示。',
+'申诉','如果你认为自己的内容被误判，可以通过帮助页中的联系方式提出申诉，并附上卡片链接。',
+'暂时还没有消息。点亮别人的心愿、收到祝福或礼品时，这里会通知你。','逛逛星愿星语']
+T['zh-TW']=['審核規則','免費心願','錢包教學','未上鏈','這張心願還沒有上鏈：目前只保存在光棲伺服器上，不是永久紀錄，可能因審核或維護被移除。作者連接自己的錢包並自行付費上鏈後，才會永久保存在區塊鏈上。','官方示範','這是光棲官方發布的示範心願，用於展示心願卡的樣子，不代表任何使用者。','點亮','免費為這張卡點亮一顆星（每人每張卡每天一次）','已為這張卡點亮',
+'檢舉','檢舉這張卡片','檢舉會進入人工審核佇列，我們會依審核規則處理。請勿濫用檢舉。','原因','垃圾廣告 / 洗版','辱罵 / 騷擾 / 歧視','違法違規內容','洩露個人隱私','詐騙 / 釣魚','其他','補充說明（選填，最多 200 字）','送出檢舉','已收到檢舉，感謝你協助維護光棲',
+'🌟 有人點亮了你的心願','有人為你的心願「{text}」點亮了一顆星，目前共 {n} 顆。',
+'免費寫一個心願','不需要錢包，也不需要付費：寫下心願，通過內容審核後就會以「未上鏈」的樣子掛在世界樹上。','寫下你的心願（最多 140 字）','人機驗證：{q}','請輸入算式結果','每個網路 / 裝置每天最多 3 則；內容同樣需要通過審核。','免費掛上樹','已掛上世界樹（未上鏈）','我在這個瀏覽器寫的免費心願','這個瀏覽器裡還沒有免費心願。','付費上鏈','升級憑證只保存在目前的瀏覽器：清除瀏覽器資料會遺失，換裝置也無法升級。上鏈時由你用自己的錢包簽名並支付，光棲不會代發交易。','請先連接你自己的 Solana 錢包（見錢包教學）','已為你填好心願內容，確認後用自己的錢包簽名上鏈','已上鏈！這張心願已永久保存在區塊鏈上','免費寫一個心願',
+'驗證答案不正確或已過期，請重新整理題目後再試','今天的免費心願次數已用完，請明天再來，或連接錢包上鏈','無法核驗這筆上鏈交易（需由你本人的錢包發出，且內容與免費心願一致）',
+'錢包教學：用 Phantom 連接光棲','光棲的心願上鏈需要你自己的 Solana 錢包。以下以 Phantom 為例，幾分鐘即可完成。光棲不保管你的資產，也不會替你發送交易。',
+'安裝 Phantom','在手機應用商店或 Phantom 官網下載 Phantom 錢包（瀏覽器擴充功能或手機 App）。請只從官網連結下載，謹防仿冒應用。',
+'建立錢包並備份助記詞','打開 Phantom，選擇「建立新錢包」，設定密碼，並把 12 個助記詞抄在紙上妥善保管。任何人（包括光棲）都不會向你索取助記詞。',
+'在 Phantom 內取得少量 SOL','上鏈需要支付心願金額和少量網路費，均由你的錢包支付。你可以在 Phantom 內的「購買」入口依其指引操作（由第三方服務提供，光棲不參與、不代購）。',
+'確認網路與餘額','確保錢包處於 Solana 主網，餘額足以支付心願金額（最低約 1 美元等值）和網路費。',
+'連接光棲','回到光棲，點擊「連接錢包」，選擇 Phantom，並在錢包裡確認簽名登入。之後製作心願卡時，每筆交易都會在你的錢包裡由你確認。',
+'安全提醒','永遠不要把助記詞或私鑰傳給任何人；簽名前看清錢包彈窗的內容；光棲客服不會私訊向你索取任何資訊。','還沒準備好錢包？可以先免費寫一個「未上鏈」心願，之後再自行付費上鏈。','查看錢包教學',
+'審核規則與處理時效','光棲上所有公開內容（文字和圖片）都要經過審核。以下是我們公開的審核標準與處理流程。',
+'圖片：不得包含色情、血腥暴力、仇恨標誌或他人隱私資訊；自訂封面需與心願內容相關且為正向內容。','連結與廣告：禁止釣魚、詐騙、短網址跳轉及未經許可的商業推廣；官網連結需為 http(s) 公開網址。','隱私：不得公開他人的電話、住址、證件等個人資訊。',
+'處理時效','自動審核在提交時即時完成（通常幾秒內）；使用者檢舉進入人工審核佇列，一般在 24–72 小時內處理，節假日可能延長。',
+'如何檢舉','在卡片詳情頁點擊「🚩 檢舉」，選擇原因並送出。經確認違規的內容會從光棲頁面隱藏；已上鏈的資料本身無法刪除，但不會再在光棲顯示。',
+'申訴','如果你認為自己的內容被誤判，可以透過說明頁中的聯絡方式提出申訴，並附上卡片連結。',
+'目前還沒有訊息。點亮別人的心願、收到祝福或禮品時，這裡會通知你。','逛逛星願星語']
+T['en']=['Moderation rules','Free wish','Wallet guide','Not on-chain','This wish is not on-chain yet: it is only stored on Guangqi’s server, is not a permanent record, and may be removed after review or maintenance. It becomes permanent only after its author connects their own wallet and pays to put it on-chain themselves.','Official sample','This is an official sample wish published by Guangqi to show what a wish card looks like. It does not represent any user.','Light up','Light up a star for this card for free (once per person per card per day)','You lit up this card',
+'Report','Report this card','Reports go to a human review queue and are handled under our moderation rules. Please don’t misuse reports.','Reason','Spam / flooding','Abuse / harassment / discrimination','Illegal content','Exposes private information','Scam / phishing','Other','Details (optional, up to 200 characters)','Submit report','Report received. Thank you for helping keep Guangqi safe',
+'🌟 Someone lit up your wish','Someone lit up a star for your wish “{text}”. It now has {n}.',
+'Write a free wish','No wallet and no payment needed: write a wish, and once it passes moderation it hangs on the World Tree marked “Not on-chain”.','Write your wish (up to 140 characters)','Quick check: {q}','Enter the answer','Up to 3 per network / device per day; content still goes through moderation.','Hang it for free','Hung on the World Tree (not on-chain)','Free wishes written in this browser','No free wishes in this browser yet.','Pay to put on-chain','The upgrade token is stored only in this browser: clearing browser data loses it, and you can’t upgrade from another device. You sign and pay with your own wallet; Guangqi never sends transactions for you.','Please connect your own Solana wallet first (see the wallet guide)','Your wish text is filled in; review it, then sign with your own wallet to put it on-chain','On-chain! This wish is now permanently stored on the blockchain','Write a free wish',
+'Wrong or expired answer. Refresh the question and try again','You’ve used today’s free wishes. Come back tomorrow, or connect a wallet to go on-chain','Couldn’t verify this transaction (it must come from your own wallet and match the free wish text)',
+'Wallet guide: connect to Guangqi with Phantom','Putting a wish on-chain needs your own Solana wallet. Here’s how with Phantom; it takes a few minutes. Guangqi never holds your assets or sends transactions for you.',
+'Install Phantom','Download the Phantom wallet (browser extension or mobile app) from your app store or Phantom’s official site. Only use the official link and watch out for fake apps.',
+'Create a wallet and back up the recovery phrase','Open Phantom, choose “Create a new wallet”, set a password and write the 12-word recovery phrase on paper. Nobody, including Guangqi, will ever ask for it.',
+'Get a little SOL inside Phantom','Going on-chain needs the wish amount plus a small network fee, both paid from your wallet. You can use the “Buy” option inside Phantom and follow its steps (provided by third parties; Guangqi is not involved and does not buy for you).',
+'Check network and balance','Make sure your wallet is on Solana mainnet with enough balance for the wish amount (minimum about US$1 equivalent) plus the network fee.',
+'Connect to Guangqi','Back on Guangqi, tap “Connect wallet”, choose Phantom and approve the sign-in in your wallet. When you make a wish card later, you confirm every transaction in your own wallet.',
+'Safety tips','Never share your recovery phrase or private key; read the wallet pop-up before signing; Guangqi support will never DM you asking for anything.','Wallet not ready yet? Write a free “not on-chain” wish first and put it on-chain yourself later.','Open the wallet guide',
+'Moderation rules and response times','All public content on Guangqi (text and images) is moderated. These are our public standards and process.',
+'Images: no sexual content, gore, hate symbols or other people’s private information; custom covers should relate to the wish and be positive.','Links and ads: no phishing, scams, link shorteners or unauthorized promotion; website links must be public http(s) addresses.','Privacy: don’t publish other people’s phone numbers, addresses, ID documents or other personal data.',
+'Response times','Automatic moderation happens instantly on submission (usually within seconds). User reports go to a human review queue and are usually handled within 24–72 hours, sometimes longer on holidays.',
+'How to report','On a card’s detail page tap “🚩 Report”, pick a reason and submit. Content confirmed to break the rules is hidden on Guangqi; on-chain data itself can’t be deleted, but it won’t be shown on Guangqi.',
+'Appeals','If you think your content was flagged by mistake, contact us via the Help page with the card link.',
+'No messages yet. You’ll be notified here when someone lights up your wish, blesses it or sends you a gift.','Browse wishes']
+import json,sys
+for loc,v in T.items(): assert len(v)==len(K),(loc,len(v),len(K))
+exec(open(__file__.replace('t244.py','t244b.py'),encoding='utf8').read())
+for loc,v in T.items():
+    assert len(v)==len(K),(loc,len(v))
+    p=f'/workspace/world-tree/public/i18n/{loc}.json'; j=json.load(open(p,encoding='utf8')); j.update(dict(zip(K,v)))
+    json.dump(j,open(p,'w',encoding='utf8'),indent=2,ensure_ascii=False); open(p,'a').write('\n')
+print(len(T))

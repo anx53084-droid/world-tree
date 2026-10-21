@@ -10,7 +10,28 @@ export function pick(url, al) { const q = match(url.searchParams.get('lang')); i
   const ls = al.split(',').map(s => { const [t, ...p] = s.trim().split(';'); const qv = p.find(x => x.trim().startsWith('q=')); return [t, qv ? parseFloat(qv.split('=')[1]) : 1]; }).filter(x => x[0] && x[0] !== '*').sort((a, b) => b[1] - a[1]);
   for (const [t] of ls) { const m = match(t); if (m) return m; } return ls.length ? 'en' : 'zh-CN'; }
 const attr = (v) => ({ element(e) { e.setAttribute('content', v); } });
+const API_DEFAULT = 'https://world-tree-ijv1.onrender.com';
+// t244：/c/<卡片 id> 分享链接：爬虫拿到该卡片的 og/twitter 标签（正文、自定义封面图），浏览器立即跳转到 /#/w/<id>
+async function cardPage(ctx, url, id) { const API = (ctx.env?.WT_API_BASE || API_DEFAULT).replace(/\/$/, ''), lang = pick(url, ctx.request.headers.get('accept-language')), m = META[lang];
+  let c = null; try { const r = await fetch(API + '/api/og-meta/' + encodeURIComponent(id), { signal: AbortSignal.timeout(3500) }); if (r.ok) c = await r.json(); } catch {}
+  const base = await (ctx.env?.ASSETS ? ctx.env.ASSETS.fetch(new URL('/', url)) : fetch(new URL('/', url)));
+  const tag = c?.official ? '★ ' : c?.offchain ? '☁ ' : '', text = (c?.text || '').trim(), title = text ? `${tag}「${text.length > 40 ? text.slice(0, 40) + '…' : text}」· ${m.b}` : `${m.b} · ${m.t}`;
+  const desc = text ? `${text.slice(0, 140)} — ${m.d}` : m.d, img = c?.img ? `${API}/api/img/${c.img}` : `${url.origin}/og/og-${lang}.png`, page = `${url.origin}/c/${encodeURIComponent(id)}`;
+  const out = new HTMLRewriter()
+    .on('head', { element(e) { e.prepend(`<script>location.replace('/#/w/' + ${JSON.stringify(encodeURIComponent(id))});</script>`, { html: true }); } })
+    .on('html', { element(e) { e.setAttribute('lang', lang); e.setAttribute('dir', m.rtl ? 'rtl' : 'ltr'); } })
+    .on('title', { element(e) { e.setInnerContent(title); } })
+    .on('meta[name="description"]', attr(desc)).on('meta[property="og:title"]', attr(title)).on('meta[name="twitter:title"]', attr(title))
+    .on('meta[property="og:description"]', attr(desc)).on('meta[name="twitter:description"]', attr(desc))
+    .on('meta[property="og:image"]', attr(img)).on('meta[property="og:image:secure_url"]', attr(img)).on('meta[name="twitter:image"]', attr(img))
+    .on('meta[property="og:image:alt"]', attr(title)).on('meta[name="twitter:image:alt"]', attr(title)).on('meta[property="og:type"]', attr('article'))
+    .on('meta[property="og:url"]', attr(page)).on('link[rel="canonical"]', { element(e) { e.setAttribute('href', page); } })
+    .on('meta[name="robots"]', attr(c ? 'index,follow,max-image-preview:large' : 'noindex'))
+    .transform(base);
+  const h = new Headers(out.headers); h.set('content-type', 'text/html; charset=utf-8'); h.set('cache-control', 'public, max-age=300'); h.append('vary', 'Accept-Language');
+  return new Response(out.body, { status: 200, headers: h }); }
 export async function onRequest(ctx) {
+  { const u = new URL(ctx.request.url), cm = u.pathname.match(/^\/c\/([A-Za-z0-9_]{6,100})\/?$/); if (cm) return cardPage(ctx, u, cm[1]); }
   const res = await ctx.next(), url = new URL(ctx.request.url);
   if (!(res.headers.get('content-type') || '').includes('text/html') || !(url.pathname === '/' || url.pathname === '/index.html')) return res;
   const ORIGIN = url.origin, lang = pick(url, ctx.request.headers.get('accept-language')), m = META[lang];

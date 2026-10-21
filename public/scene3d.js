@@ -454,6 +454,9 @@ function cardTexture(w, tag = '') { // 纸质许愿签（单卡）或折页卡�
   for (const ch of (tag === 'C|' && window.WTsumm ? window.WTsumm(w).replace(/\n/g, ' · ') : (w.kind === 'social' ? '💬 ' : w.kind === 'gift' ? '🎁 ' : '') + w.text)) { if (x.measureText(line + ch).width > 124) { x.fillText(line, X0 + 18, y); y += 26; line = ''; if (y > Y0 + 170) { line = '…'; break; } } line += ch; }
   x.fillText(line, X0 + 18, y); const loc = [w.country, w.province, w.city].filter(Boolean).join('·'); if (loc) { x.font = '11px sans-serif'; x.fillStyle = '#4a6a9a'; const tw = x.measureText('📍' + loc).width; x.fillText('📍' + (tw > 110 ? loc.slice(0, 8) + '…' : loc), X0 + W - 14 - Math.min(tw, 110), Y0 + 22); }
   x.font = '14px sans-serif'; x.fillStyle = '#4a2a08'; x.fillText(w.pending ? '⏳ ' + tr('scene.confirming') : '💖 ' + w.likes + ' 🙏 ' + w.blessings.length, X0 + 18, Y0 + H - 34); if (w.time && window.WTfmtT) x.fillText(window.WTfmtT(w.time), X0 + 18, Y0 + H - 16);
+  if (w.offchain || w.official) { const off = w.offchain, lab = off ? '☁ ' + tr('off.badge') : '★ ' + tr('off.official'); // t244：未上链（虚线 + 冷色淡化）/ 官方示范（金色缎带）
+    if (off) { x.fillStyle = '#dfe8ff66'; x.beginPath(); x.roundRect(X0, Y0, W, H, 10); x.fill(); x.setLineDash([7, 5]); x.strokeStyle = '#6b86c9'; x.lineWidth = 3; x.beginPath(); x.roundRect(X0 + 2, Y0 + 2, W - 4, H - 4, 9); x.stroke(); x.setLineDash([]); }
+    x.font = 'bold 13px sans-serif'; const tw = x.measureText(lab).width + 14; x.fillStyle = off ? '#4b64a8' : '#b8860b'; x.beginPath(); x.roundRect(X0 + W - tw - 6, Y0 + H - 60, tw, 20, 10); x.fill(); x.fillStyle = '#fff'; x.fillText(lab, X0 + W - tw + 1, Y0 + H - 45); }
   const tex = new THREE.CanvasTexture(c); texCache.set(key, tex);
   if (texCache.size > NEAR_CAP * 2) { const used = new Set(nearPool.map(s => s.material.map)); for (const [k, v] of texCache) { if (texCache.size <= NEAR_CAP * 2) break; if (!used.has(v)) { v.dispose(); texCache.delete(k); } } } // GPU 纹理 LRU 释放
   return tex;

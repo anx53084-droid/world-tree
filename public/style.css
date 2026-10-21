@@ -573,3 +573,13 @@ svg.gface { height: auto }
 .gb-ovt { position: absolute; left: 0; right: 0; bottom: 0; max-height: 65%; overflow: auto; padding: 30px 12px 26px; color: #fff; background: linear-gradient(180deg, #0000, #000b 30%, #000d); text-shadow: 0 1px 2px #000; font-size: 13px }
 .gb-ovt p { margin: .3em 0; overflow-wrap: anywhere } .gb-ovt .muted { color: #eee } .gb-fov figcaption { top: 6px; bottom: auto }
 .gb-flip { width: 100%; margin: 0 } .gb-flip .cf-body { font-size: 14px }
+/* t244 */
+.t-offchain { background: #4b64a833 !important; color: #b9c8f5 !important; border: 1px dashed #6b86c9 }
+.t-official { background: #b8860b33 !important; color: #f6d38a !important; border: 1px solid #f6d38a88 }
+.off-note { border-inline-start: 3px solid #6b86c9; padding-inline-start: 8px }
+button.cheer { border-color: #f6d38a88 } button.cheer.lit { background: #f6d38a22 } button.cheer b { color: #f6d38a }
+button.rep { font-size: 13px; opacity: .8 }
+.next-steps { gap: 8px; flex-wrap: wrap; margin-top: 10px } .empty-next { text-align: center }
+.cap-row { align-items: center; gap: 8px; margin: 8px 0 } .cap-q { font-weight: 700; letter-spacing: .05em }
+.wg-steps { list-style: none; padding: 0; counter-reset: wg } .wg-steps li { counter-increment: wg } .wg-steps h3::before { content: counter(wg) ". "; color: #f6d38a }
+.warn-card { border: 1px solid #f6d38a66 }
