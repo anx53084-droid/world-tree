@@ -315,11 +315,11 @@ async function api(req, res, url) {
   if (url === '/api/moderate' && req.method === 'POST') { // 上链前审核（两种模式都必须先通过）
     const { text, prefix, cipher } = await body(req); // prefix = 分类[~F封面[P]]（愿望）或 愿望签名（祝福）；私密卡附 cipher（E1: AES-GCM 密文），审核明文、证明绑定密文
     const priv = typeof prefix === 'string' && /~F[0-9a-z]{2}P(~|$)/.test(prefix);
-    for (const h of (typeof prefix === 'string' ? prefix.match(/~[CN]([0-9a-f]{32})/g) || [] : [])) if (!(await Store.has(h.slice(2)).catch(() => false))) return send(res, 400, { pass: false, message: '图片未上传或未通过审核', code: 'img' }); // 引用的图片必须已通过上传审核
+    for (const h of (typeof prefix === 'string' ? prefix.match(/~[CNR]([0-9a-f]{32})/g) || [] : [])) if (!(await Store.has(h.slice(2)).catch(() => false))) return send(res, 400, { pass: false, message: '图片未上传或未通过审核', code: 'img' }); // 引用的图片必须已通过上传审核
     if (priv && (typeof cipher !== 'string' || !/^E1:[A-Za-z0-9+/=]{24,560}$/.test(cipher) || [...(text || '')].length > 100)) return send(res, 400, { pass: false, message: '私密卡参数无效', code: 'param' });
     if (typeof text !== 'string' || !text.trim() || [...text].length > 140 || text.includes('|')) return send(res, 400, { pass: false, message: '内容需为 1–140 字，且不含字符 |', code: 'len' });
     if (typeof prefix !== 'string' || !/^[^|]{1,400}$/.test(prefix)) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
-    const K = Soc.parseKind(prefix); if (K.kind === 'wish' && prefix.length > 90) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
+    const K = Soc.parseKind(prefix); if (K.kind === 'wish' && prefix.length > 200) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
     if ((K.kind !== 'wish') && priv) return send(res, 400, { pass: false, message: '参数无效', code: 'param' });
     const ve = Soc.validate(K); if (ve) return send(res, 400, { pass: false, message: '参数无效', code: ve });
     if (Buffer.byteLength(prefix + '|' + (priv ? cipher : text), 'utf8') > 600) return send(res, 400, { pass: false, message: '内容过长', code: 'memoSize' });

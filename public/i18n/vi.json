@@ -1185,5 +1185,17 @@
   "err.bizName": "Tên phải dài 1–30 ký tự và không có ký hiệu đặc biệt",
   "err.bizUrl": "Trang web phải là địa chỉ http(s) công khai hợp lệ",
   "err.bizIntro": "Giới thiệu phải dài 1–300 ký tự",
-  "err.bizMismatch": "Tên miền trang web không khớp với thẻ"
+  "err.bizMismatch": "Tên miền trang web không khớp với thẻ",
+  "cs.overlay": "Thẻ đơn · hai mặt giống nhau",
+  "cs.single": "Thẻ đơn · tách bìa / nội dung",
+  "cs.folded": "Thẻ gấp (bìa + trang trong + mặt sau)",
+  "cs.h.overlay": "Tải một ảnh bìa; nội dung hiển thị chồng lên bìa. Trên cây hai mặt giống nhau.",
+  "cs.h.single": "Một mặt là bìa, mặt kia là nội dung: trên cây bìa hướng ra ngoài, nội dung hướng vào trong; lật trong trang chi tiết.",
+  "cs.h.folded": "Ba ảnh: bìa, nền trang trong (nội dung viết trên đó) và mặt sau. Trang trong và mặt sau không bắt buộc, dùng mặc định.",
+  "cs.upBack": "Tải mặt sau (không bắt buộc)",
+  "cs.backHint": "Không có ảnh mặt sau thì dùng mặt sau giấy mặc định.",
+  "cs.front": "Mặt trước",
+  "cs.back": "Mặt sau",
+  "cs.same": "Hai mặt giống nhau",
+  "cs.flip": "Lật"
 }

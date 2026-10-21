@@ -1185,5 +1185,17 @@
   "err.bizName": "Le nom doit compter 1 à 30 caractères sans symboles spéciaux",
   "err.bizUrl": "Le site doit être une adresse http(s) publique valide",
   "err.bizIntro": "La présentation doit compter 1 à 300 caractères",
-  "err.bizMismatch": "Le domaine ne correspond pas à la carte"
+  "err.bizMismatch": "Le domaine ne correspond pas à la carte",
+  "cs.overlay": "Carte simple · recto = verso",
+  "cs.single": "Carte simple · couverture / contenu séparés",
+  "cs.folded": "Carte pliée (couverture + intérieur + dos)",
+  "cs.h.overlay": "Importez une couverture ; votre contenu s’y superpose. Sur l’arbre, les deux faces sont identiques.",
+  "cs.h.single": "Une face est la couverture, l’autre le contenu : sur l’arbre la couverture est à l’extérieur et le contenu à l’intérieur ; retournez-la dans le détail.",
+  "cs.h.folded": "Trois images : couverture, fond intérieur (où s’écrit votre contenu) et dos. Intérieur et dos sont facultatifs, avec des valeurs par défaut.",
+  "cs.upBack": "Importer le dos (facultatif)",
+  "cs.backHint": "Sans image de dos, un dos papier par défaut est utilisé.",
+  "cs.front": "Recto",
+  "cs.back": "Verso",
+  "cs.same": "Recto = verso",
+  "cs.flip": "Retourner"
 }

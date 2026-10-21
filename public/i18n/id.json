@@ -1185,5 +1185,17 @@
   "err.bizName": "Nama harus 1–30 karakter tanpa simbol khusus",
   "err.bizUrl": "Situs harus alamat http(s) publik yang valid",
   "err.bizIntro": "Profil harus 1–300 karakter",
-  "err.bizMismatch": "Domain situs tidak cocok dengan kartu"
+  "err.bizMismatch": "Domain situs tidak cocok dengan kartu",
+  "cs.overlay": "Kartu tunggal · sama di kedua sisi",
+  "cs.single": "Kartu tunggal · sampul / isi terpisah",
+  "cs.folded": "Kartu lipat (sampul + dalam + belakang)",
+  "cs.h.overlay": "Unggah satu sampul; isimu ditampilkan di atasnya. Di pohon kedua sisi terlihat sama.",
+  "cs.h.single": "Satu sisi sampul, sisi lain isi: di pohon sampul menghadap keluar dan isi ke dalam; balik di tampilan detail.",
+  "cs.h.folded": "Tiga gambar: sampul, latar halaman dalam (tempat isi ditulis) dan belakang. Dalam dan belakang opsional, memakai bawaan.",
+  "cs.upBack": "Unggah sisi belakang (opsional)",
+  "cs.backHint": "Tanpa gambar belakang, dipakai belakang kertas bawaan.",
+  "cs.front": "Depan",
+  "cs.back": "Belakang",
+  "cs.same": "Sama di kedua sisi",
+  "cs.flip": "Balik"
 }

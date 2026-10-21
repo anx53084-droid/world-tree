@@ -1185,5 +1185,17 @@
   "err.bizName": "Ad 1–30 karakter olmalı ve özel simge içermemeli",
   "err.bizUrl": "Web sitesi geçerli, herkese açık bir http(s) adresi olmalı",
   "err.bizIntro": "Tanıtım 1–300 karakter olmalı",
-  "err.bizMismatch": "Web sitesi alan adı kartla eşleşmiyor"
+  "err.bizMismatch": "Web sitesi alan adı kartla eşleşmiyor",
+  "cs.overlay": "Tek kart · iki yüz aynı",
+  "cs.single": "Tek kart · kapak / içerik ayrı",
+  "cs.folded": "Katlanır kart (kapak + iç + arka)",
+  "cs.h.overlay": "Bir kapak yükleyin; içerik üzerine yazılır. Ağaçta iki yüz aynı görünür.",
+  "cs.h.single": "Bir yüz kapak, diğeri içerik: ağaçta kapak dışa, içerik içe bakar; ayrıntıda çevirerek bakın.",
+  "cs.h.folded": "Üç görsel: kapak, iç sayfa arka planı (içerik üzerine yazılır) ve arka. İç ve arka isteğe bağlıdır, yoksa varsayılan kullanılır.",
+  "cs.upBack": "Arka yüz yükle (isteğe bağlı)",
+  "cs.backHint": "Arka görsel yoksa varsayılan kâğıt arka yüz kullanılır.",
+  "cs.front": "Ön",
+  "cs.back": "Arka",
+  "cs.same": "İki yüz aynı",
+  "cs.flip": "Çevir"
 }

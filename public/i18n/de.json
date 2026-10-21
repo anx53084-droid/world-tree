@@ -1185,5 +1185,17 @@
   "err.bizName": "Firmenname: 1–30 Zeichen ohne Sonderzeichen",
   "err.bizUrl": "Website muss eine gültige öffentliche http(s)-Adresse sein",
   "err.bizIntro": "Vorstellung muss 1–300 Zeichen lang sein",
-  "err.bizMismatch": "Website-Domain passt nicht zur Karte"
+  "err.bizMismatch": "Website-Domain passt nicht zur Karte",
+  "cs.overlay": "Einzelkarte · beidseitig gleich",
+  "cs.single": "Einzelkarte · Cover / Inhalt getrennt",
+  "cs.folded": "Klappkarte (Cover + Innenseite + Rückseite)",
+  "cs.h.overlay": "Lade ein Cover hoch; dein Inhalt wird darüber gelegt. Am Baum sehen beide Seiten gleich aus.",
+  "cs.h.single": "Eine Seite ist das Cover, die andere der Inhalt: am Baum zeigt das Cover nach außen, der Inhalt nach innen; in der Detailansicht umdrehen.",
+  "cs.h.folded": "Drei Bilder: Cover, Innenhintergrund (mit deinem Inhalt) und Rückseite. Innenseite und Rückseite sind optional, sonst Standard.",
+  "cs.upBack": "Rückseite hochladen (optional)",
+  "cs.backHint": "Ohne Rückseitenbild wird eine Standard-Papierrückseite verwendet.",
+  "cs.front": "Vorderseite",
+  "cs.back": "Rückseite",
+  "cs.same": "Beidseitig gleich",
+  "cs.flip": "Umdrehen"
 }

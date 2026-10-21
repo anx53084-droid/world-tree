@@ -37,7 +37,7 @@ const parseOpt = raw => { // 向后兼容：旧 memo 无 ~v/~A/~F-in-extras；�
   const fx = p => { const x = rest.find(s => s[0] === p); return x == null ? '' : x.slice(1); };
   const kind = kindTok === 'E' ? 'biz' : kindTok === 'S' ? 'social' : kindTok === 'G' ? 'gift' : kindTok === 'Q' ? 'gate' : kindTok === 'H' || c === '物质类' ? 'goods' : 'wish';
   const VISM = { P: 'public', N: 'nearby', R: 'recent', I: 'invite', L: 'locked' }, DELM = { T: 'tree', O: 'off', B: 'both' };
-  return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : kk ? parseInt(kk.slice(1), 36) : null, priv: !!(m && m[2]), cimg: g('C'), nimg: m ? g('N') : null, inside: m && ii ? parseInt(ii.slice(1), 36) : null,
+  return { cat: CATS[c] !== undefined ? c : '经典', folded: !!m, cover: m ? parseInt(m[1], 36) : kk ? parseInt(kk.slice(1), 36) : null, priv: !!(m && m[2]), cimg: g('C'), nimg: m ? g('N') : null, bimg: m ? g('R') : null, ustyle: !m && rest.includes('Uo') ? 'o' : '', inside: m && ii ? parseInt(ii.slice(1), 36) : null,
     kind, vis: VISM[fx('v')] || 'public', deliver: kind === 'gift' ? (DELM[fx('d')] || 'tree') : 'tree',
     country: fx('A'), province: fx('B'), city: fx('Y'),
     tags: kind === 'social' && fx('t') ? fx('t').split(',').filter(Boolean).slice(0, 5) : [], intro: kind === 'social' ? fx('i') : '', looking: kind === 'social' ? fx('l') : '', to: kind === 'gift' || kind === 'gate' ? fx('T') : '', gateId: kind === 'gate' ? fx('g') : '', gname: kind === 'gate' ? fx('n') : '', expireAt: kind === 'gate' ? parseInt(fx('e'), 10) || 0 : 0, ghash: kind === 'gate' ? fx('h') : '', note: kind === 'gift' ? fx('M') : '', domain: kind === 'goods' || kind === 'biz' ? fx('D') : '', bname: kind === 'biz' ? fx('n') : '', pid: kind === 'goods' ? fx('P') : '', legacyGoods: kindTok !== 'H' && c === '物质类' }; };
@@ -178,7 +178,7 @@ function aggregate() {
   for (const t of all) { const f = t.memo.split('|');
     if (f[1] === 'W') { if (!t.verified || clientBlocked(f[6]) || blkHit(t.sig, t.author, f[6])) { hidden++; continue; } if (!blkFull && WTBlock.maybeHasHost(f[6])) blkNeedFull = true;
       const o = parseOpt(f[5]), priv = o.priv && /^E1:/.test(f[6]); if (!priv && [...f[6]].length > 140) { hidden++; continue; }
-      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], kind: o.kind, vis: o.vis, deliver: o.deliver, country: o.country, province: o.province, city: o.city, tags: o.tags, intro: o.intro, looking: o.looking, to: o.to, note: o.note, gateId: o.gateId, gname: o.gname, expireAt: o.expireAt, folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], coverType: o.cimg ? 'custom' : 'preset', coverId: o.cover ?? WTCovers.forCat(o.cat)[0], customCoverUrl: o.cimg ? IMG(o.cimg) : null, inside: o.inside, cimg: o.cimg, nimg: o.nimg, priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
+      W[t.sig] = { ...t, cat: o.cat, hue: CATS[o.cat], kind: o.kind, vis: o.vis, deliver: o.deliver, country: o.country, province: o.province, city: o.city, tags: o.tags, intro: o.intro, looking: o.looking, to: o.to, note: o.note, gateId: o.gateId, gname: o.gname, expireAt: o.expireAt, folded: o.folded, cover: o.cover ?? WTCovers.forCat(o.cat)[0], coverType: o.cimg ? 'custom' : 'preset', coverId: o.cover ?? WTCovers.forCat(o.cat)[0], customCoverUrl: o.cimg ? IMG(o.cimg) : null, inside: o.inside, cimg: o.cimg, nimg: o.nimg, bimg: o.bimg, ustyle: o.ustyle, priv, cipher: priv ? f[6] : null, text: priv ? '🔒 ' + I18N.t('card.privateShort') : f[6], plain: t.plain, likers: new Set(), blessings: [] }; }
     else if (f[1] === 'L') likes.push([f[2], t]); else if (f[1] === 'B' && t.verified && !clientBlocked(f[6]) && !blkHit(t.sig, t.author, f[6])) bless.push([f[5], t, f[6]]); }
   for (const [ws, t] of likes) W[ws]?.likers.add(t.author); // 每地址对每愿望只计 1 赞
   for (const [ws, t, text] of bless) W[ws]?.blessings.push({ author: t.author, text, time: t.time, sig: t.sig, pending: t.pending });
@@ -693,9 +693,17 @@ window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true
   tip.innerHTML = `<span class=tag>${esc(catName(w.cat))}</span> <bdi>${esc(w.text)}</bdi><div class=muted>${short(w.author)} · 💖 ${w.likes} · 🙏 ${w.blessings.length}${w.pending ? ' · ⏳' + esc(t('time.pending')) : ''}</div>`;
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 290) + 'px'; tip.style.top = e.clientY + 14 + 'px'; };
 const isMine = w => S.pubkey && w.author === S.pubkey;
+// 自定义封面卡样式（t241）：overlay = 单页·双面相同（内容叠在封面上）；split = 单页·封面 / 内容分开（旧自定义单卡）；fold = 折页（封面 + 内页 + 背面 ~R）
+const cStyle = w => w && w.cimg && (!w.kind || w.kind === 'wish' || w.kind === 'biz') ? (w.folded ? 'fold' : w.ustyle === 'o' ? 'overlay' : 'split') : ''; window.WTcStyle = cStyle;
+function openFlip(w, cs) { const text = w.plain || w.text, meta = `<div class=cf-meta>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>`;
+  const content = `<span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=cf-text dir=auto>${esc(text)}</p>${meta}`, img = `<img alt="" src="${IMG(w.cimg)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">`;
+  const acts = `<div class="row cf-acts">${cs === 'split' ? `<button type=button id=cfFlip>🔄 ${esc(t('cs.flip'))}</button>` : ''}${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`;
+  modal(cs === 'overlay' ? `<div class="cflip one" id=cflip><div class="cf-face cf-ov">${img}<div class=cf-over>${content}</div></div></div>${acts}`
+    : `<div class=cflip id=cflip><div class=cf-inner><div class="cf-face cf-front">${img}<span class=fold-hint>${esc(t('cs.flip'))}</span></div><div class="cf-face cf-back"><div class=cf-body>${content}</div></div></div></div>${acts}`, w.cat);
+  if (cs === 'split') { const f = $('#cflip'), flip = () => f.classList.toggle('flipped'); f.addEventListener('click', flip); $('#cfFlip').addEventListener('click', flip); setTimeout(() => f.classList.add('flipped'), 600); } }
 function openCardPopup(w) { if (w.folded || isGQ(w)) return openFolded(w);
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w);
-  if (!locked && w.cimg && (!w.kind || w.kind === 'wish')) return openFolded(w); // 单卡自定义封面：封面 → 翻开看心愿
+  if (!locked && w.cimg && (!w.kind || w.kind === 'wish')) return openFlip(w, cStyle(w)); // 单卡自定义封面：双面相同 / 封面 ↔ 内容翻面
   maybeFulfillToast(w);
   const L = lockPaint(w);
   let unlockHtml = '';
@@ -1228,7 +1236,7 @@ function openFolded(w) { // 折页卡：封面 → 3D 翻开动画 → 内页；
   const locked = w.priv && !w.plain, mine = isMine(w);
   modal(`<div class="fold${locked ? ' locked' : ''}" id=fold><div class=fold-page id=foldPage>${locked ? `<div class=fold-lockmsg>🔒 <b>${esc(t('card.privateTitle'))}</b><p class=muted>${esc(t(mine ? 'card.privateMine' : 'card.privateOther'))}</p>
     ${mine ? `<button class=primary id=unlock>🔓 ${esc(t('card.unlock'))}</button>` : ''}<div class=row style="margin-top:10px"><button data-close>${esc(t('common.close'))}</button></div></div>` : foldInner(w, w.plain || w.text)}</div>
-    <div class=fold-cover id=foldCover><div class=fold-front><img alt="" src="${isGQ(w) ? GQ('front', gqSet(w)) : w.cimg ? IMG(w.cimg) : WTCovers.url(w.cover, 300, 400)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">${w.priv ? '<span class=fold-lock>🔒</span>' : ''}<span class=fold-hint>${esc(t(locked && !mine ? 'card.privateShort' : 'card.tapOpen'))}</span></div><div class=fold-back>${isGQ(w) ? `<img class=fold-back-img alt="" src="${GQ('back', gqSet(w))}">` : ''}</div></div></div>`, w.cat);
+    <div class=fold-cover id=foldCover><div class=fold-front><img alt="" src="${isGQ(w) ? GQ('front', gqSet(w)) : w.cimg ? IMG(w.cimg) : WTCovers.url(w.cover, 300, 400)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">${w.priv ? '<span class=fold-lock>🔒</span>' : ''}<span class=fold-hint>${esc(t(locked && !mine ? 'card.privateShort' : 'card.tapOpen'))}</span></div><div class=fold-back>${isGQ(w) ? `<img class=fold-back-img alt="" src="${GQ('back', gqSet(w))}">` : w.bimg ? `<img class=fold-back-img alt="" src="${IMG(w.bimg)}">` : ''}</div></div></div>`, w.cat);
   const f = $('#fold'), open = () => f.classList.add('open');
   $('#foldCover').addEventListener('click', () => { if (locked && !mine) { f.classList.add('shake'); setTimeout(() => f.classList.remove('shake'), 500); return; } open(); });
   if (!locked) setTimeout(open, 450); else if (mine) setTimeout(open, 450);
@@ -1321,6 +1329,10 @@ function previewHtml(st) { // st：表单当前值；所有用户文本经 esc
     body = `<span class=tag>🛍️ ${E('kind.goods')}</span><p dir=auto><b>${esc(v('gtitle') || t('pv.goodsPh'))}</b></p><p class=pv-price>${v('gprice') ? esc(v('gprice') + ' ' + v('gcur').toUpperCase()) : '—'}</p><p class=pv-meta>🔗 ${esc(dom || '—')}</p>`; }
   else body = `<span class=tag>✨ ${E('kind.wish')}</span><p dir=auto>${esc(v('wt') || t('pv.textPh'))}</p>`;
   const foot = `<p class=pv-meta>👤 ${esc(me)}</p>`;
+  const fig = (inner, cap, cls = '') => `<figure class="pv-page${cls}">${inner}<figcaption>${cap}</figcaption></figure>`;
+  if (st.style === 'overlay') return `<div class=pv-ov><img alt="" src="${img}">${badge}<div class=pv-ovtext>${body}${foot}</div><span class=pv-cap>${E('cs.same')}</span></div>`;
+  if (st.style === 'split') return `<div class="pv-fold pv-split">${fig(`<img alt="" src="${img}">${badge}`, E('cs.front'))}${fig(`<div class=pv-inbody>${body}${foot}</div>`, E('cs.back'), ' pv-in pv-plain')}</div>`;
+  if (st.style === 'folded') return `<div class="pv-fold pv-three">${fig(`<img alt="" src="${img}">${badge}`, E('cs.front'))}${fig(st.upB ? `<img alt="" src="${st.upB}">` : '', E('cs.back'), st.upB ? '' : ' pv-defback')}${fig(`<div class=pv-inbody>${body}${foot}</div>`, E('wish.inside'), ` pv-in" style="--bg:url('${insideSrc}')`)}</div>`;
   if (st.mode === 'folded') return `<div class=pv-fold><figure class=pv-page><img alt="" src="${img}"><figcaption>${E('wish.cover')}</figcaption>${badge}</figure><figure class="pv-page pv-in" style="--bg:url('${insideSrc}')"><div class=pv-inbody>${body}${foot}</div><figcaption>${E('wish.inside')}</figcaption></figure></div>`;
   return `<div class=pv-card><div class=pv-cover><img alt="" src="${img}">${badge}</div><div class=pv-text>${body}${foot}</div></div>`; }
 function wishPanel() {
@@ -1333,11 +1345,12 @@ function wishPanel() {
   <fieldset class=gq-slots id=gqSlots hidden><legend>✨ ${E('cat.guangqi')}</legend><p class="muted hint">${E('gq.hint')}</p>
   <div class=gq-sets id=gqSets role=radiogroup aria-label="${E('gq.pick')}">${Array.from({ length: GQ_N }, (_, i) => `<button type=button role=radio data-gqs=${i} aria-checked=false title="${E(GQ_NAMES[i])}"><img alt="" loading=lazy src="${GQ('front', i, 1)}"><span>${E(GQ_NAMES[i])}</span></button>`).join('')}</div>
   <div class=gq-row id=gqPrev>${['front', 'back', 'inside'].map(k => `<figure class=gq-slot data-gq=${k}><img alt="" src="${GQ(k, 0)}"><figcaption>${E('gq.' + k)}</figcaption></figure>`).join('')}</div></fieldset>
-  <div class=row id=ctypeRow><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label></div>
+  <div class=row id=ctypeRow><label>${E('wish.cardType')} <select id=ctype><option value=single>${E('wish.typeSingle')}</option><option value=folded>${E('wish.typeFolded')}</option></select></label><p class="muted hint" id=csHint hidden></p></div>
   <fieldset class=cover-design id=coverDesign><legend>${E('wish.coverStyle')}</legend>${coverGridHtml()}</fieldset>
   <div id=coverWrap hidden>
     <div class=muted style="margin-top:10px">${E('wish.inside')}</div><div class=cover-grid id=insides>${WTInsides.list.map((c, i) => `<button type=button data-inside=${i} title="${esc(catName(c[0]))}"><img alt="" src="${WTInsides.url(i)}"></button>`).join('')}</div>
     <div class=up-row><label class="up-box sm"><input type=file id=upN accept="image/*" class=sr-only><img id=upNi alt="" hidden><span>📄 ${E('wish.upInner')}</span></label><button type=button id=clrN class=link hidden>${E('wish.clearUp')}</button></div>
+    <div class=up-row id=upBRow hidden><label class="up-box sm"><input type=file id=upB accept="image/*" class=sr-only><img id=upBi alt="" hidden><span>🂠 ${E('cs.upBack')}</span></label><button type=button id=clrB class=link hidden>${E('wish.clearUp')}</button></div><p class="muted hint" id=upBHint hidden>${E('cs.backHint')}</p>
     <p class=muted style="margin:4px 0">${E('wish.mixHint')}</p>
     <label class=agree><input type=checkbox id=priv> <span>🔒 ${E('wish.private')}</span></label><p class=muted style="margin:4px 0">${E('wish.privateHint')}${S.mode === 'host' ? ' ' + E('wish.privateHostNote') : ''} ${E('wish.upPrivNote')}</p></div>
   <div id=sharedVis class=kwrap>
@@ -1560,12 +1573,16 @@ async function route() {
     const catSel = $('#wc2');
     const syncShip = () => { const on = ($('#ckind')?.value || 'wish') === 'goods'; if ($('#shipWrap')) $('#shipWrap').hidden = !on; };
     const pickCover = i => $('#covers')?.querySelectorAll('button').forEach(b => { b.classList.toggle('on', +b.dataset.cover === i); b.setAttribute('aria-pressed', +b.dataset.cover === i); });
-    const syncCard = () => { const f = $('#ctype')?.value === 'folded'; if ($('#coverWrap')) $('#coverWrap').hidden = !f; const ta2 = $('#wt'); if (ta2) { ta2.maxLength = f && $('#priv')?.checked ? 100 : 140; $('#wc').textContent = [...ta2.value].length + '/' + ta2.maxLength; } };
-    const D = S.draft ||= {}, up = D.up ||= { C: null, N: null };
+    const custom3 = () => catSel?.value === CUSTOM && ($('#ckind')?.value || 'wish') === 'wish';
+    const syncCtype = () => { const sel = $('#ctype'); if (!sel) return; const c3 = custom3(), want = c3 ? ['overlay', 'single', 'folded'] : ['single', 'folded'];
+      if ([...sel.options].map(o => o.value).join() !== want.join()) { const v = sel.value; sel.innerHTML = want.map(x => `<option value=${x}>${E(c3 ? 'cs.' + x : x === 'single' ? 'wish.typeSingle' : 'wish.typeFolded')}</option>`).join(''); sel.value = want.includes(v) ? v : 'single'; } };
+    const syncCard = () => { const f = $('#ctype')?.value === 'folded', k = $('#ckind')?.value || 'wish', cuB = catSel?.value === CUSTOM && (k === 'wish' || k === 'biz') && f;
+      if ($('#upBRow')) $('#upBRow').hidden = $('#upBHint').hidden = !cuB; const h = $('#csHint'); if (h) { h.hidden = !custom3(); if (custom3()) h.textContent = t('cs.h.' + ($('#ctype').value || 'single')); } if ($('#coverWrap')) $('#coverWrap').hidden = !f; const ta2 = $('#wt'); if (ta2) { ta2.maxLength = f && $('#priv')?.checked ? 100 : 140; $('#wc').textContent = [...ta2.value].length + '/' + ta2.maxLength; } };
+    const D = S.draft ||= {}, up = D.up ||= { C: null, N: null }; up.B ??= null;
     const pickInside = i => $('#insides')?.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.inside === i));
     const showUp = (k, blob) => { const im = $('#up' + k + 'i'), clr = $('#clr' + k); if (blob) { im.src = URL.createObjectURL(blob); im.hidden = false; if (clr) clr.hidden = false; } else { im.removeAttribute('src'); im.hidden = true; if (clr) clr.hidden = true; } };
     let saveD = () => {};
-    ['C', 'N'].forEach(k => { $('#up' + k)?.addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { up[k] = await shrinkImg(f); showUp(k, up[k]); saveD(); } catch (er) { up[k] = null; showUp(k, null); toast(esc(er.message), 'err'); } });
+    ['C', 'N', 'B'].forEach(k => { $('#up' + k)?.addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { up[k] = await shrinkImg(f); showUp(k, up[k]); saveD(); } catch (er) { up[k] = null; showUp(k, null); toast(esc(er.message), 'err'); } });
       $('#clr' + k)?.addEventListener('click', () => { up[k] = null; $('#up' + k).value = ''; showUp(k, null); saveD(); }); });
     $('#ctype')?.addEventListener('change', syncCard); $('#priv')?.addEventListener('change', syncCard);
     $('#covers')?.addEventListener('click', e => { const b = e.target.closest('[data-cover]'); if (b) { pickCover(+b.dataset.cover); $('#covers').dataset.auto = '0'; } });
@@ -1576,7 +1593,7 @@ async function route() {
     ['dt', 'ct'].forEach(k => { const sync = () => { const en = $('#' + k + 'Enc'), lk = $('#' + k + 'Lock'); if (!en) return; $('#' + k + 'Pw').hidden = !en.checked; $('#' + k + 'LockBox').hidden = !lk.checked;
       const usd = +$('#' + k + 'Usd').value, ok = usd >= 2 && usd <= 30, [f, r] = ctpFee(ok ? usd : 2); $('#' + k + 'Fee').textContent = ok ? t('ctp.feeLine', { fee: ctUsd(f), rest: ctUsd(r) }) : t('ctp.amtErr'); };
       ['Enc', 'Lock', 'Usd'].forEach(x => $('#' + k + x)?.addEventListener('input', sync)); sync(); }); // 交友卡分区保护：详情 / 联系方式各自独立
-    const syncGQ = () => { const g = catSel?.value === '光栖', cu = catSel?.value === CUSTOM; $('#coverDesign')?.classList.toggle('only-custom', cu); if (cu && !up.C) setTimeout(() => $('#coverDesign')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 50); ['coverDesign', 'ctypeRow'].forEach(id => { if ($('#' + id)) $('#' + id).hidden = g; }); if ($('#gqSlots')) $('#gqSlots').hidden = !g; if (g && $('#ctype')) $('#ctype').value = 'single'; syncCard(); }; // 光栖主题：固定 正面/背面/内页，隐藏封面选择与卡片类型
+    const syncGQ = () => { const g = catSel?.value === '光栖', cu = catSel?.value === CUSTOM; $('#coverDesign')?.classList.toggle('only-custom', cu); if (cu && !up.C) setTimeout(() => $('#coverDesign')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 50); ['coverDesign', 'ctypeRow'].forEach(id => { if ($('#' + id)) $('#' + id).hidden = g; }); if ($('#gqSlots')) $('#gqSlots').hidden = !g; if (g && $('#ctype')) $('#ctype').value = 'single'; syncCtype(); syncCard(); }; // 光栖主题：固定 正面/背面/内页，隐藏封面选择与卡片类型
     const pickGQ = i => { D.gqSet = i; $('#gqSets')?.querySelectorAll('[data-gqs]').forEach(b => { const on = +b.dataset.gqs === i; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }); $('#gqPrev')?.querySelectorAll('[data-gq]').forEach(f => f.querySelector('img').src = GQ(f.dataset.gq, i)); saveD(); };
     $('#gqSets')?.addEventListener('click', e => { const b = e.target.closest('[data-gqs]'); if (b) pickGQ(+b.dataset.gqs); });
     catSel?.addEventListener('change', syncGQ); syncGQ(); pickGQ(D.gqSet | 0);
@@ -1604,16 +1621,16 @@ async function route() {
     const syncKind = () => { const k = $('#ckind')?.value || 'wish'; syncBiz(k);
       $('#socWrap').hidden = k !== 'social'; $('#giftWrap').hidden = k !== 'gift'; if ($('#gateWrap')) $('#gateWrap').hidden = k !== 'gate'; $('#wt').placeholder = t(k === 'gate' ? 'gate.benefitPh' : 'wish.ph'); if ($('#goodsWrap')) $('#goodsWrap').hidden = k !== 'goods';
       if ($('#sharedVis')) $('#sharedVis').hidden = k === 'gift' && (($('#gdel')?.value || 'tree') === 'off'); // 不上树时仍可填位置，但可见性由投递决定
-      syncShip(); syncGiftDel(); if (k === 'gate' && $('#sharedVis')) $('#sharedVis').hidden = true; giftMode(k === 'gift' ? S.giftMode : 'off'); syncCard(); };
+      syncCtype(); syncShip(); syncGiftDel(); if (k === 'gate' && $('#sharedVis')) $('#sharedVis').hidden = true; giftMode(k === 'gift' ? S.giftMode : 'off'); syncCard(); };
     document.querySelectorAll('#gseg [data-gm]').forEach(b => b.onclick = () => giftMode(b.dataset.gm));
     $('#ckind')?.addEventListener('change', syncKind); $('#gdel')?.addEventListener('change', syncGiftDel); $('#gvis')?.addEventListener('change', syncGiftDel);
     saveD = () => { D.f = Object.fromEntries(Object.entries(F).filter(([id]) => $('#' + id)).map(([id, p]) => [id, $('#' + id)[p]])); D.cover = $('#covers .on')?.dataset.cover; D.inside = $('#insides .on')?.dataset.inside; D.auto = $('#covers')?.dataset.auto; D.iauto = $('#insides')?.dataset.auto; };
     if (D.f) { for (const [id, v] of Object.entries(D.f)) { const el = $('#' + id); if (el) el[F[id]] = v; }
-      if (D.cover != null) pickCover(+D.cover); if (D.inside != null) pickInside(+D.inside); if (D.auto) $('#covers').dataset.auto = D.auto; if (D.iauto) $('#insides').dataset.auto = D.iauto; ['C', 'N'].forEach(k => showUp(k, up[k])); syncCard(); }
+      if (D.cover != null) pickCover(+D.cover); if (D.inside != null) pickInside(+D.inside); if (D.auto) $('#covers').dataset.auto = D.auto; if (D.iauto) $('#insides').dataset.auto = D.iauto; ['C', 'N', 'B'].forEach(k => showUp(k, up[k])); syncCtype(); syncCard(); }
     let pvMode = null; const pvUrl = {}; const blobUrl = k => up[k] ? (pvUrl[k]?.b === up[k] ? pvUrl[k].u : (pvUrl[k] = { b: up[k], u: URL.createObjectURL(up[k]) }).u) : null;
-    const renderPreview = () => { const box = $('#pvBody'); if (!box) return; const mode = pvMode || ($('#ctype')?.value === 'folded' ? 'folded' : 'single');
+    const renderPreview = () => { const box = $('#pvBody'); if (!box) return; const k = $('#ckind')?.value || 'wish', cv = $('#ctype')?.value, style = catSel?.value === CUSTOM && (k === 'wish' || k === 'biz') ? (cv === 'folded' || k === 'biz' ? 'folded' : cv === 'overlay' ? 'overlay' : 'split') : '', mode = style ? (style === 'folded' ? 'folded' : 'single') : pvMode || (cv === 'folded' ? 'folded' : 'single'); if ($('.pv-modes')) $('.pv-modes').hidden = !!style;
       document.querySelectorAll('[data-pv]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pv === mode));
-      box.innerHTML = previewHtml({ mode, cover: +($('#covers .on')?.dataset.cover ?? 0), inside: +($('#insides .on')?.dataset.inside ?? 0), upC: blobUrl('C'), upN: blobUrl('N') }); };
+      box.innerHTML = previewHtml({ mode, cover: +($('#covers .on')?.dataset.cover ?? 0), inside: +($('#insides .on')?.dataset.inside ?? 0), upC: blobUrl('C'), upN: blobUrl('N'), upB: blobUrl('B'), style }); };
     document.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => { pvMode = b.dataset.pv; renderPreview(); });
     $('#ctype')?.addEventListener('change', () => { pvMode = null; });
     $('#pvToggle')?.addEventListener('click', e => { const on = e.currentTarget.getAttribute('aria-expanded') !== 'true'; e.currentTarget.setAttribute('aria-expanded', on); e.currentTarget.textContent = t(on ? 'pv.hide' : 'pv.show'); $('.mk-prev').classList.toggle('open', on); });
@@ -1675,10 +1692,10 @@ async function route() {
       { await loadBlocklist(true); const h = window.__blkCheck?.(); if (h) return toast(esc($('#blkwarn').textContent), 'err'); } // 付款前拦截（服务器审核同样强制）
       if (!($('#pv')?.value === 'evm') && !(lam >= S.cfg.minLamports)) return toast(E('wish.lowAmount', { min: sol(S.cfg.minLamports) }), 'err');
       $('#ws').disabled = true; const tt = toast(E('wish.moderating'));
-      const gqC = cat === '光栖', folded = !gqC && $('#ctype').value === 'folded', cover = gqC ? (D.gqSet | 0) : +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null;
-      if (!gqC && (up.C || (folded && up.N))) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (folded && up.N) nimg = await uploadImg(up.N, k); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
+      const gqC = cat === '光栖', folded = !gqC && $('#ctype').value === 'folded', cover = gqC ? (D.gqSet | 0) : +($('#covers .on')?.dataset.cover ?? WTCovers.forCat(cat)[0]), inside = +($('#insides .on')?.dataset.inside ?? WTInsides.forCat(cat)[0]), priv = folded && $('#priv').checked; let cipher, cimg = null, nimg = null, bimg = null;
+      if (!gqC && (up.C || (folded && up.N))) try { tt.update(E('wish.upChecking')); const k = priv && up.N ? await WTPriv.key() : null; if (up.C) cimg = await uploadImg(up.C); if (folded && up.N) nimg = await uploadImg(up.N, k); if (folded && up.C && up.B && $('#wc2').value === CUSTOM) bimg = await uploadImg(up.B); } catch (e) { $('#ws').disabled = false; return tt.update('❌ ' + E('wish.upFail') + ' ' + esc(e.message || ''), 'err'); }
       if (priv) { if ([...txt].length > 100) return toast(E('wish.privateLen'), 'err'); try { cipher = await WTPriv.enc(txt, await WTPriv.key()); } catch (e) { return toast(esc(t('card.unlockFail')) + ' ' + esc(e.message || ''), 'err'); } }
-      const fold = folded ? encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside) : (gqC || cimg || cover !== WTCovers.forCat(cat)[0] ? encSingle(cimg ? null : cover, cimg) : '');
+      const fold = (folded ? encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside) + (bimg ? '~R' + bimg : '') : (gqC || cimg || cover !== WTCovers.forCat(cat)[0] ? encSingle(cimg ? null : cover, cimg) : '')) + (!folded && cimg && $('#ctype').value === 'overlay' && kind === 'wish' ? '~Uo' : '');
       const prefix = encKind(cat, K || { kind: 'wish', vis: 'public' }, fold);
       if (new TextEncoder().encode(prefix + '|' + (cipher || txt)).length > 600) { $('#ws').disabled = false; return tt.update(E('err.memoSize'), 'err'); }
       let memo; try { memo = await moderateThenMemo('W', prefix, txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }

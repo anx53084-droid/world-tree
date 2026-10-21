@@ -540,3 +540,25 @@ svg.gface { height: auto }
 .biz-link a, .biz-link span { font-weight: 700; font-size: 1.05em; color: inherit; text-decoration: underline }
 .biz-in .hint { color: inherit; opacity: .75; font-size: .82em; margin: 4px 0 0 }
 .pv-in .biz-in { padding: 6px 7px; font-size: .6em; margin: 0; line-height: 1.35 } .pv-in .biz-in .tag { font-size: .95em } .pv-in .biz-name { margin: 4px 0 } .pv-in .biz-intro { margin-bottom: 4px; line-height: 1.35 }
+/* t241 自定义封面卡样式 */
+.cflip { position: relative; width: min(300px, 78vw); aspect-ratio: 3/4; margin: 0 auto 10px; perspective: 1000px; cursor: pointer }
+.cflip.one { cursor: default }
+.cf-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.3,.7,.2,1) }
+.cflip.flipped .cf-inner { transform: rotateY(180deg) }
+.cf-face { position: absolute; inset: 0; border-radius: 12px; overflow: hidden; backface-visibility: hidden; box-shadow: 0 6px 18px #0006; border: 3px solid #c9a052 }
+.cf-face > img { width: 100%; height: 100%; object-fit: cover; display: block }
+.cf-back { transform: rotateY(180deg); background: radial-gradient(circle at 50% 45%, #fff6dc, #f5dfa4 55%, #d9b166); color: #3a2410 }
+.cf-body { padding: 18px 16px; height: 100%; box-sizing: border-box; overflow: auto }
+.cf-text { font-size: 19px; line-height: 1.5; margin: .5em 0; white-space: pre-wrap; overflow-wrap: anywhere }
+.cf-meta { font-size: 13px; opacity: .8 }
+.cf-over { position: absolute; left: 0; right: 0; bottom: 0; max-height: 70%; overflow: auto; padding: 40px 14px 14px; color: #fff; background: linear-gradient(180deg, #0000, #000b 30%, #000d); text-shadow: 0 1px 3px #000 }
+.cf-over .tag { background: #fff3; color: #fff }
+.cf-acts { justify-content: center }
+.pv-ov { position: relative; aspect-ratio: 3/4; max-width: 240px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px #0006 }
+.pv-ov > img { width: 100%; height: 100%; object-fit: cover; display: block }
+.pv-ovtext { position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 10px 8px; color: #fff; font-size: 13px; background: linear-gradient(180deg, #0000, #000b 35%); text-shadow: 0 1px 2px #000 }
+.pv-ovtext p { margin: .3em 0; overflow-wrap: anywhere } .pv-ovtext .tag { background: #fff3; color: #fff }
+.pv-cap { position: absolute; top: 6px; inset-inline-start: 6px; font-size: 11px; background: #000a; color: #fff; padding: 1px 6px; border-radius: 6px }
+.pv-plain { background: radial-gradient(circle at 50% 45%, #fff6dc, #f5dfa4 55%, #d9b166) } .pv-plain .pv-inbody { background: transparent }
+.pv-three { grid-template-columns: 1fr 1fr 1fr } .pv-three .pv-inbody { font-size: 10px; inset: 6% 5% } .pv-three .pv-page:first-child { transform: none }
+.pv-defback { background: linear-gradient(135deg, #f3e4c4, #d9bd88) } .pv-defback::after { content: '✦'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 34px; color: #a5763088 }

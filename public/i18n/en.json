@@ -1185,5 +1185,17 @@
   "err.bizName": "Company name must be 1–30 characters without special symbols",
   "err.bizUrl": "Website must be a valid public http(s) address",
   "err.bizIntro": "Company intro must be 1–300 characters",
-  "err.bizMismatch": "Website domain does not match the card"
+  "err.bizMismatch": "Website domain does not match the card",
+  "cs.overlay": "Single card · same on both sides",
+  "cs.single": "Single card · cover / content split",
+  "cs.folded": "Folded card (cover + inside + back)",
+  "cs.h.overlay": "Upload one cover; your content is overlaid on it. Both sides look the same on the tree.",
+  "cs.h.single": "One side is the cover, the other is the content: on the tree the cover faces out and the content faces in; flip it in the detail view.",
+  "cs.h.folded": "Three images: cover, inside background (your content is written on it) and back. Inside and back are optional and fall back to defaults.",
+  "cs.upBack": "Upload back (optional)",
+  "cs.backHint": "Without a back image, a default paper back is used.",
+  "cs.front": "Front",
+  "cs.back": "Back",
+  "cs.same": "Same on both sides",
+  "cs.flip": "Flip"
 }

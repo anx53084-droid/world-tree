@@ -1185,5 +1185,17 @@
   "err.bizName": "El nombre debe tener 1–30 caracteres sin símbolos especiales",
   "err.bizUrl": "El sitio web debe ser una dirección http(s) pública válida",
   "err.bizIntro": "La presentación debe tener 1–300 caracteres",
-  "err.bizMismatch": "El dominio no coincide con la tarjeta"
+  "err.bizMismatch": "El dominio no coincide con la tarjeta",
+  "cs.overlay": "Tarjeta simple · igual por ambos lados",
+  "cs.single": "Tarjeta simple · portada / contenido separados",
+  "cs.folded": "Tarjeta plegada (portada + interior + reverso)",
+  "cs.h.overlay": "Sube una portada; tu contenido se superpone. En el árbol ambos lados se ven iguales.",
+  "cs.h.single": "Un lado es la portada y el otro el contenido: en el árbol la portada mira hacia fuera y el contenido hacia dentro; gírala en el detalle.",
+  "cs.h.folded": "Tres imágenes: portada, fondo interior (con tu contenido) y reverso. Interior y reverso son opcionales y usan valores por defecto.",
+  "cs.upBack": "Subir reverso (opcional)",
+  "cs.backHint": "Sin imagen de reverso se usa un reverso de papel predeterminado.",
+  "cs.front": "Anverso",
+  "cs.back": "Reverso",
+  "cs.same": "Igual por ambos lados",
+  "cs.flip": "Girar"
 }

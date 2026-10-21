@@ -1185,5 +1185,17 @@
   "err.bizName": "O nome deve ter 1–30 caracteres sem símbolos especiais",
   "err.bizUrl": "O site deve ser um endereço http(s) público válido",
   "err.bizIntro": "A apresentação deve ter 1–300 caracteres",
-  "err.bizMismatch": "O domínio do site não corresponde ao cartão"
+  "err.bizMismatch": "O domínio do site não corresponde ao cartão",
+  "cs.overlay": "Cartão simples · igual nos dois lados",
+  "cs.single": "Cartão simples · capa / conteúdo separados",
+  "cs.folded": "Cartão dobrado (capa + interior + verso)",
+  "cs.h.overlay": "Envie uma capa; seu conteúdo fica sobreposto. Na árvore os dois lados ficam iguais.",
+  "cs.h.single": "Um lado é a capa e o outro o conteúdo: na árvore a capa fica para fora e o conteúdo para dentro; vire no detalhe.",
+  "cs.h.folded": "Três imagens: capa, fundo interno (com seu conteúdo) e verso. Interior e verso são opcionais e usam o padrão.",
+  "cs.upBack": "Enviar verso (opcional)",
+  "cs.backHint": "Sem imagem de verso, é usado um verso de papel padrão.",
+  "cs.front": "Frente",
+  "cs.back": "Verso",
+  "cs.same": "Igual nos dois lados",
+  "cs.flip": "Virar"
 }
