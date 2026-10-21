@@ -22,9 +22,9 @@ const D = __dirname, SHOTS = process.env.SHOTS;
     const A = await wlogin(), V = await wlogin(), tk = u => ({ authorization: 'Bearer ' + u.token });
     // 官方示范：仅管理员
     ok((await call('/api/admin/samples', { text: '示范', cat: '风景' })).s === 403 && (await call('/api/admin/samples', { text: '示范', cat: '风景' }, { 'x-admin-key': 'wrong' })).s === 403, '示范：无 / 错 ADMIN_KEY → 403');
-    const sm = await call('/api/admin/samples', { text: '希望明年春天能和家人一起去看一次樱花。', cat: '风景' }, ADM); ok(sm.s === 200 && /^OS_[0-9a-f]{12}$/.test(sm.j.id), '示范：管理员添加');
+    const sm = await call('/api/admin/samples', { text: '希望明年春天能和家人一起去看一次樱花。', cat: '光栖', cover: 3 }, ADM); ok(sm.s === 200 && /^OS_[0-9a-f]{12}$/.test(sm.j.id), '示范：管理员添加');
     ok((await call('/api/admin/samples', { text: 'a|b', cat: '风景' }, ADM)).s === 400, '示范：非法字符被拒');
-    let off = (await call('/api/offchain')).j; ok(off.samples.some(s => s.id === sm.j.id && s.cat === '风景'), '/api/offchain 含示范');
+    let off = (await call('/api/offchain')).j; ok(off.samples.some(s => s.id === sm.j.id && s.cat === '光栖' && s.cover === 3), '/api/offchain 含示范');
     // 免费心愿
     let c = await solve(IP(1)); ok((await call('/api/free', { text: '想学会弹一首吉他曲', cat: '卡通', cid: c.cid, ans: c.bad, dev: 'd1' }, IP(1))).j.code === 'freeCaptcha', '免费：验证码错误被拒');
     c = await solve(IP(1)); const fr = await call('/api/free', { text: '想学会弹一首吉他曲', cat: '卡通', cid: c.cid, ans: c.ans, dev: 'd1' }, IP(1));

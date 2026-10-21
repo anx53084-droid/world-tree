@@ -696,7 +696,7 @@ window.WT_hover = (w, e) => { const tip = $('#tip'); if (!w) { tip.hidden = true
 const isMine = w => S.pubkey && w.author === S.pubkey;
 // ===== t244：官方示范 / 免费心愿（未上链）/ 点亮 / 举报 / 分享 =====
 function offMerge(W) { const o = S.offc; if (!o) return; o.hiddenSet = new Set(o.hidden || []);
-  const mk = (x, official) => ({ sig: x.id, author: '', time: Math.floor(x.at / 1000), text: x.text, cat: x.cat, hue: CATS[x.cat] ?? 40, kind: 'wish', vis: 'public', deliver: 'tree', cover: WTCovers.forCat(x.cat)[0], likers: new Set(), blessings: [], paid: 0, sample: true, verified: true, offchain: !official, official });
+  const mk = (x, official) => ({ sig: x.id, author: '', time: Math.floor(x.at / 1000), text: x.text, cat: x.cat, hue: CATS[x.cat] ?? 40, kind: 'wish', vis: 'public', deliver: 'tree', cover: x.cat === '光栖' ? gqSet({ cover: x.cover }) : WTCovers.forCat('经典')[0], likers: new Set(), blessings: [], paid: 0, sample: true, verified: true, offchain: !official, official });
   for (const x of o.samples || []) W[x.id] = mk(x, true); for (const x of o.free || []) W[x.id] = mk(x, false); }
 async function loadOffchain() { try { const r = await fetch('/api/offchain'); if (!r.ok) return; S.offc = await r.json(); aggregate(); if (!document.querySelector('textarea:focus,input:focus') && $('#modal').hidden && !/^#\/(wish|free)/.test(location.hash)) softRefresh(); } catch {} }
 const cheersOf = sig => S.offc?.cheers?.[sig] || 0;
@@ -1476,7 +1476,7 @@ const RULES_LIST = () => `<ul>${[1, 2, 3, 4, 5].map(i => `<li>${E('rules.' + i)}
 const myFree = () => { try { return JSON.parse(localStorage.wt_free || '[]'); } catch { return []; } }, saveFree = a => { localStorage.wt_free = JSON.stringify(a.slice(-20)); };
 const devId = () => localStorage.wt_dev ||= (crypto.randomUUID?.() || String(Math.random()).slice(2));
 const freePage = () => `<h2 class=gold-title>☁ ${E('free.title')}</h2><div class="card motif free-card"><p>${E('free.intro')}</p><p class="muted off-note">☁ ${E('off.note')}</p>
-  <label>${E('wish.cat')} <select id=fcat>${['经典', '风景', '人物', '动物', '卡通'].map(c => `<option value="${c}">${esc(catName(c))}</option>`).join('')}</select></label>
+  <label>${E('wish.cat')} <select id=fcat>${THEME_CATS.map(c => `<option value="${c}">${c === '经典' ? E('wish.coverBasic') : '✨ ' + esc(catName(c))}</option>`).join('')}</select></label>
   <textarea id=ftext maxlength=140 rows=3 dir=auto placeholder="${E('free.ph')}"></textarea><div class=muted id=fcnt>0/140</div>
   <div class="row cap-row"><span id=fq class=cap-q>…</span><input id=fans inputmode=numeric maxlength=3 aria-label="${E('free.capLabel')}" placeholder="?" style="width:70px"><button type=button id=fqr class=link>↻</button></div>
   <p class="muted hint">${E('free.limit')}</p><button id=fsub class=primary>☁ ${E('free.submit')}</button></div>
@@ -1491,7 +1491,7 @@ async function bindFree() { paintFreeMine(); let cid = '';
   const q = async () => { try { const r = await fetch('/api/free/challenge').then(r => r.json()); cid = r.cid; $('#fq').textContent = E('free.cap', { q: r.q }); } catch { $('#fq').textContent = '…'; } };
   q(); $('#fqr').onclick = q; $('#ftext').addEventListener('input', e => $('#fcnt').textContent = [...e.target.value].length + '/140');
   $('#fsub').onclick = async () => { const text = $('#ftext').value.trim(); if (!text) return toast(E('wish.invalid'), 'err'); $('#fsub').disabled = true;
-    try { const r = await api('/api/free', { text, cat: $('#fcat').value, cid, ans: $('#fans').value, dev: devId() }); saveFree([...myFree(), { id: r.id, token: r.token, text: r.text, cat: r.cat }]); $('#ftext').value = ''; $('#fans').value = ''; toast('☁ ' + E('free.ok'), 'ok'); sparkle(); paintFreeMine(); loadOffchain(); }
+    try { const r = await api('/api/free', { text, cat: $('#fcat').value, cover: Math.floor(Math.random() * GQ_N), cid, ans: $('#fans').value, dev: devId() }); saveFree([...myFree(), { id: r.id, token: r.token, text: r.text, cat: r.cat }]); $('#ftext').value = ''; $('#fans').value = ''; toast('☁ ' + E('free.ok'), 'ok'); sparkle(); paintFreeMine(); loadOffchain(); }
     catch (e) { toast(esc(e.message), 'err'); } $('#fsub').disabled = false; q(); }; }
 const walletGuide = () => `<h2 class=gold-title>👛 ${E('wg.title')}</h2><p class=tagline>${E('wg.intro')}</p>
   <ol class=wg-steps>${[['wg.s1t','wg.s1b'],['wg.s2t','wg.s2b'],['wg.s3t','wg.s3b'],['wg.s4t','wg.s4b'],['wg.s5t','wg.s5b']].map(([kt, kb], j) => { const i = j + 1; return `<li class="card motif"><h3>${E(kt)}</h3><p>${E(kb)}</p>${i === 1 ? `<p><a class=btn href="https://phantom.com/download" target=_blank rel="noopener noreferrer">⬇️ phantom.com/download ↗</a></p>` : ''}${i === 5 ? `<p class=row><button class="primary breathe" data-cta=wallet>🔗 ${E('ux.connect')}</button></p>` : ''}</li>`; }).join('')}</ol>
