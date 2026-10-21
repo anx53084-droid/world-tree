@@ -1272,5 +1272,13 @@
   "rl.appealT": "Banding",
   "rl.appeal": "Jika menurutmu kontenmu salah ditandai, hubungi kami lewat halaman Bantuan dengan menyertakan tautan kartu.",
   "emp.inbox": "Belum ada pesan. Kami akan memberi tahu di sini saat seseorang menyalakan harapanmu, memberkatinya, atau mengirim hadiah.",
-  "emp.browse": "Lihat harapan"
+  "emp.browse": "Lihat harapan",
+  "qv.cover": "Sampul",
+  "qv.inner": "Halaman dalam",
+  "qv.back": "Belakang",
+  "qv.pages": "Ganti halaman kartu",
+  "qv.swipe": "Geser kiri atau kanan untuk membalik",
+  "qv.gqName": "Kartu {n}",
+  "qv.scan": "Pindai untuk melihat kartu ini",
+  "brand.short": "Guangqi"
 }

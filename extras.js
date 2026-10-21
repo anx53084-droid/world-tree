@@ -56,11 +56,11 @@ async function handle(req, res, url, C) { const { send, body, Soc, moderate, Blo
     if (url === '/api/admin/samples/delete' && req.method === 'POST') { const b = await body(req, 2000), id = String(b.id || '').replace(/^OS_/, ''); if (!st.samples?.[id]) return send(res, 404, { error: 'nf', code: 'nf' }), true; delete st.samples[id]; Soc.save(st); return send(res, 200, { ok: true }), true; }
     return send(res, 404, { error: 'nf' }), true; }
   if (url.startsWith('/api/og-meta/') && req.method === 'GET') { const id = decodeURIComponent(url.slice(13)), st = Soc.load(); if (st.hidden?.[id]) return send(res, 404, { error: 'nf' }), true;
-    if (OID.test(id)) { const o = id[1] === 'S' ? st.samples?.[id.slice(3)] : st.free?.[id.slice(3)]; return o ? send(res, 200, { text: o.text, cat: o.cat, official: id[1] === 'S', offchain: id[1] === 'F', cheers: st.cheers?.[id] || 0 }) : send(res, 404, { error: 'nf' }), true; }
+    if (OID.test(id)) { const o = id[1] === 'S' ? st.samples?.[id.slice(3)] : st.free?.[id.slice(3)]; return o ? send(res, 200, { text: o.text, cat: o.cat, cover: o.cover ?? null, official: id[1] === 'S', offchain: id[1] === 'F', cheers: st.cheers?.[id] || 0 }) : send(res, 404, { error: 'nf' }), true; }
     if (!SIG_RE.test(id)) return send(res, 400, { error: 'param' }), true; if (hit('og|' + ipk, 60, 60000)) return send(res, 429, { error: 'rate' }), true;
     const ti = await C.txInfo(id).catch(() => null), f = (ti?.memo || '').split('|'); if (f[1] !== 'W' || !C.verifyWishMemo(ti.memo)) return send(res, 404, { error: 'nf' }), true;
     const K = Soc.parseKind(f[5]); if (K.vis && K.vis !== 'public') return send(res, 200, { text: '', cat: '经典', cheers: 0 }), true; // 非公开卡不外泄正文
     const priv = /~F[0-9a-z]{2}P/.test(f[5]), img = (f[5].match(/~C([0-9a-f]{32})/) || [])[1];
-    return send(res, 200, { text: priv ? '' : f.slice(6).join('|').slice(0, 140), cat: (f[5].split('~')[0] || '经典'), img: img || null, cheers: st.cheers?.[id] || 0 }), true; }
+    return send(res, 200, { text: priv ? '' : f.slice(6).join('|').slice(0, 140), cat: (f[5].split('~')[0] || '经典'), cover: (m => m ? parseInt(m[1], 36) : null)(f[5].match(/~[KF]([0-9a-z]{2})/)), img: img || null, cheers: st.cheers?.[id] || 0 }), true; }
   return false; }
 module.exports = { handle, pub, REASONS };

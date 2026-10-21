@@ -1272,5 +1272,13 @@
   "rl.appealT": "Appeals",
   "rl.appeal": "If you think your content was flagged by mistake, contact us via the Help page with the card link.",
   "emp.inbox": "No messages yet. You’ll be notified here when someone lights up your wish, blesses it or sends you a gift.",
-  "emp.browse": "Browse wishes"
+  "emp.browse": "Browse wishes",
+  "qv.cover": "Cover",
+  "qv.inner": "Inside",
+  "qv.back": "Back",
+  "qv.pages": "Switch card page",
+  "qv.swipe": "Swipe left or right to flip",
+  "qv.gqName": "{n} card",
+  "qv.scan": "Scan to view this card",
+  "brand.short": "Guangqi"
 }

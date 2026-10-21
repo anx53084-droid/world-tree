@@ -1272,5 +1272,13 @@
   "rl.appealT": "Apelaciones",
   "rl.appeal": "Si crees que tu contenido se marcó por error, contáctanos desde la página de Ayuda con el enlace de la tarjeta.",
   "emp.inbox": "Aún no hay mensajes. Te avisaremos aquí cuando alguien encienda tu deseo, lo bendiga o te envíe un regalo.",
-  "emp.browse": "Ver deseos"
+  "emp.browse": "Ver deseos",
+  "qv.cover": "Portada",
+  "qv.inner": "Interior",
+  "qv.back": "Reverso",
+  "qv.pages": "Cambiar página de la tarjeta",
+  "qv.swipe": "Desliza a izquierda o derecha para pasar página",
+  "qv.gqName": "Tarjeta {n}",
+  "qv.scan": "Escanea para ver esta tarjeta",
+  "brand.short": "Guangqi"
 }

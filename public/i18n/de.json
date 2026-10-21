@@ -1272,5 +1272,13 @@
   "rl.appealT": "Einspruch",
   "rl.appeal": "Wenn du denkst, dein Inhalt wurde fälschlich markiert, kontaktiere uns über die Hilfeseite mit dem Kartenlink.",
   "emp.inbox": "Noch keine Nachrichten. Du wirst hier benachrichtigt, wenn jemand deinen Wunsch leuchten lässt, segnet oder dir ein Geschenk schickt.",
-  "emp.browse": "Wünsche ansehen"
+  "emp.browse": "Wünsche ansehen",
+  "qv.cover": "Cover",
+  "qv.inner": "Innenseite",
+  "qv.back": "Rückseite",
+  "qv.pages": "Kartenseite wechseln",
+  "qv.swipe": "Nach links oder rechts wischen zum Umblättern",
+  "qv.gqName": "{n}-Karte",
+  "qv.scan": "Scannen, um diese Karte zu sehen",
+  "brand.short": "Guangqi"
 }

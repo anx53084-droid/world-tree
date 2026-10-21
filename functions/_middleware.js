@@ -10,13 +10,15 @@ export function pick(url, al) { const q = match(url.searchParams.get('lang')); i
   const ls = al.split(',').map(s => { const [t, ...p] = s.trim().split(';'); const qv = p.find(x => x.trim().startsWith('q=')); return [t, qv ? parseFloat(qv.split('=')[1]) : 1]; }).filter(x => x[0] && x[0] !== '*').sort((a, b) => b[1] - a[1]);
   for (const [t] of ls) { const m = match(t); if (m) return m; } return ls.length ? 'en' : 'zh-CN'; }
 const attr = (v) => ({ element(e) { e.setAttribute('content', v); } });
+const GQN = ['星愿', '治愈', '爱', '梦想', '守护', '自由', '智慧', '家园', '创造', '重生'], GQN_TW = ['星願', '療癒', '愛', '夢想', '守護', '自由', '智慧', '家園', '創造', '重生'];
 const API_DEFAULT = 'https://world-tree-ijv1.onrender.com';
 // t244：/c/<卡片 id> 分享链接：爬虫拿到该卡片的 og/twitter 标签（正文、自定义封面图），浏览器立即跳转到 /#/w/<id>
 async function cardPage(ctx, url, id) { const API = (ctx.env?.WT_API_BASE || API_DEFAULT).replace(/\/$/, ''), lang = pick(url, ctx.request.headers.get('accept-language')), m = META[lang];
   let c = null; try { const r = await fetch(API + '/api/og-meta/' + encodeURIComponent(id), { signal: AbortSignal.timeout(3500) }); if (r.ok) c = await r.json(); } catch {}
   const base = await (ctx.env?.ASSETS ? ctx.env.ASSETS.fetch(new URL('/', url)) : fetch(new URL('/', url)));
-  const tag = c?.official ? '★ ' : c?.offchain ? '☁ ' : '', text = (c?.text || '').trim(), title = text ? `${tag}「${text.length > 40 ? text.slice(0, 40) + '…' : text}」· ${m.b}` : `${m.b} · ${m.t}`;
-  const desc = text ? `${text.slice(0, 140)} — ${m.d}` : m.d, img = c?.img ? `${API}/api/img/${c.img}` : `${url.origin}/og/og-${lang}.png`, page = `${url.origin}/c/${encodeURIComponent(id)}`;
+  const tag = c?.official ? '★ ' : c?.offchain ? '☁ ' : '', text = (c?.text || '').trim(), cn = /^zh/.test(lang) && c?.cat === '光栖' && Number.isInteger(c.cover) ? (lang === 'zh-TW' ? GQN_TW : GQN)[Math.min(9, Math.max(0, c.cover))] + (lang === 'zh-TW' ? '卡 · 光棲 · ' : '卡 · 光栖 · ') : '', title = text ? `${tag}「${text.length > 40 ? text.slice(0, 40) + '…' : text}」· ${cn}${m.b}` : `${m.b} · ${m.t}`;
+  const gq = c?.cat === '光栖' && Number.isInteger(c.cover) ? Math.min(9, Math.max(0, c.cover)) : -1; // t248：光栖卡 → 该套卡面的分享图（与站内分享卡同风格）
+  const desc = text ? `${text.slice(0, 140)} — ${m.d}` : m.d, img = c?.img ? `${API}/api/img/${c.img}` : gq >= 0 ? `${url.origin}/og/card-gq-${String(gq + 1).padStart(2, '0')}.jpg` : `${url.origin}/og/og-${lang}.png`, page = `${url.origin}/c/${encodeURIComponent(id)}`;
   const out = new HTMLRewriter()
     .on('head', { element(e) { e.prepend(`<script>location.replace('/#/w/' + ${JSON.stringify(encodeURIComponent(id))});</script>`, { html: true }); } })
     .on('html', { element(e) { e.setAttribute('lang', lang); e.setAttribute('dir', m.rtl ? 'rtl' : 'ltr'); } })

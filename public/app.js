@@ -700,13 +700,16 @@ function offMerge(W) { const o = S.offc; if (!o) return; o.hiddenSet = new Set(o
   for (const x of o.samples || []) W[x.id] = mk(x, true); for (const x of o.free || []) W[x.id] = mk(x, false); }
 async function loadOffchain() { try { const r = await fetch('/api/offchain'); if (!r.ok) return; S.offc = await r.json(); aggregate(); if (!document.querySelector('textarea:focus,input:focus') && $('#modal').hidden && !/^#\/(wish|free)/.test(location.hash)) softRefresh(); } catch {} }
 const cheersOf = sig => S.offc?.cheers?.[sig] || 0;
-const cheerBtn = w => w.pending || /^(SAMPLE|SYN|SL|SB)/.test(w.sig) ? '' : `<button data-cheer="${esc(w.sig)}" class=cheer title="${E('cheer.tip')}">${S.cheered?.[w.sig] ? '🌟' : '✨'} ${E('cheer.btn')} <b>${cheersOf(w.sig)}</b></button>`;
+const cheerBtn = w => w.pending || /^(SAMPLE|SYN|SL|SB)/.test(w.sig) ? '' : `<button data-cheer="${esc(w.sig)}" class="cheer${S.cheered?.[w.sig] ? ' lit' : ''}" aria-pressed=${!!S.cheered?.[w.sig]} title="${E('cheer.tip')}">${S.cheered?.[w.sig] ? '🌟' : '✨'} ${E('cheer.btn')} <b>${cheersOf(w.sig)}</b></button>`;
 const reportBtn = w => /^(SAMPLE|SYN|SL|SB)/.test(w.sig) ? '' : `<button data-report="${esc(w.sig)}" class="link rep">🚩 ${E('rep.btn')}</button>`;
 const offBadge = w => w.official ? `<span class="tag t-official">★ ${E('off.official')}</span>` : w.offchain ? `<span class="tag t-offchain">☁ ${E('off.badge')}</span>` : '';
 const offNote = w => w.official ? `<p class="muted off-note">★ ${E('off.officialNote')}</p>` : w.offchain ? `<p class="muted off-note">☁ ${E('off.note')}</p>` : '';
 S.cheered = JSON.parse(localStorage.wt_cheered || '{}');
+function cheerFx(x) { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; x.querySelector('b')?.classList.add('bump'); const ring = document.createElement('span'); ring.className = 'ring'; x.append(ring);
+  for (let i = 0; i < 10; i++) { const p = document.createElement('span'); p.className = 'spark'; p.style.left = (10 + Math.random() * 80) + '%'; p.style.setProperty('--dx', (Math.random() * 40 - 20).toFixed(0) + 'px'); p.style.animationDelay = (i * 60) + 'ms'; x.append(p); }
+  setTimeout(() => x.querySelectorAll('.ring,.spark').forEach(n => n.remove()), 2000); }
 document.addEventListener('click', async e => { const b = e.target.closest('[data-cheer]'); if (!b) return; const sig = b.dataset.cheer; b.disabled = true;
-  try { const r = await api('/api/cheer', { sig }); (S.offc ||= {}).cheers ||= {}; S.offc.cheers[sig] = r.n; S.cheered[sig] = 1; localStorage.wt_cheered = JSON.stringify(S.cheered); document.querySelectorAll(`[data-cheer="${CSS.escape(sig)}"]`).forEach(x => { x.innerHTML = `🌟 ${E('cheer.btn')} <b>${r.n}</b>`; x.classList.add('lit'); }); if (!r.dup) { toast('🌟 ' + E('cheer.done'), 'ok'); sparkle?.(); } }
+  try { const r = await api('/api/cheer', { sig }); (S.offc ||= {}).cheers ||= {}; S.offc.cheers[sig] = r.n; S.cheered[sig] = 1; localStorage.wt_cheered = JSON.stringify(S.cheered); document.querySelectorAll(`[data-cheer="${CSS.escape(sig)}"]`).forEach(x => { x.innerHTML = `🌟 ${E('cheer.btn')} <b>${r.n}</b>`; x.classList.add('lit'); x.setAttribute('aria-pressed', 'true'); if (!r.dup) cheerFx(x); }); document.querySelectorAll(`[data-cheern="${CSS.escape(sig)}"]`).forEach(x => x.textContent = r.n); if (!r.dup) toast('🌟 ' + E('cheer.done'), 'ok'); }
   catch (er) { toast(esc(er.message), 'err'); } b.disabled = false; });
 document.addEventListener('click', e => { const b = e.target.closest('[data-report]'); if (!b) return; const sig = b.dataset.report;
   modal(`<h3>🚩 ${E('rep.title')}</h3><p class=muted>${E('rep.hint')}</p><label>${E('rep.reason')} <select id=rpr>${['spam', 'abuse', 'illegal', 'privacy', 'scam', 'other'].map(r => `<option value=${r}>${E('rep.r.' + r)}</option>`).join('')}</select></label>
@@ -724,16 +727,10 @@ const summText = w => { if (w.lockedView) return w.text; const k = w.kind || 'wi
 const summHtml = w => { const k = w.kind || 'wish';
   if (k === 'social' && !w.lockedView) return `<span class=tag>💬 ${E('kind.social')}</span><p class=cf-text dir=auto>${esc(w.text)}</p>${(w.tags || []).length ? `<div class=pv-tags>${w.tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}${w.intro ? `<p dir=auto>${esc(w.intro)}</p>` : ''}${w.looking ? `<p dir=auto>🔎 ${esc(w.looking)}</p>` : ''}<p class="muted hint">🔒 ${E('cs.protected')}</p>`;
   return `<span class=tag>${KICON[k] || ''}${esc(k === 'wish' ? catName(w.cat) : t('kind.' + k))}</span> ${fulfillBadge(w)}<p class=cf-text dir=auto>${esc(summText(w))}</p>`; };
-function openFlip(w, cs) { const text = w.plain || w.text, meta = `<div class=cf-meta>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>`;
-  const content = w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>${meta}` : `${summHtml({ ...w, text })}${meta}`, img = `<img alt="" src="${IMG(w.cimg)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">`;
-  const acts = `<div class="row cf-acts">${cs === 'split' ? `<button type=button id=cfFlip>🔄 ${esc(t('cs.flip'))}</button>` : ''}${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`;
-  modal(cs === 'overlay' ? `<div class="cflip one" id=cflip><div class="cf-face cf-ov">${img}<div class=cf-over>${content}</div></div></div>${acts}`
-    : `<div class=cflip id=cflip><div class=cf-inner><div class="cf-face cf-front">${img}<span class=fold-hint>${esc(t('cs.flip'))}</span></div><div class="cf-face cf-back"><div class=cf-body>${content}</div></div></div></div>${acts}`, w.cat);
-  if (w.kind === 'biz' && !(w.sig in S.biz)) bizInner(w);
-  if (cs === 'split') { const f = $('#cflip'), flip = () => f.classList.toggle('flipped'); f.addEventListener('click', flip); $('#cfFlip').addEventListener('click', flip); setTimeout(() => f.classList.add('flipped'), 600); } }
 function openCardPopup(w) { if (w.folded || isGQ(w)) return openFolded(w);
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w);
-  if (!locked && cStyle(w) && cStyle(w) !== 'fold') return openFlip(w, cStyle(w)); // 单卡自定义封面：双面相同 / 封面 ↔ 内容翻面
+  if (!locked && cStyle(w) && cStyle(w) !== 'fold') return openFlip(w, cStyle(w));
+  if (!locked && (w.kind || 'wish') === 'wish' && !w.pending) { maybeFulfillToast(w); return openPager(w); } // t248：普通心愿卡也用翻页器（封面 + 内页） // 单卡自定义封面：双面相同 / 封面 ↔ 内容翻面
   maybeFulfillToast(w);
   const L = lockPaint(w);
   let unlockHtml = '';
@@ -1245,47 +1242,75 @@ function detailBase(sig) {
   <h3>🙏 ${E('detail.blessings', { n: w.blessings.length })}</h3>${w.blessings.map(b => `<div class=card>${b.pending ? '⏳ ' : ''}<bdi>${esc(b.text)}</bdi><div class=muted>${short(b.author)} · ${fmtT(b.time)}</div></div>`).join('') || `<p class=muted>${E('detail.noBless')}</p>`}
   ${w.offchain || w.official ? '' : S.mode === 'guest' ? `<p class=muted>${E('detail.loginToBless')}</p>` : `<div class=card><textarea id=bt maxlength=140 dir=auto placeholder="${E('detail.blessPh')}"></textarea><button id=bs data-sig="${esc(w.sig)}" ${w.sample ? 'disabled' : ''}>${E('detail.sendBless')}</button></div>`}`;
 }
-function sharePng(w) { // 生成分享图（本地 canvas → PNG）+ 链接
-  const c = document.createElement('canvas'); c.width = 720; c.height = 960; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 960);
-  g.addColorStop(0, '#0a0f2a'); g.addColorStop(1, `hsl(${w.hue},60%,25%)`); x.fillStyle = g; x.fillRect(0, 0, 720, 960);
-  for (let i = 0; i < 120; i++) { x.fillStyle = `rgba(255,255,230,${Math.random()})`; x.fillRect(Math.random() * 720, Math.random() * 960, 2, 2); }
-  x.fillStyle = `hsl(${w.hue},90%,75%)`; x.font = 'bold 40px "Noto Sans CJK SC",sans-serif'; x.fillText('🌳 ' + t('brand') + ' · ' + catName(w.cat), 50, 100);
-  x.fillStyle = '#fff'; x.font = '44px "Noto Sans CJK SC",sans-serif'; let line = '', y = 260;
-  for (const ch of w.text) { if (x.measureText(line + ch).width > 620) { x.fillText(line, 50, y); y += 64; line = ''; } line += ch; } x.fillText(line, 50, y);
-  x.font = '26px sans-serif'; x.fillStyle = '#bbc'; x.fillText(w.official ? '★ ' + t('off.official') : w.offchain ? '☁ ' + t('off.badge') : `${t('card.author', { addr: short(w.author) })} · 💖 ${w.likes}`, 50, 820); x.fillText(`✨ ${t('cheer.btn')} ${cheersOf(w.sig)} · 🙏 ${w.blessings.length}`, 50, 860); x.fillStyle = '#f6d38a'; x.fillText(location.host + '/c/' + short(w.sig), 50, 905);
-  const url = location.origin + '/c/' + encodeURIComponent(w.sig);
-  modal(`<h3>${E('detail.share')}</h3><img src="${c.toDataURL('image/png')}" style="width:100%;border-radius:12px"><p class="muted share-url" style="word-break:break-all;margin:8px 0 0"><bdi dir=ltr>${esc(url)}</bdi></p><div class=row style="margin-top:10px">
-    <a class="btn primary" download="world-tree-${w.sig.slice(0, 8)}.png" href="${c.toDataURL('image/png')}">${E('share.download')}</a><button id=cp>🔗 ${E('share.copy')}</button>${navigator.share ? `<button id=nsh>📤 ${E('detail.share')}</button>` : ''}<button data-close>${E('common.close')}</button></div>`, w.cat);
-  $('#nsh')?.addEventListener('click', () => navigator.share({ title: t('brand'), text: w.text, url }).catch(() => {}));
-  $('#cp').onclick = () => navigator.clipboard?.writeText(url).then(() => toast(E('share.copied'), 'ok'), () => toast(esc(url)));
-}
+const loadImg = src => new Promise(ok => { if (!src) return ok(null); const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; });
+const cardTitle = w => isGQ(w) ? `${t('qv.gqName', { n: t(GQ_NAMES[gqSet(w)]) })} · ${catName(w.cat)}` : `${t('kind.' + (w.kind || 'wish'))} · ${catName(w.cat)}`;
+function wrapText(x, text, maxW, maxLines) { const out = []; let line = ''; for (const ch of text) { if (ch === '\n' || x.measureText(line + ch).width > maxW) { out.push(line); line = ch === '\n' ? '' : ch; if (out.length >= maxLines) { out[maxLines - 1] = out[maxLines - 1].slice(0, -1) + '…'; return out; } } else line += ch; } if (line) out.push(line); return out; }
+async function sharePng(w) { // t248：分享图 = 卡片自身画面（光栖内页信纸 / 自定义封面 / 经典封面）+ 心愿正文 + 卡名标题 + 标识 + 点亮数 + 二维码 + 品牌角标
+  const url = location.origin + '/c/' + encodeURIComponent(w.sig), gq = isGQ(w), Wd = 720, Ht = 1120, c = document.createElement('canvas'); c.width = Wd; c.height = Ht; const x = c.getContext('2d');
+  const text = w.priv && !w.plain ? '🔒 ' + t('card.privateShort') : summText({ ...w, text: w.plain || w.text }), F = '"Noto Sans CJK SC","PingFang SC",sans-serif', SERIF = '"Noto Serif SC","Songti SC",serif';
+  const [art] = await Promise.all([loadImg(gq ? GQ('inside', gqSet(w)) : w.cimg ? IMG(w.cimg) : null), loadQr().catch(() => {})]);
+  const g = x.createLinearGradient(0, 0, 0, Ht); g.addColorStop(0, '#0a0f2a'); g.addColorStop(1, `hsl(${w.hue ?? 285},45%,22%)`); x.fillStyle = g; x.fillRect(0, 0, Wd, Ht);
+  for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(255,248,220,${(Math.random() * .7).toFixed(2)})`; x.fillRect(Math.random() * Wd, Math.random() * Ht, 2, 2); }
+  x.textBaseline = 'alphabetic'; x.fillStyle = '#f6d38a'; x.font = `bold 38px ${F}`; x.fillText(cardTitle(w), 48, 82);
+  const badge = w.official ? '★ ' + t('off.official') : w.offchain ? '☁ ' + t('off.badge') : ''; if (badge) { x.font = `bold 24px ${F}`; const bw = x.measureText(badge).width + 28; x.fillStyle = w.official ? '#b8860b' : '#4b64a8'; x.beginPath(); x.roundRect(Wd - 48 - bw, 52, bw, 40, 20); x.fill(); x.fillStyle = '#fff'; x.fillText(badge, Wd - 48 - bw + 14, 81); }
+  const CW = 440, CH = gq ? Math.round(CW * 720 / 484) : Math.round(CW * 4 / 3), CX = (Wd - CW) / 2, CY = 116;
+  x.save(); x.shadowColor = '#000a'; x.shadowBlur = 30; x.fillStyle = '#0b1024'; x.beginPath(); x.roundRect(CX, CY, CW, CH, 18); x.fill(); x.restore();
+  x.save(); x.beginPath(); x.roundRect(CX, CY, CW, CH, 18); x.clip();
+  if (art) { const k = Math.min(CW / art.width, CH / art.height), dw = art.width * k, dh = art.height * k; x.drawImage(art, CX + (CW - dw) / 2, CY + (CH - dh) / 2, dw, dh); } else { x.translate(CX, CY); WTCovers.draw(x, w.cover, CW, CH); x.translate(-CX, -CY); }
+  if (gq) { const fs = 24, lh = fs * 2.05; x.fillStyle = '#4a3566'; x.font = `600 ${fs}px ${SERIF}`; const L = wrapText(x, text, CW * .68, Math.floor(CH * .29 / lh)); L.forEach((l, i) => x.fillText(l, CX + CW * .16, CY + CH * .54 + lh * (i + .75))); }
+  else { const gg = x.createLinearGradient(0, CY + CH * .42, 0, CY + CH); gg.addColorStop(0, '#0000'); gg.addColorStop(.3, '#000b'); gg.addColorStop(1, '#000e'); x.fillStyle = gg; x.fillRect(CX, CY + CH * .42, CW, CH * .58);
+    x.fillStyle = '#fff'; x.font = `600 30px ${F}`; const L = wrapText(x, text, CW - 48, 5); L.forEach((l, i) => x.fillText(l, CX + 24, CY + CH - 30 - (L.length - 1 - i) * 44)); }
+  x.restore(); x.strokeStyle = '#d6b060'; x.lineWidth = 4; x.beginPath(); x.roundRect(CX, CY, CW, CH, 18); x.stroke();
+  const by = CY + CH + 56; x.fillStyle = '#ffe7a8'; x.font = `bold 30px ${F}`; x.fillText(`✨ ${t('cheer.btn')} ${cheersOf(w.sig)}${w.official || w.offchain ? '' : `  💖 ${w.likes}`}  🙏 ${w.blessings.length}`, 48, by);
+  x.fillStyle = '#c9cbe0'; x.font = `22px ${F}`; x.fillText(t('qv.scan'), 48, by + 44);
+  const Q = 150, QX = Wd - 48 - Q, QY = Ht - 48 - Q; try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(), cell = (Q - 16) / n; x.fillStyle = '#fff'; x.beginPath(); x.roundRect(QX, QY, Q, Q, 10); x.fill(); x.fillStyle = '#111';
+    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) x.fillRect(QX + 8 + k * cell, QY + 8 + r * cell, Math.ceil(cell), Math.ceil(cell)); } catch {}
+  x.fillStyle = '#f6d38a'; x.font = `bold 34px ${F}`; x.fillText(t('brand.short'), 48, Ht - 84); x.fillStyle = '#aab'; x.font = `22px ${F}`; x.fillText('guangqi.world', 48, Ht - 50);
+  let png = ''; try { png = c.toDataURL('image/png'); } catch {}
+  modal(`<h3>${E('detail.share')}</h3><img id=shimg src="${png}" alt="" style="width:100%;border-radius:12px"><p class="muted share-url" style="word-break:break-all;margin:8px 0 0"><bdi dir=ltr>${esc(url)}</bdi></p><div class=row style="margin-top:10px">
+    <a class="btn primary" download="guangqi-${w.sig.slice(0, 10)}.png" href="${png}">${E('share.download')}</a><button id=cp>🔗 ${E('share.copy')}</button>${navigator.share ? `<button id=nsh>📤 ${E('detail.share')}</button>` : ''}<button data-close>${E('common.close')}</button></div>`, w.cat);
+  $('#nsh')?.addEventListener('click', () => navigator.share({ title: cardTitle(w), text: w.text, url }).catch(() => {}));
+  $('#cp').onclick = () => navigator.clipboard?.writeText(url).then(() => toast(E('share.copied'), 'ok'), () => toast(esc(url))); }
 // 企业展示卡：内页 = 模板底图 / 上传背景 + 主题色；官网为外链（nofollow + noopener，显示域名并提示外部链接）
 const bizDomain = u => { try { const x = new URL(String(u || '').trim()); return /^https?:$/.test(x.protocol) && x.hostname.includes('.') ? x.hostname.toLowerCase().replace(/^www\./, '') : ''; } catch { return ''; } };
 function bizBody(m, sample) { const d = m.url ? bizDomain(m.url) : m.domain || '', safe = m.url && /^https?:\/\//i.test(m.url) && !sample;
   return `<div class="biz-in biz-${['ivory', 'navy', 'jade'].includes(m.theme) ? m.theme : 'ivory'} biz-l-${m.layout === 'left' ? 'left' : 'center'}"><span class="tag ktype">🏢 ${E('kind.biz')}</span><h3 class=biz-name dir=auto>${esc(m.name || '…')}</h3><p class=biz-intro dir=auto>${esc(m.intro || '')}</p>
     ${d ? `<div class=biz-link>${safe ? `<a href="${esc(m.url)}" target=_blank rel="noopener noreferrer nofollow ugc" data-ext>🔗 ${esc(d)} ↗</a>` : `<span>🔗 ${esc(d)}</span>`}<p class="muted hint">⚠️ ${E('biz.extWarn', { d })}</p></div>` : ''}</div>`; }
+// t248：卡片快速查看（翻页器）：封面 / 内页 / 背面 各为一页，整页 contain 完整显示；下方页签 + 左右滑动翻页（翻页动画，尊重减少动态效果）；操作按钮在卡片下方
+const qvMeta = w => `<div class=qv-meta>${w.official ? '★ ' + esc(t('off.official')) + ' · ' : w.offchain ? '☁ ' + esc(t('off.badge')) + ' · ' : esc(t('card.author', { addr: short(w.author) })) + ' · 💖 ' + w.likes + ' · '}✨ <span data-cheern="${esc(w.sig)}">${cheersOf(w.sig)}</span> · 🙏 ${w.blessings.length}</div>`;
 function bizInner(w) { const bg = w.nimg ? IMG(w.nimg) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : ''), m = S.biz[w.sig] || { name: w.bname, domain: w.domain };
   if (!(w.sig in S.biz) && !w.sample) fetch('/api/biz-meta/' + encodeURIComponent(w.sig)).then(r => r.json()).then(j => { S.biz[w.sig] = { name: w.bname, domain: w.domain, ...j }; const el = $('#bizIn-' + CSS.escape(w.sig)); if (el) el.innerHTML = bizBody(S.biz[w.sig]); }).catch(() => {});
-  return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody><div id="bizIn-${esc(w.sig)}">${bizBody(m)}</div>
-  <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
-  <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div></div>`; }
+  return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody><div id="bizIn-${esc(w.sig)}">${bizBody(m)}</div>${qvMeta(w)}</div>`; }
 function foldInner(w, text) { if (isGQ(w)) return gqInner(w, text); if (w.kind === 'biz') return bizInner(w); const bg = w.nimg && (!w.priv || w.nimgUrl) ? (w.priv ? w.nimgUrl : IMG(w.nimg)) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : '');
-  return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody>${(w.kind || 'wish') === 'wish' ? `<span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>` : summHtml({ ...w, text })}
-  <div class=muted>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div>
-  <div class=row style="margin-top:12px">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div></div>`; }
+  return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody>${(w.kind || 'wish') === 'wish' ? `${offBadge(w)} <span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>` : summHtml({ ...w, text })}${qvMeta(w)}</div>`; }
 function gqInner(w, text) { // 光栖内页：用户心愿写在信纸横线区
-  return `<div class=gq-inside style="background-image:url('${GQ('inside', gqSet(w))}')"><p class=gq-lines dir=auto>${esc(text)}</p><div class=gq-meta>${esc(t('card.author', { addr: short(w.author) }))} · 💖 ${w.likes} · 🙏 ${w.blessings.length}</div></div>
-  <div class=row style="margin-top:10px;justify-content:center">${likeBtn(w)}<a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`; }
-function openFolded(w) { // 折页卡：封面 → 3D 翻开动画 → 内页；私密卡仅作者可解锁
-  const locked = w.priv && !w.plain, mine = isMine(w);
-  modal(`<div class="fold${locked ? ' locked' : ''}" id=fold><div class=fold-page id=foldPage>${locked ? `<div class=fold-lockmsg>🔒 <b>${esc(t('card.privateTitle'))}</b><p class=muted>${esc(t(mine ? 'card.privateMine' : 'card.privateOther'))}</p>
-    ${mine ? `<button class=primary id=unlock>🔓 ${esc(t('card.unlock'))}</button>` : ''}<div class=row style="margin-top:10px"><button data-close>${esc(t('common.close'))}</button></div></div>` : foldInner(w, w.plain || w.text)}</div>
-    <div class=fold-cover id=foldCover><div class=fold-front><img alt="" src="${isGQ(w) ? GQ('front', gqSet(w)) : w.cimg ? IMG(w.cimg) : WTCovers.url(w.cover, 300, 400)}" onerror="this.onerror=null;this.src='${WTCovers.url(w.cover, 300, 400)}'">${w.priv ? '<span class=fold-lock>🔒</span>' : ''}<span class=fold-hint>${esc(t(locked && !mine ? 'card.privateShort' : 'card.tapOpen'))}</span></div><div class=fold-back>${isGQ(w) ? `<img class=fold-back-img alt="" src="${GQ('back', gqSet(w))}">` : w.bimg ? `<img class=fold-back-img alt="" src="${IMG(w.bimg)}">` : ''}</div></div></div>`, w.cat);
-  const f = $('#fold'), open = () => f.classList.add('open');
-  $('#foldCover').addEventListener('click', () => { if (locked && !mine) { f.classList.add('shake'); setTimeout(() => f.classList.remove('shake'), 500); return; } open(); });
-  if (!locked) setTimeout(open, 450); else if (mine) setTimeout(open, 450);
-  $('#unlock')?.addEventListener('click', async () => { try { const k = await WTPriv.key(); w.plain = await WTPriv.dec(w.cipher, k); if (w.nimg && !w.nimgUrl) w.nimgUrl = await decImg(w.nimg, k).catch(() => null); $('#foldPage').innerHTML = foldInner(w, w.plain); f.classList.remove('locked'); }
-    catch (e) { toast(esc(t('card.unlockFail')), 'err'); } }); }
+  return `<div class=gq-inside style="background-image:url('${GQ('inside', gqSet(w))}')">${offBadge(w) ? `<div class=qv-badge>${offBadge(w)}</div>` : ''}<p class=gq-lines dir=auto>${esc(text)}</p>${qvMeta(w)}</div>`; }
+function qvPages(w) { const cs = cStyle(w), gq = isGQ(w), locked = w.priv && !w.plain, mine = isMine(w), text = w.plain || w.text, fb = WTCovers.url(w.cover, 300, 400);
+  const img = src => `<img class=qv-art draggable=false alt="" src="${src}" onerror="this.onerror=null;this.src='${fb}'">`, cover = gq ? GQ('front', gqSet(w)) : w.cimg ? IMG(w.cimg) : fb;
+  if (cs === 'overlay') return [{ k: 'inner', h: `${img(cover)}<div class=cf-over>${w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>` : summHtml({ ...w, text })}${qvMeta(w)}</div>` }];
+  const inner = locked ? `<div class=fold-lockmsg>🔒 <b>${esc(t('card.privateTitle'))}</b><p class=muted>${esc(t(mine ? 'card.privateMine' : 'card.privateOther'))}</p>${mine ? `<button class=primary id=unlock>🔓 ${esc(t('card.unlock'))}</button>` : ''}</div>`
+    : cs === 'split' && !w.folded ? `<div class=fold-inbody>${w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>` : summHtml({ ...w, text })}${qvMeta(w)}</div>` : foldInner(w, text);
+  const P = [{ k: 'cover', h: img(cover) + (w.priv ? '<span class=fold-lock>🔒</span>' : '') }, { k: 'inner', h: inner, paper: !gq }];
+  if (gq) P.push({ k: 'back', h: img(GQ('back', gqSet(w))) }); else if (w.folded) P.push({ k: 'back', h: w.bimg ? img(IMG(w.bimg)) : '<div class=qv-defback></div>' });
+  return P; }
+function openPager(w, start = 'inner') { const P = qvPages(w), gq = isGQ(w); let cur = Math.max(0, P.findIndex(p => p.k === start));
+  const acts = `<div class="row qv-acts">${likeBtn(w)}<button type=button id=qvShare>📤 ${esc(t('detail.share'))}</button><a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`;
+  modal(`<div class="qv${gq ? ' qv-gq' : ''}" id=qv><div class=qv-stage id=qvStage aria-live=polite>${P.map((p, i) => `<div class="qv-page qv-${p.k}${p.paper ? ' qv-paper' : ''}${i === cur ? ' on' : ''}" data-i=${i} role=tabpanel aria-label="${esc(t('qv.' + p.k))}">${p.h}</div>`).join('')}</div>
+    ${P.length > 1 ? `<div class=qv-tabs role=tablist aria-label="${esc(t('qv.pages'))}">${P.map((p, i) => `<button type=button role=tab data-qv=${i} aria-selected=${i === cur}>${esc(t('qv.' + p.k))}</button>`).join('')}</div><p class="muted hint qv-hint">↔ ${esc(t('qv.swipe'))}</p>` : ''}</div>${acts}`, w.cat);
+  const st = $('#qvStage'), pages = [...st.children], tabs = [...document.querySelectorAll('[data-qv]')];
+  const go = (i, dir) => { if (i < 0 || i >= P.length || i === cur) return; dir = dir || (i > cur ? 1 : -1); const a = pages[cur], b = pages[i];
+    b.style.transition = 'none'; b.style.setProperty('--r', (dir > 0 ? 90 : -90) + 'deg'); b.offsetWidth; b.style.transition = ''; a.style.setProperty('--r', (dir > 0 ? -90 : 90) + 'deg'); a.classList.remove('on'); b.classList.add('on'); cur = i;
+    tabs.forEach((x, k) => x.setAttribute('aria-selected', k === i)); };
+  tabs.forEach(x => x.addEventListener('click', () => go(+x.dataset.qv)));
+  let x0 = null, y0 = 0; st.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; }); st.addEventListener('pointerup', e => { if (x0 == null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { const rtl = document.documentElement.dir === 'rtl'; go(cur + ((dx < 0) !== rtl ? 1 : -1)); } else if (Math.abs(dx) < 8 && P[cur].k === 'cover') go(cur + 1); });
+  document.querySelector('.qv-tabs')?.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { go(cur + 1); tabs[cur]?.focus(); } if (e.key === 'ArrowLeft') { go(cur - 1); tabs[cur]?.focus(); } });
+  $('#qvShare').onclick = () => sharePng(w);
+  if (w.kind === 'biz' && !(w.sig in S.biz) && !w.sample) bizInner(w);
+  $('#unlock')?.addEventListener('click', async () => { try { const k = await WTPriv.key(); w.plain = await WTPriv.dec(w.cipher, k); if (w.nimg && !w.nimgUrl) w.nimgUrl = await decImg(w.nimg, k).catch(() => null); closeModal(); openPager(w); }
+    catch (e) { toast(esc(t('card.unlockFail')), 'err'); } });
+  window.__qv = { go: k => go(P.findIndex(p => p.k === k)), pages: P.map(p => p.k) }; }
+const openFolded = w => openPager(w), openFlip = w => openPager(w);
 // 光栖起源：原文（中文，所有语言均不翻译），极简 Markdown 渲染：**粗体**、### 小节、- 列表、行尾两空格换行
 function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); let html = '', list = false, para = [];
   const flush = () => { if (para.length) { html += `<p>${para.map(inl).join('<br>')}</p>`; para = []; } };

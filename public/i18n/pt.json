@@ -1272,5 +1272,13 @@
   "rl.appealT": "Recurso",
   "rl.appeal": "Se achar que seu conteúdo foi marcado por engano, fale conosco pela página de Ajuda com o link do cartão.",
   "emp.inbox": "Ainda não há mensagens. Avisaremos aqui quando alguém iluminar seu desejo, abençoá-lo ou enviar um presente.",
-  "emp.browse": "Ver desejos"
+  "emp.browse": "Ver desejos",
+  "qv.cover": "Capa",
+  "qv.inner": "Interior",
+  "qv.back": "Verso",
+  "qv.pages": "Trocar página do cartão",
+  "qv.swipe": "Deslize para os lados para virar",
+  "qv.gqName": "Cartão {n}",
+  "qv.scan": "Escaneie para ver este cartão",
+  "brand.short": "Guangqi"
 }

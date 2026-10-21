@@ -1272,5 +1272,13 @@
   "rl.appealT": "申诉",
   "rl.appeal": "如果你认为自己的内容被误判，可以通过帮助页中的联系方式提出申诉，并附上卡片链接。",
   "emp.inbox": "暂时还没有消息。点亮别人的心愿、收到祝福或礼品时，这里会通知你。",
-  "emp.browse": "逛逛星愿星语"
+  "emp.browse": "逛逛星愿星语",
+  "qv.cover": "封面",
+  "qv.inner": "内页",
+  "qv.back": "背面",
+  "qv.pages": "切换卡片页面",
+  "qv.swipe": "左右滑动翻页",
+  "qv.gqName": "{n}卡",
+  "qv.scan": "扫码查看这张卡片",
+  "brand.short": "光栖"
 }

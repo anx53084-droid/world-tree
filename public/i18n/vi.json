@@ -1272,5 +1272,13 @@
   "rl.appealT": "Khiếu nại",
   "rl.appeal": "Nếu bạn cho rằng nội dung bị đánh dấu nhầm, hãy liên hệ qua trang Trợ giúp kèm liên kết thẻ.",
   "emp.inbox": "Chưa có tin nhắn. Bạn sẽ được báo ở đây khi có người thắp sáng, chúc phúc hoặc gửi quà cho điều ước của bạn.",
-  "emp.browse": "Xem các điều ước"
+  "emp.browse": "Xem các điều ước",
+  "qv.cover": "Bìa",
+  "qv.inner": "Trang trong",
+  "qv.back": "Mặt sau",
+  "qv.pages": "Chuyển trang thẻ",
+  "qv.swipe": "Vuốt trái hoặc phải để lật",
+  "qv.gqName": "Thẻ {n}",
+  "qv.scan": "Quét để xem thẻ này",
+  "brand.short": "Guangqi"
 }

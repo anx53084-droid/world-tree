@@ -1272,5 +1272,13 @@
   "rl.appealT": "İtiraz",
   "rl.appeal": "İçeriğinin yanlışlıkla işaretlendiğini düşünüyorsan Yardım sayfasından kart bağlantısıyla bize ulaş.",
   "emp.inbox": "Henüz mesaj yok. Biri dileğini ışıklandırdığında, kutsadığında veya hediye gönderdiğinde burada bildirilir.",
-  "emp.browse": "Dileklere göz at"
+  "emp.browse": "Dileklere göz at",
+  "qv.cover": "Kapak",
+  "qv.inner": "İç sayfa",
+  "qv.back": "Arka",
+  "qv.pages": "Kart sayfasını değiştir",
+  "qv.swipe": "Çevirmek için sola veya sağa kaydır",
+  "qv.gqName": "{n} kartı",
+  "qv.scan": "Bu kartı görmek için tara",
+  "brand.short": "Guangqi"
 }
