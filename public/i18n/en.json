@@ -1277,8 +1277,10 @@
   "qv.inner": "Inside",
   "qv.back": "Back",
   "qv.pages": "Switch card page",
-  "qv.swipe": "Swipe left or right to flip",
   "qv.gqName": "{n} card",
   "qv.scan": "Scan to view this card",
-  "brand.short": "Guangqi"
+  "brand.short": "Guangqi",
+  "qv.swipe2": "Swipe to turn pages; past the last page goes to the next card",
+  "qv.prev": "Previous card",
+  "qv.next": "Next card"
 }

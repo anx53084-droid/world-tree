@@ -1277,8 +1277,10 @@
   "qv.inner": "Innenseite",
   "qv.back": "Rückseite",
   "qv.pages": "Kartenseite wechseln",
-  "qv.swipe": "Nach links oder rechts wischen zum Umblättern",
   "qv.gqName": "{n}-Karte",
   "qv.scan": "Scannen, um diese Karte zu sehen",
-  "brand.short": "Guangqi"
+  "brand.short": "Guangqi",
+  "qv.swipe2": "Wischen zum Umblättern; nach der letzten Seite folgt die nächste Karte",
+  "qv.prev": "Vorherige Karte",
+  "qv.next": "Nächste Karte"
 }

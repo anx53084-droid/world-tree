@@ -1,7 +1,7 @@
 // t248：卡片快速查看（封面 / 内页 / 背面 完整显示 + 页签 + 滑动翻页）、点亮动效、分享图（卡面 + 正文 + 二维码 + 品牌角标）。QV_LIVE=1 时对线上只读验证（只点亮一次官方示范，不发交易）。
 const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process'), assert = require('assert');
 let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); };
-const D = __dirname, SHOTS = process.env.SHOTS, LIVE = process.env.QV_LIVE, PFX = SHOTS ? SHOTS + '/t248-' + (LIVE ? 'live-' : '') : '';
+const D = __dirname, SHOTS = process.env.SHOTS, LIVE = process.env.QV_LIVE, PFX = SHOTS ? SHOTS + '/t249-' + (LIVE ? 'live-' : '') : '';
 (async () => { let srv, Bs, browser, GQID, CLID;
   if (LIVE) { Bs = 'https://guangqi.world'; const s = (await (await fetch('https://world-tree-ijv1.onrender.com/api/offchain')).json()).samples; GQID = s.find(x => x.cat === '光栖' && x.cover === 0).id; CLID = s.find(x => x.cat === '经典').id; }
   else { const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-qv-')), port = 18995; Bs = 'http://127.0.0.1:' + port;
@@ -13,7 +13,8 @@ const D = __dirname, SHOTS = process.env.SHOTS, LIVE = process.env.QV_LIVE, PFX 
     CLID = await add({ text: '希望明年春天能和家人一起去看一次樱花，慢慢走，好好拍几张合照。', cat: '经典' }); GQID = await add({ text: '愿爸爸妈妈身体健康，每天都能睡个好觉，笑得比去年更多。', cat: '光栖', cover: 0 });
     const om = await (await fetch(Bs + '/api/og-meta/' + GQID)).json(); ok(om.cover === 0 && om.cat === '光栖' && om.official, 'og-meta：光栖套号'); }
   try { const { chromium, devices } = require('playwright'); browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const errs = [];
-    const ctx = await browser.newContext({ ...devices['Pixel 7'], viewport: { width: 412, height: 915 }, locale: 'zh-CN' }); const p = await ctx.newPage(); p.on('pageerror', e => errs.push(e.message));
+    const ctx = await browser.newContext({ ...devices['Pixel 7'], viewport: { width: 390, height: 844 }, locale: 'zh-CN' }); const p = await ctx.newPage(); p.on('pageerror', e => errs.push(e.message));
+    if (!LIVE) { await p.route(/\/api\/img\/c{32}/, r => r.fulfill({ contentType: 'image/png', body: fs.readFileSync('/tmp/cs-cover.png') })); await p.route(/\/api\/img\/d{32}/, r => r.fulfill({ contentType: 'image/png', body: fs.readFileSync('/tmp/qv-wide.png') })); }
     await p.goto(Bs + '/?lang=zh-CN'); await p.evaluate(() => { localStorage.wt_terms = '1'; localStorage.gq_guide_dismissed = '1'; }); await p.reload();
     await p.waitForFunction(ids => typeof S !== 'undefined' && ids.every(i => S.wishes.some(w => w.sig === i)), [GQID, CLID], { timeout: 120000 });
     const geo = () => p.evaluate(() => { const st = document.querySelector('#qvStage').getBoundingClientRect(), on = document.querySelector('.qv-page.on'), r = on.getBoundingClientRect(), vis = [...document.querySelectorAll('.qv-page')].filter(x => getComputedStyle(x).opacity > .05).length;
@@ -33,6 +34,14 @@ const D = __dirname, SHOTS = process.env.SHOTS, LIVE = process.env.QV_LIVE, PFX 
     const sw = async dx => { const b = await p.$eval('#qvStage', e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }); await p.mouse.move(b[0], b[1]); await p.mouse.down(); await p.mouse.move(b[0] + dx, b[1], { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(1000); };
     await sw(-120); ok(/qv-inner/.test((await geo()).k), '左滑 → 内页'); await sw(-120); g = await geo(); ok(/qv-back/.test(g.k) && g.vis === 1, '左滑 → 背面'); if (PFX) await p.screenshot({ path: PFX + 'qv-gq-back.png' });
     await sw(120); ok(/qv-inner/.test((await geo()).k), '右滑 → 返回内页');
+    // t249：上一张 / 下一张
+    { const q0 = await p.evaluate(() => ({ ...window.__qv })); ok(q0.idx >= 0 && q0.n >= 2 && await p.isVisible('[data-qvn="1"]') && await p.isVisible('[data-qvn="-1"]'), `‹ › 上一张 / 下一张按钮可见（${q0.idx + 1}/${q0.n}）`);
+      ok((await p.textContent('.qv-hint')).includes('下一张'), '提示文字：翻过最后一页进入下一张');
+      await sw(-120); ok(/qv-back/.test((await geo()).k), '左滑 → 背面（最后一页）'); if (PFX) await p.screenshot({ path: PFX + 'nav-before.png' });
+      await sw(-120); const q1 = await p.evaluate(() => ({ ...window.__qv, c: window.__qv.cur() })); const exp = q0.idx + 1 < q0.n; ok(exp ? q1.sig !== q0.sig && q1.idx === q0.idx + 1 && q1.c === 'cover' : q1.sig === q0.sig, '最后一页再左滑 → 下一张卡的封面'); await p.waitForTimeout(500); if (PFX) await p.screenshot({ path: PFX + 'nav-next.png' });
+      if (exp) { await sw(120); const q2 = await p.evaluate(() => ({ ...window.__qv, c: window.__qv.cur() })); ok(q2.sig === q0.sig && q2.c === 'back', '第一页再右滑 → 上一张卡的最后一页');
+        await p.click('[data-qvn="1"]'); await p.waitForTimeout(800); ok((await p.evaluate(() => window.__qv.sig)) === q1.sig, '› 按钮 → 下一张'); await p.click('[data-qvn="-1"]'); await p.waitForTimeout(800); ok((await p.evaluate(() => window.__qv.sig)) === q0.sig, '‹ 按钮 → 上一张'); }
+      await open(GQID); }
     // 点亮动效
     await p.click('.qv-acts [data-cheer]'); await p.waitForSelector('.qv-acts button.cheer.lit .spark', { timeout: 10000 }); await p.waitForTimeout(200); const fx = !!(await p.$('.qv-acts button.cheer.lit b.bump')) && !!(await p.$('.qv-acts button.cheer .ring')); if (PFX) await p.screenshot({ path: PFX + 'cheer-anim.png' });
     ok(fx && (await p.textContent('.qv-inner [data-cheern]')) === (await p.textContent('.qv-acts button.cheer b')), '点亮：光环 + 光点 + 计数跳动，内页计数同步');
@@ -48,9 +57,12 @@ const D = __dirname, SHOTS = process.env.SHOTS, LIVE = process.env.QV_LIVE, PFX 
     await p.evaluate(id => { closeModal(); sharePng(S.wishes.find(w => w.sig === id)); }, CLID); await p.waitForFunction(() => document.querySelector('#shimg')?.src.startsWith('data:image/png'), null, { timeout: 20000 }); await p.waitForTimeout(500);
     if (PFX) { await p.screenshot({ path: PFX + 'share-classic.png' }); await p.$eval('#shimg', i => i.src).then(s => fs.writeFileSync(PFX + 'share-classic-image.png', Buffer.from(s.split(',')[1], 'base64'))); } ok(true, '经典分享图生成');
     if (!LIVE) { // 其他样式：折页自定义 / 分开 / 叠加 / 企业卡（模拟数据）
-      for (const [nm, o, want] of [['fold', { folded: true, cimg: 'x'.repeat(32), cover: 2, inside: 1 }, ['cover', 'inner', 'back']], ['split', { cimg: 'x'.repeat(32) }, ['cover', 'inner']], ['overlay', { cimg: 'x'.repeat(32), ustyle: 'o' }, ['inner']], ['biz', { kind: 'biz', folded: true, cimg: 'x'.repeat(32), bname: '星叶科技', domain: 'starleaf.example.com', inside: 0 }, ['cover', 'inner', 'back']], ['classic-fold', { folded: true, cover: 3, inside: 2 }, ['cover', 'inner', 'back']]]) {
+      for (const [nm, o, want] of [['fold', { folded: true, cimg: 'x'.repeat(32), cover: 2, inside: 1 }, ['cover', 'inner', 'back']], ['split', { cimg: 'x'.repeat(32) }, ['cover', 'inner']], ['overlay', { cimg: 'x'.repeat(32), ustyle: 'o' }, ['inner']], ['biz', { kind: 'biz', folded: true, cimg: 'x'.repeat(32), bname: '星叶科技', domain: 'starleaf.example.com', inside: 0 }, ['cover', 'inner', 'back']], ['classic-fold', { folded: true, cover: 3, inside: 2 }, ['cover', 'inner', 'back']], ['wide-fold', { folded: true, cimg: 'c'.repeat(32), nimg: 'd'.repeat(32), wideImg: 1 }, ['cover', 'inner', 'back']]]) {
         await p.evaluate(([nm, o]) => { closeModal(); const w = { sig: 'QV' + nm + 'x'.repeat(80), author: 'Auth' + '1'.repeat(40), time: 1791100000, text: '测试卡片内容：' + nm, cat: '经典', hue: 45, kind: 'wish', vis: 'public', deliver: 'tree', cover: 1, likers: new Set(), blessings: [], likes: 0, sample: true, ...o }; S.biz ||= {}; S.biz[w.sig] = { name: w.bname, domain: w.domain }; openCardPopup(w); }, [nm, o]); await p.waitForTimeout(900);
         const pg = await p.evaluate(() => window.__qv.pages); ok(JSON.stringify(pg) === JSON.stringify(want), `${nm}：页面 ${pg.join('/')}`); g = await geo(); ok(g.vis === 1 && JSON.stringify(g.page) === JSON.stringify(g.st) && g.inView && g.actsBelow, `${nm}：当前页完整、无相邻页、按钮在下方`);
+        if (o.folded) { const sp = await p.evaluate(() => { const st = document.querySelector('#qvStage').getBoundingClientRect(), l = document.querySelector('.qv-page.on .sp-l')?.getBoundingClientRect(), r = document.querySelector('.qv-page.on .sp-r')?.getBoundingClientRect(); return l && r && { seam: Math.abs(l.right - r.left), inside: l.left >= st.left - 1 && r.right <= st.right + 1 && st.left >= 0 && st.right <= innerWidth, wide: !!document.querySelector('.qv-page.on .qv-spread.wide'), txt: (document.querySelector('.qv-page.on .sp-r')?.innerText || '').trim().length > 1, sw: st.width }; });
+          ok(sp && sp.seam < 1.5 && sp.inside && sp.txt && sp.sw > 340, `${nm}：内页为对开（左右两页无缝相接于中缝、整宽不裁切、正文在右页）` + JSON.stringify(sp)); if (o.wideImg) ok(sp.wide, `${nm}：宽幅内页图横跨两页`);
+          if (PFX) await p.screenshot({ path: PFX + `spread-${nm}.png` }); }
         if (pg.includes('cover')) { await p.evaluate(() => window.__qv.go('cover')); await p.waitForTimeout(1100); g = await geo(); ok(g.vis === 1 && (!g.art || JSON.stringify(g.art) === JSON.stringify(g.st)), `${nm}：封面完整`); } } }
     ok(!errs.length, '无页面错误 ' + errs.join(' | '));
     console.log(`\n✅ ${n} checks passed`);

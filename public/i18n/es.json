@@ -1277,8 +1277,10 @@
   "qv.inner": "Interior",
   "qv.back": "Reverso",
   "qv.pages": "Cambiar página de la tarjeta",
-  "qv.swipe": "Desliza a izquierda o derecha para pasar página",
   "qv.gqName": "Tarjeta {n}",
   "qv.scan": "Escanea para ver esta tarjeta",
-  "brand.short": "Guangqi"
+  "brand.short": "Guangqi",
+  "qv.swipe2": "Desliza para pasar página; tras la última, pasa a la siguiente tarjeta",
+  "qv.prev": "Tarjeta anterior",
+  "qv.next": "Tarjeta siguiente"
 }

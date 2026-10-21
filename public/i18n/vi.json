@@ -1277,8 +1277,10 @@
   "qv.inner": "Trang trong",
   "qv.back": "Mặt sau",
   "qv.pages": "Chuyển trang thẻ",
-  "qv.swipe": "Vuốt trái hoặc phải để lật",
   "qv.gqName": "Thẻ {n}",
   "qv.scan": "Quét để xem thẻ này",
-  "brand.short": "Guangqi"
+  "brand.short": "Guangqi",
+  "qv.swipe2": "Vuốt để lật trang; qua trang cuối sẽ sang thẻ tiếp theo",
+  "qv.prev": "Thẻ trước",
+  "qv.next": "Thẻ tiếp theo"
 }

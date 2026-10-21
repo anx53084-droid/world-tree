@@ -1277,8 +1277,10 @@
   "qv.inner": "Halaman dalam",
   "qv.back": "Belakang",
   "qv.pages": "Ganti halaman kartu",
-  "qv.swipe": "Geser kiri atau kanan untuk membalik",
   "qv.gqName": "Kartu {n}",
   "qv.scan": "Pindai untuk melihat kartu ini",
-  "brand.short": "Guangqi"
+  "brand.short": "Guangqi",
+  "qv.swipe2": "Geser untuk membalik halaman; setelah halaman terakhir lanjut ke kartu berikutnya",
+  "qv.prev": "Kartu sebelumnya",
+  "qv.next": "Kartu berikutnya"
 }

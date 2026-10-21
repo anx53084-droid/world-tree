@@ -42,11 +42,14 @@ function panel(x, r, dx, dy, W, H) { // 背面：取文字区平均底色画柔�
   const px = dx + r[0] * W, py = dy + r[1] * H, w = (r[2] - r[0]) * W, h = (r[3] - r[1]) * H; let c = [238, 228, 240];
   try { const d = x.getImageData(px | 0, py | 0, Math.max(1, w | 0), Math.max(1, h | 0)).data; let a = [0, 0, 0], n = 0; for (let i = 0; i < d.length; i += 16) { a[0] += d[i]; a[1] += d[i + 1]; a[2] += d[i + 2]; n++; } c = a.map(v => Math.min(255, v / n + 8) | 0); } catch {}
   x.save(); x.translate(px + w / 2, py + h / 2); x.scale(w * .8, h * .82); const g = x.createRadialGradient(0, 0, 0, 0, 0, 1), C = `${c[0]},${c[1]},${c[2]}`; g.addColorStop(0, `rgba(${C},.96)`); g.addColorStop(.82, `rgba(${C},.93)`); g.addColorStop(1, `rgba(${C},0)`); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, 7); x.fill(); x.restore(); }
+function plate(x, L, tot) { let mw = 0; for (const l of L.ls) { x.font = `${l.b ? 700 : 500} ${l.f}px ${FONT()}`; mw = Math.max(mw, x.measureText(l.t).width); }
+  const pw = mw + 28, ph = tot + 18; x.save(); x.shadowColor = '#1a0f2e'; x.shadowBlur = 22; x.fillStyle = 'rgba(32,20,58,.42)'; x.beginPath(); x.roundRect(-pw / 2, -ph / 2, pw, ph, Math.min(18, ph / 2)); x.fill(); x.restore(); }
 function draw(x, key, dx, dy, W, H, tree) { // 在 (dx,dy,W,H) 的卡面区域绘制本地化文字
   const back = /^back-/.test(key); x.save(); x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = /^ar/.test(lang()) ? 'rtl' : 'ltr';
-  for (const b of blocks(key, tree)) { if (b.back) panel(x, b.r, dx, dy, W, H); const L = layout(x, b, W, H), tot = L.ls.reduce((a, l) => a + l.f * L.LH, 0); x.save(); x.translate(dx + L.cx, dy + L.cy); if (L.rot) x.rotate(Math.PI / 2); let y = -tot / 2;
+  for (const b of blocks(key, tree)) { const L = layout(x, b, W, H), tot = L.ls.reduce((a, l) => a + l.f * L.LH, 0); x.save(); x.translate(dx + L.cx, dy + L.cy); if (L.rot) x.rotate(Math.PI / 2); let y = -tot / 2;
+    if (b.back) plate(x, L, tot); // t249：不再整块雾化遮罩，只在文字块后放一块小的柔边暗色衬底，卡面保持清晰
     for (const l of L.ls) { y += l.f * L.LH / 2; x.font = `${l.b ? 700 : 500} ${l.f}px ${FONT()}`;
-      if (back) { x.shadowColor = '#fff8e8'; x.shadowBlur = Math.max(2, l.f * .35); x.fillStyle = '#5b3b14'; }
+      if (back) { x.shadowColor = '#1a0f2ecc'; x.shadowBlur = Math.max(3, l.f * .45); x.fillStyle = '#fff4d6'; }
       else { x.shadowColor = '#000c'; x.shadowBlur = Math.max(2, l.f * .3); const g = x.createLinearGradient(0, y - l.f / 2, 0, y + l.f / 2); g.addColorStop(0, '#fff6d2'); g.addColorStop(.55, '#f2cf7a'); g.addColorStop(1, '#c99740'); x.fillStyle = g; }
       x.fillText(l.t, 0, y); y += l.f * L.LH / 2; }
     x.restore(); }

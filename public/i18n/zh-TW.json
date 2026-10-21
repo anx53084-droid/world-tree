@@ -1277,8 +1277,10 @@
   "qv.inner": "內頁",
   "qv.back": "背面",
   "qv.pages": "切換卡片頁面",
-  "qv.swipe": "左右滑動翻頁",
   "qv.gqName": "{n}卡",
   "qv.scan": "掃碼查看這張卡片",
-  "brand.short": "光棲"
+  "brand.short": "光棲",
+  "qv.swipe2": "左右滑動翻頁，翻過最後一頁進入下一張",
+  "qv.prev": "上一張",
+  "qv.next": "下一張"
 }

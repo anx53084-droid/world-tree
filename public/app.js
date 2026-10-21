@@ -727,10 +727,10 @@ const summText = w => { if (w.lockedView) return w.text; const k = w.kind || 'wi
 const summHtml = w => { const k = w.kind || 'wish';
   if (k === 'social' && !w.lockedView) return `<span class=tag>💬 ${E('kind.social')}</span><p class=cf-text dir=auto>${esc(w.text)}</p>${(w.tags || []).length ? `<div class=pv-tags>${w.tags.map(x => `<span class=tag>#${esc(x)}</span>`).join('')}</div>` : ''}${w.intro ? `<p dir=auto>${esc(w.intro)}</p>` : ''}${w.looking ? `<p dir=auto>🔎 ${esc(w.looking)}</p>` : ''}<p class="muted hint">🔒 ${E('cs.protected')}</p>`;
   return `<span class=tag>${KICON[k] || ''}${esc(k === 'wish' ? catName(w.cat) : t('kind.' + k))}</span> ${fulfillBadge(w)}<p class=cf-text dir=auto>${esc(summText(w))}</p>`; };
-function openCardPopup(w) { if (w.folded || isGQ(w)) return openFolded(w);
+function openCardPopup(w, start, dir) { if (w.folded || isGQ(w)) return openFolded(w, start, dir);
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w);
-  if (!locked && cStyle(w) && cStyle(w) !== 'fold') return openFlip(w, cStyle(w));
-  if (!locked && (w.kind || 'wish') === 'wish' && !w.pending) { maybeFulfillToast(w); return openPager(w); } // t248：普通心愿卡也用翻页器（封面 + 内页） // 单卡自定义封面：双面相同 / 封面 ↔ 内容翻面
+  if (!locked && cStyle(w) && cStyle(w) !== 'fold') return openPager(w, start, dir);
+  if (!locked && (w.kind || 'wish') === 'wish' && !w.pending) { maybeFulfillToast(w); return openPager(w, start, dir); } // t248：普通心愿卡也用翻页器（封面 + 内页） // 单卡自定义封面：双面相同 / 封面 ↔ 内容翻面
   maybeFulfillToast(w);
   const L = lockPaint(w);
   let unlockHtml = '';
@@ -1285,32 +1285,44 @@ function foldInner(w, text) { if (isGQ(w)) return gqInner(w, text); if (w.kind =
   return `${bg ? `<div class=fold-inbg style="background-image:url('${bg}')"></div>` : ''}<div class=fold-inbody>${(w.kind || 'wish') === 'wish' ? `${offBadge(w)} <span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>` : summHtml({ ...w, text })}${qvMeta(w)}</div>`; }
 function gqInner(w, text) { // 光栖内页：用户心愿写在信纸横线区
   return `<div class=gq-inside style="background-image:url('${GQ('inside', gqSet(w))}')">${offBadge(w) ? `<div class=qv-badge>${offBadge(w)}</div>` : ''}<p class=gq-lines dir=auto>${esc(text)}</p>${qvMeta(w)}</div>`; }
-function qvPages(w) { const cs = cStyle(w), gq = isGQ(w), locked = w.priv && !w.plain, mine = isMine(w), text = w.plain || w.text, fb = WTCovers.url(w.cover, 300, 400);
+function qvPages(w) { const cs = cStyle(w), gq = isGQ(w), locked = w.priv && !w.plain, mine = isMine(w), text = w.plain || w.text, fb = WTCovers.url(w.cover, 300, 400), AR = gq ? 484 / 720 : 3 / 4;
   const img = src => `<img class=qv-art draggable=false alt="" src="${src}" onerror="this.onerror=null;this.src='${fb}'">`, cover = gq ? GQ('front', gqSet(w)) : w.cimg ? IMG(w.cimg) : fb;
-  if (cs === 'overlay') return [{ k: 'inner', h: `${img(cover)}<div class=cf-over>${w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>` : summHtml({ ...w, text })}${qvMeta(w)}</div>` }];
-  const inner = locked ? `<div class=fold-lockmsg>🔒 <b>${esc(t('card.privateTitle'))}</b><p class=muted>${esc(t(mine ? 'card.privateMine' : 'card.privateOther'))}</p>${mine ? `<button class=primary id=unlock>🔓 ${esc(t('card.unlock'))}</button>` : ''}</div>`
-    : cs === 'split' && !w.folded ? `<div class=fold-inbody>${w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>` : summHtml({ ...w, text })}${qvMeta(w)}</div>` : foldInner(w, text);
-  const P = [{ k: 'cover', h: img(cover) + (w.priv ? '<span class=fold-lock>🔒</span>' : '') }, { k: 'inner', h: inner, paper: !gq }];
-  if (gq) P.push({ k: 'back', h: img(GQ('back', gqSet(w))) }); else if (w.folded) P.push({ k: 'back', h: w.bimg ? img(IMG(w.bimg)) : '<div class=qv-defback></div>' });
+  if (cs === 'overlay') return [{ k: 'inner', ar: AR, h: `${img(cover)}<div class=cf-over>${w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>` : summHtml({ ...w, text })}${qvMeta(w)}</div>` }];
+  const lockHtml = `<div class=fold-lockmsg>🔒 <b>${esc(t('card.privateTitle'))}</b><p class=muted>${esc(t(mine ? 'card.privateMine' : 'card.privateOther'))}</p>${mine ? `<button class=primary id=unlock>🔓 ${esc(t('card.unlock'))}</button>` : ''}</div>`;
+  const P = [{ k: 'cover', ar: AR, h: img(cover) + (w.priv ? '<span class=fold-lock>🔒</span>' : '') }];
+  if (w.folded) { // t249：折页卡打开 = 左右两页对开（中缝折痕 + 轻微 3D）；内页图为宽幅跨页时横跨两页，否则右页放内页图 + 心愿正文，左页为封面内侧
+    const bg = gq ? GQ('inside', gqSet(w)) : w.nimg && (!w.priv || w.nimgUrl) ? (w.priv ? w.nimgUrl : IMG(w.nimg)) : (w.inside != null && window.WTInsides ? WTInsides.url(w.inside, 300, 400) : '');
+    const body = locked ? lockHtml : gq ? `<p class=gq-lines dir=auto>${esc(text)}</p>${qvMeta(w)}` : `<div class=fold-inbody>${w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>` : (w.kind || 'wish') === 'wish' ? `${offBadge(w)} <span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)}<p class=fold-text dir=auto>${esc(text)}</p>` : summHtml({ ...w, text })}${qvMeta(w)}</div>`;
+    const left = `<div class=sp-lin style="--h:${w.hue ?? 45}"><span class=sp-orn>✦</span><span class=sp-name>${esc(cardTitle(w))}</span><span class=sp-orn>✦</span></div>`;
+    P.push({ k: 'inner', ar: AR * 2, spread: 1, bg, h: `<div class="qv-spread${gq ? ' gq' : ''}"${bg ? ` data-spbg="${esc(bg)}"` : ''}><div class=sp-l>${left}</div><div class=sp-r>${bg && !gq ? `<div class=sp-rbg style="background-image:url('${bg}')"></div>` : ''}${gq && bg ? `<div class=sp-rbg style="background-image:url('${bg}');opacity:1"></div>` : ''}<div class=sp-body>${body}</div></div><div class=sp-crease></div></div>` });
+  } else P.push({ k: 'inner', ar: AR, paper: !gq, h: locked ? lockHtml : cs === 'split' ? `<div class=fold-inbody>${w.kind === 'biz' ? `<div id="bizIn-${esc(w.sig)}">${bizBody(S.biz[w.sig] || { name: w.bname, domain: w.domain })}</div>` : summHtml({ ...w, text })}${qvMeta(w)}</div>` : foldInner(w, text) });
+  if (gq) P.push({ k: 'back', ar: AR, h: img(GQ('back', gqSet(w))) }); else if (w.folded) P.push({ k: 'back', ar: AR, h: w.bimg ? img(IMG(w.bimg)) : '<div class=qv-defback></div>' });
   return P; }
-function openPager(w, start = 'inner') { const P = qvPages(w), gq = isGQ(w); let cur = Math.max(0, P.findIndex(p => p.k === start));
+const qvList = () => { const L = treeWishes().filter(x => !x.pending); return L.length ? L : S.wishes; };
+function openPager(w, start = 'inner', dir = 0) { const P = qvPages(w), gq = isGQ(w), L = qvList(), li = L.findIndex(x => x.sig === w.sig); let cur = Math.max(0, P.findIndex(p => p.k === start)); if (start === 'last') cur = P.length - 1;
+  const nb = d => li < 0 ? null : L[li + d] || null, prevW = nb(-1), nextW = nb(1);
   const acts = `<div class="row qv-acts">${likeBtn(w)}<button type=button id=qvShare>📤 ${esc(t('detail.share'))}</button><a class="btn primary" href="#/w/${encodeURIComponent(w.sig)}" data-close>${esc(t('card.viewDetails'))}</a><button data-close>${esc(t('common.close'))}</button></div>`;
-  modal(`<div class="qv${gq ? ' qv-gq' : ''}" id=qv><div class=qv-stage id=qvStage aria-live=polite>${P.map((p, i) => `<div class="qv-page qv-${p.k}${p.paper ? ' qv-paper' : ''}${i === cur ? ' on' : ''}" data-i=${i} role=tabpanel aria-label="${esc(t('qv.' + p.k))}">${p.h}</div>`).join('')}</div>
-    ${P.length > 1 ? `<div class=qv-tabs role=tablist aria-label="${esc(t('qv.pages'))}">${P.map((p, i) => `<button type=button role=tab data-qv=${i} aria-selected=${i === cur}>${esc(t('qv.' + p.k))}</button>`).join('')}</div><p class="muted hint qv-hint">↔ ${esc(t('qv.swipe'))}</p>` : ''}</div>${acts}`, w.cat);
+  const nav = `<div class=qv-nav><button type=button class=qv-pn data-qvn=-1 ${prevW ? '' : 'disabled'} aria-label="${esc(t('qv.prev'))}" title="${esc(t('qv.prev'))}">‹</button>${P.length > 1 ? `<div class=qv-tabs role=tablist aria-label="${esc(t('qv.pages'))}">${P.map((p, i) => `<button type=button role=tab data-qv=${i} aria-selected=${i === cur}>${esc(t('qv.' + p.k))}</button>`).join('')}</div>` : '<div class=qv-tabs></div>'}<button type=button class=qv-pn data-qvn=1 ${nextW ? '' : 'disabled'} aria-label="${esc(t('qv.next'))}" title="${esc(t('qv.next'))}">›</button></div>`;
+  modal(`<div class="qv${gq ? ' qv-gq' : ''}${dir ? ' qv-in' + (dir > 0 ? 'r' : 'l') : ''}" id=qv><div class=qv-stage id=qvStage aria-live=polite>${P.map((p, i) => `<div class="qv-page qv-${p.k}${p.paper ? ' qv-paper' : ''}${p.spread ? ' qv-sp' : ''}${i === cur ? ' on' : ''}" data-i=${i} role=tabpanel aria-label="${esc(t('qv.' + p.k))}">${p.h}</div>`).join('')}</div>
+    ${nav}<p class="muted hint qv-hint">↔ ${esc(t('qv.swipe2'))}${li >= 0 ? ` · ${li + 1} / ${L.length}` : ''}</p></div>${acts}`, w.cat);
   const st = $('#qvStage'), pages = [...st.children], tabs = [...document.querySelectorAll('[data-qv]')];
-  const go = (i, dir) => { if (i < 0 || i >= P.length || i === cur) return; dir = dir || (i > cur ? 1 : -1); const a = pages[cur], b = pages[i];
-    b.style.transition = 'none'; b.style.setProperty('--r', (dir > 0 ? 90 : -90) + 'deg'); b.offsetWidth; b.style.transition = ''; a.style.setProperty('--r', (dir > 0 ? -90 : 90) + 'deg'); a.classList.remove('on'); b.classList.add('on'); cur = i;
+  const size = () => { const p = P[cur]; st.style.aspectRatio = p.ar; st.classList.toggle('wide', !!p.spread); }; size();
+  for (const sp of st.querySelectorAll('[data-spbg]')) { const im = new Image(); im.onload = () => { if (im.naturalWidth / im.naturalHeight > 1.15) { sp.classList.add('wide'); sp.style.setProperty('--spbg', `url('${sp.dataset.spbg}')`); } }; im.src = sp.dataset.spbg; }
+  const card = d => { const n = nb(d); if (!n) { st.classList.add('qv-edge'); setTimeout(() => st.classList.remove('qv-edge'), 400); return; } openCardPopup(n, d < 0 ? 'last' : 'cover', d); };
+  const go = (i, dir) => { if (i < 0) return card(-1); if (i >= P.length) return card(1); if (i === cur) return; dir = dir || (i > cur ? 1 : -1); const a = pages[cur], b = pages[i];
+    b.style.transition = 'none'; b.style.setProperty('--r', (dir > 0 ? 90 : -90) + 'deg'); b.offsetWidth; b.style.transition = ''; a.style.setProperty('--r', (dir > 0 ? -90 : 90) + 'deg'); a.classList.remove('on'); b.classList.add('on'); cur = i; size();
     tabs.forEach((x, k) => x.setAttribute('aria-selected', k === i)); };
   tabs.forEach(x => x.addEventListener('click', () => go(+x.dataset.qv)));
+  document.querySelectorAll('[data-qvn]').forEach(b => b.addEventListener('click', () => card(+b.dataset.qvn)));
   let x0 = null, y0 = 0; st.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; }); st.addEventListener('pointerup', e => { if (x0 == null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { const rtl = document.documentElement.dir === 'rtl'; go(cur + ((dx < 0) !== rtl ? 1 : -1)); } else if (Math.abs(dx) < 8 && P[cur].k === 'cover') go(cur + 1); });
-  document.querySelector('.qv-tabs')?.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { go(cur + 1); tabs[cur]?.focus(); } if (e.key === 'ArrowLeft') { go(cur - 1); tabs[cur]?.focus(); } });
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { const rtl = document.documentElement.dir === 'rtl'; go(cur + ((dx < 0) !== rtl ? 1 : -1)); } else if (Math.abs(dx) < 8 && Math.abs(dy) < 8 && P[cur].k === 'cover') go(cur + 1); });
+  document.querySelector('.qv-nav')?.addEventListener('keydown', e => { if (e.key === 'ArrowRight') go(cur + 1); if (e.key === 'ArrowLeft') go(cur - 1); });
   $('#qvShare').onclick = () => sharePng(w);
   if (w.kind === 'biz' && !(w.sig in S.biz) && !w.sample) bizInner(w);
-  $('#unlock')?.addEventListener('click', async () => { try { const k = await WTPriv.key(); w.plain = await WTPriv.dec(w.cipher, k); if (w.nimg && !w.nimgUrl) w.nimgUrl = await decImg(w.nimg, k).catch(() => null); closeModal(); openPager(w); }
+  $('#unlock')?.addEventListener('click', async () => { try { const k = await WTPriv.key(); w.plain = await WTPriv.dec(w.cipher, k); if (w.nimg && !w.nimgUrl) w.nimgUrl = await decImg(w.nimg, k).catch(() => null); openPager(w); }
     catch (e) { toast(esc(t('card.unlockFail')), 'err'); } });
-  window.__qv = { go: k => go(P.findIndex(p => p.k === k)), pages: P.map(p => p.k) }; }
-const openFolded = w => openPager(w), openFlip = w => openPager(w);
+  window.__qv = { go: k => go(P.findIndex(p => p.k === k)), pages: P.map(p => p.k), sig: w.sig, idx: li, n: L.length, cur: () => P[cur].k }; }
+const openFolded = (w, s, d) => openPager(w, s, d), openFlip = w => openPager(w);
 // 光栖起源：原文（中文，所有语言均不翻译），极简 Markdown 渲染：**粗体**、### 小节、- 列表、行尾两空格换行
 function mdRender(md) { const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); let html = '', list = false, para = [];
   const flush = () => { if (para.length) { html += `<p>${para.map(inl).join('<br>')}</p>`; para = []; } };

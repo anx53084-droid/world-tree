@@ -1277,8 +1277,10 @@
   "qv.inner": "内页",
   "qv.back": "背面",
   "qv.pages": "切换卡片页面",
-  "qv.swipe": "左右滑动翻页",
   "qv.gqName": "{n}卡",
   "qv.scan": "扫码查看这张卡片",
-  "brand.short": "光栖"
+  "brand.short": "光栖",
+  "qv.swipe2": "左右滑动翻页，翻过最后一页进入下一张",
+  "qv.prev": "上一张",
+  "qv.next": "下一张"
 }

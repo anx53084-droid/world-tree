@@ -625,3 +625,35 @@ button.cheer b.bump { display: inline-block; animation: chBump .5s ease-out }
 .qv-page .tag.t-official { background: #b8860b !important; color: #fff !important; border-color: #e9c46a; opacity: 1; font-weight: 700 }
 .qv-page .tag.t-offchain { background: #4b64a8 !important; color: #fff !important; border-color: #8aa2e0; opacity: 1; font-weight: 700 }
 .qv-paper .tag { opacity: 1; color: #5a3a12; border-color: #b8925a; background: #fff6 }
+/* t249：快速查看 —— 上一张 / 下一张；折页卡对开（左右两页 + 中缝折痕 + 轻微 3D） */
+#modal-box:has(#qv) { width: min(98vw, 640px); padding: 14px 10px }
+.qv { width: 100% }
+.qv-stage { width: min(330px, 84vw); margin: 0 auto; transition: width .3s }
+.qv-stage.wide { width: 100% }
+.qv-nav { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px }
+.qv-nav .qv-tabs { margin: 0 }
+.qv-pn { width: 40px; height: 40px; border-radius: 50%; padding: 0; font-size: 26px; line-height: 1; flex: none }
+.qv-pn[disabled] { opacity: .3 }
+.qv-inr .qv-stage { animation: qvInR .35s ease-out } .qv-inl .qv-stage { animation: qvInL .35s ease-out }
+@keyframes qvInR { from { transform: translateX(40px); opacity: .2 } } @keyframes qvInL { from { transform: translateX(-40px); opacity: .2 } }
+.qv-stage.qv-edge { animation: fshake .4s }
+.qv-page.qv-sp { background: transparent; box-shadow: none; overflow: visible }
+.qv-spread { position: absolute; inset: 0; display: flex; perspective: 1600px }
+.qv-spread > .sp-l, .qv-spread > .sp-r { position: relative; width: 50%; height: 100%; overflow: hidden; box-shadow: 0 8px 22px #0009 }
+.qv-spread > .sp-l { transform-origin: right center; transform: rotateY(9deg); border-radius: 10px 0 0 10px }
+.qv-spread > .sp-r { transform-origin: left center; transform: rotateY(-9deg); border-radius: 0 10px 10px 0; background: linear-gradient(160deg, #fbf3df, #efdcb4); color: #3a2410 }
+.sp-lin { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 14px;
+  background: radial-gradient(120% 90% at 30% 20%, hsl(var(--h) 55% 92%), hsl(var(--h) 40% 80%) 70%, hsl(var(--h) 35% 70%)); color: hsl(var(--h) 45% 28%) }
+.qv-spread.gq .sp-lin { background: radial-gradient(120% 90% at 30% 20%, #f4efff, #ddd2f2 70%, #c9bbe6); color: #4a3566 }
+.sp-lin::before { content: ''; position: absolute; inset: 8px; border: 1px solid currentColor; opacity: .35; border-radius: 6px 0 0 6px; border-right: 0 }
+.sp-orn { font-size: 18px; opacity: .7 } .sp-name { font: 700 14px/1.4 "Noto Serif SC", "Songti SC", serif; max-width: 90% }
+.sp-rbg { position: absolute; inset: 0; background: center/cover no-repeat; opacity: .55 }
+.sp-body { position: absolute; inset: 0; overflow: auto; padding: 12px 10px; box-sizing: border-box }
+.sp-body .fold-inbody { position: static; padding: 0 } .sp-body .fold-text { font-size: 14px; line-height: 1.5 } .sp-body .tag { font-size: 11px } .sp-body .qv-meta { font-size: 11px }
+.qv-spread.gq .sp-body { overflow: hidden } .qv-spread.gq .gq-lines { position: absolute; left: 16%; right: 16%; top: 54%; bottom: 17%; font-size: clamp(10px, 2.9vw, 14px); line-height: 2.05 }
+.qv-spread.gq .qv-meta { position: absolute; left: 6%; right: 6%; bottom: 8.5%; margin: 0; text-align: center; font-size: 10px; color: #2e1f4a; text-shadow: 0 0 4px #fff }
+.qv-spread.wide > .sp-l, .qv-spread.wide > .sp-r { background: var(--spbg) no-repeat; background-size: 200% 100% } .qv-spread.wide > .sp-l { background-position: left center } .qv-spread.wide > .sp-r { background-position: right center }
+.qv-spread.wide .sp-lin, .qv-spread.wide .sp-rbg { display: none }
+.qv-spread.wide .sp-body .fold-inbody { background: #fffbefcc; border-radius: 8px; padding: 8px; box-shadow: 0 2px 10px #0003 }
+.sp-crease { position: absolute; top: 0; bottom: 0; left: calc(50% - 14px); width: 28px; pointer-events: none; background: linear-gradient(90deg, #0000, #0000002e 42%, #00000055 50%, #0000002e 58%, #0000) }
+@media (prefers-reduced-motion: reduce) { .qv-inr .qv-stage, .qv-inl .qv-stage { animation: none } }

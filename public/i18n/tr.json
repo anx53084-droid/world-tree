@@ -1277,8 +1277,10 @@
   "qv.inner": "İç sayfa",
   "qv.back": "Arka",
   "qv.pages": "Kart sayfasını değiştir",
-  "qv.swipe": "Çevirmek için sola veya sağa kaydır",
   "qv.gqName": "{n} kartı",
   "qv.scan": "Bu kartı görmek için tara",
-  "brand.short": "Guangqi"
+  "brand.short": "Guangqi",
+  "qv.swipe2": "Sayfa çevirmek için kaydır; son sayfadan sonra sonraki kart",
+  "qv.prev": "Önceki kart",
+  "qv.next": "Sonraki kart"
 }

@@ -1277,8 +1277,10 @@
   "qv.inner": "Intérieur",
   "qv.back": "Dos",
   "qv.pages": "Changer de page",
-  "qv.swipe": "Balayez à gauche ou à droite pour tourner",
   "qv.gqName": "Carte {n}",
   "qv.scan": "Scannez pour voir cette carte",
-  "brand.short": "Guangqi"
+  "brand.short": "Guangqi",
+  "qv.swipe2": "Balayez pour tourner les pages ; après la dernière, carte suivante",
+  "qv.prev": "Carte précédente",
+  "qv.next": "Carte suivante"
 }
