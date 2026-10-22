@@ -1429,5 +1429,9 @@
   "err.vcText": "Invalid wish text",
   "err.vcNotExpired": "Not expired yet",
   "err.vcPaid": "Voucher already paid",
-  "mod.needAgree": "Please agree to the review notice first"
+  "mod.needAgree": "Please agree to the review notice first",
+  "tr.label": "翻訳済み",
+  "tr.showOrig": "原文を表示",
+  "tr.showTr": "翻訳を表示",
+  "tr.auto": "カードの内容を自動翻訳"
 }

@@ -1429,5 +1429,9 @@
   "err.vcText": "心愿内容无效",
   "err.vcNotExpired": "尚未到期，不能领回",
   "err.vcPaid": "卡券已付款",
-  "mod.needAgree": "请先勾选同意审核说明"
+  "mod.needAgree": "请先勾选同意审核说明",
+  "tr.label": "已翻译",
+  "tr.showOrig": "查看原文",
+  "tr.showTr": "显示翻译",
+  "tr.auto": "自动翻译卡片内容"
 }

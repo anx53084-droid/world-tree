@@ -1429,5 +1429,9 @@
   "err.vcText": "Invalid wish text",
   "err.vcNotExpired": "Not expired yet",
   "err.vcPaid": "Voucher already paid",
-  "mod.needAgree": "Please agree to the review notice first"
+  "mod.needAgree": "Please agree to the review notice first",
+  "tr.label": "Đã dịch",
+  "tr.showOrig": "Xem bản gốc",
+  "tr.showTr": "Xem bản dịch",
+  "tr.auto": "Tự động dịch nội dung thẻ"
 }

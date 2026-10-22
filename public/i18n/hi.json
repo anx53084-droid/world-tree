@@ -1429,5 +1429,9 @@
   "err.vcText": "Invalid wish text",
   "err.vcNotExpired": "Not expired yet",
   "err.vcPaid": "Voucher already paid",
-  "mod.needAgree": "Please agree to the review notice first"
+  "mod.needAgree": "Please agree to the review notice first",
+  "tr.label": "अनुवादित",
+  "tr.showOrig": "मूल देखें",
+  "tr.showTr": "अनुवाद देखें",
+  "tr.auto": "कार्ड सामग्री का स्वतः अनुवाद"
 }

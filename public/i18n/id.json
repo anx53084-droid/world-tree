@@ -1429,5 +1429,9 @@
   "err.vcText": "Invalid wish text",
   "err.vcNotExpired": "Not expired yet",
   "err.vcPaid": "Voucher already paid",
-  "mod.needAgree": "Please agree to the review notice first"
+  "mod.needAgree": "Please agree to the review notice first",
+  "tr.label": "Diterjemahkan",
+  "tr.showOrig": "Lihat asli",
+  "tr.showTr": "Lihat terjemahan",
+  "tr.auto": "Terjemahkan isi kartu otomatis"
 }

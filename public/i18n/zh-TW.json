@@ -1429,5 +1429,9 @@
   "err.vcText": "心願內容無效",
   "err.vcNotExpired": "尚未到期，不能領回",
   "err.vcPaid": "卡券已付款",
-  "mod.needAgree": "請先勾選同意審核說明"
+  "mod.needAgree": "請先勾選同意審核說明",
+  "tr.label": "已翻譯",
+  "tr.showOrig": "查看原文",
+  "tr.showTr": "顯示翻譯",
+  "tr.auto": "自動翻譯卡片內容"
 }

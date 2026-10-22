@@ -693,3 +693,10 @@ body.fab-on.home:not(.debug) .home-grow { bottom: var(--fab-clear); right: 10px 
 .ord-th { font-size: 28px; line-height: 1; } .ord-main { flex: 1; min-width: 0; } .ord-meta { font-size: 12px; color: var(--muted); margin: 4px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ord-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e8b85a33; color: #ffe7a8; font-size: 11px; }
 .ord-act { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+/* t260：自动翻译 */
+.ut-ctl{display:inline-flex;align-items:center;gap:6px;margin:4px 0;font-size:12px;opacity:.85;flex-wrap:wrap}
+.ut-lbl{padding:1px 7px;border-radius:999px;background:rgba(246,211,138,.16);color:#f6d38a;border:1px solid rgba(246,211,138,.35)}
+.ut-lbl.off{opacity:.45}
+.ut-tg{font-size:12px;padding:2px 8px;min-height:0;border-radius:999px;background:transparent;border:1px solid currentColor;color:inherit;cursor:pointer}
+.gq-inside .ut-ctl,.sp-body .ut-ctl{color:#5a4632}.gq-inside .ut-lbl,.sp-body .ut-lbl{color:#8a5a12;background:rgba(138,90,18,.1);border-color:rgba(138,90,18,.35)}
+#langmenu .lang-autotr{border-top:1px solid rgba(255,255,255,.15);margin-top:4px;padding-top:6px;font-size:13px;white-space:nowrap}
