@@ -1,7 +1,7 @@
 // 世界树许愿树 前端（SPA，hash 路由）。链上为唯一事实来源；本文件只读链 + 发起签名。
 let W3 = window.solanaWeb3; // web3.js 仅写链时按需加载（~480KB），不阻塞首屏
 const needW3 = () => W3 ? Promise.resolve(W3) : (needW3.p ||= new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = WTW.vsrc('vendor/web3.iife.min.js'); sc.onload = () => res(W3 = window.solanaWeb3); sc.onerror = rej; document.head.append(sc); }));
-const TREE = 'pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb', MEMO = 'MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z', TAG = 'WTREE1|';
+const TREE = 'pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb', MEMO = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr', TAG = 'WTREE1|';
 const RPC_READ = '/api/rpc'; // 读层：同源中继 → devnet RPC。换索引器（Helius/自建 Geyser）时只需改 loadWishes()
 let RPC_WRITE = 'https://api.devnet.solana.com'; // 由 /api/config 的 solRpcBrowser 覆盖（NETWORK=mainnet → 主网）
 const EXPLORER = s => `https://explorer.solana.com/tx/${s}${S.cfg?.network === 'mainnet' ? '' : '?cluster=devnet'}`;

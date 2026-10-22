@@ -6,7 +6,7 @@ const web3 = require('@solana/web3.js');
 const PORT = +process.env.PORT || 8080;
 const Net = require('./network'), RPC = Net.SOL_RPC; // NETWORK=testnet|mainnet（network.js）
 const TREE = new web3.PublicKey('pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb');
-const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z');
+const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 const { moderate, RULES } = require('./moderation');
 const Fulfill = require('./fulfillment');
 const Acc = require('./account');

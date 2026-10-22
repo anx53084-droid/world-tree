@@ -9,7 +9,7 @@ const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const DATA_DIR = require('./network').DATA_DIR;
 const FUL_F = path.join(DATA_DIR, 'fulfillments.json');
 const LEDGER_F = path.join(DATA_DIR, 'fund-ledger.json');
-const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TuDybDJ9cKfTLqKE7Rbr8z');
+const MEMO = new web3.PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 const TREE = new web3.PublicKey('pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb');
 
 function loadJson(f, fallback) { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return fallback; } }
