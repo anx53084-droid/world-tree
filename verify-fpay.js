@@ -47,7 +47,7 @@ const D = __dirname, SHOTS = process.env.SHOTS, PFX = SHOTS ? SHOTS + '/t252-' :
     // 作者站内信
     const a = await browser.newContext({ ...devices['Pixel 7'], viewport: { width: 390, height: 844 }, locale: 'zh-CN' }), q = await a.newPage(); await q.goto(Bs + '/?lang=zh-CN'); await q.evaluate(t => { localStorage.wt_terms = '1'; localStorage.gq_guide_dismissed = '1'; localStorage.wt_token = t; }, A.token); await q.goto(Bs + '/?lang=zh-CN#/inbox'); await q.reload();
     await q.waitForFunction(() => /朋友帮你点亮了心愿/.test(document.querySelector('#view').innerText), null, { timeout: 30000 }); ok(/小林 为你的心愿付款上链/.test(await q.textContent('#view')), '作者站内信页面显示代付通知'); await q.waitForTimeout(1500); if (PFX) await q.screenshot({ path: PFX + 'author-inbox.png' });
-    await q.goto(Bs + '/?lang=zh-CN#/wish/make'); await q.waitForSelector('#wfp', { timeout: 30000 }); ok(/朋友代付/.test(await q.textContent('.fp-opt')), '制作页：作者可选择「朋友代付」');
+    await q.goto(Bs + '/?lang=zh-CN#/wish/make'); await q.waitForSelector('.pay-choice', { timeout: 30000 }); ok(!!await q.$('input[name=paymode][value=friend]'), '制作页：作者可选择「请朋友付款」');
     // 前端：作者覆盖（代付交易显示为心愿作者 + 署名）
     const fx = await p.evaluate(([s3, a, f]) => { S.fpDone = { [s3]: { author: a, payer: f, by: '小林' } }; const r = fpFix({ sig: s3, author: f, fp: `WTFP1|x|${a}|小林`, memo: '' }), bad = fpFix({ sig: s3, author: 'someoneElse', memo: '' }); return [r.author === a && r.fpaid && r.by === '小林', bad.author === 'someoneElse', fpBy(r).includes('由 小林 点亮上链')]; }, [S3, A.pubkey, F.pubkey]);
     ok(fx.every(Boolean), '卡片作者仍为写心愿的人，显示「由 小林 点亮上链」；付款人不符时不覆盖');

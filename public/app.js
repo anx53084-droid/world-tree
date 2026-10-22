@@ -593,8 +593,8 @@ async function loadSec() { const box = $('#secbox'); if (!box) return bindSiws()
   $('#tdis')?.addEventListener('click', async () => { try { await api('/api/2fa/disable', { code: $('#tdc').value.trim() }); toast(E('sec.totpOff'), 'ok'); loadSec(); } catch (e) { toast(esc(e.message), 'err'); } });
   $('#lgs')?.addEventListener('click', async () => { try { const r = await with2fa(code => api('/api/security/large', { usd: +$('#lgu').value, code })); if (r) { S.largeUsd = r.largeUsd; toast(E('sec.saved'), 'ok'); } } catch (e) { toast(esc(e.message), 'err'); } }); }
 const inboxPage = () => needSession(E('inbox.title')) || `<h2>🔔 ${E('inbox.title')}</h2><div class=row style="justify-content:space-between"><a href="#/notify">⚙️ ${E('ntf.title')}</a><button id=rdall>${E('inbox.readAll')}</button></div><div id=inbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
-function msgHtml(m) { const k = m.kind, T = k === 'gift' ? t('inbox.giftT') : k === 'fulfil' ? t('inbox.fulfilT') : k === 'login' ? t('inbox.loginT') : k === 'totpOn' ? t('inbox.totpOnT') : k === 'totpOff' ? t('inbox.totpOffT') : /^gate_/.test(k) || /^ul_/.test(k) || k === 'cheer' || k === 'fpay' ? t('inbox.' + k + 'T') : m.title || '';
-  const B = k === 'gift' ? t('inbox.giftB', { from: short(m.from || ''), note: m.note ? '“' + m.note + '”' : '' }) : k === 'fulfil' ? t('inbox.fulfilB', { text: m.text || '…', note: m.note ? ' · ' + m.note : '' }) : k === 'login' ? t('inbox.loginB', { ua: devName(m.ua) }) : /^gate_/.test(k) ? t('inbox.' + k + 'B', { name: m.name || m.gateId || '', date: m.expireAt ? gateDate(m.expireAt) : '', why: m.reason ? ' · ' + m.reason : '' }) : k === 'cheer' ? t('inbox.cheerB', { text: m.text || '…', n: m.n || 1 }) : k === 'fpay' ? t('inbox.fpayB', { text: m.text || '🔒', name: m.by || short(m.payer || '') }) : k === 'system' ? m.body || '' : /^ul_/.test(k) ? ulBody(m) : '';
+function msgHtml(m) { const k = m.kind, T = k === 'gift' ? t('inbox.giftT') : k === 'fulfil' ? t('inbox.fulfilT') : k === 'login' ? t('inbox.loginT') : k === 'totpOn' ? t('inbox.totpOnT') : k === 'totpOff' ? t('inbox.totpOffT') : /^gate_/.test(k) || /^ul_/.test(k) || k === 'cheer' || k === 'fpay' || k === 'vclaim' ? t('inbox.' + k + 'T') : m.title || '';
+  const B = k === 'gift' ? t('inbox.giftB', { from: short(m.from || ''), note: m.note ? '“' + m.note + '”' : '' }) : k === 'fulfil' ? t('inbox.fulfilB', { text: m.text || '…', note: m.note ? ' · ' + m.note : '' }) : k === 'login' ? t('inbox.loginB', { ua: devName(m.ua) }) : /^gate_/.test(k) ? t('inbox.' + k + 'B', { name: m.name || m.gateId || '', date: m.expireAt ? gateDate(m.expireAt) : '', why: m.reason ? ' · ' + m.reason : '' }) : k === 'cheer' ? t('inbox.cheerB', { text: m.text || '…', n: m.n || 1 }) : k === 'fpay' ? t('inbox.fpayB', { text: m.text || '🔒', name: m.by || short(m.payer || '') }) : k === 'vclaim' ? t('inbox.vclaimB', { text: m.text || '…', name: m.by || '' }) : k === 'system' ? m.body || '' : /^ul_/.test(k) ? ulBody(m) : '';
   return `<div class="card msg${m.read ? '' : ' unread'}" data-mid="${esc(m.id)}"><div class=row style="justify-content:space-between"><b dir=auto>${m.read ? '' : '<i class=dot></i>'}${esc(T)}</b><span class=muted style="font-size:12px">${k === 'system' ? `<span class=tag>${E('inbox.sysTag')}</span> ` : ''}${fmtMs(m.at)}</span></div>${B ? `<p dir=auto style="margin:.4em 0;white-space:pre-wrap">${esc(B)}</p>` : ''}${(k === 'fulfil' || k === 'gift' || k === 'cheer') && m.sig ? `<a href="#/w/${encodeURIComponent(m.sig)}">${E('inbox.view')} →</a>` : ''}${/^gate_/.test(k) ? `<a href="${k === 'gate_claimable' ? '#/wish' : '#/treehole'}">${E('inbox.view')} →</a>` : ''}${/^ul_/.test(k) ? `<div class=row style="gap:12px">${m.sig ? `<a href="#/w/${encodeURIComponent(m.sig)}">${E(k === 'ul_ok' ? 'inbox.ulOpen' : 'inbox.view')} →</a>` : ''}${m.tx && !/^MOCK/.test(m.tx) ? `<a href="${EXPLORER(encodeURIComponent(m.tx))}" target=_blank rel=noopener>${E('inbox.ulTx')} ↗</a>` : m.tx ? `<span class=muted>${E('inbox.ulTx')}: ${esc(short(m.tx))}</span>` : ''}</div>` : ''}</div>`; }
 const ulBody = m => { const v = { sec: t('ctp.' + (m.sec === 'dt' ? 'dt' : 'ct')), usd: ctUsd(m.usd || 0), fee: ctUsd(m.feeUsd || 0), rest: ctUsd(m.restUsd || 0), who: (m.name ? m.name + ' · ' : '') + short(m.from || ''), why: t('inbox.ulWhy.' + (m.reason === 'used' ? 'used' : 'verify')) };
   return t('inbox.' + m.kind + 'B', v); };
@@ -702,13 +702,14 @@ const isMine = w => S.pubkey && w.author === S.pubkey;
 // ===== t244：官方示范 / 免费心愿（未上链）/ 点亮 / 举报 / 分享 =====
 function offMerge(W) { const o = S.offc; if (!o) return; let mineFree; try { mineFree = new Set(JSON.parse(localStorage.wt_free || '[]').map(f => f.id)); } catch { mineFree = new Set(); } o.hiddenSet = new Set(o.hidden || []);
   const mk = (x, official) => ({ sig: x.id, author: '', time: Math.floor(x.at / 1000), text: x.text, cat: x.cat, hue: CATS[x.cat] ?? 40, kind: 'wish', vis: 'public', deliver: 'tree', cover: x.cat === '光栖' ? gqSet({ cover: x.cover }) : WTCovers.forCat('经典')[0], likers: new Set(), blessings: [], paid: 0, sample: true, verified: true, offchain: !official, official, offMine: !official && mineFree.has(x.id) }); // t251：「未上链」标签只给作者本人（本设备创建的免费心愿）看
-  for (const x of o.samples || []) W[x.id] = mk(x, true); for (const x of o.free || []) W[x.id] = mk(x, false); }
+  for (const x of o.samples || []) W[x.id] = mk(x, true); for (const x of o.free || []) W[x.id] = mk(x, false);
+  for (const x of o.gifted || []) { const g = mk(x, false); Object.assign(g, { gifted: true, by: x.by || '', giver: x.giver, offMine: mineFree.has(x.id) }); W[x.id] = g; } }
 async function loadOffchain() { try { const r = await fetch('/api/offchain'); if (!r.ok) return; S.offc = await r.json(); aggregate(); if (!document.querySelector('textarea:focus,input:focus') && $('#modal').hidden && !/^#\/(wish|free)/.test(location.hash)) softRefresh(); } catch {} }
 const cheersOf = sig => S.offc?.cheers?.[sig] || 0;
 const cheerBtn = w => w.pending || /^(SAMPLE|SYN|SL|SB)/.test(w.sig) ? '' : `<button data-cheer="${esc(w.sig)}" class="cheer${S.cheered?.[w.sig] ? ' lit' : ''}" aria-pressed=${!!S.cheered?.[w.sig]} title="${E('cheer.tip')}">${S.cheered?.[w.sig] ? '🌟' : '✨'} ${E('cheer.btn')} <b>${cheersOf(w.sig)}</b></button>`;
 const reportBtn = w => /^(SAMPLE|SYN|SL|SB)/.test(w.sig) ? '' : `<button data-report="${esc(w.sig)}" class="link rep">🚩 ${E('rep.btn')}</button>`;
-const offBadge = w => w.official ? `<span class="tag t-official">★ ${E('off.official')}</span>` : w.offMine ? `<span class="tag t-offchain">☁ ${E('off.badge')}</span>` : '';
-const offNote = w => w.official ? `<p class="muted off-note">★ ${E('off.officialNote')}</p>` : w.offMine ? `<p class="muted off-note">☁ ${E('off.note')}</p>` : '';
+const offBadge = w => w.official ? `<span class="tag t-official">★ ${E('off.official')}</span>` : w.gifted ? `<span class="tag t-gifted">🎁 ${E('vc.giftedBy', { name: esc(w.by || short(w.giver || '')) })}</span>` : w.offMine ? `<span class="tag t-offchain">☁ ${E('off.badge')}</span>` : '';
+const offNote = w => w.official ? `<p class="muted off-note">★ ${E('off.officialNote')}</p>` : w.gifted ? `<p class="muted off-note">🎁 ${E('vc.giftedNote', { name: esc(w.by || short(w.giver || '')) })}</p>` : w.offMine ? `<p class="muted off-note">☁ ${E('off.note')}</p>` : '';
 S.cheered = JSON.parse(localStorage.wt_cheered || '{}');
 function cheerFx(x) { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; x.querySelector('b')?.classList.add('bump'); const ring = document.createElement('span'); ring.className = 'ring'; x.append(ring);
   for (let i = 0; i < 10; i++) { const p = document.createElement('span'); p.className = 'spark'; p.style.left = (10 + Math.random() * 80) + '%'; p.style.setProperty('--dx', (Math.random() * 40 - 20).toFixed(0) + 'px'); p.style.animationDelay = (i * 60) + 'ms'; x.append(p); }
@@ -852,30 +853,83 @@ function bindGuide(isHome) {
   $('#gq-guide')?.addEventListener('click', e => { if (e.target.id === 'gq-guide') closeGuide(false); });
 }
 // ===== t252：朋友代付页面（朋友用自己的钱包签名付款；平台不发交易、不托管）=====
-function fpShowLink(r) { const url = location.origin + r.path; modal(`<h3>🤝 ${E('fp.linkT')}</h3><p>${E('fp.linkB', { time: fmtT(Math.floor(r.exp / 1000)) })}</p><p><input id=fpurl readonly dir=ltr value="${esc(url)}" style="width:100%"></p><div class=row><button class=primary id=fpcopy>📋 ${E('fp.copy')}</button><a class=btn href="${esc(r.path)}">${E('fp.preview')}</a></div><p class="muted">${E('fp.linkNote')}</p>`);
-  $('#fpcopy').onclick = () => { navigator.clipboard?.writeText(url).then(() => toast('✅ ' + E('fp.copied'), 'ok'), () => $('#fpurl').select()); }; }
-async function fpLoad(id) { const box = () => $('#fpbox'); let f; try { const r = await fetch(apiUrl('/api/fpay/' + id)); f = await r.json(); if (!r.ok) throw Object.assign(new Error(f.code), { code: f.code }); } catch (e) { if (box()) box().innerHTML = `<div class="card fp-card fp-bad"><h3>⚠️ ${E('fp.goneT')}</h3><p>${E('fp.gone')}</p><a class=btn href="#/">${E('fp.home')}</a></div>`; return; }
-  if (!box()) return; const st = f.state, warn = `<div class="notice fp-warn">🛡️ ${E('fp.warn')}</div>`;
-  const amount = `<p class=fp-amt>${E('fp.amount')} <b>${sol(f.lamports)}</b></p>`, recv = `<div class=fp-recv><span class="tag t-official">✔ ${E('fp.official')}</span><code dir=ltr>${esc(f.receive)}</code><p class=muted>${E('fp.recvNote')}</p></div>`;
-  const wish = `<blockquote class=fp-wish dir=auto>${f.priv ? '🔒 ' + E('card.privateShort') : esc(f.text)}</blockquote><p class=muted>${E('fp.author', { addr: short(f.author) })}</p>`;
+function cdLeft(exp) { const ms = Math.max(0, exp - Date.now()), h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000); return ms <= 0 ? t('fp.cdDone') : t('fp.cd', { h, m }); }
+const fpUrl = id => location.origin + '/#/fpay/' + id;
+async function fpShareImg(f) {
+  await loadQr().catch(() => {}); const W = 720, H = 1080, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0b0a24'); g.addColorStop(1, '#1a1040'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#ffe7a8'; x.font = 'bold 36px serif'; x.fillText(t('brand.short'), 48, 72);
+  x.fillStyle = '#fff'; x.font = 'bold 40px sans-serif';
+  const wrap = (s, max) => { const L = []; let line = ''; for (const ch of String(s || '')) { if (x.measureText(line + ch).width > max) { L.push(line); line = ch; } else line += ch; } if (line) L.push(line); return L; };
+  wrap(t('fp.shareTitle'), W - 96).forEach((l, i) => x.fillText(l, 48, 150 + i * 50));
+  x.fillStyle = '#e8d5a8'; x.font = '26px sans-serif'; let y = 280;
+  if (f.showText !== false && f.text) wrap(String(f.text).slice(0, 90), W - 96).slice(0, 4).forEach(l => { x.fillText(l, 48, y); y += 38; });
+  else { x.fillText(t('fp.shareHidden'), 48, y); y += 38; }
+  y += 16; x.fillStyle = '#ffe7a8'; x.font = 'bold 48px sans-serif'; x.fillText(sol(f.lamports), 48, y); y += 48;
+  x.fillStyle = '#9ab'; x.font = '22px sans-serif'; x.fillText(t('fp.expires', { time: fmtT(Math.floor(f.exp / 1000)) }), 48, y);
+  const url = fpUrl(f.id); try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(), Q = 180, cell = Q / n, QX = W - 48 - Q, QY = H - 48 - Q - 40;
+    x.fillStyle = '#fff'; x.fillRect(QX - 10, QY - 10, Q + 20, Q + 20); for (let r = 0; r < n; r++) for (let c2 = 0; c2 < n; c2++) if (q.isDark(r, c2)) { x.fillStyle = '#111'; x.fillRect(QX + c2 * cell, QY + r * cell, cell + .5, cell + .5); }
+  } catch {}
+  x.fillStyle = '#ffe7a8'; x.font = '22px sans-serif'; x.fillText('光栖 · guangqi.world', 48, H - 48);
+  return new Promise(res => c.toBlob(b => res(b), 'image/png'));
+}
+function fpInitiate(r) { location.hash = '#/fpay/' + r.id + '/manage'; }
+async function fpManage(id) {
+  const box = () => $('#fpbox'); let f;
+  try { const r = await fetch(apiUrl('/api/fpay/' + id), { headers: S.token ? { authorization: 'Bearer ' + S.token } : {} }); f = await r.json(); if (!r.ok) throw 0; } catch { if (box()) box().innerHTML = `<div class="card fp-bad"><h3>⚠️ ${E('fp.goneT')}</h3><p>${E('fp.gone')}</p></div>`; return; }
+  if (!box()) return;
+  if (f.state !== 'open' || (S.pubkey && f.author !== S.pubkey)) return fpLoad(id);
+  const url = fpUrl(id);
+  box().innerHTML = `<h2 class=gold-title>🤝 ${E('fp.initT')}</h2><div class="card fp-card">
+  <p class=fp-amt>${E('fp.amount')} <b>${sol(f.lamports)}</b></p>
+  <p class=fp-cd>⏰ <span data-cd="${f.exp}">${esc(cdLeft(f.exp))}</span></p>
+  <div class=fp-sum>${f.showText !== false && f.text ? `<blockquote class=fp-wish dir=auto>${esc(f.text)}</blockquote>` : `<p class=muted>${E('fp.hiddenNote')}</p>`}
+  <p class=muted>${E('fp.cat', { cat: esc(f.cat || '') })} · ${f.showText !== false ? E('fp.showOn') : E('fp.showOff')}</p></div>
+  <div class=row style="flex-wrap:wrap;gap:8px"><button class=primary id=fpshare>📤 ${E('fp.sendFriend')}</button>
+  <button id=fpcopy>📋 ${E('fp.copy')}</button><button id=fpimg>🖼️ ${E('fp.dlImg')}</button>
+  <button class=link id=fpcancel>${E('fp.cancel')}</button></div>
+  <ol class=fp-steps><li>${E('fp.tip1')}</li><li>${E('fp.tip2')}</li><li>${E('fp.tip3')}</li></ol>
+  <p class=muted><input id=fpurl readonly dir=ltr value="${esc(url)}" style="width:100%"></p>
+  <p class=muted>${E('fp.wait')}</p></div>`;
+  const tick = () => { const el = box()?.querySelector('[data-cd]'); if (el) el.textContent = cdLeft(+el.dataset.cd); }; tick(); clearInterval(S._fpCd); S._fpCd = setInterval(tick, 30000);
+  $('#fpcopy').onclick = () => navigator.clipboard?.writeText(url).then(() => toast('✅ ' + E('fp.copied'), 'ok'), () => $('#fpurl').select());
+  $('#fpshare').onclick = async () => { if (navigator.share) try { await navigator.share({ title: t('fp.shareTitle'), url, text: t('fp.shareTitle') + '\n' + url }); } catch {} else $('#fpcopy').click(); };
+  $('#fpimg').onclick = async () => { try { const b = await fpShareImg(f); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'guangqi-fpay.png'; a.click(); } catch (e) { toast(esc(e.message || e), 'err'); } };
+  $('#fpcancel').onclick = async () => { if (!confirm(t('fp.cancelQ'))) return; try { await api('/api/fpay/' + id + '/cancel', {}); toast('✅ ' + E('fp.cancelled'), 'ok'); location.hash = '#/orders'; } catch (e) { toast(esc(e.message), 'err'); } };
+}
+async function fpLoad(id) {
+  const box = () => $('#fpbox'); let f;
+  try { const r = await fetch(apiUrl('/api/fpay/' + id), { headers: S.token ? { authorization: 'Bearer ' + S.token } : {} }); f = await r.json(); if (!r.ok) throw Object.assign(new Error(f.code), { code: f.code }); } catch (e) { if (box()) box().innerHTML = `<div class="card fp-card fp-bad"><h3>⚠️ ${E('fp.goneT')}</h3><p>${E('fp.gone')}</p><a class=btn href="#/">${E('fp.home')}</a></div>`; return; }
+  if (!box()) return;
+  if (S.pubkey && f.author === S.pubkey && f.state === 'open') return fpManage(id);
+  const warn = `<div class="notice fp-warn">🛡️ ${E('fp.warn')}</div>`;
+  const amount = `<p class="fp-amt fp-amt-lg">${E('fp.amount')} <b>${sol(f.lamports)}</b></p>`;
+  const recv = `<div class=fp-recv><span class="tag t-official">✔ ${E('fp.official')}</span><code dir=ltr>${esc(f.receive)}</code><p class=muted>${E('fp.recvNote')}</p></div>`;
+  const body = f.hidden ? `<p class="muted fp-hidden">${E('fp.hiddenNote')}</p>` : f.priv ? `<p>🔒 ${E('card.privateShort')}</p>` : f.text ? `<blockquote class=fp-wish dir=auto>${esc(f.text)}</blockquote>` : '';
+  const wish = `${body}<p class=muted>${E('fp.author', { addr: short(f.author) })} · ${E('fp.cat', { cat: esc(f.cat || '') })}</p>`;
   const head = `<h2 class=gold-title>🤝 ${E('fp.title')}</h2>`;
-  if (st !== 'open') { box().innerHTML = head + `<div class="card fp-card fp-bad"><h3>${st === 'used' ? '✅ ' + E('fp.usedT') : '⌛ ' + E('fp.expiredT')}</h3><p>${E(st === 'used' ? 'fp.used' : 'fp.expired')}</p>${st === 'used' && f.sig ? `<p><a target=_blank href="${EXPLORER(f.sig)}">${E('tx.viewTx')} ↗</a></p>` : ''}${wish}</div>`; return; }
+  if (f.state !== 'open') {
+    box().innerHTML = head + `<div class="card fp-card fp-bad"><h3>${f.state === 'used' ? '✅ ' + E('fp.usedT') : '⌛ ' + E('fp.expiredT')}</h3><p>${E(f.state === 'used' ? 'fp.used' : 'fp.expired')}</p>${f.state === 'used' && f.sig ? `<p><a target=_blank href="${EXPLORER(f.sig)}">${E('tx.viewTx')} ↗</a></p>` : ''}${f.hidden ? `<p class=muted>${E('fp.hiddenNote')}</p>` : wish}</div>`; return;
+  }
   const can = S.mode === 'self' && S.pubkey;
-  box().innerHTML = head + `<div class="card fp-card">${wish}${amount}${recv}${warn}<p class=muted>⏰ ${E('fp.expires', { time: fmtT(Math.floor(f.exp / 1000)) })}</p>
+  box().innerHTML = head + `<div class="card fp-card">${wish}${amount}<p class=fp-cd>⏰ <span data-cd="${f.exp}">${esc(cdLeft(f.exp))}</span></p>${recv}${warn}
   <label>${E('fp.nameL')} <input id=fpname maxlength=24 dir=auto placeholder="${E('fp.namePh')}"></label><p class=muted>${E('fp.feeNote')}</p>
-  ${can ? `<button class=primary id=fpgo>🤝 ${E('fp.pay', { amt: sol(f.lamports) })}</button>` : S.mode === 'host' ? `<p class=notice>${E('fp.needOwn')}</p>` : `<p class=muted>${E('fp.needWallet')}</p>${guestCta()}`}<div id=fpres role=status></div></div>`;
-  $('#fpgo')?.addEventListener('click', () => fpPay(f)); }
+  ${can ? `<button class=primary id=fpgo>👛 ${E('fp.payBtn', { amt: sol(f.lamports) })}</button>` : S.mode === 'host' ? `<p class=notice>${E('fp.needOwn')}</p>` : `<p class=muted>${E('fp.needWallet')}</p>${guestCta()}`}<div id=fpres role=status></div></div>`;
+  clearInterval(S._fpCd); S._fpCd = setInterval(() => { const el = box()?.querySelector('[data-cd]'); if (el) el.textContent = cdLeft(+el.dataset.cd); }, 30000);
+  $('#fpgo')?.addEventListener('click', () => fpPay(f));
+}
 async function fpPay(f) { const btn = $('#fpgo'), out = $('#fpres'); btn.disabled = true; out.innerHTML = `<p class=muted>⏳ ${E('fp.signing')}</p>`;
   try { await needW3(); if (f.receive !== (S.cfg.receive || '')) throw new Error(t('fp.recvMismatch'));
     const conn = new W3.Connection(RPC_WRITE, 'confirmed'), tx = memoTx(S.pubkey, f.memo, f.lamports), me = new W3.PublicKey(S.pubkey);
     tx.add(new W3.TransactionInstruction({ programId: new W3.PublicKey(MEMO), keys: [{ pubkey: me, isSigner: true, isWritable: false }], data: new TextEncoder().encode(f.tag + ($('#fpname').value || '').replace(/[|\u0000-\u001f]/g, ' ').trim().slice(0, 24)) }));
     const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(); tx.recentBlockhash = blockhash; tx.feePayer = me;
     const sr = await (await solWallet()).signAndSend(tx), sig = sr?.raw ? await conn.sendRawTransaction(sr.raw) : sr; out.innerHTML = `<p class=muted>⏳ ${E('fp.confirming')} <a target=_blank href="${EXPLORER(sig)}">${short(sig)}</a></p>`;
-    for (let i = 0; ; i++) { const st = (await conn.getSignatureStatuses([sig])).value[0]; if (st?.err) throw new Error(t('fp.verifyFail')); if (st && /confirmed|finalized/.test(st.confirmationStatus || '')) break; if (i > 60) throw new Error(t('fp.verifyFail')); await new Promise(r => setTimeout(r, 1500)); } // 轮询确认（不依赖 websocket）
+    for (let i = 0; ; i++) { const st = (await conn.getSignatureStatuses([sig])).value[0]; if (st?.err) throw new Error(t('fp.verifyFail')); if (st && /confirmed|finalized/.test(st.confirmationStatus || '')) break; if (i > 60) throw new Error(t('fp.verifyFail')); await new Promise(r => setTimeout(r, 1500)); }
     const r = await fetch(apiUrl(`/api/fpay/${f.id}/confirm`), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sig }) }), j = await r.json();
-    if (!r.ok) throw new Error(tErr(j.code) || t('fp.verifyFail'));
-    out.innerHTML = `<div class="card fp-ok"><h3>✅ ${E('fp.okT')}</h3><p>${E('fp.ok')}</p><p><a target=_blank href="${EXPLORER(sig)}">${E('tx.viewTx')} ↗</a></p></div>`; btn.hidden = true; sparkle(); loadFpDone(); loadWishes(true);
-  } catch (e) { out.innerHTML = `<div class="card fp-fail"><h3>❌ ${E('fp.failT')}</h3><p>${esc(e.message || e)}</p><p class=muted>${E('fp.failNote')}</p></div>`; btn.disabled = false; } }
+    if (!r.ok) throw new Error(j.code || t('fp.verifyFail'));
+    out.innerHTML = `<div class="card fp-ok"><h3>✅ ${E('fp.okT')}</h3><p>${E('fp.ok')}</p>${f.hidden ? `<p class=muted>${E('fp.hiddenNote')}</p>` : ''}<p><a target=_blank href="${EXPLORER(sig)}">${E('tx.viewTx')} ↗</a></p></div>`; btn.hidden = true; sparkle(); loadFpDone(); loadWishes(true);
+  } catch (e) { const used = /fpUsed|used/.test(String(e.message || e)); out.innerHTML = `<div class="card fp-fail"><h3>❌ ${E(used ? 'fp.usedT' : 'fp.failT')}</h3><p>${esc(used ? t('fp.concurrent') : (tErr(e.message) || e.message || e))}</p><p class=muted>${E('fp.failNote')}</p></div>`; btn.disabled = false; } }
+
 // ===== t251：树的成长状态（只显示总数）+ 内容较少时的引导（免费写心愿按钮 + 官方示范滚动条）=====
 const cardTotal = () => treeWishes().filter(w => !w.synthetic && !/^SAMPLE/.test(w.sig || '')).length;
 function growHtml() { const n = cardTotal(), sm = (S.offc?.samples || []).filter(x => S.wishes.some(w => w.sig === x.id)), few = n < 50 && sm.length;
@@ -883,6 +937,7 @@ function growHtml() { const n = cardTotal(), sm = (S.offc?.samples || []).filter
   return `<p class=hg-line>🌳 <b id=hgc>${E('grow.count', { n: num(n) })}</b></p><p class="muted hg-sub">${E('grow.explain')}</p>
   <div class=hg-cta><a class="btn primary hg-free" href="#/free">☁ ${E('grow.freeBtn')}</a></div>${few ? `<div class=hs-strip aria-label="${E('grow.samples')}"><div class=hs-track style="--hs-d:${Math.max(24, sm.length * 6)}s">${sm.map(item).join('')}<span aria-hidden=true class=hs-dup>${sm.map(item).join('')}</span></div></div>` : ''}`; }
 function paintGrow() { const el = $('#hgrow'); if (!el) return; const h = growHtml(); if (el._h !== h) { el._h = h; el.innerHTML = h; } }
+document.addEventListener('change', e => { if (e.target.name === 'paymode') { const v = e.target.value; $('#fpOpts')?.classList.toggle('hidden', v !== 'friend'); $('#giftOpts')?.classList.toggle('hidden', v !== 'gift'); const wt = $('#wt'); if (wt) { wt.disabled = v === 'gift'; wt.placeholder = v === 'gift' ? t('vc.wtPh') : t('wish.ph'); } } });
 document.addEventListener('click', e => { const b = e.target.closest('[data-hs]'); if (!b) return; const w = treeWishes().find(x => x.sig === b.dataset.hs); if (w) openCardPopup(lockPaint(w)); });
 function home() {
   loadCardMeta(); loadGoodsMeta();
@@ -1523,7 +1578,19 @@ function wishPanel() {
   ${evmPayHtml()}
   <span class=muted id=solmin>${E('wish.min', { min: sol(min), usd: S.cfg.solUsd, src: t(S.cfg.priceSource === 'fallback' ? 'wish.srcFallback' : 'wish.srcLive') })}</span></div>
   <p class=muted id=split></p>
-  <label class="agree fp-opt"><input type=checkbox id=wfp> <span>🤝 <b>${E('fp.opt')}</b> · <span class=muted>${E('fp.optHint')}</span></span></label>
+  <fieldset class=pay-choice><legend>${E('pay.how')}</legend>
+  <label class=pay-opt><input type=radio name=paymode value=self checked> <span><b>${E('pay.self')}</b><small>${E('pay.selfHint')}</small></span></label>
+  <label class=pay-opt><input type=radio name=paymode value=friend> <span><b>${E('pay.friend')}</b><small>${E('pay.friendHint')}</small></span></label>
+  <label class=pay-opt><input type=radio name=paymode value=gift> <span><b>${E('pay.gift')}</b><small>${E('pay.giftHint')}</small></span></label>
+  </fieldset>
+  <div id=fpOpts class=fp-opts hidden>
+    <label class=agree><input type=checkbox id=fpshow checked> <span>${E('fp.showText')}</span></label>
+    <p class=muted>${E('fp.showHint')}</p>
+  </div>
+  <div id=giftOpts class=gift-opts hidden>
+    <label>${E('vc.byL')} <input id=vcby maxlength=24 dir=auto placeholder="${E('vc.byPh')}"></label>
+    <p class=muted>${E('vc.buyHint')}</p>
+  </div>
   <p class="muted recvline">${E('help.receive')} <code id=recvaddr dir=ltr>${esc(S.cfg.receive || '')}</code></p>
   <div class=notice>${E('mod.notice')}</div>
   ${agreedTerms ? '' : `<label class=agree><input type=checkbox id=ag2> <span>${E('wish.agreeTerms', { doc: '\u0001' }).replace('\u0001', `<a href="#/terms" target=_blank>${E('terms.title')}</a>`)}</span></label>`}
@@ -1541,7 +1608,7 @@ function growth() { // 连续成长（无阶段上限）+ 本月形态；进度�
 function me() {
   if (S.mode === 'guest') return `<h2 class=gold-title>${E('nav.me')}</h2>${growth()}<div class=card>${E('me.loginFirst')}${guestCta()}</div>`;
   const mine = S.wishes.filter(w => w.author === S.pubkey), total = mine.reduce((s, w) => s + (w.paid || 0), 0);
-  return `<h2 class=gold-title>${E('nav.me')}</h2>${growth()}<div class=card>${E('me.addr')} <code>${esc(S.pubkey)}</code><br>${E('me.mode')} ${S.mode === 'self' ? E('me.modeSelf') : E('me.modeHost', { email: S.email })}
+  return `<h2 class=gold-title>${E('nav.me')}</h2><p><a class="btn primary" href="#/orders">🧾 ${E('ord.title')}</a></p>${growth()}<div class=card>${E('me.addr')} <code>${esc(S.pubkey)}</code><br>${E('me.mode')} ${S.mode === 'self' ? E('me.modeSelf') : E('me.modeHost', { email: S.email })}
   <p>${E('me.stats', { n: mine.length, sum: sol(total) })}</p>
   ${S.mode === 'host' ? `<p class=muted>💡 ${E('me.tip')}</p>` : ''}</div>
   <h3>🌈 ${E('me.spectrum')}</h3><div class=row>${mine.map(w => `<a href="#/w/${encodeURIComponent(w.sig)}" title="${esc(w.text)}">${spectrum(w.sig, 72)}</a>`).join('') || `<span class=muted>${E('common.none')}</span>`}</div>
@@ -1550,6 +1617,182 @@ function me() {
 }
 const RULES_LIST = () => `<ul>${[1, 2, 3, 4, 5].map(i => `<li>${E('rules.' + i)}</li>`).join('')}</ul>`;
 // 免费心愿（未上链）：无需钱包；token 只存本浏览器，用于日后自行付费上链升级
+
+// ===== t259：买后送（预付卡券）+ 我的订单台 =====
+const vcMineTok = () => { try { return JSON.parse(localStorage.wt_vclaim || '[]'); } catch { return []; } };
+const saveVcTok = a => { localStorage.wt_vclaim = JSON.stringify(a.slice(-30)); };
+const vcUrl = id => location.origin + '/#/voucher/' + id;
+async function vcBuy(lam, tt) {
+  try {
+    if (S.mode === 'guest' || !S.pubkey) { $('#ws').disabled = false; return tt.update(E('tx.needLogin'), 'err'); }
+    if ($('#pv')?.value === 'evm') { $('#ws').disabled = false; return tt.update(E('vc.onlySol'), 'err'); }
+    const by = ($('#vcby')?.value || '').trim();
+    const r = await api('/api/voucher', { lamports: lam, by });
+    tt.update(E('vc.created'), 'ok');
+    await vcPayAndShare(r);
+  } catch (e) { tt.update('❌ ' + esc(e.message || e), 'err'); }
+  $('#ws').disabled = false;
+}
+async function vcPayAndShare(r) {
+  const tt = toast(esc(t('vc.signing')));
+  try {
+    await needW3();
+    const conn = new W3.Connection(RPC_WRITE, 'confirmed'), me = new W3.PublicKey(S.pubkey);
+    const tx = new W3.Transaction();
+    const recv = S.cfg.receive || S.cfg.treasury || S.cfg.developer;
+    tx.add(W3.SystemProgram.transfer({ fromPubkey: me, toPubkey: new W3.PublicKey(recv), lamports: r.lamports }));
+    tx.add(W3.SystemProgram.transfer({ fromPubkey: me, toPubkey: new W3.PublicKey(TREE), lamports: 0 }));
+    tx.add(new W3.TransactionInstruction({ programId: new W3.PublicKey(MEMO), keys: [{ pubkey: me, isSigner: true, isWritable: false }], data: new TextEncoder().encode(r.memo) }));
+    const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(); tx.recentBlockhash = blockhash; tx.feePayer = me;
+    const sr = await (await solWallet()).signAndSend(tx), sig = sr?.raw ? await conn.sendRawTransaction(sr.raw) : sr;
+    tt.update(E('vc.confirming') + ' ' + short(sig));
+    for (let i = 0; ; i++) { const st = (await conn.getSignatureStatuses([sig])).value[0]; if (st?.err) throw new Error(t('vc.verifyFail')); if (st && /confirmed|finalized/.test(st.confirmationStatus || '')) break; if (i > 60) throw new Error(t('vc.verifyFail')); await new Promise(r => setTimeout(r, 1500)); }
+    const done = await api('/api/voucher/' + r.id + '/confirm', { sig });
+    tt.update('✅ ' + E('vc.paid'), 'ok'); location.hash = '#/voucher/' + r.id + '/manage';
+  } catch (e) { tt.update('❌ ' + esc(e.message || e), 'err'); location.hash = '#/voucher/' + r.id + '/manage'; }
+}
+async function vcShareImg(v) {
+  await loadQr().catch(() => {}); const W = 720, H = 1080, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0b0a24'); g.addColorStop(1, '#1a1040'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#ffe7a8'; x.font = 'bold 36px serif'; x.fillText(t('brand.short'), 48, 72);
+  x.fillStyle = '#fff'; x.font = 'bold 38px sans-serif';
+  const wrap = (s, max) => { const L = []; let line = ''; for (const ch of String(s || '')) { if (x.measureText(line + ch).width > max) { L.push(line); line = ch; } else line += ch; } if (line) L.push(line); return L; };
+  wrap(t('vc.shareTitle'), W - 96).forEach((l, i) => x.fillText(l, 48, 160 + i * 48));
+  x.fillStyle = '#e8d5a8'; x.font = '26px sans-serif'; wrap(t('vc.shareSub'), W - 96).forEach((l, i) => x.fillText(l, 48, 320 + i * 36));
+  x.fillStyle = '#ffe7a8'; x.font = 'bold 42px sans-serif'; x.fillText(sol(v.lamports), 48, 440);
+  x.fillStyle = '#9ab'; x.font = '22px sans-serif'; x.fillText(t('vc.expires', { time: fmtT(Math.floor(v.exp / 1000)) }), 48, 500);
+  const url = vcUrl(v.id); try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(), Q = 180, cell = Q / n, QX = W - 48 - Q, QY = H - 48 - Q - 40;
+    x.fillStyle = '#fff'; x.fillRect(QX - 10, QY - 10, Q + 20, Q + 20); for (let r = 0; r < n; r++) for (let c2 = 0; c2 < n; c2++) if (q.isDark(r, c2)) { x.fillStyle = '#111'; x.fillRect(QX + c2 * cell, QY + r * cell, cell + .5, cell + .5); }
+  } catch {}
+  x.fillStyle = '#ffe7a8'; x.font = '22px sans-serif'; x.fillText('光栖 · guangqi.world', 48, H - 48);
+  return new Promise(res => c.toBlob(b => res(b), 'image/png'));
+}
+async function vcManage(id) {
+  const box = () => $('#vcbox'); let v;
+  try { const r = await fetch(apiUrl('/api/voucher/' + id), { headers: S.token ? { authorization: 'Bearer ' + S.token } : {} }); v = await r.json(); if (!r.ok) throw 0; } catch { if (box()) box().innerHTML = `<div class="card fp-bad"><h3>⚠️ ${E('vc.goneT')}</h3><p>${E('vc.gone')}</p></div>`; return; }
+  if (!box()) return;
+  if (v.state === 'unpaid') {
+    box().innerHTML = `<h2 class=gold-title>🎁 ${E('vc.title')}</h2><div class="card"><p>${E('vc.unpaid')}</p><p class=fp-amt>${sol(v.lamports)}</p>
+    <button class=primary id=vcpay>${E('vc.payNow')}</button><a class=btn href="#/orders">${E('ord.title')}</a></div>`;
+    $('#vcpay').onclick = () => vcPayAndShare({ id: v.id, lamports: v.lamports, memo: v.memo }); return;
+  }
+  if (v.state === 'claimed') {
+    box().innerHTML = `<h2 class=gold-title>🎁 ${E('vc.title')}</h2><div class="card fp-ok"><h3>✅ ${E('vc.claimedT')}</h3>
+    <p>${E('vc.claimed', { text: esc(v.card?.text || '') })}</p><a class=btn primary href="#/w/${esc(v.card?.id || '')}">${E('ord.view')}</a></div>`; return;
+  }
+  if (v.state === 'cancelled' || v.state === 'expired' || v.state === 'voided') {
+    const canRe = (v.state === 'expired' || v.state === 'cancelled') && S.pubkey === v.giver;
+    box().innerHTML = `<h2 class=gold-title>🎁 ${E('vc.title')}</h2><div class="card fp-bad"><h3>⌛ ${E('vc.' + v.state + 'T')}</h3><p>${E('vc.' + v.state)}</p>
+    ${canRe ? `<button class=primary id=vcreclaim>${E('vc.reclaim')}</button>` : ''}<a class=btn href="#/orders">${E('ord.title')}</a></div>`;
+    $('#vcreclaim')?.addEventListener('click', () => { location.hash = '#/voucher/' + id + '/write?reclaim=1'; }); return;
+  }
+  // open / waiting
+  const url = vcUrl(id), mine = S.pubkey === v.giver;
+  if (mine) {
+    box().innerHTML = `<h2 class=gold-title>🎁 ${E('vc.waitT')}</h2><div class="card fp-card">
+    <p><span class="tag">${E('vc.waitTag')}</span></p>
+    <p class=fp-cd>⏰ <span data-cd="${v.exp}">${esc(cdLeft(v.exp))}</span></p>
+    <p class=fp-amt>${E('fp.amount')} <b>${sol(v.lamports)}</b></p>
+    <div class=row style="flex-wrap:wrap;gap:8px"><button class=primary id=vcshare>📤 ${E('fp.sendFriend')}</button>
+    <button id=vccopy>📋 ${E('fp.copy')}</button><button id=vcimg>🖼️ ${E('fp.dlImg')}</button>
+    <button class=link id=vccancel>${E('vc.cancel')}</button></div>
+    <ol class=fp-steps><li>${E('vc.tip1')}</li><li>${E('vc.tip2')}</li><li>${E('vc.tip3')}</li></ol>
+    <p class=muted><input id=vcurl readonly dir=ltr value="${esc(url)}" style="width:100%"></p></div>`;
+    clearInterval(S._fpCd); S._fpCd = setInterval(() => { const el = box()?.querySelector('[data-cd]'); if (el) el.textContent = cdLeft(+el.dataset.cd); }, 30000);
+    $('#vccopy').onclick = () => navigator.clipboard?.writeText(url).then(() => toast('✅ ' + E('fp.copied'), 'ok'), () => $('#vcurl').select());
+    $('#vcshare').onclick = async () => { if (navigator.share) try { await navigator.share({ title: t('vc.shareTitle'), url, text: t('vc.shareTitle') + '\n' + url }); } catch {} else $('#vccopy').click(); };
+    $('#vcimg').onclick = async () => { const b = await vcShareImg(v); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'guangqi-gift.png'; a.click(); };
+    $('#vccancel').onclick = async () => { if (!confirm(t('vc.cancelQ'))) return; try { await api('/api/voucher/' + id + '/cancel', {}); toast('✅ ' + E('vc.cancelled'), 'ok'); location.hash = '#/orders'; } catch (e) { toast(esc(e.message), 'err'); } };
+  } else location.hash = '#/voucher/' + id + '/write';
+}
+async function vcWrite(id, reclaim) {
+  const box = () => $('#vcbox'); let v;
+  try { const r = await fetch(apiUrl('/api/voucher/' + id)); v = await r.json(); if (!r.ok) throw Object.assign(new Error(v.code), { code: v.code }); } catch (e) { if (box()) box().innerHTML = `<div class="card fp-bad"><h3>⚠️ ${E('vc.goneT')}</h3><p>${E(tErr(e.message) || 'vc.gone')}</p></div>`; return; }
+  if (!box()) return;
+  if (!reclaim && v.state !== 'open') {
+    box().innerHTML = `<div class="card fp-bad"><h3>${E('vc.' + v.state + 'T')}</h3><p>${E('vc.' + v.state)}</p></div>`; return;
+  }
+  if (reclaim && !(v.reclaimable || v.state === 'expired' || v.state === 'cancelled')) {
+    box().innerHTML = `<div class="card fp-bad"><p>${E('vc.notExpired')}</p></div>`; return;
+  }
+  box().innerHTML = `<h2 class=gold-title>🎁 ${E(reclaim ? 'vc.reclaimT' : 'vc.claimT')}</h2><div class="card">
+  <p>${reclaim ? E('vc.reclaimIntro') : E('vc.claimIntro', { name: esc(v.by || short(v.giver || '')) })}</p>
+  <p class=fp-cd>⏰ <span data-cd="${v.exp}">${esc(cdLeft(v.exp))}</span></p>
+  <label>${E('wish.cover')}<select id=vccat>${['经典', '光栖'].map(c => `<option value="${c}">${esc(catName(c))}</option>`).join('')}</select></label>
+  <div id=vccoverrow class=muted></div>
+  <textarea id=vctext maxlength=140 dir=auto placeholder="${E('wish.ph')}" rows=4 style="width:100%"></textarea>
+  <div class=muted id=vcwc>0/140</div>
+  <label class=agree><input type=checkbox id=vcag checked> <span>${E('mod.agree')}</span></label>
+  <button class=primary id=vcgo ${reclaim ? '' : ''}>✨ ${E(reclaim ? 'vc.reclaimGo' : 'vc.claimGo')}</button>
+  <div id=vcres role=status></div></div>`;
+  const paintCov = () => { const cat = $('#vccat').value; $('#vccoverrow').innerHTML = cat === '光栖' ? `<label>${E('gq.pick')}<select id=vccover>${[...Array(10)].map((_, i) => `<option value=${i}>${i + 1}</option>`).join('')}</select></label>` : ''; };
+  paintCov(); $('#vccat').onchange = paintCov;
+  $('#vctext').oninput = () => { $('#vcwc').textContent = [...$('#vctext').value].length + '/140'; };
+  $('#vcgo').onclick = async () => {
+    if (!$('#vcag').checked) return toast(E('mod.needAgree'), 'err');
+    const text = $('#vctext').value.trim(), cat = $('#vccat').value, cover = cat === '光栖' ? +$('#vccover')?.value || 0 : undefined;
+    $('#vcgo').disabled = true; $('#vcres').innerHTML = `<p class=muted>⏳ ${E('route.loading')}</p>`;
+    try {
+      const r = await fetch(apiUrl('/api/voucher/' + id + '/claim'), { method: 'POST', headers: { 'content-type': 'application/json', ...(S.token ? { authorization: 'Bearer ' + S.token } : {}) },
+        body: JSON.stringify({ text, cat, cover, reclaim: !!reclaim, dev: typeof devId === 'function' ? devId() : '' }) });
+      const j = await r.json(); if (!r.ok) throw Object.assign(new Error(j.code || j.error), { code: j.code });
+      saveVcTok([...vcMineTok(), { id: j.id, token: j.token, text: j.text, cat: j.cat, by: j.by }]);
+      if (!reclaim) saveFree([...myFree().filter(x => x.id !== j.id), { id: j.id, token: j.token, text: j.text, cat: j.cat }]);
+      loadOffchain();
+      $('#vcres').innerHTML = `<div class="card fp-ok"><h3>✅ ${E('vc.hangOk')}</h3><p>${E('vc.hangOkSub')}</p>
+      <a class="btn primary" href="#/w/${esc(j.id)}">${E('ord.view')}</a>
+      <a class=btn href="#/free">${E('free.upgrade')}</a></div>`;
+      $('#vcgo').hidden = true; sparkle();
+    } catch (e) { $('#vcres').innerHTML = `<div class="card fp-fail"><p>${esc(tErr(e.message) || e.message || e)}</p></div>`; $('#vcgo').disabled = false; }
+  };
+}
+function ordersPage() {
+  return `<h2 class=gold-title>🧾 ${E('ord.title')}</h2>
+  <div class=ord-tabs role=tablist>
+    <button type=button class=on data-otab=pay>${E('ord.pay')}</button>
+    <button type=button data-otab=claim>${E('ord.claim')}</button>
+    <button type=button data-otab=done>${E('ord.done')}</button>
+  </div>
+  <div id=ordbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
+}
+async function paintOrders() {
+  const box = $('#ordbox'); if (!box) return;
+  const tab = box.dataset.tab || 'pay';
+  let fp = { items: [] }, vc = { given: [], received: [] };
+  if (S.token) {
+    try { fp = await api('/api/fpay/mine'); } catch {}
+    try { vc = await api('/api/voucher/mine'); } catch {}
+  }
+  const localDraft = (() => { try { return JSON.parse(localStorage.wt_draft || 'null'); } catch { return null; } })();
+  const rows = [];
+  const pill = exp => `<span class="ord-pill">${esc(cdLeft(exp))}</span>`;
+  if (tab === 'pay') {
+    for (const f of fp.items || []) if (f.state === 'open') rows.push({ thumb: '🤝', title: f.text || t('fp.initT'), amt: sol(f.lamports), cd: pill(f.exp), act: `<a class="btn primary" href="#/fpay/${f.id}/manage">${E('ord.share')}</a><button class=link data-fpc="${f.id}">${E('fp.cancel')}</button>` });
+    for (const v of vc.given || []) if (v.state === 'unpaid') rows.push({ thumb: '🎁', title: t('vc.unpaid'), amt: sol(v.lamports), cd: pill(v.exp), act: `<a class="btn primary" href="#/voucher/${v.id}/manage">${E('ord.pay')}</a>` });
+  } else if (tab === 'claim') {
+    for (const v of vc.given || []) if (v.state === 'open') rows.push({ thumb: '🎁', title: t('ord.waitFriend'), amt: sol(v.lamports), cd: pill(v.exp), act: `<a class="btn primary" href="#/voucher/${v.id}/manage">${E('ord.share')}</a>` });
+    for (const v of vc.given || []) if (v.state === 'expired' || v.state === 'cancelled') rows.push({ thumb: '🎁', title: t('vc.' + v.state + 'T'), amt: sol(v.lamports), cd: '', act: `<a class="btn primary" href="#/voucher/${v.id}/write?reclaim=1">${E('vc.reclaim')}</a>` });
+    // gifted-to-me tracked by local tokens that aren't hung yet — claim links opened via share
+  } else {
+    for (const f of fp.items || []) if (f.state === 'used') rows.push({ thumb: '✅', title: f.text || t('fp.usedT'), amt: sol(f.lamports), cd: '', act: f.sig ? `<a class=btn href="#/w/${esc(f.sig)}">${E('ord.view')}</a>` : '' });
+    for (const v of vc.given || []) if (v.state === 'claimed') rows.push({ thumb: '🎁', title: v.card?.text || t('vc.claimedT'), amt: sol(v.lamports), cd: '', act: `<a class=btn href="#/w/${esc(v.card?.id || '')}">${E('ord.view')}</a>` });
+    for (const x of vcMineTok()) rows.push({ thumb: '✨', title: x.text, amt: '', cd: '', act: `<a class=btn href="#/w/${esc(x.id)}">${E('ord.view')}</a>` });
+  }
+  if (!S.token && tab !== 'done') { box.innerHTML = needSession(E('ord.title')) || `<p class=muted>${E('ord.needLogin')}</p>`; return; }
+  box.innerHTML = rows.length ? `<ul class=ord-list>${rows.map(r => `<li class=ord-row><span class=ord-th>${r.thumb}</span><div class=ord-main><b dir=auto>${esc(r.title)}</b><div class=ord-meta>${r.amt || ''} ${r.cd}</div><div class=ord-act>${r.act}</div></div></li>`).join('')}</ul>`
+    : `<div class=card><p class=muted>${E('ord.empty')}</p><div class=row><a class="btn primary" href="#/free">☁ ${E('grow.freeBtn')}</a><a class=btn href="#/wish/make">${E('pay.gift')}</a></div></div>`;
+  box.querySelectorAll('[data-fpc]').forEach(b => b.onclick = async () => { if (!confirm(t('fp.cancelQ'))) return; try { await api('/api/fpay/' + b.dataset.fpc + '/cancel', {}); paintOrders(); } catch (e) { toast(esc(e.message), 'err'); } });
+}
+function bindOrders() {
+  const box = $('#ordbox'); if (!box) return;
+  document.querySelectorAll('[data-otab]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('[data-otab]').forEach(x => x.classList.toggle('on', x === b));
+    box.dataset.tab = b.dataset.otab; paintOrders();
+  });
+  paintOrders();
+}
+
+
 const myFree = () => { try { return JSON.parse(localStorage.wt_free || '[]'); } catch { return []; } }, saveFree = a => { localStorage.wt_free = JSON.stringify(a.slice(-20)); };
 const devId = () => localStorage.wt_dev ||= (crypto.randomUUID?.() || String(Math.random()).slice(2));
 const freePage = () => `<h2 class=gold-title>☁ ${E('free.title')}</h2><div class="card motif free-card"><p>${E('free.intro')}</p><p class="muted off-note">☁ ${E('off.note')}</p>
@@ -1599,7 +1842,7 @@ ${localStorage.wt_terms === '1' ? `<p class=muted>✅ ${E('terms.agreed')}</p>` 
 // ---------- 路由 ----------
 let ready3d = false;
 function paintFab(p) { let f = $('#fab'); if (!f) { f = document.createElement('a'); f.id = 'fab'; f.href = '#/wish/make'; document.body.append(f); }
-  f.innerHTML = `<span aria-hidden=true>✨</span> <span>${E('ux.fab')}</span>`; f.setAttribute('aria-label', t('a11y.fab')); f.hidden = S.mode === 'guest' || /^\/(wish|fpay)/.test(p) || !!$('#search-panel:not([hidden])'); document.body.classList.toggle('fab-on', !f.hidden); } // 已登录才显示；制作页本身不显示
+  f.innerHTML = `<span aria-hidden=true>✨</span> <span>${E('ux.fab')}</span>`; f.setAttribute('aria-label', t('a11y.fab')); f.hidden = S.mode === 'guest' || /^\/(wish|fpay|voucher|orders)/.test(p) || !!$('#search-panel:not([hidden])'); document.body.classList.toggle('fab-on', !f.hidden); } // 已登录才显示；制作页本身不显示 document.body.classList.toggle('fab-on', !f.hidden); } // 已登录才显示；制作页本身不显示
 // ---------- 门卡（Gate Card）：成就门卡 / 领取 / 树洞 ----------
 // 链上仅存最小记录（~Q memo）；状态（有效/过期/撤销）与领取资格以服务端记录为权威，前后端均按时间戳判定到期。树洞内容仅在服务端校验持卡后返回。
 const GFACE = new Set(['first_light', 'growth', 'resonance']); // 有官方卡面图的门卡；其余（月度等）用代码绘制卡面
@@ -1691,11 +1934,21 @@ async function route() {
   S.swAC?.abort(); S.swAC = null; $('#view').classList.remove('sw-loading', 'sw-nudge'); // 切换页面即关闭详情：清理滑动监听
   const [p, qs] = (location.hash.slice(1) || '/').split('?'), q = new URLSearchParams(qs || ''), v = $('#view');
   $('#banner').innerHTML = S.offline ? `⚠️ ${E('route.offline', { msg: S.offlineMsg || '' })}` : '';
-  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin, '/free': freePage, '/wallet-guide': walletGuide, '/rules': rulesPage };
+  const pages = { '/treehole': treeholePage, '/ads': adsPage, '/': home, '': home, '/list': () => list(q), '/wish': myWish, '/wish/make': myWish, '/me': me, '/orders': ordersPage, '/security': security, '/inbox': inboxPage, '/notify': notifyPage, '/help': help, '/terms': terms, '/origin': origin, '/free': freePage, '/wallet-guide': walletGuide, '/rules': rulesPage };
   if (p === '/gift' || p === '/gift/batch') return location.replace('#/wish/make?gift=' + (p === '/gift' ? 'single' : 'batch')); // 旧礼品卡入口 → 制作页预选礼品卡（/gift/batch 预选团购）
   if (p === '/wish/make' && q.get('gift')) S.giftMode = q.get('gift') === 'batch' ? 'batch' : 'single';
   clearTimeout(S.gbT); clearInterval(S.gbPI); const gbm = p.match(/^\/gift\/batch\/(b_[0-9a-f]{16})$/), clm = p.match(/^\/claim\/([A-Za-z0-9-]{4,40})$/);
-  const fpm = p.match(/^\/fpay\/([0-9a-f]{16})$/); if (fpm) { v.innerHTML = `<div id=fpbox><p class=muted>⏳ ${E('route.loading')}</p></div>`; fpLoad(fpm[1]); } else
+  const fpm = p.match(/^\/fpay\/([0-9a-f]{16})(\/manage)?$/), vcm = p.match(/^\/voucher\/([0-9a-f]{16})(\/manage|\/write)?$/);
+  if (fpm) { v.innerHTML = `<div id=fpbox><p class=muted>⏳ ${E('route.loading')}</p></div>`; (fpm[2] ? fpManage : fpLoad)(fpm[1]); }
+  else if (vcm) {
+    v.innerHTML = `<div id=vcbox><p class=muted>⏳ ${E('route.loading')}</p></div>`;
+    if (vcm[2] === '/write' || q.get('reclaim') === '1') vcWrite(vcm[1], q.get('reclaim') === '1');
+    else if (vcm[2] === '/manage') vcManage(vcm[1]);
+    else { fetch(apiUrl('/api/voucher/' + vcm[1]), { headers: S.token ? { authorization: 'Bearer ' + S.token } : {} }).then(r => r.json()).then(v => {
+      if (S.pubkey && v.giver === S.pubkey) vcManage(vcm[1]); else vcWrite(vcm[1], false);
+    }).catch(() => vcWrite(vcm[1], false)); }
+  }
+  else
   v.innerHTML = gbm ? gbProgress(gbm[1]) : clm ? gbClaim(clm[1].toUpperCase()) : p.startsWith('/w/') ? detail(decodeURIComponent(p.slice(3))) : p === '/treehole' ? treeholePage() : (pages[p] || (() => '<p>404</p>'))();
   if (p.startsWith('/w/')) bindSwiper(p);
   if (p === '/ads') paintAds();
@@ -1703,7 +1956,8 @@ async function route() {
   if (S.token && (p === '/ads' || p === '/list' || p.startsWith('/w/AD') || p === '/')) loadMyAds(p === '/ads'); else paintAdNav();
   document.querySelectorAll('body > #hgrow').forEach(e => e.remove()); { const g = $('#view #hgrow'); if (g) document.body.append(g); } // t251：成长状态条挂到 body（避免页面过渡 transform 影响 fixed 定位）
   document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/') || (x.getAttribute('href') === '#/wish/make' && /^\/(gift\/batch\/|claim\/)/.test(p)))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify(); if (p === '/free') bindFree();
-  if (p === '/wish/make' && q.get('gift')) setTimeout(() => { const k = $('#ckind'); if (!k) return; k.value = 'gift'; k.dispatchEvent(new Event('change', { bubbles: true })); }, 0); // 预选礼品卡（单张 / 团购由 S.giftMode 决定）
+  if (p === '/wish/make' && q.get('gift')) setTimeout(() => { const k = $('#ckind'); if (!k) return; k.value = 'gift'; k.dispatchEvent(new Event('change', { bubbles: true })); }, 0);
+  if (p === '/orders') bindOrders(); // 预选礼品卡（单张 / 团购由 S.giftMode 决定）
   $('#lf')?.addEventListener('submit', e => { e.preventDefault(); location.hash = '#/list?' + new URLSearchParams(new FormData(e.target)); });
   $('#rf')?.addEventListener('click', async () => { await loadWishes(true); softRefresh(); });
   document.querySelectorAll('[data-season]').forEach(b => b.onclick = () => { S.season = b.dataset.season; window.WT3D?.setSeason(S.season); document.querySelectorAll('[data-season]').forEach(x => x.classList.toggle('on', x === b)); });
@@ -1800,7 +2054,9 @@ async function route() {
     const pvSync = () => { paintRecv(); const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
     $('#ws').addEventListener('click', async () => { const txt = ($('#ckind')?.value === 'biz' ? $('#bzname')?.value || '' : ta.value).trim(), lam = Math.round(+$('#amt').value * 1e9), cat = realCat($('#wc2').value); if ($('#wc2').value === CUSTOM && !up.C) { toast(esc(t('wish.upCover')), 'err'); $('#upC')?.focus(); return; }
       const shippingNote = ($('#ckind')?.value || 'wish') === 'goods' ? ($('#ship')?.value || '').trim() : '';
-      if (!txt || [...txt].length > 140 || txt.includes('|')) return toast(E('wish.invalid'), 'err');
+      const payMode0 = document.querySelector('input[name=paymode]:checked')?.value || 'self';
+      if (payMode0 !== 'gift' && (!txt || [...txt].length > 140 || txt.includes('|'))) return toast(E('wish.invalid'), 'err');
+      if (payMode0 === 'gift' && (txt && ([...txt].length > 140 || txt.includes('|')))) return toast(E('wish.invalid'), 'err');
       const kind = $('#ckind')?.value || 'wish', bad = x => /[~|]/.test(x); let K = null, contact = '', showCt = false, ctp = null;
       let metaPayload = {};
       const country = cleanLoc($('#scountry')?.value), province = cleanLoc($('#sprov')?.value), city = cleanLoc($('#scity')?.value);
@@ -1852,10 +2108,12 @@ async function route() {
       const fold = (folded ? encFold(folded, cover, priv, cimg, nimg, nimg ? null : inside) + (bimg ? '~R' + bimg : '') : (gqC || cimg || cover !== WTCovers.forCat(cat)[0] ? encSingle(cimg ? null : cover, cimg) : '')) + (!folded && cimg && $('#ctype').value === 'overlay' && CS_KINDS.includes(kind) ? '~Uo' : '');
       const prefix = encKind(cat, K || { kind: 'wish', vis: 'public' }, fold);
       if (new TextEncoder().encode(prefix + '|' + (cipher || txt)).length > 600) { $('#ws').disabled = false; return tt.update(E('err.memoSize'), 'err'); }
-      const fpOn = $('#wfp')?.checked; if (fpOn && (priv || (K && K.kind !== 'wish') || $('#pv')?.value === 'evm')) { $('#ws').disabled = false; return tt.update(E('fp.onlyWish'), 'err'); }
+      const payMode = document.querySelector('input[name=paymode]:checked')?.value || 'self';
+      if (payMode === 'gift') { return vcBuy(lam, tt); }
+      const fpOn = payMode === 'friend'; if (fpOn && (priv || (K && K.kind !== 'wish') || $('#pv')?.value === 'evm')) { $('#ws').disabled = false; return tt.update(E('fp.onlyWish'), 'err'); }
       let memo; try { memo = await moderateThenMemo('W', prefix, txt, cipher); tt.update('✅ ' + E('wish.passed'), 'ok'); } catch (e) { tt.update(e.html ? e.message : esc(e.message), 'err'); $('#ws').disabled = false; return; }
       if ($('#ag2')) localStorage.wt_terms = '1';
-      if (fpOn) { try { const r = await api('/api/fpay', { memo, lamports: lam }); fpShowLink(r); } catch (e) { tt.update('❌ ' + esc(e.message || e), 'err'); } $('#ws').disabled = false; return; }
+      if (fpOn) { try { const r = await api('/api/fpay', { memo, lamports: lam, showText: $('#fpshow')?.checked !== false }); tt.update('✅ ' + E('fp.linkT'), 'ok'); fpInitiate(r); } catch (e) { tt.update('❌ ' + esc(e.message || e), 'err'); } $('#ws').disabled = false; return; }
       const viaEvm = $('#pv')?.value === 'evm', C = evmChains(), ch = $('#evc')?.value, ea = $('#eva')?.value;
       let extra = {}, sig;
       if (viaEvm) { const R = evmRoutes(), r = R[ch] || Object.values(R)[0]; if (!r) { $('#ws').disabled = false; return toast('❌ no EVM route', 'err'); }
