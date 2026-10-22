@@ -21,17 +21,18 @@
     document.querySelectorAll('[data-i18n-title]').forEach(e => { e.title = I.t(e.dataset.i18nTitle); e.setAttribute('aria-label', e.title); });
     renderSwitcher(); };
   const trOn = () => { try { return localStorage.wt_autotr !== '0'; } catch { return true; } };
+  addEventListener('autotrchange', () => { const m = document.getElementById('langmenu'), open = m && !m.hidden; renderSwitcher(); if (open) document.getElementById('langmenu').hidden = false; });
   function renderSwitcher() { const box = document.getElementById('lang'); if (!box) return;
     box.innerHTML = `<button type=button id=langbtn aria-haspopup=listbox aria-expanded=false title="${I.t('lang.label')}" aria-label="${I.t('lang.label')}"><svg width=16 height=16 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2 aria-hidden=true><circle cx=12 cy=12 r=10 /><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg><span class=lang-cur>${LANGS[I.lang]}</span></button>
       <ul id=langmenu role=listbox hidden>${Object.entries(LANGS).map(([k, n]) => `<li role=option data-lang="${k}" lang="${k}" dir="${RTL.includes(k) ? 'rtl' : 'ltr'}" aria-selected="${k === I.lang}" tabindex=0>${n}</li>`).join('')}<li role=option id=autotr class=lang-autotr tabindex=0 aria-checked="${trOn()}">${trOn() ? '☑' : '☐'} 🌐 ${I.t('tr.auto')}</li></ul>`;
     const btn = box.querySelector('#langbtn'), menu = box.querySelector('#langmenu');
     btn.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', !menu.hidden); };
-    menu.onclick = e => { if (e.target.closest('#autotr')) { e.stopPropagation(); window.WTTr?.set(!WTTr.on()); renderSwitcher(); document.getElementById('langmenu').hidden = false; return; } const li = e.target.closest('[data-lang]'); if (li) I.set(li.dataset.lang); };
+    menu.onclick = e => { if (e.target.closest('#autotr')) { e.stopPropagation(); window.WTTr?.set(!WTTr.on()); return; } const li = e.target.closest('[data-lang]'); if (li) I.set(li.dataset.lang); };
     btn.setAttribute('aria-controls', 'langmenu');
     const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.focus(); };
     btn.onkeydown = e => { if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); (menu.querySelector('[aria-selected=true]') || menu.firstElementChild).focus(); } };
     menu.onkeydown = e => { const li = e.target.closest('[data-lang]'), items = [...menu.children], k = items.indexOf(li);
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (li) I.set(li.dataset.lang); else if (e.target.id === 'autotr') { window.WTTr?.set(!WTTr.on()); renderSwitcher(); document.getElementById('langmenu').hidden = false; } }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (li) I.set(li.dataset.lang); else if (e.target.id === 'autotr') window.WTTr?.set(!WTTr.on()); }
       else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); items[(k + 1) % items.length].focus(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); items[(k - 1 + items.length) % items.length].focus(); }

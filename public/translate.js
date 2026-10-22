@@ -47,7 +47,7 @@
   function reset() { document.querySelectorAll('.ut').forEach(el => { el.textContent = el.dataset.ut; delete el.dataset.uts; delete el.dataset.utq; el.classList.remove('ut-on'); IO?.unobserve(el); }); document.querySelectorAll('.ut-ctl').forEach(x => x.remove()); }
   let mT; new MutationObserver(() => { clearTimeout(mT); mT = setTimeout(() => scan(document), 60); }).observe(document.documentElement, { childList: true, subtree: true });
   addEventListener('langchange', () => { reset(); scan(document); });
-  W.on = on; W.set = v => { try { localStorage[LS] = v ? '1' : '0'; } catch {} reset(); if (v) scan(document); };
+  W.on = on; W.set = v => { try { localStorage[LS] = v ? '1' : '0'; } catch {} reset(); if (v) scan(document); dispatchEvent(new Event('autotrchange')); };
   W.span = s => s ? `<span class=ut data-ut="${esc(s)}">${esc(s)}</span>` : '';
   W.sync = s => { if (!on() || orig.has(s)) return s; const v = mem.get(tl() + '|' + s); return v && v.t ? v.t : s; };
   W.scan = scan; W.detect = detect;
