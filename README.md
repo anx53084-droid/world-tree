@@ -22,7 +22,7 @@ node verify.js         # 可选：Playwright 无头验证（桌面+移动端）�
  ├─ 写（自托管）：前端构建交易 → Phantom signAndSendTransaction → devnet
  └─ 写（托管演示）：/api/memo → 服务器用该用户 devnet 密钥签名发送
 server.js（本地 Node）：静态文件、RPC 中继、内容审核+审核证明、演示托管账户、SOL 价格
-moderation.js：关键词过滤（中英）+ AI 语义审核桩 + 人工复核队列（data/review-queue.jsonl）
+moderation.js：关键词过滤 + AI 语义审核（OpenAI omni-moderation，需 OPENAI_API_KEY；缺失/故障回退关键词+NSFW）；automod.js：举报/申诉全自动复审（无人工队列）
 ```
 
 ### 链上方案：SPL Memo 交易（未使用 Anchor 自定义程序）

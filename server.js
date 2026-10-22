@@ -11,7 +11,7 @@ const { moderate, RULES } = require('./moderation');
 const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
-const Extras = require('./extras'), FPay = require('./fpay'), Voucher = require('./voucher'), Translate = require('./translate');
+const Extras = require('./extras'), FPay = require('./fpay'), Voucher = require('./voucher'), Translate = require('./translate'), Automod = require('./automod');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
 const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'), Batch = require('./batch'), Prices = require('./prices'); const Soc = require('./social'), CL = require('./ctlock'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
@@ -71,6 +71,7 @@ async function imgUpload(b) {
   const isJ = raw[0] === 0xFF && raw[1] === 0xD8, isW = raw.toString('ascii', 0, 4) === 'RIFF' && raw.toString('ascii', 8, 12) === 'WEBP'; if (!(mime === 'image/jpeg' ? isJ : isW)) return { error: '文件内容与类型不符', code: 'imgType' };
   const d = imgDims(raw, mime); if (!d || d[0] < 16 || d[1] < 16 || d[0] > MAXD || d[1] > MAXD) return { error: '图片尺寸无效（需 16–' + MAXD + 'px）', code: 'imgDim' };
   const ns = await nsfwCheck(raw, mime); if (!ns.pass) return { error: ns.error || '图片未通过审核', code: ns.error ? 'imgSvc' : 'imgReject' };
+  if (b.cipher == null) { const am = await require('./moderation').aiSemanticReview('', { buf: raw, mime }); if (!am.pass) return { error: '图片未通过审核', code: 'imgReject' }; } // t263：公开图片再过 AI（私密图只在本机 NSFW 审核，不外发）
   // 私密卡内页：审核明文，只存客户端 AES-GCM 加密后的密文（服务器不保存明文）
   let store = raw, smime = mime; if (b.cipher != null) { const c = typeof b.cipher === 'string' ? Buffer.from(b.cipher, 'base64') : null; if (!c || c.length < 28 || c.length > IMG_MAX + 64) return { error: '参数无效', code: 'param' }; store = c; smime = 'application/octet-stream'; }
   const h = crypto.createHash('sha256').update(store).digest('hex').slice(0, 32);
@@ -396,6 +397,8 @@ async function api(req, res, url) {
     const edited = !c || c.title !== title || c.price !== price;
     const st = Soc.load(); st.goods[sig] = { owner: a.user.pubkey, url: x.href, domain: k.domain, title, price, currency, image, fetchedAt: c?.fetchedAt || Date.now(), edited, at: Date.now() }; Soc.save(st);
     return send(res, 200, { ok: true }); }
+  if ((url === '/api/report' || url === '/api/appeal' || url === '/api/mod/status' || url.startsWith('/api/admin/moderation')) && await Automod.handle(req, res, url, { send, body, Soc, txInfo, auth: r => auth(r, db), adminOk: r => !!(Fulfill.ADMIN_KEY && Fulfill.adminOk(r)), awaitReview: process.env.MOD_AWAIT === '1', getImg: h => Store.get(h), nsfw: buf => nsfwCheck(buf, 'image/jpeg'), ip: r => String(r.headers['cf-connecting-ip'] || (String(r.headers['x-forwarded-for'] || '').split(',').pop() || '').trim() || r.socket.remoteAddress || ''),
+    pushInbox: (pk, m) => { db.inbox = db.inbox || {}; const L = db.inbox[pk] = db.inbox[pk] || []; L.unshift({ id: require('crypto').randomBytes(6).toString('hex'), at: Date.now(), read: false, ...m }); if (L.length > 200) L.length = 200; save(db); } })) return; // t263：全自动举报/申诉
   if (url.startsWith('/api/translate') && await Translate.handle(req, res, url, { send, body, ip: r => String(r.headers['cf-connecting-ip'] || (String(r.headers['x-forwarded-for'] || '').split(',').pop() || '').trim() || r.socket.remoteAddress || '') })) return; // t260：仅显示翻译
   if (url.startsWith('/api/voucher') && await Voucher.handle(req, res, url, { send, body, Soc, moderate, Block, auth: r => auth(r, db), fpTx, receive: () => RECEIVE.toBase58(), minLamports: async () => Math.floor(minLamports((await solPrice()).usd) * .97),
     pushInbox: (pk, m) => { db.inbox = db.inbox || {}; const L = db.inbox[pk] = db.inbox[pk] || []; L.unshift({ id: require('crypto').randomBytes(6).toString('hex'), at: Date.now(), read: false, ...m }); if (L.length > 200) L.length = 200; save(db); } })) return; // t259：买后送

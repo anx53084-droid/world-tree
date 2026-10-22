@@ -700,3 +700,7 @@ body.fab-on.home:not(.debug) .home-grow { bottom: var(--fab-clear); right: 10px 
 .ut-tg{font-size:12px;padding:2px 8px;min-height:0;border-radius:999px;background:transparent;border:1px solid currentColor;color:inherit;cursor:pointer}
 .gq-inside .ut-ctl,.sp-body .ut-ctl{color:#5a4632}.gq-inside .ut-lbl,.sp-body .ut-lbl{color:#8a5a12;background:rgba(138,90,18,.1);border-color:rgba(138,90,18,.35)}
 #langmenu .lang-autotr{border-top:1px solid rgba(255,255,255,.15);margin-top:4px;padding-top:6px;font-size:13px;white-space:nowrap}
+/* t263：自动审核隐藏（仅作者可见）+ 一键申诉 */
+.mod-hid{margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(220,80,80,.12);border:1px solid rgba(240,120,120,.45);font-size:14px}
+.mod-hid .row{margin-top:8px;align-items:center;gap:10px;flex-wrap:wrap}
+.card.mod-card{opacity:.92}

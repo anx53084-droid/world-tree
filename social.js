@@ -7,8 +7,8 @@ const DEL = { T: 'tree', O: 'off', B: 'both' };
 function load() {
   try {
     const d = JSON.parse(fs.readFileSync(F));
-    return { contacts: d.contacts || {}, gifts: d.gifts || {}, giftSeen: d.giftSeen || {}, meta: d.meta || {}, unlocks: d.unlocks || {}, goods: d.goods || {}, att: d.att || {}, ctPaid: d.ctPaid || {}, ctUsed: d.ctUsed || {}, ctQuotes: d.ctQuotes || {}, biz: d.biz || {}, samples: d.samples || {}, free: d.free || {}, cheers: d.cheers || {}, reports: d.reports || {}, hidden: d.hidden || {}, vouchers: d.vouchers || {} };
-  } catch { return { contacts: {}, gifts: {}, giftSeen: {}, meta: {}, unlocks: {}, goods: {}, att: {}, ctPaid: {}, ctUsed: {}, ctQuotes: {}, biz: {}, samples: {}, free: {}, cheers: {}, reports: {}, hidden: {}, vouchers: {} }; }
+    return { contacts: d.contacts || {}, gifts: d.gifts || {}, giftSeen: d.giftSeen || {}, meta: d.meta || {}, unlocks: d.unlocks || {}, goods: d.goods || {}, att: d.att || {}, ctPaid: d.ctPaid || {}, ctUsed: d.ctUsed || {}, ctQuotes: d.ctQuotes || {}, biz: d.biz || {}, samples: d.samples || {}, free: d.free || {}, cheers: d.cheers || {}, reports: d.reports || {}, hidden: d.hidden || {}, vouchers: d.vouchers || {}, mod: d.mod || {}, repCredit: d.repCredit || {}, modNotices: d.modNotices || [] };
+  } catch { return { contacts: {}, gifts: {}, giftSeen: {}, meta: {}, unlocks: {}, goods: {}, att: {}, ctPaid: {}, ctUsed: {}, ctQuotes: {}, biz: {}, samples: {}, free: {}, cheers: {}, reports: {}, hidden: {}, vouchers: {}, mod: {}, repCredit: {}, modNotices: [] }; }
 }
 function save(d) { fs.mkdirSync(path.dirname(F), { recursive: true }); fs.writeFileSync(F, JSON.stringify(d), { mode: 0o600 }); }
 const solOk = a => { if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a || '')) return false; try { return b58.decode(a).length === 32; } catch { return false; } };

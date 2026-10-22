@@ -1,6 +1,5 @@
-// 内容审核（上链前）。MVP：关键词过滤 + AI 语义审核桩 + 人工复核队列。
+// 内容审核（全自动，无人工）：关键词过滤 + AI 语义审核（OpenAI omni-moderation）+ 图片 NSFW；举报/申诉自动复审见 automod.js。
 // 词表仅为示例（含 zh/en/ja/ko/es/fr/de/pt/ru 基础词），生产需使用专业词库/第三方审核服务。
-const fs = require('fs'), path = require('path');
 const RULES = {
   '违法': ['毒品', '冰毒', '大麻', '枪支', '赌博', '博彩', '洗钱', '诈骗', '代开发票', '办证', 'drugs', 'cocaine', 'heroin', 'gun sale', 'gambling', 'casino', 'money laundering', 'scam', 'drogas','cocaína','heroína','apuestas','estafa','blanqueo de dinero','drogue','cocaïne','héroïne','arnaque','blanchiment','drogen','kokain','betrug','geldwäsche','glücksspiel','lavagem de dinheiro','наркотики','кокаин','героин','мошенничество','отмывание денег','казино','麻薬','覚醒剤','コカイン','詐欺','マネーロンダリング','마약','필로폰','코카인','도박','사기꾼','돈세탁'],
   '侵权': ['盗版', '破解版', '高仿', '人肉', '泄露身份证', 'pirated', 'cracked', 'counterfeit', 'doxx'],
@@ -16,15 +15,23 @@ function keywordCheck(text) {
   for (const [cat, words] of Object.entries(RULES)) for (const w of words) if (t.includes(norm(w))) return { pass: false, category: cat, term: w };
   return { pass: true };
 }
-// 桩：接入大模型/第三方内容安全 API 做语义审核（如阿里云/腾讯云内容安全、OpenAI moderation 等）
-async function aiSemanticReview(text /*, imageUrl */) { return { pass: true, provider: 'stub' }; }
-// 人工复核队列：可疑但未命中关键词的内容可推入此队列（MVP 仅记录，不阻塞）
-const QUEUE = path.join(require('./network').DATA_DIR, 'review-queue.jsonl');
-function enqueueManual(item) { fs.mkdirSync(path.dirname(QUEUE), { recursive: true }); fs.appendFileSync(QUEUE, JSON.stringify({ ...item, at: Date.now() }) + '\n'); }
-async function moderate(text) {
-  const k = keywordCheck(text); if (!k.pass) return k;
-  const ai = await aiSemanticReview(text); if (!ai.pass) return { pass: false, category: ai.category || 'AI 语义审核' };
-  if (/https?:\/\/|www\.|\d{7,}/i.test(text)) enqueueManual({ text, reason: '含链接/长数字，建议人工复核' });
-  return { pass: true };
-}
-module.exports = { moderate, keywordCheck, RULES };
+// t263：AI 语义审核 = OpenAI omni-moderation-latest（免费）。未配置 OPENAI_API_KEY 或调用失败时回退为关键词 + NSFW（不因外部故障阻塞用户）。
+const AI_CATS = { 'sexual/minors': '色情', sexual: '色情', 'hate/threatening': '歧视', hate: '歧视', 'harassment/threatening': '暴力', harassment: '负面消极', 'self-harm/intent': '负面消极', 'self-harm/instructions': '负面消极', 'self-harm': '负面消极', 'violence/graphic': '暴力', violence: '暴力', 'illicit/violent': '违法', illicit: '违法' };
+const TH = { sexual: .5, 'sexual/minors': .2, hate: .5, 'hate/threatening': .4, harassment: .7, 'harassment/threatening': .5, 'self-harm': .6, 'self-harm/intent': .5, 'self-harm/instructions': .4, violence: .7, 'violence/graphic': .6, illicit: .6, 'illicit/violent': .5 };
+const aiOn = () => !!process.env.OPENAI_API_KEY;
+const stat = { calls: 0, flagged: 0, errors: 0, last: null };
+async function aiSemanticReview(text, image /* Buffer|{buf,mime}|url */) {
+  if (!aiOn()) return { pass: true, provider: 'none' };
+  const input = []; if (text && String(text).trim()) input.push({ type: 'text', text: String(text).slice(0, 8000) });
+  if (image) { const url = typeof image === 'string' ? image : 'data:' + (image.mime || 'image/jpeg') + ';base64,' + Buffer.from(image.buf || image).toString('base64'); input.push({ type: 'image_url', image_url: { url } }); }
+  if (!input.length) return { pass: true, provider: 'none' };
+  try { stat.calls++; const r = await fetch(process.env.OPENAI_MOD_URL || 'https://api.openai.com/v1/moderations', { method: 'POST', headers: { authorization: 'Bearer ' + process.env.OPENAI_API_KEY, 'content-type': 'application/json' }, body: JSON.stringify({ model: 'omni-moderation-latest', input }), signal: AbortSignal.timeout(12000) });
+    if (!r.ok) throw new Error('openai ' + r.status); const j = await r.json(), res = j.results?.[0]; if (!res) throw new Error('openai empty');
+    const sc = res.category_scores || {}, hit = Object.keys(TH).filter(k => (sc[k] || 0) >= TH[k]).sort((a, b) => sc[b] - sc[a])[0] || (res.flagged ? Object.keys(res.categories || {}).find(k => res.categories[k]) : null);
+    stat.last = Date.now(); if (hit) { stat.flagged++; return { pass: false, category: AI_CATS[hit] || 'AI 语义审核', ai: hit, provider: 'openai' }; } return { pass: true, provider: 'openai' };
+  } catch (e) { stat.errors++; console.warn('ai moderation unavailable:', e.message); return { pass: true, provider: 'fallback', error: e.message }; } }
+async function moderate(text, image) {
+  const k = keywordCheck(text || ''); if (!k.pass) return { ...k, provider: 'keyword' };
+  const ai = await aiSemanticReview(text, image); if (!ai.pass) return { pass: false, category: ai.category, ai: ai.ai, provider: ai.provider };
+  return { pass: true, provider: ai.provider }; }
+module.exports = { moderate, keywordCheck, aiSemanticReview, aiOn, stat, RULES };

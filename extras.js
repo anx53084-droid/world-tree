@@ -16,7 +16,7 @@ function pub(st) { const hid = st.hidden || {};
   const samples = Object.values(st.samples || {}).filter(s => !hid['OS_' + s.id]).map(s => ({ id: 'OS_' + s.id, text: s.text, cat: s.cat, cover: s.cover, at: s.at }));
   const free = Object.values(st.free || {}).filter(f => !f.up && !hid['OF_' + f.id]).sort((a, b) => b.at - a.at).slice(0, 300).map(f => ({ id: 'OF_' + f.id, text: f.text, cat: f.cat, cover: f.cover, at: f.at }));
   const gifted = Object.values(st.vouchers || {}).filter(v => v.claimed && v.card && !hid[v.card.id]).sort((a, b) => b.card.at - a.card.at).slice(0, 300).map(v => ({ id: v.card.id, text: v.card.text, cat: v.card.cat, cover: v.card.cover, at: v.card.at, gifted: true, by: v.by || '', offchain: true }));
-  return { samples, free, gifted, cheers: st.cheers || {}, hidden: Object.keys(hid) }; }
+  return { samples, free, gifted, cheers: st.cheers || {}, hidden: Object.keys(hid), modh: Object.fromEntries(Object.keys(hid).map(k => [k, { ap: !!st.mod?.[k]?.appealed, cat: st.mod?.[k]?.category || null }])) }; }
 async function handle(req, res, url, C) { const { send, body, Soc, moderate, Block } = C, ip = C.ip(req), ipk = sha('ip|' + ip).slice(0, 16), admin = C.adminOk(req);
   if (url === '/api/offchain' && req.method === 'GET') { res.setHeader?.('cache-control', 'no-cache'); return send(res, 200, pub(Soc.load())), true; }
   if (url === '/api/free/challenge' && req.method === 'GET') { if (hit('ch|' + ipk, 30, 3600000)) return send(res, 429, { error: 'rate', code: 'rate' }), true;
@@ -42,10 +42,7 @@ async function handle(req, res, url, C) { const { send, body, Soc, moderate, Blo
     st.cheers[sig] = (st.cheers[sig] || 0) + 1; Soc.save(st);
     if (SIG_RE.test(sig) && !hit('cheerNote|' + sig, 1, 3600000)) C.txInfo(sig).then(ti => { if (ti?.author && ti.author !== a?.user.pubkey && /^WTREE1\|W\|/.test(ti.memo || '')) { const db = C.load(); C.Acc.pushMsg(db, ti.author, { kind: 'cheer', sig, n: st.cheers[sig], text: (ti.memo.split('|')[6] || '').slice(0, 40) }); C.save(db); } }).catch(() => {});
     return send(res, 200, { ok: true, n: st.cheers[sig] }), true; }
-  if (url === '/api/report' && req.method === 'POST') { const b = await body(req, 4000), sig = String(b.sig || ''), reason = REASONS.includes(b.reason) ? b.reason : null, note = clean(b.note).slice(0, 200);
-    if ((!SIG_RE.test(sig) && !OID.test(sig)) || !reason) return send(res, 400, { error: 'param', code: 'param' }), true;
-    if (hit('rep|' + ipk, 10, 3600000) || hit('rep1|' + ipk + '|' + sig, 1, DAY)) return send(res, 429, { error: 'rate', code: 'rate' }), true;
-    const st = Soc.load(), rid = id12(); st.reports ||= {}; st.reports[rid] = { id: rid, sig, reason, note, at: Date.now(), by: ipk, status: 'open' }; const rk = Object.keys(st.reports); if (rk.length > 3000) for (const k of rk.sort((x, y) => st.reports[x].at - st.reports[y].at).slice(0, rk.length - 3000)) delete st.reports[k]; Soc.save(st); return send(res, 200, { ok: true }), true; }
+  // /api/report 与 /api/appeal 由 automod.js 处理（t263：全自动）
   if (url.startsWith('/api/admin/reports') || url.startsWith('/api/admin/samples')) { if (!admin) return send(res, 403, { error: 'forbidden', code: 'admin' }), true; const st = Soc.load();
     if (url === '/api/admin/reports' && req.method === 'GET') { const all = Object.values(st.reports || {}).sort((a, b) => a.at - b.at); return send(res, 200, { open: all.filter(r => r.status === 'open'), recent: all.filter(r => r.status !== 'open').slice(-50) }), true; }
     if (url === '/api/admin/reports/resolve' && req.method === 'POST') { const b = await body(req, 2000), r = (st.reports || {})[b.id]; if (!r || !['hide', 'dismiss', 'unhide'].includes(b.action)) return send(res, 400, { error: 'param', code: 'param' }), true;

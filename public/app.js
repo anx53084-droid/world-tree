@@ -194,7 +194,7 @@ function aggregate() {
   for (const t of all) { const f = t.memo.split('|'); if (f[1] === 'F' && f[2] && W[f[2]]) W[f[2]].fulfilled = { noteHash: f[3], ts: +f[4], attestation: f[5], sig: t.sig, onChain: true }; }
   for (const [sig, fv] of Object.entries(S.fulfill || {})) if (fv?.fulfilled && W[sig]) W[sig].fulfilled = Object.assign({}, W[sig].fulfilled || {}, { badge: true, note: fv.fulfillNote || '', ts: fv.fulfillTs || 0, tx: fv.fulfillTx, server: true });
   offMerge(W);
-  S.wishes = Object.values(W).filter(w => !S.offc?.hiddenSet?.has(w.sig)).map(w => Object.assign(w, { likes: w.likers.size, heat: w.likers.size * 2 + w.blessings.length * 3 })).sort((a, b) => (b.time || 9e9) - (a.time || 9e9)); queueMicrotask(paintAcard);
+  S.wishes = Object.values(W).filter(w => !S.offc?.hiddenSet?.has(w.sig) || isMine(w) || w.offMine).map(w => Object.assign(w, { modHidden: !!S.offc?.hiddenSet?.has(w.sig), likes: w.likers.size, heat: w.likers.size * 2 + w.blessings.length * 3 })).sort((a, b) => (b.time || 9e9) - (a.time || 9e9)); queueMicrotask(paintAcard);
   buildRecentMap();
 }
 S.cardMeta = S.cardMeta || {}; S.unlocked = JSON.parse(sessionStorage.wt_unlock || '{}');
@@ -237,7 +237,7 @@ let metaFor = '';
 async function loadCardMeta(list) {
   const need = (list || S.wishes).filter(w => ((w.vis && w.vis !== 'public') || w.kind === 'social') && !/^SAMPLE/.test(w.sig)).map(w => w.sig);
   if (!need.length) return; const key = need.slice().sort().join(','); if (metaFor === key) return; metaFor = key;
-  try { const r = await fetch('/api/card-meta/batch', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') }, body: JSON.stringify({ sigs: need }) }).then(x => x.json());
+  try { const r = await fetch('/api/card-meta/batch', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || ''), 'x-wt-dev': (() => { try { return devId(); } catch { return ''; } })() }, body: JSON.stringify({ sigs: need }) }).then(x => x.json());
     Object.assign(S.cardMeta, r.meta || {}); softRefresh(); } catch { metaFor = ''; }
 }
 let goodsFor = '';
@@ -693,7 +693,7 @@ function kindHtml(w, full) { // 交友卡 / 礼品卡附加信息（全部转义
   return ''; }
 const typeTag = w => w.kind === 'social' || w.kind === 'gift' || w.kind === 'goods' || w.kind === 'gate' || w.kind === 'biz' ? `<span class="tag ktype">${esc(t('kind.' + w.kind))}</span>` : '';
 const visBadge = w => w.vis && w.vis !== 'public' ? `<span class="tag kvis">${E('vis.' + w.vis)}</span>` : (w.deliver === 'off' ? `<span class="tag kvis">${E('vis.offTree')}</span>` : '');
-const wishCard = (w, pos, F) => { const L = lockPaint(w), fa = F === true ? ` data-cid="${esc(w.sig)}" data-pos="${pos}"` : ''; return `<div class="card hover k-${w.kind || 'wish'}${L.lockedView ? ' locked-card' : ''}" data-cat="${w.cat}"${fa}>${locCorner(w)}<div>${w.pending ? '⏳ ' : ''}${kIcon(w)}${UTw(w, L.text, L)} ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}</div>${L.lockedView ? `<p class=muted>${E('vis.unlockHint')}</p>` : kindHtml(w)}<div class="row muted" style="margin-top:6px">
+const wishCard = (w, pos, F) => { const L = lockPaint(w), fa = F === true ? ` data-cid="${esc(w.sig)}" data-pos="${pos}"` : ''; return `<div class="card hover k-${w.kind || 'wish'}${L.lockedView ? ' locked-card' : ''}" data-cat="${w.cat}"${fa}>${locCorner(w)}<div>${w.pending ? '⏳ ' : ''}${kIcon(w)}${UTw(w, L.text, L)} ${fulfillBadge(w)} ${kindTag(w)} ${typeTag(w)} ${visBadge(w)}</div>${modBanner(w)}${L.lockedView ? `<p class=muted>${E('vis.unlockHint')}</p>` : kindHtml(w)}<div class="row muted" style="margin-top:6px">
   <span class=tag>${esc(catName(w.cat))}</span><span>${esc(t('card.author', { addr: short(w.author) }))}</span><span>${fmtT(w.time)}</span><span>🔥 ${w.heat}</span>${L.lockedView ? '' : likeBtn(w)}<a class=btn href="#/w/${encodeURIComponent(w.sig)}${F === true ? '?i=' + pos : ''}"${fa}>${esc(t('card.details'))}</a></div></div>`; };
 document.addEventListener('click', e => { const s = e.target.closest('[data-like]')?.dataset.like; if (!s) return;
   const w = S.wishes.find(x => x.sig === s); if (S.pubkey && w?.likers.has(S.pubkey)) return toast(esc(t('card.alreadyLiked'))); submit(TAG + 'L|' + s, 'like'); });
@@ -705,7 +705,15 @@ const isMine = w => S.pubkey && w.author === S.pubkey;
 function offMerge(W) { const o = S.offc; if (!o) return; let mineFree; try { mineFree = new Set(JSON.parse(localStorage.wt_free || '[]').map(f => f.id)); } catch { mineFree = new Set(); } o.hiddenSet = new Set(o.hidden || []);
   const mk = (x, official) => ({ sig: x.id, author: '', time: Math.floor(x.at / 1000), text: x.text, cat: x.cat, hue: CATS[x.cat] ?? 40, kind: 'wish', vis: 'public', deliver: 'tree', cover: x.cat === '光栖' ? gqSet({ cover: x.cover }) : WTCovers.forCat('经典')[0], likers: new Set(), blessings: [], paid: 0, sample: true, verified: true, offchain: !official, official, offMine: !official && mineFree.has(x.id) }); // t251：「未上链」标签只给作者本人（本设备创建的免费心愿）看
   for (const x of o.samples || []) W[x.id] = mk(x, true); for (const x of o.free || []) W[x.id] = mk(x, false);
-  for (const x of o.gifted || []) { const g = mk(x, false); Object.assign(g, { gifted: true, by: x.by || '', giver: x.giver, offMine: mineFree.has(x.id) }); W[x.id] = g; } }
+  for (const x of o.gifted || []) { const g = mk(x, false); Object.assign(g, { gifted: true, by: x.by || '', giver: x.giver, offMine: mineFree.has(x.id) }); W[x.id] = g; }
+  try { for (const f of JSON.parse(localStorage.wt_free || '[]')) if (o.hiddenSet.has(f.id) && !W[f.id] && f.text) W[f.id] = Object.assign(mk({ id: f.id, text: f.text, cat: f.cat || '经典', at: f.at || Date.now(), cover: 0 }, false), { offMine: true }); } catch {} } // t263：作者本机可见自己被隐藏的免费心愿（以便申诉）
+// t263：被自动审核隐藏的卡片只对作者可见，并提供一键申诉
+const modBanner = w => { if (!w.modHidden) return ''; const h = S.offc?.modh?.[w.sig] || {}; return `<div class=mod-hid role=status><b>${E('mod.hiddenMine')}</b>${h.cat ? ` <span class=tag>${esc(catLabelMod(h.cat))}</span>` : ''}<div class=row>${h.ap ? `<span class=muted>${E('mod.appealed')}</span>` : `<button type=button class=primary data-appeal="${esc(w.sig)}">⚖️ ${E('mod.appeal')}</button>`} <a href="#/rules">${E('nav.rules')} →</a></div></div>`; };
+const catLabelMod = c => { const k = { '违法': 'illegal', '侵权': 'infringement', '色情': 'sexual', '暴力': 'violence', '歧视': 'discrimination', '违法宣传': 'illegalPromo', '负面消极': 'negative' }[c]; return k && I18N.dict['modcat.' + k] ? t('modcat.' + k) : I18N.dict['modcat.ai'] ? t('modcat.ai') : c; };
+document.addEventListener('click', async e => { const b = e.target.closest('[data-appeal]'); if (!b) return; e.preventDefault(); e.stopPropagation(); const sig = b.dataset.appeal; b.disabled = true; b.textContent = '⏳ ' + t('mod.appealing');
+  let token; try { token = JSON.parse(localStorage.wt_free || '[]').find(f => f.id === sig)?.token; } catch {}
+  try { const r = await api('/api/appeal', { sig, token }); toast(r.restored ? '✅ ' + E('mod.restored') : '⚠️ ' + E('mod.stillHidden'), r.restored ? 'ok' : 'err'); await loadOffchain(); route(); }
+  catch (er) { toast(esc(er.message), 'err'); b.disabled = false; b.textContent = '⚖️ ' + t('mod.appeal'); } }, true);
 async function loadOffchain() { try { const r = await fetch('/api/offchain'); if (!r.ok) return; S.offc = await r.json(); aggregate(); if (!document.querySelector('textarea:focus,input:focus') && $('#modal').hidden && !/^#\/(wish|free)/.test(location.hash)) softRefresh(); } catch {} }
 const cheersOf = sig => S.offc?.cheers?.[sig] || 0;
 const cheerBtn = w => w.pending || /^(SAMPLE|SYN|SL|SB)/.test(w.sig) ? '' : `<button data-cheer="${esc(w.sig)}" class="cheer${S.cheered?.[w.sig] ? ' lit' : ''}" aria-pressed=${!!S.cheered?.[w.sig]} title="${E('cheer.tip')}">${S.cheered?.[w.sig] ? '🌟' : '✨'} ${E('cheer.btn')} <b>${cheersOf(w.sig)}</b></button>`;
@@ -720,9 +728,10 @@ document.addEventListener('click', async e => { const b = e.target.closest('[dat
   try { const r = await api('/api/cheer', { sig }); (S.offc ||= {}).cheers ||= {}; S.offc.cheers[sig] = r.n; S.cheered[sig] = 1; localStorage.wt_cheered = JSON.stringify(S.cheered); document.querySelectorAll(`[data-cheer="${CSS.escape(sig)}"]`).forEach(x => { x.innerHTML = `🌟 ${E('cheer.btn')} <b>${r.n}</b>`; x.classList.add('lit'); x.setAttribute('aria-pressed', 'true'); if (!r.dup) cheerFx(x); }); document.querySelectorAll(`[data-cheern="${CSS.escape(sig)}"]`).forEach(x => x.textContent = r.n); if (!r.dup) toast('🌟 ' + E('cheer.done'), 'ok'); }
   catch (er) { toast(esc(er.message), 'err'); } b.disabled = false; });
 document.addEventListener('click', e => { const b = e.target.closest('[data-report]'); if (!b) return; const sig = b.dataset.report;
+  if (!S.token) return modal(`<h3>🚩 ${E('rep.title')}</h3><p>${E('rep.needLogin')}</p>${guestCta()}<div class=row style="margin-top:10px"><button data-close>${E('common.close')}</button></div><p class="muted hint"><a href="#/rules" data-close>${E('nav.rules')} →</a></p>`);
   modal(`<h3>🚩 ${E('rep.title')}</h3><p class=muted>${E('rep.hint')}</p><label>${E('rep.reason')} <select id=rpr>${['spam', 'abuse', 'illegal', 'privacy', 'scam', 'other'].map(r => `<option value=${r}>${E('rep.r.' + r)}</option>`).join('')}</select></label>
     <label>${E('rep.note')}<textarea id=rpn maxlength=200 rows=3 dir=auto></textarea></label><div class=row style="margin-top:10px"><button class=primary id=rps>${E('rep.send')}</button><button data-close>${E('common.close')}</button></div><p class="muted hint"><a href="#/rules" data-close>${E('nav.rules')} →</a></p>`);
-  $('#rps').onclick = async () => { try { await api('/api/report', { sig, reason: $('#rpr').value, note: $('#rpn').value }); closeModal(); toast('✅ ' + E('rep.ok'), 'ok'); } catch (er) { toast(esc(er.message), 'err'); } }; });
+  $('#rps').onclick = async () => { try { const rr = await api('/api/report', { sig, reason: $('#rpr').value, note: $('#rpn').value }); closeModal(); toast('✅ ' + E(rr.queued ? 'rep.queued' : 'rep.ok'), 'ok'); if (rr.queued) setTimeout(loadOffchain, 8000); } catch (er) { toast(esc(er.message), 'err'); } }; });
 // 自定义封面卡样式（t241）：overlay = 单页·双面相同（内容叠在封面上）；split = 单页·封面 / 内容分开（旧自定义单卡）；fold = 折页（封面 + 内页 + 背面 ~R）
 const CS_KINDS = ['wish', 'social', 'gift', 'goods', 'biz'], cStyle = w => w && w.cimg && CS_KINDS.includes(w.kind || 'wish') ? (w.folded ? 'fold' : w.ustyle === 'o' ? 'overlay' : 'split') : ''; window.WTcStyle = cStyle;
 // 卡面摘要（封面叠字 / 背面 / 树上贴图共用）：只用链上公开字段；交友卡的联系方式 / 详情（可加锁 / 加密）从不出现在卡面，只在详情页按权限显示
@@ -1328,7 +1337,7 @@ function detailBase(sig) {
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w), L = lockPaint(w);
   if (locked) return `<h2>${E('detail.title')}</h2><div class="card locked-card k-${w.kind || 'wish'}">${locCorner(w)}<p style="font-size:22px">${esc(L.text)}</p><p class=muted>${E('vis.' + w.vis + 'Need')}</p>
     ${w.vis === 'locked' ? `<label>${E('vis.password')}<input id=dupass type=password></label><button class=primary id=duok>${E('vis.unlock')}</button>` : w.vis === 'nearby' ? `<div class=loc-row><label>${E('loc.country')}<input id=dcountry value="${esc(S.myLoc.country||'')}"></label><label>${E('loc.province')}<input id=dprov value="${esc(S.myLoc.province||'')}"></label><label>${E('loc.city')}<input id=dcity value="${esc(S.myLoc.city||'')}"></label></div><button class=primary id=duset>${E('vis.setCity')}</button>` : ''}</div>`;
-  return `<h2>${E('detail.title')}</h2><div class="card k-${w.kind || 'wish'}" data-cat="${w.cat}" style="position:relative">${locCorner(w)}<div class=row>${spectrum(w.sig, 120)}<div style="flex:1">${offBadge(w)} <span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)} ${typeTag(w)} ${visBadge(w)}<p style="font-size:22px" dir=auto>${kIcon(w)}${UTw(w, w.text)}</p> ${kindTag(w)}${kindHtml(w, true)}</div></div>
+  return `<h2>${E('detail.title')}</h2><div class="card k-${w.kind || 'wish'}" data-cat="${w.cat}" style="position:relative">${locCorner(w)}<div class=row>${spectrum(w.sig, 120)}<div style="flex:1">${offBadge(w)} <span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)} ${typeTag(w)} ${visBadge(w)}<p style="font-size:22px" dir=auto>${kIcon(w)}${UTw(w, w.text)}</p>${modBanner(w)} ${kindTag(w)}${kindHtml(w, true)}</div></div>
   ${w.official || w.offchain ? `<p>${E('detail.time')} ${fmtT(w.time)}</p>` : `<p>${E('detail.author')} <code>${esc(w.author)}</code></p><p>${E('detail.time')} ${fmtT(w.time)} ${w.pending ? '（⏳ ' + E('time.pending') + '）' : ''} · ${E('detail.paid')} ${sol(w.paid || 0)} · 🔥 ${E('detail.heat', { n: w.heat })}</p>
   <p class=muted>🌈 ${E('detail.spectrum')}</p>`}
   ${fpBy(w)}${offNote(w)}${w.offchain && myFree().some(f => f.id === w.sig) ? `<p><a class="btn primary" href="#/free">⛓️ ${E('free.upgrade')}</a></p>` : ''}
@@ -1822,6 +1831,7 @@ const rulesPage = () => `<h2 class=gold-title>📏 ${E('rl.title')}</h2><p class
   <div class="card motif"><h3>${E('help.rulesTitle')}</h3>${RULES_LIST()}<ul>${['rl.x1', 'rl.x2', 'rl.x3'].map(k => `<li>${E(k)}</li>`).join('')}</ul></div>
   <div class="card motif"><h3>⏱️ ${E('rl.timeT')}</h3><p>${E('rl.time')}</p></div>
   <div class="card motif"><h3>🚩 ${E('rl.repT')}</h3><p>${E('rl.rep')}</p></div>
+  <div class="card motif"><h3>🛡️ ${E('rl.abuseT')}</h3><p>${E('rl.abuse')}</p></div>
   <div class="card motif"><h3>📮 ${E('rl.appealT')}</h3><p>${E('rl.appeal')}</p></div>`;
 const help = () => `<h2>${E('nav.help')}</h2>${prevail()}
 <div class="card" data-cat="经典"><h3>${E('help.rulesTitle')}</h3>${RULES_LIST()}</div>
