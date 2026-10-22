@@ -1450,5 +1450,6 @@
   "err.apAuthor": "Hanya pembuat kartu yang dapat mengajukan banding",
   "err.apRetry": "Layanan peninjauan sedang tidak tersedia; coba lagi nanti (bandingmu tidak terpakai)",
   "err.apNotHidden": "Kartu ini tidak disembunyikan",
-  "rep.queued": "Laporan diterima — sedang ditinjau ulang otomatis"
+  "rep.queued": "Laporan diterima — sedang ditinjau ulang otomatis",
+  "nav.discord": "Komunitas Discord"
 }

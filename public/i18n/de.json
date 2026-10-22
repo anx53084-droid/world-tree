@@ -1450,5 +1450,6 @@
   "err.apAuthor": "Nur der Autor der Karte kann Einspruch einlegen",
   "err.apRetry": "Prüfdienst vorübergehend nicht verfügbar – bitte später erneut versuchen (Einspruch wurde nicht verbraucht)",
   "err.apNotHidden": "Diese Karte ist nicht ausgeblendet",
-  "rep.queued": "Meldung erhalten – automatische Neuprüfung läuft"
+  "rep.queued": "Meldung erhalten – automatische Neuprüfung läuft",
+  "nav.discord": "Discord-Community"
 }

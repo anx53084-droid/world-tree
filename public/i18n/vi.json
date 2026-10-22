@@ -1450,5 +1450,6 @@
   "err.apAuthor": "Chỉ tác giả của thẻ mới có thể kháng nghị",
   "err.apRetry": "Dịch vụ kiểm duyệt tạm thời không khả dụng; hãy thử lại sau (lượt kháng nghị chưa bị dùng)",
   "err.apNotHidden": "Thẻ này không bị ẩn",
-  "rep.queued": "Đã nhận báo cáo — đang tự động xét lại"
+  "rep.queued": "Đã nhận báo cáo — đang tự động xét lại",
+  "nav.discord": "Cộng đồng Discord"
 }

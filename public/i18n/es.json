@@ -1450,5 +1450,6 @@
   "err.apAuthor": "Solo el autor de la tarjeta puede apelar",
   "err.apRetry": "Servicio de revisión no disponible temporalmente; inténtalo más tarde (tu apelación no se ha gastado)",
   "err.apNotHidden": "Esta tarjeta no está oculta",
-  "rep.queued": "Denuncia recibida: revisando automáticamente"
+  "rep.queued": "Denuncia recibida: revisando automáticamente",
+  "nav.discord": "Comunidad de Discord"
 }

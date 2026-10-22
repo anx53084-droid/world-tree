@@ -1450,5 +1450,6 @@
   "err.apAuthor": "Only the card’s author can appeal",
   "err.apRetry": "Review service temporarily unavailable — try again later (your appeal was not used up)",
   "err.apNotHidden": "This card is not hidden",
-  "rep.queued": "Report received — re-reviewing automatically"
+  "rep.queued": "Report received — re-reviewing automatically",
+  "nav.discord": "Discord community"
 }

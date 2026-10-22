@@ -1450,5 +1450,6 @@
   "err.apAuthor": "只有卡片作者可以申訴",
   "err.apRetry": "審核服務暫時無法使用，請稍後再試（申訴次數未消耗）",
   "err.apNotHidden": "這張卡片沒有被隱藏",
-  "rep.queued": "已收到檢舉，正在自動複審"
+  "rep.queued": "已收到檢舉，正在自動複審",
+  "nav.discord": "Discord 社群"
 }
