@@ -43,7 +43,7 @@
   document.addEventListener('click', e => { const b = e.target.closest?.('.ut-tg'); if (!b) return; e.preventDefault(); e.stopPropagation(); toggle(b); }, true);
   ['pointerdown', 'pointerup', 'touchstart'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest?.('.ut-tg')) e.stopPropagation(); }, true));
   const IO = 'IntersectionObserver' in self ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { IO.unobserve(e.target); queue(e.target); } }), { rootMargin: '200px' }) : null;
-  function scan(root) { if (!on()) return; (root.querySelectorAll ? root : document).querySelectorAll('.ut:not([data-uts]):not([data-utq])').forEach(el => { el.dataset.utq = 1; IO ? IO.observe(el) : queue(el); }); }
+  function scan(root) { if (!on()) return; (root.querySelectorAll ? root : document).querySelectorAll('.ut:not([data-uts]):not([data-utq])').forEach(el => { el.dataset.utq = 1; IO && !el.closest('.hs-strip') ? IO.observe(el) : queue(el); }); } // 滚动示范条：动画位移不可靠触发 IO，直接排队（条目少）
   function reset() { document.querySelectorAll('.ut').forEach(el => { el.textContent = el.dataset.ut; delete el.dataset.uts; delete el.dataset.utq; el.classList.remove('ut-on'); IO?.unobserve(el); }); document.querySelectorAll('.ut-ctl').forEach(x => x.remove()); }
   let mT; new MutationObserver(() => { clearTimeout(mT); mT = setTimeout(() => scan(document), 60); }).observe(document.documentElement, { childList: true, subtree: true });
   addEventListener('langchange', () => { reset(); scan(document); });
