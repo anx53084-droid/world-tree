@@ -1451,5 +1451,7 @@
   "err.apRetry": "Service de modération indisponible pour le moment ; réessayez plus tard (votre appel n’a pas été consommé)",
   "err.apNotHidden": "Cette carte n’est pas masquée",
   "rep.queued": "Signalement reçu : réexamen automatique en cours",
-  "nav.discord": "Communauté Discord"
+  "nav.discord": "Communauté Discord",
+  "grow.close": "Fermer ce panneau",
+  "grow.open": "Afficher le panneau"
 }

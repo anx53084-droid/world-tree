@@ -947,8 +947,15 @@ async function fpPay(f) { const btn = $('#fpgo'), out = $('#fpres'); btn.disable
 const cardTotal = () => treeWishes().filter(w => !w.synthetic && !/^SAMPLE/.test(w.sig || '')).length;
 function growHtml() { const n = cardTotal(), sm = (S.offc?.samples || []).filter(x => S.wishes.some(w => w.sig === x.id)), few = n < 50 && sm.length;
   const item = x => `<button type=button class=hs-item data-hs="${esc(x.id)}" dir=auto>${x.cat === '光栖' ? '✦' : '🏮'} ${window.WTTr && WTTr.on?.() !== false ? WTTr.span(x.text) : esc(x.text)}</button>`;
-  return `<p class=hg-line>🌳 <b id=hgc>${E('grow.count', { n: num(n) })}</b></p><p class="muted hg-sub">${E('grow.explain')}</p>
+  return `<button type=button class=hg-x data-hgx aria-label="${E('grow.close')}" title="${E('grow.close')}">×</button><p class=hg-line>🌳 <b id=hgc>${E('grow.count', { n: num(n) })}</b></p><p class="muted hg-sub">${E('grow.explain')}</p>
   <div class=hg-cta><a class="btn primary hg-free" href="#/free">☁ ${E('grow.freeBtn')}</a></div>${few ? `<div class=hs-strip aria-label="${E('grow.samples')}"><div class=hs-track style="--hs-d:${Math.max(24, sm.length * 6)}s">${sm.map(item).join('')}<span aria-hidden=true class=hs-dup>${sm.map(item).join('')}</span></div></div>` : ''}`; }
+// t271：底部引导面板可关闭（记住在 localStorage），左下角小芽按钮或菜单「免费心愿」可重新打开
+const growClosed = () => { try { return localStorage.gq_grow_closed === '1'; } catch { return false; } };
+function setGrowClosed(v) { try { v ? localStorage.gq_grow_closed = '1' : localStorage.removeItem('gq_grow_closed'); } catch {} document.body.classList.toggle('grow-closed', v);
+  let b = $('#hgopen'); if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'hgopen'; b.className = 'hg-open'; b.textContent = '🌳'; b.onclick = () => { setGrowClosed(false); $('#hgrow .hg-x')?.focus(); }; document.body.append(b); }
+  b.setAttribute('aria-label', t('grow.open')); b.title = t('grow.open'); b.tabIndex = v ? 0 : -1; b.setAttribute('aria-hidden', v ? 'false' : 'true'); const g = $('#hgrow'); if (g) { g.inert = v; g.setAttribute('aria-hidden', v ? 'true' : 'false'); } }
+document.addEventListener('click', e => { if (e.target.closest?.('[data-hgx]')) { e.preventDefault(); setGrowClosed(true); $('#hgopen')?.focus(); } else if (e.target.closest?.('#menu a[href="#/free"]') && growClosed()) setGrowClosed(false); });
+addEventListener('langchange', () => setGrowClosed(growClosed()));
 function paintGrow() { const el = $('#hgrow'); if (!el) return; const h = growHtml(); if (el._h !== h) { el._h = h; el.innerHTML = h; } }
 document.addEventListener('change', e => { if (e.target.name === 'paymode') { const v = e.target.value; $('#fpOpts')?.classList.toggle('hidden', v !== 'friend'); $('#giftOpts')?.classList.toggle('hidden', v !== 'gift'); const wt = $('#wt'); if (wt) { wt.disabled = v === 'gift'; wt.placeholder = v === 'gift' ? t('vc.wtPh') : t('wish.ph'); } } });
 document.addEventListener('click', e => { const b = e.target.closest('[data-hs]'); if (!b) return; const w = treeWishes().find(x => x.sig === b.dataset.hs); if (w) openCardPopup(lockPaint(w)); });
@@ -1968,7 +1975,7 @@ async function route() {
   if (p === '/ads') paintAds();
   if (gbm) gbPoll(gbm[1]); if (clm) gbClaimRun(clm[1].toUpperCase());
   if (S.token && (p === '/ads' || p === '/list' || p.startsWith('/w/AD') || p === '/')) loadMyAds(p === '/ads'); else paintAdNav();
-  document.querySelectorAll('body > #hgrow').forEach(e => e.remove()); { const g = $('#view #hgrow'); if (g) document.body.append(g); } // t251：成长状态条挂到 body（避免页面过渡 transform 影响 fixed 定位）
+  document.querySelectorAll('body > #hgrow').forEach(e => e.remove()); { const g = $('#view #hgrow'); if (g) document.body.append(g); setGrowClosed(growClosed()); } // t251：成长状态条挂到 body（避免页面过渡 transform 影响 fixed 定位）
   document.body.classList.toggle('home', !!$('#scene')); bindCta(); paintFab(p); bindGuide(!!$('#scene')); applySeo(p || '/'); a11yFix($('#view')); document.querySelectorAll('#menu nav a, #topnav a').forEach(x => x.classList.toggle('cur', x.getAttribute('href') === '#' + (p || '/') || (x.getAttribute('href') === '#/wish/make' && /^\/(gift\/batch\/|claim\/)/.test(p)))); document.body.style.setProperty('--hdr', (document.querySelector('header').offsetHeight + $('#banner').offsetHeight) + 'px'); if ($('#gatebox')) { paintGate(); loadGateMe(true); } if (p === '/treehole') { loadTreehole(); loadGateMe(true); } if ($('#scene')) mount3d(); if (p === '/security') loadSec(); if (p === '/inbox') loadInbox(); if (p === '/notify') loadNotify(); if (p === '/free') bindFree();
   if (p === '/wish/make' && q.get('gift')) setTimeout(() => { const k = $('#ckind'); if (!k) return; k.value = 'gift'; k.dispatchEvent(new Event('change', { bubbles: true })); }, 0);
   if (p === '/orders') bindOrders(); // 预选礼品卡（单张 / 团购由 S.giftMode 决定）

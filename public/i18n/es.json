@@ -1451,5 +1451,7 @@
   "err.apRetry": "Servicio de revisión no disponible temporalmente; inténtalo más tarde (tu apelación no se ha gastado)",
   "err.apNotHidden": "Esta tarjeta no está oculta",
   "rep.queued": "Denuncia recibida: revisando automáticamente",
-  "nav.discord": "Comunidad de Discord"
+  "nav.discord": "Comunidad de Discord",
+  "grow.close": "Cerrar este panel",
+  "grow.open": "Mostrar el panel"
 }

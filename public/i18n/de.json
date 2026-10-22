@@ -1451,5 +1451,7 @@
   "err.apRetry": "Prüfdienst vorübergehend nicht verfügbar – bitte später erneut versuchen (Einspruch wurde nicht verbraucht)",
   "err.apNotHidden": "Diese Karte ist nicht ausgeblendet",
   "rep.queued": "Meldung erhalten – automatische Neuprüfung läuft",
-  "nav.discord": "Discord-Community"
+  "nav.discord": "Discord-Community",
+  "grow.close": "Dieses Feld schließen",
+  "grow.open": "Feld anzeigen"
 }

@@ -1451,5 +1451,7 @@
   "err.apRetry": "Layanan peninjauan sedang tidak tersedia; coba lagi nanti (bandingmu tidak terpakai)",
   "err.apNotHidden": "Kartu ini tidak disembunyikan",
   "rep.queued": "Laporan diterima — sedang ditinjau ulang otomatis",
-  "nav.discord": "Komunitas Discord"
+  "nav.discord": "Komunitas Discord",
+  "grow.close": "Tutup panel ini",
+  "grow.open": "Tampilkan panel"
 }

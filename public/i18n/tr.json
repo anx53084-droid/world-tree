@@ -1451,5 +1451,7 @@
   "err.apRetry": "İnceleme hizmeti geçici olarak kullanılamıyor; daha sonra tekrar deneyin (itiraz hakkınız kullanılmadı)",
   "err.apNotHidden": "Bu kart gizli değil",
   "rep.queued": "Şikâyet alındı — otomatik yeniden inceleniyor",
-  "nav.discord": "Discord topluluğu"
+  "nav.discord": "Discord topluluğu",
+  "grow.close": "Bu paneli kapat",
+  "grow.open": "Paneli göster"
 }

@@ -1451,5 +1451,7 @@
   "err.apRetry": "審査サービスが一時的に利用できません。後でもう一度お試しください（申し立て回数は消費されていません）",
   "err.apNotHidden": "このカードは非表示になっていません",
   "rep.queued": "通報を受け付けました。自動で再審査しています",
-  "nav.discord": "Discord コミュニティ"
+  "nav.discord": "Discord コミュニティ",
+  "grow.close": "このパネルを閉じる",
+  "grow.open": "パネルを表示"
 }

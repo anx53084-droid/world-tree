@@ -1451,5 +1451,7 @@
   "err.apRetry": "Serviço de revisão indisponível de momento; tente mais tarde (o recurso não foi gasto)",
   "err.apNotHidden": "Este cartão não está oculto",
   "rep.queued": "Denúncia recebida — a rever automaticamente",
-  "nav.discord": "Comunidade no Discord"
+  "nav.discord": "Comunidade no Discord",
+  "grow.close": "Fechar este painel",
+  "grow.open": "Mostrar o painel"
 }

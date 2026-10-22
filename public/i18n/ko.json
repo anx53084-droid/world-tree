@@ -1451,5 +1451,7 @@
   "err.apRetry": "심사 서비스를 일시적으로 사용할 수 없습니다. 나중에 다시 시도하세요(이의 제기 횟수는 차감되지 않았습니다)",
   "err.apNotHidden": "이 카드는 숨겨져 있지 않습니다",
   "rep.queued": "신고가 접수되어 자동 재심사 중입니다",
-  "nav.discord": "Discord 커뮤니티"
+  "nav.discord": "Discord 커뮤니티",
+  "grow.close": "이 패널 닫기",
+  "grow.open": "패널 보기"
 }
