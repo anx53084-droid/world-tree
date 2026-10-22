@@ -14,11 +14,12 @@
   const fam = l => (l || '').split('-')[0];
   const sameLang = (src, t) => src === 'none' || (src && (src === t || (fam(src) === fam(t) && fam(t) !== 'zh') || (fam(src) === 'zh' && fam(t) === 'zh'))); // 简繁互不翻译（同属中文读者可读）
   const CHL = l => l === 'zh-CN' ? 'zh' : l === 'zh-TW' ? 'zh-Hant' : l;
-  let LD = null; async function ldetect(s) { try { if (!self.LanguageDetector) return ''; if (!LD) { if ((await LanguageDetector.availability()) !== 'available') return ''; LD = await LanguageDetector.create(); }
+  let LD = null; const ldetect = s => TO(ldetect0(s), 1500).then(x => x || ''); async function ldetect0(s) { try { if (!self.LanguageDetector) return ''; if (!LD) { if ((await LanguageDetector.availability()) !== 'available') return ''; LD = await LanguageDetector.create(); }
     const r = (await LD.detect(s))[0]; return r && r.confidence > .6 ? r.detectedLanguage : ''; } catch { return ''; } }
-  const TR = new Map(); async function chrome(s, src, t) { try { if (!self.Translator || !src) return null; const k = src + '>' + t;
+  const TO = (pr, ms) => Promise.race([pr, new Promise(r => setTimeout(() => r(null), ms))]); // 端侧 API 偶尔挂起：超时即回退服务端
+  const TR = new Map(); const chrome = (s, src, t) => TO(chrome0(s, src, t), 2500); async function chrome0(s, src, t) { try { if (!self.Translator || !src) return null; const k = src + '>' + t;
     if (!TR.has(k)) TR.set(k, (async () => (await Translator.availability({ sourceLanguage: CHL(src), targetLanguage: CHL(t) })) === 'available' ? Translator.create({ sourceLanguage: CHL(src), targetLanguage: CHL(t) }) : null)().catch(() => null));
-    const tr = await TR.get(k); if (!tr) return null; const out = await tr.translate(s); return out && out.trim() !== s.trim() ? out : null; } catch { return null; } }
+    const tr = await TO(TR.get(k), 2000); if (!tr) { TR.set(k, Promise.resolve(null)); return null; } const out = await tr.translate(s); return out && out.trim() !== s.trim() ? out : null; } catch { return null; } }
   const W = { provider: '', stats: { chrome: 0, server: 0, cache: 0, fail: 0 } };
   let Q = [], flushT = null;
   function queue(el) { Q.push(el); clearTimeout(flushT); flushT = setTimeout(flush, 120); }
