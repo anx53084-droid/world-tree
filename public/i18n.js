@@ -1,7 +1,7 @@
 // 国际化：public/i18n/<lang>.json；用户愿望内容不翻译。首次访问按 navigator.language 自动检测，?lang= 优先，选择保存在 localStorage.wt_lang
 (function () {
   const LANGS = { 'zh-CN': '简体中文', 'zh-TW': '繁體中文', en: 'English', ja: '日本語', ko: '한국어', es: 'Español', fr: 'Français', de: 'Deutsch', pt: 'Português', ru: 'Русский', ar: 'العربية', hi: 'हिन्दी', id: 'Bahasa Indonesia', vi: 'Tiếng Việt', th: 'ไทย', tr: 'Türkçe' };
-  const RTL = ['ar'], DEF = 'zh-CN';
+  const RTL = ['ar'], DEF = 'en';
   function match(l) { if (!l) return null; l = String(l).replace('_', '-'); if (LANGS[l]) return l; const low = l.toLowerCase();
     if (low.startsWith('zh')) return /tw|hk|mo|hant/.test(low) ? 'zh-TW' : 'zh-CN';
     const b = low.split('-')[0]; return LANGS[b] ? b : null; }

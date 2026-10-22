@@ -704,3 +704,4 @@ body.fab-on.home:not(.debug) .home-grow { bottom: var(--fab-clear); right: 10px 
 .mod-hid{margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(220,80,80,.12);border:1px solid rgba(240,120,120,.45);font-size:14px}
 .mod-hid .row{margin-top:8px;align-items:center;gap:10px;flex-wrap:wrap}
 .card.mod-card{opacity:.92}
+.hs-item .ut { display: inline-block; max-width: 22em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }

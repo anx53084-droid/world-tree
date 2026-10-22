@@ -1,4 +1,4 @@
-// Cloudflare Pages 中间件：社交爬虫不执行 JS，按 ?lang= → Accept-Language → zh-CN 服务端改写 <head> 的 og/twitter/lang
+// Cloudflare Pages 中间件：社交爬虫不执行 JS，按 ?lang= → Accept-Language → en 服务端改写 <head> 的 og/twitter/lang
 import META from '../public/og/meta.json';
 const LANGS = Object.keys(META); // 域名取当前请求的 origin（多域名部署，不写死）
 const DEFAULT_ORIGIN = 'https://guangqi.world'; // 与 public/index.html 里静态写的首选域名一致；实际输出一律用当前请求的 origin
@@ -6,9 +6,9 @@ function match(l) { if (!l) return null; l = l.trim().toLowerCase();
   if (l.startsWith('zh')) return /tw|hk|mo|hant/.test(l) ? 'zh-TW' : 'zh-CN';
   return LANGS.find(k => k.toLowerCase() === l) || LANGS.find(k => k.toLowerCase() === l.split('-')[0]) || null; }
 export function pick(url, al) { const q = match(url.searchParams.get('lang')); if (q) return q;
-  if (!al) return 'zh-CN';
+  if (!al) return 'en';
   const ls = al.split(',').map(s => { const [t, ...p] = s.trim().split(';'); const qv = p.find(x => x.trim().startsWith('q=')); return [t, qv ? parseFloat(qv.split('=')[1]) : 1]; }).filter(x => x[0] && x[0] !== '*').sort((a, b) => b[1] - a[1]);
-  for (const [t] of ls) { const m = match(t); if (m) return m; } return ls.length ? 'en' : 'zh-CN'; }
+  for (const [t] of ls) { const m = match(t); if (m) return m; } return 'en'; }
 const attr = (v) => ({ element(e) { e.setAttribute('content', v); } });
 const GQN = ['星愿', '治愈', '爱', '梦想', '守护', '自由', '智慧', '家园', '创造', '重生'], GQN_TW = ['星願', '療癒', '愛', '夢想', '守護', '自由', '智慧', '家園', '創造', '重生'];
 const API_DEFAULT = 'https://world-tree-ijv1.onrender.com';

@@ -5,7 +5,7 @@ const SUB = ['Wish of Reunion', 'Healing Wish', 'Eternal Love', 'Dream Wish', 'G
 const GSUB = { first_light: 'First Light', growth: 'Growth Gate', resonance: 'Resonance' };
 const GEN = { gr: 'Every step of growth is the light toward the future.', rs: ['RESONANCE GATE CARD', 'When resonance rises, sakura becomes the gate.', 'All things answer, intent becomes the key.'] };
 const FT = ['gqf1.t', 'gqf2.t', 'gqf3.t', 'gqf4.t', 'gqf5.t', 'gqf6.t', 'gqf7.t', 'gqf8.t', 'gqf9.t', 'gqf10.t'], F1 = ['gqf1.l1', 'gqf2.l1', 'gqf3.l1', 'gqf4.l1', 'gqf5.l1', 'gqf6.l1', 'gqf7.l1', 'gqf8.l1', 'gqf9.l1', 'gqf10.l1'], F2 = ['gqf1.l2', 'gqf2.l2', 'gqf3.l2', 'gqf4.l2', 'gqf5.l2', 'gqf6.l2', 'gqf7.l2', 'gqf8.l2', 'gqf9.l2', 'gqf10.l2'], FM = ['gqf1.m', 'gqf2.m', 'gqf3.m', 'gqf4.m', 'gqf5.m', 'gqf6.m', 'gqf7.m', 'gqf8.m', 'gqf9.m', 'gqf10.m'], BK = ['gqb1', 'gqb2', 'gqb3', 'gqb4', 'gqb5', 'gqb6', 'gqb7', 'gqb8', 'gqb9', 'gqb10'];
-const T = k => (window.t ? window.t(k) : k), lang = () => window.I18N?.lang || 'zh-CN', en = () => /^en/.test(lang());
+const T = k => (window.t ? window.t(k) : k), lang = () => window.I18N?.lang || 'en', en = () => /^en/.test(lang());
 const CJK = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/;
 const LAT = 'Georgia,"Noto Serif","Times New Roman"', CJKF = '"Noto Serif SC","Noto Serif CJK SC","Noto Serif JP","Noto Serif KR","Noto Serif CJK KR"', OTH = '"Noto Naskh Arabic","Noto Serif Devanagari","Noto Sans Devanagari","Noto Serif Thai","Noto Sans Thai"';
 const FONT = () => (/^(zh|ja|ko)/.test(lang()) ? CJKF + ',' + LAT : LAT + ',' + OTH + ',' + CJKF) + ',serif'; // 拉丁字体优先，避免 ’ 等标点落到 CJK 全角字形

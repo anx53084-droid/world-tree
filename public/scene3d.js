@@ -23,7 +23,7 @@ let cfg = { stress: false, total: 0 }, real = [], N = 0, focus = '', view = null
 const tiles = new Map(), countsCache = new Map(), inflight = new Set(), frameT = [];
 const lruGet = (m, k) => { const v = m.get(k); if (v !== undefined) { m.delete(k); m.set(k, v); } return v; };
 const lruSet = (m, k, v, cap) => { m.set(k, v); while (m.size > cap) m.delete(m.keys().next().value); };
-const fmtN = n => { try { return new Intl.NumberFormat(window.I18N?.lang || 'zh-CN', { notation: 'compact', maximumFractionDigits: n >= 1e10 ? 0 : 2 }).format(n); } catch { return String(n); } };
+const fmtN = n => { try { return new Intl.NumberFormat(window.I18N?.lang || 'en', { notation: 'compact', maximumFractionDigits: n >= 1e10 ? 0 : 2 }).format(n); } catch { return String(n); } };
 const strHash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; return h / 4294967296; };
 const camDist = () => { const a = camera.aspect || 1.6; return a < 1 ? Math.min(72, 28 / a) : 32; }; // 竖屏拉远以容纳整个花冠
 const HOME_DIR = () => new THREE.Vector3(0, .17, 1).normalize();

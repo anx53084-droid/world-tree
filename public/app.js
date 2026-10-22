@@ -248,14 +248,16 @@ async function loadGoodsMeta(list) { const need = (list || S.wishes).filter(w =>
 document.addEventListener('click', e => { const a = e.target.closest?.('a.goods-link'); if (!a) return; // 外链提示
   if (!confirm(t('goods.extWarn', { domain: a.dataset.ext || '' }))) e.preventDefault(); }, true);
 const SAMPLE = (() => { // 仅当 RPC 不可达时展示的离线示例（非链上数据）
-  const ws = [['经典', '愿家人平安喜乐'], ['风景', '希望明年能去冰岛看极光'], ['人物', '考研上岸，不负自己！'], ['动物', '愿流浪猫猫都有温暖的家'], ['卡通', '代码一次就跑通'], ['经典', '早日找到喜欢的工作'],
-    ['风景', '和你一起看遍山川湖海'], ['人物', '妈妈生日快乐，永远年轻'], ['卡通', '愿星愿成真'], ['动物', '小狗健康长寿'], ['经典', '愿世界和平'], ['风景', '去看一次富士山的日出'], ['物质类', '想要一本好书陪伴冬天']];
+  const zhS = /^zh/.test(window.I18N?.lang || ''), ws = zhS ? [['经典', '愿家人平安喜乐'], ['风景', '希望明年能去冰岛看极光'], ['人物', '考研上岸，不负自己！'], ['动物', '愿流浪猫猫都有温暖的家'], ['卡通', '代码一次就跑通'], ['经典', '早日找到喜欢的工作'],
+    ['风景', '和你一起看遍山川湖海'], ['人物', '妈妈生日快乐，永远年轻'], ['卡通', '愿星愿成真'], ['动物', '小狗健康长寿'], ['经典', '愿世界和平'], ['风景', '去看一次富士山的日出'], ['物质类', '想要一本好书陪伴冬天']]
+    : [['经典', 'May my family stay safe and happy'], ['风景', 'I hope to see the northern lights in Iceland next year'], ['人物', 'Pass my grad school exams—I won\'t let myself down!'], ['动物', 'May every stray cat find a warm home'], ['卡通', 'May my code run on the first try'], ['经典', 'Find a job I love soon'],
+    ['风景', 'See every mountain and sea with you'], ['人物', 'Happy birthday, Mom—stay young forever'], ['卡通', 'May every star wish come true'], ['动物', 'A long, healthy life for my puppy'], ['经典', 'Peace for the whole world'], ['风景', 'Watch the sunrise over Mount Fuji once'], ['物质类', 'A good book to keep me company this winter']];
   const out = ws.map(([c, t], i) => ({ sig: 'SAMPLE' + i, author: 'Demo' + String(i).repeat(40).slice(0, 40), time: 1791000000 + i * 3600, paid: 6666667, memo: `WTREE1|W|x|x|x|${c}|${t}`, verified: true, sample: true }));
   [0, 0, 0, 8, 8, 2, 3, 3, 3, 3].forEach((w, i) => out.push({ sig: 'SL' + i, author: 'DemoLiker' + i, time: 1791100000, memo: 'WTREE1|L|SAMPLE' + w, verified: true }));
-  [['风景', 1, '愿和你在海边看一次月亮升起'], ['动物', 6, '希望家里的猫咪一直健康'], ['卡通', 11, '有一天能坐火箭去看看地球'], ['经典', 13, '新的一年万事顺遂']].forEach(([c, cv, tx], i) =>
+  (zhS ? [['风景', 1, '愿和你在海边看一次月亮升起'], ['动物', 6, '希望家里的猫咪一直健康'], ['卡通', 11, '有一天能坐火箭去看看地球'], ['经典', 13, '新的一年万事顺遂']] : [['风景', 1, 'Watch the moon rise over the sea with you'], ['动物', 6, 'I hope our cat stays healthy forever'], ['卡通', 11, 'Ride a rocket one day and see Earth from space'], ['经典', 13, 'May the new year go smoothly']]).forEach(([c, cv, tx], i) =>
     out.push({ sig: 'SAMPLEF' + i, author: 'DemoF' + String(i).repeat(40).slice(0, 40), time: 1791050000 + i * 3600, paid: 6666667, memo: `WTREE1|W|x|x|x|${encOpt(c, 1, cv, 0, null, null, WTInsides.forCat(c)[0])}|${tx}`, verified: true, sample: true }));
   out.push({ sig: 'SAMPLEP0', author: 'DemoP' + '7'.repeat(39), time: 1791090000, paid: 6666667, memo: `WTREE1|W|x|x|x|${encOpt('人物', 1, 3, 1)}|E1:q7m3N0sZ2hX1vR9kTq0bVhJmZ8Yp1cWf4uLx6eSa2dG3oK5n`, verified: true, sample: true });
-  out.push({ sig: 'SB0', author: 'DemoBless1', time: 1791200000, memo: 'WTREE1|B|x|x|x|SAMPLE0|一定会的，祝福你们！', verified: true });
+  out.push({ sig: 'SB0', author: 'DemoBless1', time: 1791200000, memo: 'WTREE1|B|x|x|x|SAMPLE0|' + (zhS ? '一定会的，祝福你们！' : 'It will happen—sending you all my best!'), verified: true });
   return out; })();
 
 // ---------- 写层：两种模式（同一份链上数据格式） ----------
@@ -881,7 +883,7 @@ async function fpShareImg(f) {
   const url = fpUrl(f.id); try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(), Q = 180, cell = Q / n, QX = W - 48 - Q, QY = H - 48 - Q - 40;
     x.fillStyle = '#fff'; x.fillRect(QX - 10, QY - 10, Q + 20, Q + 20); for (let r = 0; r < n; r++) for (let c2 = 0; c2 < n; c2++) if (q.isDark(r, c2)) { x.fillStyle = '#111'; x.fillRect(QX + c2 * cell, QY + r * cell, cell + .5, cell + .5); }
   } catch {}
-  x.fillStyle = '#ffe7a8'; x.font = '22px sans-serif'; x.fillText('光栖 · guangqi.world', 48, H - 48);
+  x.fillStyle = '#ffe7a8'; x.font = '22px sans-serif'; x.fillText((I18N.isZh() ? '光栖' : 'Guangqi') + ' · guangqi.world', 48, H - 48);
   return new Promise(res => c.toBlob(b => res(b), 'image/png'));
 }
 function fpInitiate(r) { location.hash = '#/fpay/' + r.id + '/manage'; }
@@ -944,7 +946,7 @@ async function fpPay(f) { const btn = $('#fpgo'), out = $('#fpres'); btn.disable
 // ===== t251：树的成长状态（只显示总数）+ 内容较少时的引导（免费写心愿按钮 + 官方示范滚动条）=====
 const cardTotal = () => treeWishes().filter(w => !w.synthetic && !/^SAMPLE/.test(w.sig || '')).length;
 function growHtml() { const n = cardTotal(), sm = (S.offc?.samples || []).filter(x => S.wishes.some(w => w.sig === x.id)), few = n < 50 && sm.length;
-  const item = x => `<button type=button class=hs-item data-hs="${esc(x.id)}" dir=auto>${x.cat === '光栖' ? '✦' : '🏮'} ${esc(x.text.length > 28 ? x.text.slice(0, 28) + '…' : x.text)}</button>`;
+  const item = x => `<button type=button class=hs-item data-hs="${esc(x.id)}" dir=auto>${x.cat === '光栖' ? '✦' : '🏮'} ${window.WTTr && WTTr.on?.() !== false ? WTTr.span(x.text) : esc(x.text)}</button>`;
   return `<p class=hg-line>🌳 <b id=hgc>${E('grow.count', { n: num(n) })}</b></p><p class="muted hg-sub">${E('grow.explain')}</p>
   <div class=hg-cta><a class="btn primary hg-free" href="#/free">☁ ${E('grow.freeBtn')}</a></div>${few ? `<div class=hs-strip aria-label="${E('grow.samples')}"><div class=hs-track style="--hs-d:${Math.max(24, sm.length * 6)}s">${sm.map(item).join('')}<span aria-hidden=true class=hs-dup>${sm.map(item).join('')}</span></div></div>` : ''}`; }
 function paintGrow() { const el = $('#hgrow'); if (!el) return; const h = growHtml(); if (el._h !== h) { el._h = h; el.innerHTML = h; } }
@@ -1675,7 +1677,7 @@ async function vcShareImg(v) {
   const url = vcUrl(v.id); try { const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(), Q = 180, cell = Q / n, QX = W - 48 - Q, QY = H - 48 - Q - 40;
     x.fillStyle = '#fff'; x.fillRect(QX - 10, QY - 10, Q + 20, Q + 20); for (let r = 0; r < n; r++) for (let c2 = 0; c2 < n; c2++) if (q.isDark(r, c2)) { x.fillStyle = '#111'; x.fillRect(QX + c2 * cell, QY + r * cell, cell + .5, cell + .5); }
   } catch {}
-  x.fillStyle = '#ffe7a8'; x.font = '22px sans-serif'; x.fillText('光栖 · guangqi.world', 48, H - 48);
+  x.fillStyle = '#ffe7a8'; x.font = '22px sans-serif'; x.fillText((I18N.isZh() ? '光栖' : 'Guangqi') + ' · guangqi.world', 48, H - 48);
   return new Promise(res => c.toBlob(b => res(b), 'image/png'));
 }
 async function vcManage(id) {
@@ -1929,15 +1931,15 @@ const SEO = {
 function setMeta(sel, attr, val) { let m = document.head.querySelector(sel); if (!m) { m = document.createElement('meta'); const [k, v] = sel.match(/\[(\w+(?::\w+)?)="([^"]+)"\]/).slice(1); m.setAttribute(k, v); document.head.append(m); } m.setAttribute(attr, val); }
 window.WT_applySeo = () => { const raw = (location.hash.slice(1) || '/').split('?')[0] || '/'; applySeo(raw || '/'); };
 let OGM = {}; fetch('/og/meta.json').then(r => r.json()).then(j => { OGM = j; window.WT_applySeo?.(); }).catch(() => {});
-const shareUrl = path => location.origin + '/?lang=' + encodeURIComponent(window.I18N?.lang || 'zh-CN') + '#' + path;
+const shareUrl = path => location.origin + '/?lang=' + encodeURIComponent(window.I18N?.lang || 'en') + '#' + path;
 function applySeo(p) {
-  const r = SEO[p] || SEO['/'], zh = /^zh/.test(window.I18N?.lang || 'zh-CN'), title = zh ? r[0] : r[2], desc = zh ? r[1] : r[3];
+  const r = SEO[p] || SEO['/'], zh = /^zh/.test(window.I18N?.lang || 'en'), title = zh ? r[0] : r[2], desc = zh ? r[1] : r[3];
   const url = location.origin + '/' + (p && p !== '/' ? '#' + p : '');
   document.title = title; setMeta('meta[name="description"]', 'content', desc);
   setMeta('meta[property="og:title"]', 'content', title); setMeta('meta[property="og:description"]', 'content', desc); setMeta('meta[property="og:url"]', 'content', url);
-  const L = window.I18N?.lang || 'zh-CN', om = OGM[L]; setMeta('meta[property="og:locale"]', 'content', om?.loc || (zh ? 'zh_CN' : 'en_US'));
+  const L = window.I18N?.lang || 'en', om = OGM[L]; setMeta('meta[property="og:locale"]', 'content', om?.loc || (zh ? 'zh_CN' : 'en_US'));
   if (om && p === '/' && !/^(zh-CN|en)$/.test(L)) { const tt = om.b + ' · ' + om.t; document.title = tt; for (const s of ['meta[property="og:title"]', 'meta[name="twitter:title"]']) setMeta(s, 'content', tt); for (const s of ['meta[property="og:description"]', 'meta[name="twitter:description"]', 'meta[name="description"]']) setMeta(s, 'content', om.d); }
-  const img = `${location.origin}/og/og-${OGM[L] ? L : 'zh-CN'}.png`; for (const s of ['meta[property="og:image"]', 'meta[property="og:image:secure_url"]', 'meta[name="twitter:image"]']) setMeta(s, 'content', img);
+  const img = `${location.origin}/og/og-${OGM[L] ? L : 'en'}.png`; for (const s of ['meta[property="og:image"]', 'meta[property="og:image:secure_url"]', 'meta[name="twitter:image"]']) setMeta(s, 'content', img);
   setMeta('meta[property="og:url"]', 'content', url.replace('/#', '/?lang=' + L + '#').replace(/\/$/, '/?lang=' + L));
   setMeta('meta[name="twitter:title"]', 'content', title); setMeta('meta[name="twitter:description"]', 'content', desc);
   const can = document.head.querySelector('link[rel="canonical"]'); if (can) can.href = location.origin + '/'; }

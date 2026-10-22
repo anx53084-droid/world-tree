@@ -633,7 +633,7 @@ async function api(req, res, url) {
     if (U.ev && Date.now() - U.ev.sent < 60000) return send(res, 429, { error: 'too frequent', code: 'rate' });
     if (!Acc.MAIL_ON && !Acc.ECHO) return send(res, 503, { error: 'mail service not configured', code: 'mailOff' });
     const code = String(crypto.randomInt(0, 1e6)).padStart(6, '0'); U.ev = { h: crypto.createHash('sha256').update(code).digest('hex'), exp: Date.now() + 600000, sent: Date.now(), tries: 0 }; save(db);
-    if (Acc.MAIL_ON) { try { if (!await Acc.sendMail(a.uid, 'World Tree verification code', `Your World Tree verification code: ${code}\n(valid for 10 minutes)`)) throw 0; } catch { return send(res, 502, { error: 'mail send failed', code: 'mailFail' }); } }
+    if (Acc.MAIL_ON) { try { if (!await Acc.sendMail(a.uid, 'Your Guangqi verification code', `Your Guangqi verification code is ${code}. It expires in 10 minutes.\n\nIf you didn't request this code, you can ignore this email.`)) throw 0; } catch { return send(res, 502, { error: 'mail send failed', code: 'mailFail' }); } }
     return send(res, 200, { ok: true, ...(Acc.ECHO && !Acc.MAIL_ON ? { devCode: code } : {}) }); }
   if (url === '/api/email/verify' && req.method === 'POST') { const { code } = await body(req); const ev = U.ev;
     if (!ev || ev.exp < Date.now() || ev.tries >= 5) return send(res, 400, { error: 'code expired', code: 'codeExp' }); ev.tries++;

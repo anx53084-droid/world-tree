@@ -3,7 +3,7 @@
 (() => {
   const LS = 'wt_autotr', MAXC = 400;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const T = k => (window.t ? window.t(k) : k), tl = () => window.I18N?.lang || 'zh-CN';
+  const T = k => (window.t ? window.t(k) : k), tl = () => window.I18N?.lang || 'en';
   const on = () => { try { return localStorage[LS] !== '0'; } catch { return true; } };
   const mem = new Map(); try { const o = JSON.parse(localStorage.wt_trc || '[]'); o.forEach(([k, v]) => mem.set(k, v)); } catch {}
   let saveT; const keep = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.wt_trc = JSON.stringify([...mem].slice(-MAXC)); } catch {} }, 800); };
