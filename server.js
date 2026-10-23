@@ -765,3 +765,9 @@ http.createServer(async (req, res) => {
       if (f.endsWith(path.sep + 'index.html')) { if (stampMemo.etag !== f + etag) { try { stampMemo.html = Stamp.stampHtml(d.toString('utf8'), path.join(__dirname, 'public')).html; stampMemo.etag = f + etag; } catch { stampMemo.html = d; } } d = stampMemo.html; } // css/js 带内容哈希破缓存
       res.writeHead(200, h); res.end(d); }); });
 }).listen(PORT, '0.0.0.0', () => console.log(`世界树许愿树 http://localhost:${PORT}  RPC=${RPC}`));
+// t282 一次性清理：t280 线上验证时生成的空 Solana 测试账户（仅 pubkey+created、创建于 2026-10-23 21:00–22:55 UTC+8、非站长）；恰好 1 个时才删除
+setTimeout(async () => { try { const db = load(), T0 = Date.parse('2026-10-23T13:00:00Z'), T1 = Date.parse('2026-10-23T14:55:00Z');
+  const c = Object.entries(db.users || {}).filter(([u, v]) => u.startsWith('sol:') && v && Object.keys(v).every(k => k === 'pubkey' || k === 'created') && v.created >= T0 && v.created <= T1 && !Hollow.OWNERS.has(v.pubkey));
+  console.log('t282 cleanup candidates:', c.length, c.map(([u]) => u).join(','));
+  if (c.length !== 1) return; const [uid, v] = c[0]; delete db.users[uid]; for (const [t, x] of Object.entries(db.sessions || {})) if ((x?.uid || x) === uid) delete db.sessions[t]; save(db);
+  await Hollow.purgeAcct(v.pubkey); console.log('t282 cleanup deleted', uid); } catch (e) { console.error('t282 cleanup', e.message); } }, 8000);
