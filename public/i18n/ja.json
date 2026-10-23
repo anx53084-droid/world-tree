@@ -1453,5 +1453,6 @@
   "rep.queued": "通報を受け付けました。自動で再審査しています",
   "nav.discord": "Discord コミュニティ",
   "grow.close": "このパネルを閉じる",
-  "grow.open": "パネルを表示"
+  "grow.open": "パネルを表示",
+  "detail.back": "戻る"
 }

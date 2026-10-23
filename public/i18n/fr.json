@@ -1453,5 +1453,6 @@
   "rep.queued": "Signalement reçu : réexamen automatique en cours",
   "nav.discord": "Communauté Discord",
   "grow.close": "Fermer ce panneau",
-  "grow.open": "Afficher le panneau"
+  "grow.open": "Afficher le panneau",
+  "detail.back": "Retour"
 }

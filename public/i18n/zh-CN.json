@@ -1453,5 +1453,6 @@
   "rep.queued": "已收到举报，正在自动复审",
   "nav.discord": "Discord 社区",
   "grow.close": "关闭引导面板",
-  "grow.open": "打开引导面板"
+  "grow.open": "打开引导面板",
+  "detail.back": "返回"
 }

@@ -1453,5 +1453,6 @@
   "rep.queued": "Meldung erhalten – automatische Neuprüfung läuft",
   "nav.discord": "Discord-Community",
   "grow.close": "Dieses Feld schließen",
-  "grow.open": "Feld anzeigen"
+  "grow.open": "Feld anzeigen",
+  "detail.back": "Zurück"
 }

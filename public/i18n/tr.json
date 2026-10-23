@@ -1453,5 +1453,6 @@
   "rep.queued": "Şikâyet alındı — otomatik yeniden inceleniyor",
   "nav.discord": "Discord topluluğu",
   "grow.close": "Bu paneli kapat",
-  "grow.open": "Paneli göster"
+  "grow.open": "Paneli göster",
+  "detail.back": "Geri"
 }

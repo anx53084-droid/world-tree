@@ -1037,7 +1037,7 @@ function paintSw() { const b = $('#swbar'); if (!b) return; b.innerHTML = swBarI
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function swNudge() { const v = $('#view'); v.classList.remove('sw-nudge'); void v.offsetWidth; v.classList.add('sw-nudge'); setTimeout(() => v.classList.remove('sw-nudge'), 260); }
 function swTo(idx, dir) { const it = S.feed[idx]; if (!it) return; S.swLock = true; S.swDir = dir; track('card_view', feedKey(it), idx, it.t === 'ad' ? it.ad.rank || 0 : 0);
-  S.curPos = idx; location.hash = '#/w/' + encodeURIComponent(feedKey(it)) + '?i=' + idx; setTimeout(() => S.swLock = false, 300); } // 动画锁
+  S.curPos = idx; location.replace('#/w/' + encodeURIComponent(feedKey(it)) + '?i=' + idx); /* t273：翻页不叠加历史，返回直接回到来源 */ setTimeout(() => S.swLock = false, 300); } // 动画锁
 async function swGo(dir) { if (S.swLock) return; const i = S.swIdx, n = S.feed.length;
   if (dir < 0) return i > 0 ? swTo(i - 1, -1) : undefined;
   if (i < n - 1) return swTo(i + 1, 1);
@@ -1337,7 +1337,16 @@ function list(q, only) {
   <select name=sort aria-label="${E('a11y.f.sort')}">${opt([['new', t('home.new')], ['hot', t('home.hot')], ['old', t('list.sortOld')]], sort)}</select><button>${E('list.filter')}</button><button type=button id=rf>${E('list.refresh')}</button></form>
   <div id=wl>${body()}</div>`;
 }
-const detail = sig => { if (sig.startsWith('AD:')) return adDetail(sig.slice(3)); ensureFeed(); resolveIdx(sig); return swBar() + detailBase(sig); };
+const detail = sig => { S.lastDetSig = sig; if (sig.startsWith('AD:')) return detBack() + adDetail(sig.slice(3)); ensureFeed(); resolveIdx(sig); return detBack() + swBar() + detailBase(sig); };
+// t273：详情页返回 —— 从卡片弹窗进入则 history.back() 回到原页面并重开同一张卡；直接打开则回首页。浏览器/安卓返回手势同样生效
+function detBack() { return `<div class=det-top><button type=button class=det-back data-detback aria-label="${E('detail.back')}"><span class=det-ar aria-hidden=true>←</span> ${E('detail.back')}</button></div>`; }
+const dFrom = () => { try { return JSON.parse(sessionStorage.gq_dfrom || 'null'); } catch { return null; } };
+const normH = h => (h || '#/').replace(/^#?$/, '#/');
+document.addEventListener('click', e => { const a = e.target.closest?.('#modal a[href^="#/w/"]'); if (a) { try { sessionStorage.gq_dfrom = JSON.stringify({ back: normH(location.hash) }); } catch {} return; }
+  if (e.target.closest?.('[data-detback]')) { e.preventDefault(); if (dFrom() && history.length > 1) history.back(); else { try { sessionStorage.removeItem('gq_dfrom'); } catch {} location.hash = '#/'; } } }, true);
+addEventListener('hashchange', () => { const f = dFrom(); if (!f || location.hash.startsWith('#/w/')) return; try { sessionStorage.removeItem('gq_dfrom'); } catch {}
+  if (normH(location.hash) !== f.back) return; const sig = S.lastDetSig; let n = 0; const tryOpen = () => { const w = S.wishes.find(x => x.sig === sig) || (/^SYN\d+$/.test(sig || '') && window.WT3D?.cardById(sig.slice(3)));
+    if (w && $('#modal').hidden) openCardPopup(typeof lockPaint === 'function' ? lockPaint(w) : w); else if (!w && ++n < 10) setTimeout(tryOpen, 300); }; setTimeout(tryOpen, 450); });
 function detailBase(sig) {
   const w = S.wishes.find(x => x.sig === sig) || (/^SYN\d+$/.test(sig) && window.WT3D?.cardById(sig.slice(3))); if (!w) return `<p>${E('detail.notFound')}</p>`;
   if (w.kind === 'goods') loadGoodsMeta([w]); if (w.kind === 'gift') setTimeout(() => loadGiftAtt(w));

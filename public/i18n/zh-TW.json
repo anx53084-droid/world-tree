@@ -1453,5 +1453,6 @@
   "rep.queued": "已收到檢舉，正在自動複審",
   "nav.discord": "Discord 社群",
   "grow.close": "關閉引導面板",
-  "grow.open": "打開引導面板"
+  "grow.open": "打開引導面板",
+  "detail.back": "返回"
 }

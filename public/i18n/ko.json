@@ -1453,5 +1453,6 @@
   "rep.queued": "신고가 접수되어 자동 재심사 중입니다",
   "nav.discord": "Discord 커뮤니티",
   "grow.close": "이 패널 닫기",
-  "grow.open": "패널 보기"
+  "grow.open": "패널 보기",
+  "detail.back": "뒤로"
 }

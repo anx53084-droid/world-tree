@@ -1453,5 +1453,6 @@
   "rep.queued": "ได้รับรายงานแล้ว กำลังตรวจซ้ำอัตโนมัติ",
   "nav.discord": "ชุมชน Discord",
   "grow.close": "ปิดแผงนี้",
-  "grow.open": "แสดงแผง"
+  "grow.open": "แสดงแผง",
+  "detail.back": "กลับ"
 }

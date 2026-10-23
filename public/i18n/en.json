@@ -1453,5 +1453,6 @@
   "rep.queued": "Report received — re-reviewing automatically",
   "nav.discord": "Discord community",
   "grow.close": "Close this panel",
-  "grow.open": "Show the wish panel"
+  "grow.open": "Show the wish panel",
+  "detail.back": "Back"
 }

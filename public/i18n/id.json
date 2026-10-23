@@ -1453,5 +1453,6 @@
   "rep.queued": "Laporan diterima — sedang ditinjau ulang otomatis",
   "nav.discord": "Komunitas Discord",
   "grow.close": "Tutup panel ini",
-  "grow.open": "Tampilkan panel"
+  "grow.open": "Tampilkan panel",
+  "detail.back": "Kembali"
 }
