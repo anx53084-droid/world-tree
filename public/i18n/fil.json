@@ -1548,5 +1548,7 @@
   "hollow.err": "Nagkaproblema. Pakisubukang muli.",
   "hollow.offline": "Hindi maabot ang server sa ngayon; ipinapakita ang guwang na walang ilaw.",
   "hollow.vrSel": "Trigger para pumili",
-  "hollow.ownerPreview": "Preview ng may-ari: hindi pa bukas sa publiko ang pintong ito. Tanging ang iyong naka-sign-in na wallet ng may-ari ang maaaring pumasok."
+  "hollow.ownerPreview": "Preview ng may-ari: hindi pa bukas sa publiko ang pintong ito. Tanging ang iyong naka-sign-in na wallet ng may-ari ang maaaring pumasok.",
+  "hollow.zone": "Sona {n}",
+  "hollow.zoneSpot": "Sona {n} · Ilaw #{k}"
 }

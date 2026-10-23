@@ -1548,5 +1548,7 @@
   "hollow.err": "出了點問題。請再試一次。",
   "hollow.offline": "現在無法連接伺服器；顯示沒有燈光的空洞。",
   "hollow.vrSel": "觸發選擇",
-  "hollow.ownerPreview": "業主預覽：這扇門還沒對外開放。只有您登入的所有者錢包才能進入。"
+  "hollow.ownerPreview": "業主預覽：這扇門還沒對外開放。只有您登入的所有者錢包才能進入。",
+  "hollow.zone": "第 {n} 區",
+  "hollow.zoneSpot": "第 {n} 區 · 第 {k} 盞光"
 }

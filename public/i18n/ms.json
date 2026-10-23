@@ -1548,5 +1548,7 @@
   "hollow.err": "Sesuatu telah berlaku. Sila cuba lagi.",
   "hollow.offline": "Tidak dapat menghubungi pelayan sekarang; menunjukkan rongga tanpa lampu.",
   "hollow.vrSel": "Pencetus untuk memilih",
-  "hollow.ownerPreview": "Pratonton pemilik: pintu ini belum dibuka kepada orang ramai lagi. Hanya dompet pemilik anda yang dilog masuk boleh masuk."
+  "hollow.ownerPreview": "Pratonton pemilik: pintu ini belum dibuka kepada orang ramai lagi. Hanya dompet pemilik anda yang dilog masuk boleh masuk.",
+  "hollow.zone": "Zon {n}",
+  "hollow.zoneSpot": "Zon {n} · Cahaya #{k}"
 }

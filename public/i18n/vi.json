@@ -1548,5 +1548,7 @@
   "hollow.err": "Đã xảy ra lỗi. Vui lòng thử lại.",
   "hollow.offline": "Hiện không thể truy cập máy chủ; hiển thị rỗng không có ánh sáng.",
   "hollow.vrSel": "Kích hoạt để chọn",
-  "hollow.ownerPreview": "Xem trước của chủ sở hữu: cánh cửa này chưa mở cửa cho công chúng. Chỉ chủ sở hữu ví đã đăng nhập của bạn mới có thể truy cập."
+  "hollow.ownerPreview": "Xem trước của chủ sở hữu: cánh cửa này chưa mở cửa cho công chúng. Chỉ chủ sở hữu ví đã đăng nhập của bạn mới có thể truy cập.",
+  "hollow.zone": "Khu {n}",
+  "hollow.zoneSpot": "Khu {n} · Ánh sáng #{k}"
 }

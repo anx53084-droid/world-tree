@@ -1548,5 +1548,7 @@
   "hollow.err": "Something went wrong. Please try again.",
   "hollow.offline": "Can't reach the server right now; showing the hollow without lights.",
   "hollow.vrSel": "Trigger to select",
-  "hollow.ownerPreview": "Owner preview: this door is not open to the public yet. Only your signed-in owner wallet can walk in."
+  "hollow.ownerPreview": "Owner preview: this door is not open to the public yet. Only your signed-in owner wallet can walk in.",
+  "hollow.zone": "Zone {n}",
+  "hollow.zoneSpot": "Zone {n} · Light #{k}"
 }

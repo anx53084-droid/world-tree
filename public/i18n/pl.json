@@ -1548,5 +1548,7 @@
   "hollow.err": "Coś poszło nie tak. Spróbuj ponownie.",
   "hollow.offline": "Nie można teraz połączyć się z serwerem; pokazując zagłębienie bez świateł.",
   "hollow.vrSel": "Spust, aby wybrać",
-  "hollow.ownerPreview": "Podgląd właściciela: te drzwi nie są jeszcze otwarte dla publiczności. Tylko zalogowany portfel właściciela może wejść."
+  "hollow.ownerPreview": "Podgląd właściciela: te drzwi nie są jeszcze otwarte dla publiczności. Tylko zalogowany portfel właściciela może wejść.",
+  "hollow.zone": "Strefa {n}",
+  "hollow.zoneSpot": "Strefa {n} · Światło nr {k}"
 }

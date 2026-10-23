@@ -1548,5 +1548,7 @@
   "hollow.err": "Hitilafu fulani imetokea. Tafadhali jaribu tena.",
   "hollow.offline": "Imeshindwa kufikia seva kwa sasa; kuonyesha mashimo bila taa.",
   "hollow.vrSel": "Anzisha ili kuchagua",
-  "hollow.ownerPreview": "Onyesho la kuchungulia la mmiliki: mlango huu bado haujafunguliwa kwa umma. Mkoba wako wa mmiliki aliyeingia tu ndio unaweza kuingia."
+  "hollow.ownerPreview": "Onyesho la kuchungulia la mmiliki: mlango huu bado haujafunguliwa kwa umma. Mkoba wako wa mmiliki aliyeingia tu ndio unaweza kuingia.",
+  "hollow.zone": "Eneo {n}",
+  "hollow.zoneSpot": "Eneo {n} · Mwanga #{k}"
 }

@@ -1548,5 +1548,7 @@
   "hollow.err": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
   "hollow.offline": "Şu anda sunucuya ulaşılamıyor; ışıksız boşluğu gösteriyor.",
   "hollow.vrSel": "Seçmek için tetikleyin",
-  "hollow.ownerPreview": "Sahibin önizlemesi: Bu kapı henüz halka açık değil. Yalnızca oturum açmış olan sahip cüzdanınız içeri girebilir."
+  "hollow.ownerPreview": "Sahibin önizlemesi: Bu kapı henüz halka açık değil. Yalnızca oturum açmış olan sahip cüzdanınız içeri girebilir.",
+  "hollow.zone": "Bölge {n}",
+  "hollow.zoneSpot": "Bölge {n} · Işık #{k}"
 }

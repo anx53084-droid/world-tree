@@ -17,7 +17,7 @@ const CARE = /(kill myself|end my life|suicid|self[- ]?harm|want to die|cut myse
 let local = null, ready = null;
 const saveLocal = () => { try { fs.mkdirSync(path.dirname(LF), { recursive: true }); fs.writeFileSync(LF, JSON.stringify(local)); } catch (e) { console.error('hollow local save', e.message); } };
 function init() { return ready ||= (async () => {
-  if (!ON) { try { local = JSON.parse(fs.readFileSync(LF, 'utf8')); } catch { local = {}; } for (const k of ['card', 'msg', 'light', 'ev', 'seen']) local[k] ||= k === 'msg' ? [] : {}; return; }
+  if (!ON) { try { local = JSON.parse(fs.readFileSync(LF, 'utf8')); } catch { local = {}; } for (const k of ['card', 'msg', 'light', 'ev', 'seen']) local[k] ||= k === 'msg' ? [] : {}; const nx = {}; for (const m of [...local.msg].sort((a, b) => a.at - b.at)) if (m.slot == null) m.slot = nx[m.door] = Math.max(nx[m.door] ?? -1, ...local.msg.filter(x => x.door === m.door && x.slot != null).map(x => x.slot)) + 1; return; }
   for (const s of ['CREATE TABLE IF NOT EXISTS hollow_card (acct TEXT NOT NULL, card TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (acct, card))',
     'CREATE TABLE IF NOT EXISTS hollow_msg (id TEXT PRIMARY KEY, door TEXT NOT NULL, text TEXT NOT NULL, at INTEGER NOT NULL, ip TEXT, dev TEXT, acct TEXT, lights INTEGER NOT NULL DEFAULT 0, care INTEGER NOT NULL DEFAULT 0)',
     'CREATE INDEX IF NOT EXISTS hollow_msg_door ON hollow_msg(door, at)',
@@ -25,13 +25,18 @@ function init() { return ready ||= (async () => {
     'CREATE TABLE IF NOT EXISTS hollow_ev (giver TEXT NOT NULL, recv TEXT NOT NULL, src TEXT NOT NULL, ip TEXT, dev TEXT, at INTEGER NOT NULL, PRIMARY KEY (giver, recv, src))',
     'CREATE INDEX IF NOT EXISTS hollow_ev_recv ON hollow_ev(recv)',
     'CREATE TABLE IF NOT EXISTS hollow_seen (acct TEXT NOT NULL, k TEXT NOT NULL, PRIMARY KEY (acct, k))']) await P.q(s);
+  // t281：每条光有固定的格位 slot（按门顺序编号 0,1,2…；前端换算成「区 N · 第 k 个挂点」）；老数据按时间回填
+  try { await P.q('ALTER TABLE hollow_msg ADD COLUMN slot INTEGER'); } catch {}
+  await P.q('UPDATE hollow_msg SET slot = (SELECT COUNT(*) FROM hollow_msg h2 WHERE h2.door = hollow_msg.door AND (h2.at < hollow_msg.at OR (h2.at = hollow_msg.at AND h2.id < hollow_msg.id))) WHERE slot IS NULL');
 })().catch(e => { ready = null; throw e; }); }
 // ---- 存储（D1 或本地文件）----
 async function cards(acct) { await init(); if (!acct) return []; if (!ON) return Object.keys(local.card[acct] || {}); return (await P.q('SELECT card FROM hollow_card WHERE acct = ?', [acct])).map(r => r.card); }
 async function grant(acct, card) { await init(); if (!ON) { (local.card[acct] ||= {})[card] ||= Date.now(); saveLocal(); return; } await P.q('INSERT OR IGNORE INTO hollow_card (acct, card, at) VALUES (?, ?, ?)', [acct, card, Date.now()]); }
-async function putMsg(m) { await init(); if (!ON) { local.msg.push(m); saveLocal(); return; } await P.q('INSERT INTO hollow_msg (id, door, text, at, ip, dev, acct, lights, care) VALUES (?,?,?,?,?,?,?,0,?)', [m.id, m.door, m.text, m.at, m.ip, m.dev, m.acct, m.care ? 1 : 0]); }
+async function putMsg(m) { await init(); if (!ON) { m.slot = Math.max(-1, ...local.msg.filter(x => x.door === m.door).map(x => x.slot ?? -1)) + 1; local.msg.push(m); saveLocal(); return; }
+  await P.q('INSERT INTO hollow_msg (id, door, text, at, ip, dev, acct, lights, care, slot) SELECT ?,?,?,?,?,?,?,0,?, COALESCE(MAX(slot), -1) + 1 FROM hollow_msg WHERE door = ?', [m.id, m.door, m.text, m.at, m.ip, m.dev, m.acct, m.care ? 1 : 0, m.door]); // 单条语句内取下一个格位，避免并发撞位
+  m.slot = (await P.q('SELECT slot FROM hollow_msg WHERE id = ?', [m.id]))[0]?.slot ?? 0; }
 async function getMsg(id) { await init(); if (!ON) return local.msg.find(m => m.id === id) || null; return (await P.q('SELECT * FROM hollow_msg WHERE id = ?', [id]))[0] || null; }
-async function listMsgs(door, n) { await init(); if (!ON) return local.msg.filter(m => m.door === door).sort((a, b) => b.at - a.at).slice(0, n); return P.q('SELECT id, door, text, at, lights, care FROM hollow_msg WHERE door = ? ORDER BY at DESC LIMIT ?', [door, n]); }
+async function listMsgs(door, n) { await init(); if (!ON) return local.msg.filter(m => m.door === door).sort((a, b) => b.at - a.at).slice(0, n); return P.q('SELECT id, door, text, at, lights, care, slot FROM hollow_msg WHERE door = ? ORDER BY at DESC LIMIT ?', [door, n]); }
 async function addLight(mid, whos) { await init(); whos = whos.filter(Boolean); if (!ON) { if (whos.some(w => local.light[mid + '|' + w])) return false; for (const w of whos) local.light[mid + '|' + w] = Date.now(); const m = local.msg.find(x => x.id === mid); if (m) m.lights = (m.lights || 0) + 1; saveLocal(); return true; }
   const had = await P.q(`SELECT who FROM hollow_light WHERE mid = ? AND who IN (${whos.map(() => '?').join(',')}) LIMIT 1`, [mid, ...whos]); if (had.length) return false;
   for (const w of whos) await P.q('INSERT OR IGNORE INTO hollow_light (mid, who, at) VALUES (?, ?, ?)', [mid, w, Date.now()]); await P.q('UPDATE hollow_msg SET lights = lights + 1 WHERE id = ?', [mid]); return true; }
@@ -63,7 +68,7 @@ setInterval(() => { const now = Date.now(); for (const [k, v] of B) if (v[1] < n
 // t280：站长 / 管理员钱包白名单（服务端配置，env HOLLOW_OWNERS 逗号分隔可覆盖）；只认钱包签名登录产生的会话（uid = sol:<地址>），不信任客户端传的地址
 const OWNERS = new Set(String(process.env.HOLLOW_OWNERS || '2Xjes9L3kePHUKyQaFfueHr933d6V71rPSSF3zZxL6pc').split(',').map(x => x.trim()).filter(Boolean));
 const isOwner = a => !!(a && typeof a.uid === 'string' && a.uid.startsWith('sol:') && OWNERS.has(a.uid.slice(4)) && a.user?.pubkey === a.uid.slice(4));
-const pubMsg = (m, hid) => ({ id: 'HM_' + m.id, door: m.door, text: m.text, at: m.at, lights: m.lights || 0, care: !!m.care });
+const pubMsg = (m, hid) => ({ id: 'HM_' + m.id, door: m.door, text: m.text, at: m.at, lights: m.lights || 0, care: !!m.care, slot: m.slot ?? 0 });
 async function handle(req, res, url, C) { if (!url.startsWith('/api/hollow/')) return false;
   const { send, body, Soc } = C, ip = C.ip(req), ipk = sha('ip|' + ip).slice(0, 16), a = C.auth(req), acct = a?.user?.pubkey || null;
   const devRaw = String(req.headers['x-wt-dev'] || '').replace(/[^0-9a-zA-Z_-]/g, '').slice(0, 64), devk = devRaw ? sha(devRaw).slice(0, 16) : '';

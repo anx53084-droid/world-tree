@@ -1548,5 +1548,7 @@
   "hollow.err": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
   "hollow.offline": "Der Server kann momentan nicht erreicht werden; zeigt die Mulde ohne Licht.",
   "hollow.vrSel": "Auslöser zur Auswahl",
-  "hollow.ownerPreview": "Eigentümervorschau: Diese Tür ist noch nicht für die Öffentlichkeit zugänglich. Nur Ihre angemeldete Besitzer-Wallet kann hineingehen."
+  "hollow.ownerPreview": "Eigentümervorschau: Diese Tür ist noch nicht für die Öffentlichkeit zugänglich. Nur Ihre angemeldete Besitzer-Wallet kann hineingehen.",
+  "hollow.zone": "Zone {n}",
+  "hollow.zoneSpot": "Zone {n} · Licht Nr. {k}"
 }

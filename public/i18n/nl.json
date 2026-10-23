@@ -1548,5 +1548,7 @@
   "hollow.err": "Er is iets misgegaan. Probeer het opnieuw.",
   "hollow.offline": "Kan de server momenteel niet bereiken; toont de holte zonder verlichting.",
   "hollow.vrSel": "Trigger om te selecteren",
-  "hollow.ownerPreview": "Eigenaar preview: deze deur is nog niet open voor publiek. Alleen uw ingelogde eigenaarsportemonnee kan binnenlopen."
+  "hollow.ownerPreview": "Eigenaar preview: deze deur is nog niet open voor publiek. Alleen uw ingelogde eigenaarsportemonnee kan binnenlopen.",
+  "hollow.zone": "Zone {n}",
+  "hollow.zoneSpot": "Zone {n} · Licht #{k}"
 }

@@ -1548,5 +1548,7 @@
   "hollow.err": "Quelque chose s'est mal passé. Veuillez réessayer.",
   "hollow.offline": "Impossible d'accéder au serveur pour le moment ; montrant le creux sans lumières.",
   "hollow.vrSel": "Déclencheur pour sélectionner",
-  "hollow.ownerPreview": "Aperçu du propriétaire : cette porte n'est pas encore ouverte au public. Seul votre portefeuille de propriétaire connecté peut y accéder."
+  "hollow.ownerPreview": "Aperçu du propriétaire : cette porte n'est pas encore ouverte au public. Seul votre portefeuille de propriétaire connecté peut y accéder.",
+  "hollow.zone": "Zone {n}",
+  "hollow.zoneSpot": "Zone {n} · Lumière n° {k}"
 }

@@ -1548,5 +1548,7 @@
   "hollow.err": "Algo deu errado. Por favor, tente novamente.",
   "hollow.offline": "Não é possível acessar o servidor no momento; mostrando o buraco sem luzes.",
   "hollow.vrSel": "Gatilho para selecionar",
-  "hollow.ownerPreview": "Prévia do proprietário: esta porta ainda não está aberta ao público. Somente a carteira do proprietário conectado pode entrar."
+  "hollow.ownerPreview": "Prévia do proprietário: esta porta ainda não está aberta ao público. Somente a carteira do proprietário conectado pode entrar.",
+  "hollow.zone": "Zona {n}",
+  "hollow.zoneSpot": "Zona {n} · Luz nº {k}"
 }

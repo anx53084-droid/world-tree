@@ -1548,5 +1548,7 @@
   "hollow.err": "Algo salió mal. Por favor inténtalo de nuevo.",
   "hollow.offline": "No puedo comunicarme con el servidor en este momento; mostrando el hueco sin luces.",
   "hollow.vrSel": "Disparador para seleccionar",
-  "hollow.ownerPreview": "Vista previa del propietario: esta puerta aún no está abierta al público. Solo puede ingresar la billetera del propietario que haya iniciado sesión."
+  "hollow.ownerPreview": "Vista previa del propietario: esta puerta aún no está abierta al público. Solo puede ingresar la billetera del propietario que haya iniciado sesión.",
+  "hollow.zone": "Zona {n}",
+  "hollow.zoneSpot": "Zona {n} · Luz n.º {k}"
 }
