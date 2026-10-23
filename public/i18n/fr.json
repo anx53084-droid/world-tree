@@ -1230,7 +1230,7 @@
   "free.ph": "Écrivez votre vœu (140 caractères max.)",
   "free.cap": "Vérification : {q}",
   "free.capLabel": "Saisissez le résultat",
-  "free.limit": "3 par réseau / appareil et par jour au maximum ; le contenu est aussi modéré.",
+  "free.limit": "1 par réseau / appareil et par jour au maximum ; le contenu est aussi modéré.",
   "free.submit": "Accrocher gratuitement",
   "free.ok": "Accroché à l’Arbre du monde (hors chaîne)",
   "free.mine": "Vœux gratuits écrits dans ce navigateur",

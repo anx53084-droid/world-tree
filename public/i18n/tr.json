@@ -1230,7 +1230,7 @@
   "free.ph": "Dileğini yaz (en fazla 140 karakter)",
   "free.cap": "Doğrulama: {q}",
   "free.capLabel": "Sonucu gir",
-  "free.limit": "Ağ / cihaz başına günde en fazla 3; içerik yine moderasyondan geçer.",
+  "free.limit": "Ağ / cihaz başına günde en fazla 1; içerik yine moderasyondan geçer.",
   "free.submit": "Ücretsiz as",
   "free.ok": "Dünya Ağacı’na asıldı (zincirde değil)",
   "free.mine": "Bu tarayıcıda yazılan ücretsiz dilekler",

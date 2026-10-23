@@ -3,9 +3,10 @@
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const E = process.env, ON = !!(E.D1_API_TOKEN && E.D1_ACCOUNT_ID && E.D1_DATABASE_ID);
 const Net = require('./network'), DIR = Net.DATA_DIR, FK = f => Net.D1_PREFIX + f, FILES = ['users.json', 'fulfillments.json', 'fund-ledger.json', 'moderator.json', 'payees.json', 'social.json', 'gates.json', 'ads.json', 'domains.json', 'batches.json', 'translations.json'];
-const URL_ = () => `https://api.cloudflare.com/client/v4/accounts/${E.D1_ACCOUNT_ID}/d1/database/${E.D1_DATABASE_ID}/query`;
+const URL_ = () => E.D1_API_URL || `https://api.cloudflare.com/client/v4/accounts/${E.D1_ACCOUNT_ID}/d1/database/${E.D1_DATABASE_ID}/query`; // D1_API_URL：仅测试用（本地 D1 REST 模拟）
+let dbSize = 0; // t276：D1 每次查询返回 meta.size_after（数据库字节数），用于容量告警
 async function q(sql, params = []) { const r = await fetch(URL_(), { method: 'POST', headers: { authorization: 'Bearer ' + E.D1_API_TOKEN, 'content-type': 'application/json' }, body: JSON.stringify({ sql, params }) });
-  const j = await r.json(); if (!j.success) throw new Error('D1 ' + JSON.stringify(j.errors)); return j.result[0].results; }
+  const j = await r.json(); if (!j.success) throw new Error('D1 ' + JSON.stringify(j.errors)); const sz = j.result[0].meta?.size_after; if (sz > 0) dbSize = sz; return j.result[0].results; }
 // 对象 → 行：顶层键 K；若值为普通对象则每个子键一行 "K/sub"（标记行 K = "{}"）
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 function rows(o) { const m = new Map(); for (const [k, v] of Object.entries(o)) { if (isObj(v)) { m.set(k, '{}'); for (const [s, x] of Object.entries(v)) m.set(k + '/' + s, JSON.stringify(x)); } else m.set(k, JSON.stringify(v)); } return m; }
@@ -34,4 +35,4 @@ function init() { if (!ON) return console.log('persistence: local files (D1 not 
     if (f && FILES.includes(f)) schedule(f, String(data)); };
   const bye = () => { flush(); busy.finally(() => process.exit(0)); setTimeout(() => process.exit(0), 8000); }; process.once('SIGTERM', bye); process.once('SIGINT', bye); }
 if (require.main === module && process.argv[2] === '--pull') pull().then(o => { console.log(JSON.stringify(o)); }, e => { console.error(e.message); process.exit(1); });
-module.exports = { init, ON, flushNow: () => (flush(), busy), q };
+module.exports = { init, ON, flushNow: () => (flush(), busy), q, size: () => dbSize };

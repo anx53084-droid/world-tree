@@ -17,7 +17,7 @@ const cred = (st, uid) => st.repCredit[uid] ||= { c: P.credit0, up: 0, down: 0, 
 function adjust(st, uid, d) { const c = cred(st, uid); c.c = Math.max(-50, Math.min(100, c.c + d)); if (d > 0) c.up++; else c.down++; if (c.c <= 0 || (c.down >= 5 && c.up === 0)) c.ban = true; }
 // 读取卡片可审内容：文本 + 公开图片（私密/加密内容不外发，只看公开部分）
 async function content(st, sig, C) {
-  if (/^OF_/.test(sig)) { const f = st.free?.[sig.slice(3)]; return f && { text: f.text, imgs: [], author: null, freeTok: f.tok }; }
+  if (/^OF_/.test(sig)) { const f = await require('./freestore').get(sig.slice(3)); return f && { text: f.text, imgs: [], author: null, freeTok: f.tok }; }
   if (/^OS_/.test(sig)) { const f = st.samples?.[sig.slice(3)]; return f && { text: f.text, imgs: [], author: null, official: true }; }
   if (VG.test(sig)) { const v = Object.values(st.vouchers || {}).find(v => v.card?.id === sig); return v && { text: v.card.text, imgs: [], author: v.claimer || v.giver, giver: v.giver }; }
   if (!SIG_RE.test(sig)) return null; const ti = await C.txInfo(sig).catch(() => null); if (!ti?.memo) return null; const f = ti.memo.split('|'); if (f[1] !== 'W') return null;

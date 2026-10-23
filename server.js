@@ -14,6 +14,8 @@ const Block = require('./blocklist');
 const Extras = require('./extras'), FPay = require('./fpay'), Voucher = require('./voucher'), Translate = require('./translate'), Automod = require('./automod');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
 const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'), Batch = require('./batch'), Prices = require('./prices'); const Soc = require('./social'), CL = require('./ctlock'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
+// t276：免费心愿迁到独立表 free_wish（D1）；迁移完成后再从 social.json 删除旧 st.free
+require('./freestore').init(Soc.load()).then(m => { if (m) { const st = Soc.load(); delete st.free; Soc.save(st); console.log('free wishes migrated out of social.json'); } }).catch(e => console.error('free store init failed:', e.message));
 const REJECT = '您的内容未通过审核（可能涉及违规或不符合正向要求），请修改后重新提交。';
 const nacl = require('tweetnacl');
 const WTA = require('./public/addr.js'); // 分层地址空间（与前端共用）
@@ -744,7 +746,7 @@ http.createServer(async (req, res) => {
   const url = req.url.split('?')[0];
   if (url === '/api/health' || url === '/healthz') { // 轻量健康检查（保活用）：不读写数据库、不调第三方；带 x-keepalive 头时打一行日志，便于在 Render 日志里核对定时任务
     const ka = String(req.headers['x-keepalive'] || '').replace(/[^\w.:-]/g, '').slice(0, 32); if (ka) console.log(`keepalive ping (${ka}) up=${Math.round(process.uptime())}s`);
-    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store', 'access-control-allow-origin': '*', 'x-wt': '1' }); return res.end(JSON.stringify({ ok: true, up: Math.round(process.uptime()), t: Date.now() })); }
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store', 'access-control-allow-origin': '*', 'x-wt': '1' }); return res.end(JSON.stringify({ ok: true, up: Math.round(process.uptime()), t: Date.now(), free: (({ total, warn, paused }) => ({ total, warn, paused }))(require('./freestore').stats()) })); }
   if (url.startsWith('/api/')) { // CORS：允许 Cloudflare Pages 前端（*.pages.dev 的 world-tree 项目及预览）与 ALLOWED_ORIGINS（自定义域名）；鉴权用 Bearer token，不用 cookie
     const o = req.headers.origin; if (o && Domains.originOk(o)) { res.setHeader('access-control-allow-origin', o); res.setHeader('vary', 'origin'); res.setHeader('access-control-allow-headers', 'content-type, authorization'); res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS'); res.setHeader('access-control-max-age', '86400'); }
     else if (url.startsWith('/api/img/') || url === '/api/domains') res.setHeader('access-control-allow-origin', '*'); // 公开图片（私密卡内页为密文）

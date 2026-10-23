@@ -1230,7 +1230,7 @@
   "free.ph": "Tulis harapanmu (maks. 140 karakter)",
   "free.cap": "Cek: {q}",
   "free.capLabel": "Masukkan hasilnya",
-  "free.limit": "Maksimal 3 per jaringan / perangkat per hari; konten tetap dimoderasi.",
+  "free.limit": "Maksimal 1 per jaringan / perangkat per hari; konten tetap dimoderasi.",
   "free.submit": "Gantung gratis",
   "free.ok": "Tergantung di Pohon Dunia (belum on-chain)",
   "free.mine": "Harapan gratis yang ditulis di browser ini",
