@@ -1,10 +1,10 @@
 // 国际化：public/i18n/<lang>.json；用户愿望内容不翻译。首次访问按 navigator.language 自动检测，?lang= 优先，选择保存在 localStorage.wt_lang
 (function () {
-  const LANGS = { 'zh-CN': '简体中文', 'zh-TW': '繁體中文', en: 'English', ja: '日本語', ko: '한국어', es: 'Español', fr: 'Français', de: 'Deutsch', pt: 'Português', ru: 'Русский', ar: 'العربية', hi: 'हिन्दी', id: 'Bahasa Indonesia', vi: 'Tiếng Việt', th: 'ไทย', tr: 'Türkçe' };
-  const RTL = ['ar'], DEF = 'en';
+  const LANGS = { 'zh-CN': '简体中文', 'zh-TW': '繁體中文', en: 'English', ja: '日本語', ko: '한국어', es: 'Español', fr: 'Français', de: 'Deutsch', pt: 'Português', ru: 'Русский', ar: 'العربية', hi: 'हिन्दी', id: 'Bahasa Indonesia', vi: 'Tiếng Việt', th: 'ไทย', tr: 'Türkçe', it: 'Italiano', nl: 'Nederlands', pl: 'Polski', uk: 'Українська', fa: 'فارسی', bn: 'বাংলা', ur: 'اردو', fil: 'Filipino', ms: 'Bahasa Melayu', sw: 'Kiswahili' };
+  const RTL = ['ar', 'fa', 'ur'], DEF = 'en';
   function match(l) { if (!l) return null; l = String(l).replace('_', '-'); if (LANGS[l]) return l; const low = l.toLowerCase();
     if (low.startsWith('zh')) return /tw|hk|mo|hant/.test(low) ? 'zh-TW' : 'zh-CN';
-    const b = low.split('-')[0]; return LANGS[b] ? b : null; }
+    const b = low.split('-')[0], A = { tl: 'fil', zsm: 'ms', nb: null }; if (A[b]) return A[b]; return LANGS[b] ? b : null; }
   function detect() { const q = new URLSearchParams(location.search).get('lang'); const fq = match(q); if (fq) { try { localStorage.wt_lang = fq; } catch {} return fq; }
     let s; try { s = match(localStorage.wt_lang); } catch {} if (s) return s;
     for (const l of (navigator.languages || [navigator.language])) { const m = match(l); if (m) return m; } return DEF; }

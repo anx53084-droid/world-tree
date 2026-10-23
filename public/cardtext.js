@@ -45,7 +45,7 @@ function panel(x, r, dx, dy, W, H) { // 背面：取文字区平均底色画柔�
 function plate(x, L, tot) { let mw = 0; for (const l of L.ls) { x.font = `${l.b ? 700 : 500} ${l.f}px ${FONT()}`; mw = Math.max(mw, x.measureText(l.t).width); }
   const pw = mw + 28, ph = tot + 18; x.save(); x.shadowColor = '#1a0f2e'; x.shadowBlur = 22; x.fillStyle = 'rgba(32,20,58,.42)'; x.beginPath(); x.roundRect(-pw / 2, -ph / 2, pw, ph, Math.min(18, ph / 2)); x.fill(); x.restore(); }
 function draw(x, key, dx, dy, W, H, tree) { // 在 (dx,dy,W,H) 的卡面区域绘制本地化文字
-  const back = /^back-/.test(key); x.save(); x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = /^ar/.test(lang()) ? 'rtl' : 'ltr';
+  const back = /^back-/.test(key); x.save(); x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = /^(ar|fa|ur)/.test(lang()) ? 'rtl' : 'ltr';
   for (const b of blocks(key, tree)) { const L = layout(x, b, W, H), tot = L.ls.reduce((a, l) => a + l.f * L.LH, 0); x.save(); x.translate(dx + L.cx, dy + L.cy); if (L.rot) x.rotate(Math.PI / 2); let y = -tot / 2;
     if (b.back) plate(x, L, tot); // t249：不再整块雾化遮罩，只在文字块后放一块小的柔边暗色衬底，卡面保持清晰
     for (const l of L.ls) { y += l.f * L.LH / 2; x.font = `${l.b ? 700 : 500} ${l.f}px ${FONT()}`;

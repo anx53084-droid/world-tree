@@ -3,7 +3,7 @@
 // 缓存：内存 + data/translations.json（经 persist.js 写回 D1），键 = sha256(text)|target。限流：每 IP + 全局每日字符预算。
 const crypto = require('crypto'), fs = require('fs'), path = require('path');
 const Net = require('./network'), FILE = path.join(Net.DATA_DIR, 'translations.json');
-const LANGS = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'th', 'tr', 'vi'];
+const LANGS = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'th', 'tr', 'vi', 'it', 'nl', 'pl', 'uk', 'fa', 'bn', 'ur', 'fil', 'ms', 'sw'];
 const MAX_ITEMS = 20, MAX_LEN = 600, CAP = 20000, DAY_BUDGET = +(process.env.TRANSLATE_DAY_CHARS || 300000);
 const base = l => (l || '').toLowerCase().split('-')[0];
 const same = (a, b) => { a = (a || '').toLowerCase(); b = (b || '').toLowerCase(); return !!a && (a === b || (base(a) === base(b) && base(a) !== 'zh') || (base(a) === 'zh' && base(b) === 'zh' && (a === 'zh' || b === 'zh' || a.replace('zh-hans', 'zh-cn').replace('zh-hant', 'zh-tw') === b))); };
@@ -17,21 +17,22 @@ const B = new Map(); function hit(key, max, ms) { const now = Date.now(), b = B.
 let day = { d: '', n: 0 }; const budget = n => { const d = new Date().toISOString().slice(0, 10); if (day.d !== d) day = { d, n: 0 }; if (day.n + n > DAY_BUDGET) return false; day.n += n; return true; };
 const stat = { gtx: 0, mymemory: 0, lingva: 0, fail: 0, cache: 0 };
 const ft = (u, ms = 8000) => fetch(u, { headers: { 'user-agent': 'Mozilla/5.0 (guangqi.world translate)' }, signal: AbortSignal.timeout(ms) });
-async function gtx(s, sl, tl) { const r = await ft(`https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=${sl || 'auto'}&tl=${tl}&q=${encodeURIComponent(s)}`);
-  if (!r.ok) throw new Error('gtx ' + r.status); const j = await r.json(); const out = (j[0] || []).map(x => x[0] || '').join(''); if (!out) throw new Error('gtx empty'); return { t: out, src: j[2] || sl || '' }; }
-async function mym(s, sl, tl) { const r = await ft(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(s)}&langpair=${sl || 'autodetect'}|${tl}`);
+const G = l => l === 'fil' ? 'tl' : l, UG = l => l === 'tl' ? 'fil' : l; // Filipino：服务商用 tl
+async function gtx(s, sl, tl) { sl = sl && G(sl); tl = G(tl); const r = await ft(`https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=${sl || 'auto'}&tl=${tl}&q=${encodeURIComponent(s)}`);
+  if (!r.ok) throw new Error('gtx ' + r.status); const j = await r.json(); const out = (j[0] || []).map(x => x[0] || '').join(''); if (!out) throw new Error('gtx empty'); return { t: out, src: UG(j[2] || sl || '') }; }
+async function mym(s, sl, tl) { sl = sl && G(sl); tl = G(tl); const r = await ft(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(s)}&langpair=${sl || 'autodetect'}|${tl}`);
   const j = await r.json(); if (!r.ok || j.quotaFinished || +j.responseStatus !== 200) throw new Error('mymemory ' + (j.responseStatus || r.status));
-  const out = j.responseData?.translatedText; if (!out || /MYMEMORY WARNING|INVALID/i.test(out)) throw new Error('mymemory bad'); return { t: out, src: j.responseData?.detectedLanguage || sl || '' }; }
-const lv = l => l === 'zh-CN' ? 'zh' : l === 'zh-TW' ? 'zh_HANT' : l;
+  const out = j.responseData?.translatedText; if (!out || /MYMEMORY WARNING|INVALID/i.test(out)) throw new Error('mymemory bad'); return { t: out, src: UG(j.responseData?.detectedLanguage || sl || '') }; }
+const lv = l => l === 'zh-CN' ? 'zh' : l === 'zh-TW' ? 'zh_HANT' : l === 'fil' ? 'tl' : l;
 async function lingva(s, sl, tl) { const r = await ft(`https://lingva.ml/api/v1/${sl ? lv(sl) : 'auto'}/${lv(tl)}/${encodeURIComponent(s)}`);
-  if (!r.ok) throw new Error('lingva ' + r.status); const j = await r.json(); if (!j.translation) throw new Error('lingva empty'); return { t: j.translation, src: j.info?.detectedSource || sl || '' }; }
+  if (!r.ok) throw new Error('lingva ' + r.status); const j = await r.json(); if (!j.translation) throw new Error('lingva empty'); return { t: j.translation, src: UG(j.info?.detectedSource || sl || '') }; }
 let gtxOffUntil = 0;
 async function one(s, sl, tl) {
   if (Date.now() > gtxOffUntil) { try { const r = await gtx(s, sl, tl); stat.gtx++; return { ...r, p: 'gtx' }; } catch (e) { if (/429|403/.test(e.message)) gtxOffUntil = Date.now() + 10 * 60000; } }
   try { const r = await mym(s, sl, tl); stat.mymemory++; return { ...r, p: 'mymemory' }; } catch {}
   try { const r = await lingva(s, sl, tl); stat.lingva++; return { ...r, p: 'lingva' }; } catch {}
   stat.fail++; return null; }
-const SRC_OK = /^(zh-CN|zh-TW|zh|en|ja|ko|es|fr|de|pt|ru|ar|hi|id|th|tr|vi)$/;
+const SRC_OK = /^(zh-CN|zh-TW|zh|en|ja|ko|es|fr|de|pt|ru|ar|hi|id|th|tr|vi|it|nl|pl|uk|fa|bn|ur|fil|ms|sw)$/;
 async function handle(req, res, url, X) {
   const { send, body, ip } = X;
   if (url === '/api/translate/stats' && req.method === 'GET') return send(res, 200, { ...stat, cached: Object.keys(load()).length, today: day }), true;

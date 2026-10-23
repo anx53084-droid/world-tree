@@ -7,7 +7,7 @@ const D = __dirname, wait = ms => new Promise(r => setTimeout(r, ms)); let ok = 
     fs.symlinkSync(D + '/node_modules', tmp + '/node_modules'); fs.symlinkSync(D + '/public', tmp + '/public'); fs.mkdirSync(tmp + '/data'); fs.writeFileSync(tmp + '/data/prices-mock.json', JSON.stringify({ SOL: 150, ETH: 3000, BNB: 600 }));
     srv = cp.spawn('node', ['server.js'], { cwd: tmp, env: { ...process.env, PORT: port, D1_API_TOKEN: '', OPENAI_API_KEY: '', PRICE_MOCK: '1' }, stdio: 'ignore' });
     for (let i = 0; i < 80; i++) { try { await fetch(B + '/api/health'); break; } catch { await wait(250); } } }
-  const br = await chromium.launch(), shot = process.env.WT_SHOTS;
+  const br = await chromium.launch({ executablePath: process.env.WT_CHROME || undefined }), shot = process.env.WT_SHOTS;
   for (const L of ['en', 'ar', 'zh-CN']) { const ctx = await br.newContext({ viewport: { width: 390, height: 844 } }); await ctx.addInitScript(l => { localStorage.gq_guide_dismissed = '1'; localStorage.wt_lang = l; }, L); const pg = await ctx.newPage();
     await pg.goto(B + '/#/'); await pg.waitForSelector('#hgrow .hg-x', { timeout: 30000 }); await wait(shot ? 9000 : 2500);
     const x = await pg.$eval('#hgrow .hg-x', e => { const r = e.getBoundingClientRect(); return { w: r.width, h: r.height, l: r.left, r: r.right, t: r.top, b: r.bottom, a: e.getAttribute('aria-label') }; });

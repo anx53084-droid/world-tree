@@ -721,3 +721,7 @@ body.home:not(.debug).grow-closed .hg-open { display: grid; place-items: center;
 .det-card .det-x:hover::before, .det-card .det-x:focus-visible::before { background: #ffffff26; }
 .det-card > .row:first-of-type, .det-card > .ad-row { padding-inline-end: 40px; }
 .det-card .loc-corner { right: 50px; } [dir=rtl] .det-card .loc-corner { right: 10px; }
+
+/* t278：阿拉伯字母语言（ar/fa/ur）不能加字距，否则连写断开 */
+html:is([lang=ar],[lang=fa],[lang=ur]) * { letter-spacing: 0 !important }
+html:is([lang=ar],[lang=fa],[lang=ur]) #menu { font-family: system-ui, "Noto Sans Arabic", "Noto Naskh Arabic", sans-serif }

@@ -17,8 +17,8 @@ const BASE = process.env.WT_BASE;
     for (const e of document.querySelectorAll('[aria-label],[title],[placeholder]')) for (const a of ['aria-label', 'title', 'placeholder']) { const v = e.getAttribute(a); if (v && /[\u4e00-\u9fff]/.test(v) && !e.closest('#langmenu,[lang^=zh]')) out.push(a + ':' + v.slice(0, 40)); }
     return [...new Set(out)]; });
   // 1) 不支持的浏览器语言 → 英文；首屏 HTML 无中文
-  { const ctx = await br.newContext({ locale: 'sw-KE', viewport: { width: 390, height: 844 } }); const pg = await ctx.newPage();
-    const html = await (await fetch(B + '/', { headers: { 'accept-language': 'sw-KE' } })).text(), head = html.split('</head>')[0];
+  { const ctx = await br.newContext({ locale: 'am-ET', viewport: { width: 390, height: 844 } }); const pg = await ctx.newPage();
+    const html = await (await fetch(B + '/', { headers: { 'accept-language': 'am-ET' } })).text(), head = html.split('</head>')[0];
     chk(/<html lang="en"/.test(html), 'static html lang=en'); chk(!CJK.test(head.replace(/<style[\s\S]*?<\/style>/g, '').replace(/name="keywords"[^>]*>/, '')), 'static <head> meta has no Chinese (keywords excepted)');
     chk(!CJK.test(html.split('<body')[1].replace(/<script[\s\S]*?<\/script>/g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/lang="zh[^>]*>[^<]*/g, '')), 'static <body> text (first paint) has no Chinese');
     await ctx.addInitScript(() => { localStorage.gq_guide_dismissed = '1'; }); await pg.goto(B + '/#/'); await wait(3000);

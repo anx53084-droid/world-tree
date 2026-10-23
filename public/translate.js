@@ -10,7 +10,7 @@
   const orig = new Set(); // 用户选择「查看原文」的文本
   // 脚本启发式语言检测；拉丁文字返回 '' 交给 LanguageDetector / 服务端自动识别
   function detect(s) { if (/[\u3040-\u30ff]/.test(s)) return 'ja'; if (/[\uac00-\ud7af]/.test(s)) return 'ko'; if (/[\u4e00-\u9fff]/.test(s)) return /[們這說會為麼個來時見對書愛願樂與親學後過還]/.test(s) && !/[们这说会为么个来时见对书爱愿乐与亲学后过还]/.test(s) ? 'zh-TW' : 'zh-CN';
-    if (/[\u0e00-\u0e7f]/.test(s)) return 'th'; if (/[\u0600-\u06ff]/.test(s)) return 'ar'; if (/[\u0900-\u097f]/.test(s)) return 'hi'; if (/[\u0400-\u04ff]/.test(s)) return 'ru'; if (!/\p{L}/u.test(s)) return 'none'; return ''; }
+    if (/[\u0e00-\u0e7f]/.test(s)) return 'th'; if (/[\u0600-\u06ff]/.test(s)) return /[ٹڈڑںےۓھ]/.test(s) ? 'ur' : /[پچژگکی]/.test(s) && !/[ةىي]/.test(s) ? 'fa' : 'ar'; if (/[\u0980-\u09ff]/.test(s)) return 'bn'; if (/[\u0900-\u097f]/.test(s)) return 'hi'; if (/[\u0400-\u04ff]/.test(s)) return /[іїєґІЇЄҐ]/.test(s) ? 'uk' : 'ru'; if (!/\p{L}/u.test(s)) return 'none'; return ''; }
   const fam = l => (l || '').split('-')[0];
   const sameLang = (src, t) => src === 'none' || (src && (src === t || (fam(src) === fam(t) && fam(t) !== 'zh') || (fam(src) === 'zh' && fam(t) === 'zh'))); // 简繁互不翻译（同属中文读者可读）
   const CHL = l => l === 'zh-CN' ? 'zh' : l === 'zh-TW' ? 'zh-Hant' : l;

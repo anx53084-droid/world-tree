@@ -3,7 +3,7 @@ const { chromium, devices } = require('playwright');
 const BASE = process.env.BASE || 'http://localhost:8080/';
 const IGNORE = /devnet|api\.devnet|ERR_|Failed to load resource|RPC|net::|fetch/i;
 (async () => {
-  const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const b = await chromium.launch({ executablePath: process.env.WT_CHROME || undefined, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const results = {}; let bad = 0;
   for (const lang of ['zh-CN', 'en', 'ar', 'ja']) {
     const ctx = await b.newContext({ ...devices['iPhone 13'], locale: lang }); const p = await ctx.newPage(); const errs = [];

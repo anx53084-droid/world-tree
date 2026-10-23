@@ -4,6 +4,7 @@ const LANGS = Object.keys(META); // 域名取当前请求的 origin（多域名�
 const DEFAULT_ORIGIN = 'https://guangqi.world'; // 与 public/index.html 里静态写的首选域名一致；实际输出一律用当前请求的 origin
 function match(l) { if (!l) return null; l = l.trim().toLowerCase();
   if (l.startsWith('zh')) return /tw|hk|mo|hant/.test(l) ? 'zh-TW' : 'zh-CN';
+  if (/^tl\b/.test(l)) return 'fil';
   return LANGS.find(k => k.toLowerCase() === l) || LANGS.find(k => k.toLowerCase() === l.split('-')[0]) || null; }
 export function pick(url, al) { const q = match(url.searchParams.get('lang')); if (q) return q;
   if (!al) return 'en';
