@@ -110,4 +110,5 @@ async function handle(req, res, url, C) { if (!url.startsWith('/api/hollow/')) r
   return false; }
 async function purgeAcct(pk) { await init(); if (!ON) { for (const k of ['card', 'seen']) delete local[k]?.[pk]; return; } // t282：删除临时测试账户的树洞行
   for (const [t, c] of [['hollow_card', 'acct'], ['hollow_seen', 'acct'], ['hollow_msg', 'acct'], ['hollow_light', 'acct'], ['hollow_ev', 'giver'], ['hollow_ev', 'recv']]) { try { await P.q(`DELETE FROM ${t} WHERE ${c} = ?`, [pk]); } catch (e) { console.error('purge', t, e.message); } } }
-module.exports = { purgeAcct, isOwner, OWNERS, handle, lightEv, getMsg, progress, people, CARE, DOORS, OPEN, NEED };
+async function acctRows(pk) { await init(); if (!ON) return 0; let n = 0; for (const [t, c] of [['hollow_card', 'acct'], ['hollow_seen', 'acct'], ['hollow_msg', 'acct'], ['hollow_light', 'acct'], ['hollow_ev', 'giver'], ['hollow_ev', 'recv']]) { try { n += (await P.q(`SELECT COUNT(*) AS n FROM ${t} WHERE ${c} = ?`, [pk]))[0].n; } catch {} } return n; }
+module.exports = { acctRows, purgeAcct, isOwner, OWNERS, handle, lightEv, getMsg, progress, people, CARE, DOORS, OPEN, NEED };
