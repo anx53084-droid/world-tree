@@ -5,7 +5,7 @@
 // 新号集中举报同卡/同作者 → 冻结这些举报并通知管理员（卡片不受影响）。管理员接口仅作可选覆盖。
 const crypto = require('crypto');
 const Mod = require('./moderation');
-const SIG_RE = /^[1-9A-HJ-NP-Za-km-z]{64,90}$/, OID = /^O[FS]_[0-9a-f]{12}$/, VG = /^VG_[0-9a-f]{12}$/;
+const SIG_RE = /^[1-9A-HJ-NP-Za-km-z]{64,90}$/, OID = /^O[FS]_[0-9a-f]{12}$/, VG = /^VG_[0-9a-f]{12}$/, HM = /^HM_[0-9a-f]{12}$/;
 const REASONS = ['spam', 'abuse', 'illegal', 'privacy', 'scam', 'other'];
 const H = 3600000, DAY = 24 * H, NEW_AGE = 3 * DAY, CLUSTER_WIN = 10 * 60000, COOLDOWN = 7 * DAY;
 const P = { dailyCap: 5, credit0: 50, low: 25, upheld: 5, rejected: -10, appealLost: -15, threshold: 1, protectedThreshold: 3, burst: 3 };
@@ -19,6 +19,7 @@ function adjust(st, uid, d) { const c = cred(st, uid); c.c = Math.max(-50, Math.
 async function content(st, sig, C) {
   if (/^OF_/.test(sig)) { const f = await require('./freestore').get(sig.slice(3)); return f && { text: f.text, imgs: [], author: null, freeTok: f.tok }; }
   if (/^OS_/.test(sig)) { const f = st.samples?.[sig.slice(3)]; return f && { text: f.text, imgs: [], author: null, official: true }; }
+  if (HM.test(sig)) { const m = await require('./hollow').getMsg(sig.slice(3)); return m && { text: m.text, imgs: [], author: m.acct || null }; }
   if (VG.test(sig)) { const v = Object.values(st.vouchers || {}).find(v => v.card?.id === sig); return v && { text: v.card.text, imgs: [], author: v.claimer || v.giver, giver: v.giver }; }
   if (!SIG_RE.test(sig)) return null; const ti = await C.txInfo(sig).catch(() => null); if (!ti?.memo) return null; const f = ti.memo.split('|'); if (f[1] !== 'W') return null;
   const opt = f[5] || '', body = f.slice(6).join('|'), priv = /~F[0-9a-z]{2}P/.test(opt) && /^E1:/.test(body);
@@ -48,7 +49,7 @@ async function handle(req, res, url, C) {
   if (url === '/api/report' && req.method === 'POST') {
     const a = C.auth(req); if (!a) return send(res, 401, { error: 'auth', code: 'repAuth' }), true;
     const b = await body(req, 4000), sig = String(b.sig || ''), reason = REASONS.includes(b.reason) ? b.reason : null, note = clean(b.note).slice(0, 200);
-    if ((!SIG_RE.test(sig) && !OID.test(sig) && !VG.test(sig)) || !reason) return send(res, 400, { error: 'param', code: 'param' }), true;
+    if ((!SIG_RE.test(sig) && !OID.test(sig) && !VG.test(sig) && !HM.test(sig)) || !reason) return send(res, 400, { error: 'param', code: 'param' }), true;
     const st = S(Soc), uid = a.uid, cr = cred(st, uid); if (cr.ban) return send(res, 403, { error: 'banned', code: 'repBanned' }), true;
     const ip = C.ip(req), dev = String(req.headers['x-wt-dev'] || '').replace(/[^0-9a-zA-Z_-]/g, '').slice(0, 40), created = a.user.created || 0, age = now - created;
     const mine = Object.values(st.reports).filter(r => r.uid === uid && now - r.at < DAY); if (mine.length >= P.dailyCap) return send(res, 429, { error: 'rate', code: 'repCap' }), true;

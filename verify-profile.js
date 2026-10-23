@@ -45,7 +45,7 @@ let n = 0; const ok = (c, m) => { assert(c, m); n++; console.log('  ✓', m); };
     ok(/<style id="crit">[^<]*\.acard\{/.test(html) && /<style id="crit">[^<]*#menu \.mi\{/.test(html) && html.indexOf('<style id="crit">') < html.indexOf('rel="stylesheet"'), '抽屉头卡 / 图标的关键样式随 HTML 内联下发');
     ok(['TREE_SVG', 'GEAR_SVG'].every(k => new RegExp('const ' + k + " = '<svg width=\"\\d+\" height=\"\\d+\"").test(app)), '头卡 SVG 也写了 width/height');
     const sw = fs.readFileSync(path.join(D, 'public/sw.js'), 'utf8'), hd = fs.readFileSync(path.join(D, 'scripts/build-pages.js'), 'utf8');
-    ok(/wt-static-v2/.test(sw) && /mode === 'navigate'/.test(sw) && /cache: 'no-cache'/.test(sw) && /caches\.delete/.test(sw), 'Service Worker v2：页面网络优先、旧缓存清理');
+    ok(/wt-static-v\d+/.test(sw) && /mode === 'navigate'/.test(sw) && /cache: 'no-cache'/.test(sw) && /caches\.delete/.test(sw), 'Service Worker v2：页面网络优先、旧缓存清理');
     ok(/stampHtml/.test(hd) && /\/index\.html\\n  cache-control: no-cache/.test(hd) && /\/sw\.js\\n  cache-control: no-cache/.test(hd), 'Pages 构建给资源加哈希；_headers 让 HTML 与 sw.js 不缓存');
     ok(/function renderMode\(\)[\s\S]{0,1600}paintWstat\(\); paintAcard\(\);/.test(app), '所有登录方式（邮箱托管演示 / Dynamic / 钱包）都经 renderMode 画新头卡');
   } finally { srv.kill(); stub.close(); }

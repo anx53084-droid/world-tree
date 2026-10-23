@@ -43,4 +43,4 @@ async function take(k, max, life) { const key = life ? 'life:' + k : k + '|' + d
 // t277：每个 IP / 设备 / 登录账户终身仅 1 条免费心愿（不按天重置）；全站仍按天计
 async function overLimit(ipk, devk, acct) { await ready; if (await take('ip:' + ipk, CFG.perLife, 1)) return 'mine'; if (devk && await take('dev:' + devk, CFG.perLife, 1)) return 'mine'; if (acct && await take('acct:' + acct, CFG.perLife, 1)) return 'mine'; return (await take('all', CFG.dayCap)) ? 'all' : false; } // 'mine' = 本人额度已用；'all' = 全站上限
 if (ON) setInterval(() => P.q('DELETE FROM free_rate WHERE exp < ?', [Date.now()]).catch(() => {}), 3600000).unref();
-module.exports = { CFG, init, recent: () => mem, get, put, markUp, overLimit, full, stats: () => ({ total: count, mem: mem.length, d1Bytes: P.size(), warn: P.size() > CFG.warn, paused: full() }) };
+module.exports = { CFG, init, recent: () => mem, get, put, markUp, overLimit, full, take: async (k, max, life) => { await ready; return take(k, max, life); }, stats: () => ({ total: count, mem: mem.length, d1Bytes: P.size(), warn: P.size() > CFG.warn, paused: full() }) };

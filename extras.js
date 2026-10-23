@@ -17,13 +17,14 @@ function pub(st) { const hid = st.hidden || {};
   const free = Free.recent().filter(f => !f.up && !hid['OF_' + f.id]).slice(0, 300).map(f => ({ id: 'OF_' + f.id, text: f.text, cat: f.cat, cover: f.cover, at: f.at }));
   const gifted = Object.values(st.vouchers || {}).filter(v => v.claimed && v.card && !hid[v.card.id]).sort((a, b) => b.card.at - a.card.at).slice(0, 300).map(v => ({ id: v.card.id, text: v.card.text, cat: v.card.cat, cover: v.card.cover, at: v.card.at, gifted: true, by: v.by || '', offchain: true }));
   return { samples, free, gifted, cheers: st.cheers || {}, hidden: Object.keys(hid), modh: Object.fromEntries(Object.keys(hid).map(k => [k, { ap: !!st.mod?.[k]?.appealed, cat: st.mod?.[k]?.category || null }])) }; }
+function checkCid(b) { const [ts, n, mac] = String(b.cid || '').split('.'); if (!ts || !n || !mac || Date.now() - +ts > 600000 || usedCid.has(n) || hmac(`${parseInt(b.ans, 10)}|${ts}|${n}`) !== mac) return false;
+  usedCid.set(n, Date.now()); if (usedCid.size > 5000) usedCid.clear(); return true; }
 async function handle(req, res, url, C) { const { send, body, Soc, moderate, Block } = C, ip = C.ip(req), ipk = sha('ip|' + ip).slice(0, 16), admin = C.adminOk(req);
   if (url === '/api/offchain' && req.method === 'GET') { res.setHeader?.('cache-control', 'no-cache'); return send(res, 200, pub(Soc.load())), true; }
   if (url === '/api/free/challenge' && req.method === 'GET') { if (hit('ch|' + ipk, 30, 3600000)) return send(res, 429, { error: 'rate', code: 'rate' }), true;
     const a = 1 + crypto.randomInt(9), b = 1 + crypto.randomInt(9), ts = Date.now(), n = id12(); return send(res, 200, { cid: `${ts}.${n}.${hmac(`${a + b}|${ts}|${n}`)}`, q: `${a} + ${b} = ?` }), true; }
   if (url === '/api/free' && req.method === 'POST') { const b = await body(req, 4000), text = clean(b.text), cat = ['经典', '光栖'].includes(b.cat) ? b.cat : '经典', cover = cat === '光栖' ? coverOf(b.cover) : undefined, dev = String(b.dev || '').slice(0, 64);
-    const [ts, n, mac] = String(b.cid || '').split('.'); if (!ts || !n || !mac || Date.now() - +ts > 600000 || usedCid.has(n) || hmac(`${parseInt(b.ans, 10)}|${ts}|${n}`) !== mac) return send(res, 400, { error: 'captcha', code: 'freeCaptcha' }), true;
-    usedCid.set(n, Date.now()); if (usedCid.size > 5000) usedCid.clear();
+    if (!checkCid(b)) return send(res, 400, { error: 'captcha', code: 'freeCaptcha' }), true;
     if (!text || len(text) > 140 || /[|~<>]/.test(text)) return send(res, 400, { error: 'len', code: 'len' }), true;
     const bh = Block.check(text); if (bh) return send(res, 400, { error: 'blocked', code: 'blockPhish' }), true;
     const m = await moderate(text); if (!m.pass) return send(res, 400, { error: 'reject', code: 'reject' }), true;
@@ -41,6 +42,7 @@ async function handle(req, res, url, C) { const { send, body, Soc, moderate, Blo
     const a = C.auth(req), who = a ? 'u' + a.user.pubkey : ipk; if (hit('cheer|' + ipk, 60, 3600000)) return send(res, 429, { error: 'rate', code: 'rate' }), true;
     const st = Soc.load(); st.cheers ||= {}; if (hit('ch1|' + who + '|' + sig, 1, DAY)) return send(res, 200, { ok: true, dup: true, n: st.cheers[sig] || 0 }), true;
     st.cheers[sig] = (st.cheers[sig] || 0) + 1; Soc.save(st);
+    if (SIG_RE.test(sig) && a) { const dv = String(req.headers['x-wt-dev'] || '').replace(/[^0-9a-zA-Z_-]/g, '').slice(0, 64); C.txInfo(sig).then(ti => { if (ti?.author && /^WTREE1\|W\|/.test(ti.memo || '')) require('./hollow').lightEv(a.user.pubkey, ti.author, 'c:' + sig, ipk, dv ? sha(dv).slice(0, 16) : ''); }).catch(() => {}); } // t279：点亮计入智慧之海进度（只计登录用户、不同人）
     if (SIG_RE.test(sig) && !hit('cheerNote|' + sig, 1, 3600000)) C.txInfo(sig).then(ti => { if (ti?.author && ti.author !== a?.user.pubkey && /^WTREE1\|W\|/.test(ti.memo || '')) { const db = C.load(); C.Acc.pushMsg(db, ti.author, { kind: 'cheer', sig, n: st.cheers[sig], text: (ti.memo.split('|')[6] || '').slice(0, 40) }); C.save(db); } }).catch(() => {});
     return send(res, 200, { ok: true, n: st.cheers[sig] }), true; }
   // /api/report 与 /api/appeal 由 automod.js 处理（t263：全自动）
@@ -63,4 +65,4 @@ async function handle(req, res, url, C) { const { send, body, Soc, moderate, Blo
     const priv = /~F[0-9a-z]{2}P/.test(f[5]), img = (f[5].match(/~C([0-9a-f]{32})/) || [])[1];
     return send(res, 200, { text: priv ? '' : f.slice(6).join('|').slice(0, 140), cat: (f[5].split('~')[0] || '经典'), cover: (m => m ? parseInt(m[1], 36) : null)(f[5].match(/~[KF]([0-9a-z]{2})/)), img: img || null, cheers: st.cheers?.[id] || 0 }), true; }
   return false; }
-module.exports = { handle, pub, REASONS };
+module.exports = { handle, pub, REASONS, checkCid };

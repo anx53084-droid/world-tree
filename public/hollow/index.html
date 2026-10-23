@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><base href="/">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05061a">
+<title>Tree Hollow · Guangqi</title>
+<meta name="description" content="Ten doors inside the World Tree. Walk in, leave one quiet light, and listen to the lights of others. Works on phone, desktop and VR headsets.">
+<meta property="og:title" content="Tree Hollow · Guangqi"><meta property="og:image" content="https://guangqi.world/hollow/doors/first.webp">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="hollow/hollow.css">
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/"}}</script>
+</head><body>
+<div id="stage"></div>
+<header id="hbar">
+  <a href="/" id="hback" class="hb"><span aria-hidden="true">←</span> <span data-i18n="hollow.back">World Tree</span></a>
+  <b id="htitle" data-i18n="hollow.title">Tree Hollow</b>
+  <div class="hbtns">
+    <button type="button" id="blite" class="hb" aria-pressed="false" data-i18n-title="hollow.liteTip"><span data-i18n="hollow.lite">Lite</span></button>
+    <button type="button" id="bsound" class="hb" aria-pressed="true" data-i18n-title="hollow.sound">♪</button>
+    <button type="button" id="bvr" class="hb" hidden><span data-i18n="hollow.vr">Enter VR</span></button>
+    <div id="lang"></div>
+  </div>
+</header>
+<div id="mocklbl" hidden data-i18n="hollow.mock">LOCAL TEST DATA</div>
+<div id="hud" aria-live="polite"><div id="depth"></div><div id="hint"></div></div>
+<div id="acts"><button type="button" id="bhall" class="pill" hidden data-i18n="hollow.hallBack">Back to the door hall</button><button type="button" id="bwrite" class="pill gold" hidden>✦ <span data-i18n="hollow.write">Leave a light</span></button></div>
+<div id="joy" aria-hidden="true"><div id="knob"></div></div>
+<div id="intro">
+  <div class="ibox">
+    <div class="iglow" aria-hidden="true"></div>
+    <h1 data-i18n="hollow.title">Tree Hollow</h1>
+    <p data-i18n="hollow.tagline">Ten doors wait inside the World Tree.</p>
+    <button type="button" id="bstart" class="pill gold big" disabled><span data-i18n="hollow.loading">Lighting the hollow…</span></button>
+    <p class="muted" id="ihint"></p>
+  </div>
+</div>
+<div id="panel" class="panel" role="dialog" aria-modal="true" hidden><div class="pbox" id="pbox" tabindex="-1"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="config.js"></script><script src="net.js"></script><script src="i18n.js"></script><script src="translate.js"></script>
+<script type="module" src="hollow/hollow.js"></script>
+</body></html>

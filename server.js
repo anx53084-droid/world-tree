@@ -11,7 +11,7 @@ const { moderate, RULES } = require('./moderation');
 const Fulfill = require('./fulfillment');
 const Acc = require('./account');
 const Block = require('./blocklist');
-const Extras = require('./extras'), FPay = require('./fpay'), Voucher = require('./voucher'), Translate = require('./translate'), Automod = require('./automod');
+const Hollow = require('./hollow'), Extras = require('./extras'), FPay = require('./fpay'), Voucher = require('./voucher'), Translate = require('./translate'), Automod = require('./automod');
 const Goods = require('./goods'); // 心愿卡商品链接预览（SSRF 防护）
 const Gate = require('./gate'), Ads = require('./ads'), Domains = require('./domains'), Batch = require('./batch'), Prices = require('./prices'); const Soc = require('./social'), CL = require('./ctlock'); // 交友卡联系方式（链下）+ 礼品卡索引 // 钓鱼 / 短链黑名单（服务器端权威）
 // t276：免费心愿迁到独立表 free_wish（D1）；迁移完成后再从 social.json 删除旧 st.free
@@ -49,7 +49,7 @@ const DB = path.join(Net.DATA_DIR, 'users.json');
 const conn = new web3.Connection(RPC, 'confirmed');
 const load = () => { try { return JSON.parse(fs.readFileSync(DB)); } catch { return { users: {}, sessions: {} }; } };
 const save = d => { fs.mkdirSync(path.dirname(DB), { recursive: true }); fs.writeFileSync(DB, JSON.stringify(d, null, 2), { mode: 0o600 }); };
-const MIME = { '.md': 'text/markdown; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8' };
+const MIME = { '.md': 'text/markdown; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8' };
 const send = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); };
 const body = (req, max = 64000) => new Promise(r => { let b = ''; req.on('data', c => { b += c; if (b.length > max) { r({ tooBig: true }); req.destroy(); } }); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch { r({}); } }); });
 
@@ -405,6 +405,7 @@ async function api(req, res, url) {
   if (url.startsWith('/api/voucher') && await Voucher.handle(req, res, url, { send, body, Soc, moderate, Block, auth: r => auth(r, db), fpTx, receive: () => RECEIVE.toBase58(), minLamports: async () => Math.floor(minLamports((await solPrice()).usd) * .97),
     pushInbox: (pk, m) => { db.inbox = db.inbox || {}; const L = db.inbox[pk] = db.inbox[pk] || []; L.unshift({ id: require('crypto').randomBytes(6).toString('hex'), at: Date.now(), read: false, ...m }); if (L.length > 200) L.length = 200; save(db); } })) return; // t259：买后送
   if (url.startsWith('/api/fpay') && await FPay.handle(req, res, url, { send, body, db, save, verifyWishMemo, auth: r => auth(r, db), fpTx, receive: () => RECEIVE.toBase58(), minLamports: async () => Math.floor(minLamports((await solPrice()).usd) * .97) })) return; // t252：朋友代付
+  if (url.startsWith('/api/hollow/') && await Hollow.handle(req, res, url, { send, body, Soc, moderate, Block, chainStats, checkCid: Extras.checkCid, auth: r => auth(r, db), ip: r => String(r.headers['cf-connecting-ip'] || (String(r.headers['x-forwarded-for'] || '').split(',').pop() || '').trim() || r.socket.remoteAddress || '') })) return;
   if (url.startsWith('/api/') && await Extras.handle(req, res, url, { send, body, Soc, moderate, Block, txInfo, verifyWishMemo, Acc, load, save, auth: r => auth(r, db), adminOk: r => !!(Fulfill.ADMIN_KEY && Fulfill.adminOk(r)), ip: r => String(r.headers['cf-connecting-ip'] || (String(r.headers['x-forwarded-for'] || '').split(',').pop() || '').trim() || r.socket.remoteAddress || '') })) return;
   if (url === '/api/biz/check' && req.method === 'POST') { const r = await bizCheck(await body(req)); return send(res, r.error ? 400 : 200, r); }
   if (url === '/api/biz-meta' && req.method === 'POST') { // 企业展示卡上链后登记：官网网址 / 简介 / 内页模板（仅作者；网址域名须与链上 ~D 一致）
@@ -748,11 +749,12 @@ http.createServer(async (req, res) => {
     const ka = String(req.headers['x-keepalive'] || '').replace(/[^\w.:-]/g, '').slice(0, 32); if (ka) console.log(`keepalive ping (${ka}) up=${Math.round(process.uptime())}s`);
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store', 'access-control-allow-origin': '*', 'x-wt': '1' }); return res.end(JSON.stringify({ ok: true, up: Math.round(process.uptime()), t: Date.now(), free: (({ total, warn, paused }) => ({ total, warn, paused }))(require('./freestore').stats()) })); }
   if (url.startsWith('/api/')) { // CORS：允许 Cloudflare Pages 前端（*.pages.dev 的 world-tree 项目及预览）与 ALLOWED_ORIGINS（自定义域名）；鉴权用 Bearer token，不用 cookie
-    const o = req.headers.origin; if (o && Domains.originOk(o)) { res.setHeader('access-control-allow-origin', o); res.setHeader('vary', 'origin'); res.setHeader('access-control-allow-headers', 'content-type, authorization'); res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS'); res.setHeader('access-control-max-age', '86400'); }
+    const o = req.headers.origin; if (o && Domains.originOk(o)) { res.setHeader('access-control-allow-origin', o); res.setHeader('vary', 'origin'); res.setHeader('access-control-allow-headers', 'content-type, authorization, x-wt-dev'); res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS'); res.setHeader('access-control-max-age', '86400'); }
     else if (url.startsWith('/api/img/') || url === '/api/domains') res.setHeader('access-control-allow-origin', '*'); // 公开图片（私密卡内页为密文）
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     return api(req, res, url).catch(e => send(res, 500, { error: e.message })); }
-  let f = path.normalize(path.join(__dirname, 'public', url === '/' ? 'index.html' : url));
+  if (url === '/hollow') { res.writeHead(308, { location: '/hollow/' }); return res.end(); } // t279：树洞独立页面
+  let f = path.normalize(path.join(__dirname, 'public', url === '/' ? 'index.html' : url.endsWith('/') ? url + 'index.html' : url));
   if (!f.startsWith(path.join(__dirname, 'public'))) { res.writeHead(403); return res.end(); }
   // 静态资源：ETag + 304；vendor（第三方库）长缓存，其余 no-cache（每次轻量校验，部署即生效）；压缩由 Render 边缘（brotli）完成
   fs.stat(f, (err, st) => { if (err || !st.isFile()) { res.writeHead(404); return res.end('404'); }
@@ -760,6 +762,6 @@ http.createServer(async (req, res) => {
     const h = { 'content-type': MIME[path.extname(f)] || 'application/octet-stream', 'cache-control': cc, etag, vary: 'accept-encoding', 'x-wt': '1' }; // x-wt：供 Service Worker 识别真实响应（排除 Render 冷启动等待页）
     if (req.headers['if-none-match'] === etag) { res.writeHead(304, h); return res.end(); }
     fs.readFile(f, (e2, d) => { if (e2) { res.writeHead(404); return res.end('404'); }
-      if (f.endsWith(path.sep + 'index.html')) { if (stampMemo.etag !== etag) { try { stampMemo.html = Stamp.stampHtml(d.toString('utf8'), path.join(__dirname, 'public')).html; stampMemo.etag = etag; } catch { stampMemo.html = d; } } d = stampMemo.html; } // css/js 带内容哈希破缓存
+      if (f.endsWith(path.sep + 'index.html')) { if (stampMemo.etag !== f + etag) { try { stampMemo.html = Stamp.stampHtml(d.toString('utf8'), path.join(__dirname, 'public')).html; stampMemo.etag = f + etag; } catch { stampMemo.html = d; } } d = stampMemo.html; } // css/js 带内容哈希破缓存
       res.writeHead(200, h); res.end(d); }); });
 }).listen(PORT, '0.0.0.0', () => console.log(`世界树许愿树 http://localhost:${PORT}  RPC=${RPC}`));

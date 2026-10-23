@@ -19,7 +19,8 @@ const NEW = ['it', 'nl', 'pl', 'uk', 'fa', 'bn', 'ur', 'fil', 'ms', 'sw'], RTL =
     chk((await fetch(B + '/og/og-' + L + '.png')).ok, `${L}: og image`); }
   const html = await (await fetch(B + '/')).text(); chk(NEW.every(L => html.includes(`hreflang="${L}"`)), 'index.html hreflang ×10 new');
   if (!process.env.WT_BASE) { const sm = fs.readFileSync(D + '/public/sitemap.xml', 'utf8'); chk(NEW.every(L => sm.includes(`?lang=${L}</loc>`)), 'sitemap urls ×10 new'); }
-  for (const L of NEW) { const r = await fetch(API + '/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ target: L, items: [] }) }); chk(r.status !== 400 || !/target/.test(await r.text()), `/api/translate accepts target ${L} (${r.status})`); }
+  for (const L of NEW) { const r = await fetch(API + '/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ target: L, texts: process.env.WT_BASE ? ['May my family stay healthy and happy'] : [] }) }), j = await r.json().catch(() => ({}));
+    chk(r.ok && (!process.env.WT_BASE || (j.items?.[0]?.t && j.items[0].t !== 'May my family stay healthy and happy')), `/api/translate target ${L} (${r.status}) ${j.items?.[0]?.t || ''}`); }
   const br = await chromium.launch({ executablePath: process.env.WT_CHROME || undefined }); const shots = process.env.WT_SHOTS; if (shots) fs.mkdirSync(D + '/shots', { recursive: true });
   const openLang = async pg => { if (!(await pg.isVisible('#langbtn'))) { await pg.click('#burger'); await wait(500); } await pg.click('#langbtn'); await pg.$eval('#langmenu', m => m.scrollIntoView({ block: 'end' })); await wait(300); };
   const ctxOf = async (o = {}) => { const c = await br.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, ...o }); await c.addInitScript(() => { localStorage.gq_guide_dismissed = '1'; }); return c; };
