@@ -1547,5 +1547,6 @@
   "hollow.near": "长廊深处，墙上亮着一盏盏光",
   "hollow.err": "出了点问题，请重试。",
   "hollow.offline": "暂时连不上服务器；先展示没有光的树洞。",
-  "hollow.vrSel": "扣扳机选择"
+  "hollow.vrSel": "扣扳机选择",
+  "hollow.ownerPreview": "站长预览：这扇门尚未对公众开放，只有已签名登录的站长钱包可以进入。"
 }

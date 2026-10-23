@@ -1547,5 +1547,6 @@
   "hollow.near": "Deep in the corridor, lights glow on the walls",
   "hollow.err": "Something went wrong. Please try again.",
   "hollow.offline": "Can't reach the server right now; showing the hollow without lights.",
-  "hollow.vrSel": "Trigger to select"
+  "hollow.vrSel": "Trigger to select",
+  "hollow.ownerPreview": "Owner preview: this door is not open to the public yet. Only your signed-in owner wallet can walk in."
 }

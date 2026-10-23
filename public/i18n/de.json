@@ -1547,5 +1547,6 @@
   "hollow.near": "Tief im Korridor leuchten Lichter an den Wänden",
   "hollow.err": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
   "hollow.offline": "Der Server kann momentan nicht erreicht werden; zeigt die Mulde ohne Licht.",
-  "hollow.vrSel": "Auslöser zur Auswahl"
+  "hollow.vrSel": "Auslöser zur Auswahl",
+  "hollow.ownerPreview": "Eigentümervorschau: Diese Tür ist noch nicht für die Öffentlichkeit zugänglich. Nur Ihre angemeldete Besitzer-Wallet kann hineingehen."
 }

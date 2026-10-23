@@ -1547,5 +1547,6 @@
   "hollow.near": "Nel profondo del corridoio, le luci brillano sulle pareti",
   "hollow.err": "Qualcosa è andato storto. Per favore riprova.",
   "hollow.offline": "Impossibile raggiungere il server in questo momento; mostrando la cavità senza luci.",
-  "hollow.vrSel": "Trigger per selezionare"
+  "hollow.vrSel": "Trigger per selezionare",
+  "hollow.ownerPreview": "Anteprima del proprietario: questa porta non è ancora aperta al pubblico. Solo il portafoglio del proprietario che ha effettuato l'accesso può entrare."
 }

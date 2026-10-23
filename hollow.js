@@ -60,31 +60,36 @@ async function progress(acct, C) { const myKeys = new Set((await seenOf([acct]))
   return { wishes: Math.min(wishes, 99), gave: gaveN, got: gotN, need: NEED, done: wishes >= NEED.wishes && gaveN >= NEED.gave && gotN >= NEED.got }; }
 const B = new Map(); function hit(key, max, ms) { const now = Date.now(), b = B.get(key); if (!b || b[1] < now) { B.set(key, [1, now + ms]); return false; } if (b[0] >= max) return true; b[0]++; return false; }
 setInterval(() => { const now = Date.now(); for (const [k, v] of B) if (v[1] < now) B.delete(k); }, 600000).unref();
+// t280：站长 / 管理员钱包白名单（服务端配置，env HOLLOW_OWNERS 逗号分隔可覆盖）；只认钱包签名登录产生的会话（uid = sol:<地址>），不信任客户端传的地址
+const OWNERS = new Set(String(process.env.HOLLOW_OWNERS || '2Xjes9L3kePHUKyQaFfueHr933d6V71rPSSF3zZxL6pc').split(',').map(x => x.trim()).filter(Boolean));
+const isOwner = a => !!(a && typeof a.uid === 'string' && a.uid.startsWith('sol:') && OWNERS.has(a.uid.slice(4)) && a.user?.pubkey === a.uid.slice(4));
 const pubMsg = (m, hid) => ({ id: 'HM_' + m.id, door: m.door, text: m.text, at: m.at, lights: m.lights || 0, care: !!m.care });
 async function handle(req, res, url, C) { if (!url.startsWith('/api/hollow/')) return false;
   const { send, body, Soc } = C, ip = C.ip(req), ipk = sha('ip|' + ip).slice(0, 16), a = C.auth(req), acct = a?.user?.pubkey || null;
   const devRaw = String(req.headers['x-wt-dev'] || '').replace(/[^0-9a-zA-Z_-]/g, '').slice(0, 64), devk = devRaw ? sha(devRaw).slice(0, 16) : '';
   try { await init(); } catch (e) { return send(res, 503, { error: 'store', code: 'rate' }), true; }
   if (acct) seen(acct, ['i:' + ipk, devk && 'd:' + devk]).catch(() => {});
+  const owner = isOwner(a), doorOk = d => OPEN.includes(d) || (owner && DOORS.includes(d));
   const hidden = () => Soc.load().hidden || {};
   if (url === '/api/hollow/state' && req.method === 'GET') {
     const out = { doors: DOORS, open: OPEN, need: NEED, login: !!acct, cards: [], storage: Free.full() ? 'paused' : 'ok', offchain: true };
-    if (acct) { out.cards = await cards(acct); out.sea = await progress(acct, { ...C, user: a.user }); if (out.sea.done && !out.cards.includes('sea')) { await grant(acct, 'sea'); out.cards.push('sea'); out.seaNew = true; } }
+    if (acct) { out.cards = await cards(acct);
+      if (owner) { out.owner = true; out.open = DOORS; out.cards = [...DOORS]; out.sea = { wishes: NEED.wishes, gave: NEED.gave, got: NEED.got, need: NEED, done: true }; return send(res, 200, out), true; } out.sea = await progress(acct, { ...C, user: a.user }); if (out.sea.done && !out.cards.includes('sea')) { await grant(acct, 'sea'); out.cards.push('sea'); out.seaNew = true; } }
     return send(res, 200, out), true; }
   if (url === '/api/hollow/claim' && req.method === 'POST') { if (!acct) return send(res, 401, { error: 'auth', code: 'hAuth' }), true;
-    const b = await body(req, 1000), card = String(b.card || 'first'); if (card === 'first') { await grant(acct, 'first'); return send(res, 200, { ok: true, cards: await cards(acct) }), true; }
+    const b = await body(req, 1000), card = String(b.card || 'first'); if (owner && DOORS.includes(card)) return send(res, 200, { ok: true, cards: [...DOORS] }), true; if (card === 'first') { await grant(acct, 'first'); return send(res, 200, { ok: true, cards: await cards(acct) }), true; }
     if (card === 'sea') { const p = await progress(acct, { ...C, user: a.user }); if (!p.done) return send(res, 403, { error: 'locked', code: 'hLocked', sea: p }), true; await grant(acct, 'sea'); return send(res, 200, { ok: true, cards: await cards(acct) }), true; }
     return send(res, 400, { error: 'param', code: 'hSoon' }), true; }
-  if (url.startsWith('/api/hollow/msgs') && req.method === 'GET') { const door = new URL(url, 'http://x').searchParams.get('door') || 'first'; if (!OPEN.includes(door)) return send(res, 200, { items: [] }), true;
+  if (url.startsWith('/api/hollow/msgs') && req.method === 'GET') { const door = new URL(url, 'http://x').searchParams.get('door') || 'first'; if (!doorOk(door)) return send(res, 200, { items: [] }), true;
     const hid = hidden(); const items = (await listMsgs(door, 120)).filter(m => !hid['HM_' + m.id]).map(pubMsg); res.setHeader?.('cache-control', 'no-cache'); return send(res, 200, { items }), true; }
-  if (url === '/api/hollow/msg' && req.method === 'POST') { const b = await body(req, 4000), text = clean(b.text), door = OPEN.includes(b.door) ? b.door : 'first';
+  if (url === '/api/hollow/msg' && req.method === 'POST') { const b = await body(req, 4000), text = clean(b.text), door = doorOk(b.door) ? b.door : 'first';
     if (!C.checkCid(b)) return send(res, 400, { error: 'captcha', code: 'freeCaptcha' }), true;
     if (!text || len(text) > MAXLEN || /[<>]/.test(text)) return send(res, 400, { error: 'len', code: 'len' }), true;
     const care = CARE.test(text);
     if (C.Block.check(text)) return send(res, 400, { error: 'blocked', code: 'blockPhish', care }), true;
     const m = await C.moderate(text); if (!m.pass) return send(res, 400, { error: 'reject', code: 'reject', care }), true;
     if (Free.full()) return send(res, 503, { error: 'rate', code: 'hFull' }), true;
-    for (const k of ['ip:' + ipk, devk && 'dev:' + devk, acct && 'acct:' + acct].filter(Boolean)) if (await Free.take('hmsg:' + k, 1, 1)) return send(res, 429, { error: 'rate', code: 'hUsed', care }), true;
+    if (!owner) for (const k of ['ip:' + ipk, devk && 'dev:' + devk, acct && 'acct:' + acct].filter(Boolean)) if (await Free.take('hmsg:' + k, 1, 1)) return send(res, 429, { error: 'rate', code: 'hUsed', care }), true;
     const msg = { id: id12(), door, text, at: Date.now(), ip: ipk, dev: devk, acct, lights: 0, care }; await putMsg(msg);
     return send(res, 200, { ok: true, item: pubMsg(msg), care }), true; }
   if (url === '/api/hollow/light' && req.method === 'POST') { const b = await body(req, 1000), id = String(b.id || '').replace(/^HM_/, '');
@@ -98,4 +103,4 @@ async function handle(req, res, url, C) { if (!url.startsWith('/api/hollow/')) r
     if (acct && m.acct) await lightEv(acct, m.acct, 'h:' + id, ipk, devk);
     return send(res, 200, { ok: true, dup: !fresh, n }), true; }
   return false; }
-module.exports = { handle, lightEv, getMsg, progress, people, CARE, DOORS, OPEN, NEED };
+module.exports = { isOwner, OWNERS, handle, lightEv, getMsg, progress, people, CARE, DOORS, OPEN, NEED };

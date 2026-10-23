@@ -1547,5 +1547,6 @@
   "hollow.near": "Jauh di koridor, lampu menyala di dinding",
   "hollow.err": "Sesuatu telah berlaku. Sila cuba lagi.",
   "hollow.offline": "Tidak dapat menghubungi pelayan sekarang; menunjukkan rongga tanpa lampu.",
-  "hollow.vrSel": "Pencetus untuk memilih"
+  "hollow.vrSel": "Pencetus untuk memilih",
+  "hollow.ownerPreview": "Pratonton pemilik: pintu ini belum dibuka kepada orang ramai lagi. Hanya dompet pemilik anda yang dilog masuk boleh masuk."
 }

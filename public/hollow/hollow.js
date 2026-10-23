@@ -34,7 +34,7 @@ async function api(p, data) { const r = await fetch(p, { method: data ? 'POST' :
 const S = { state: null, msgs: [], door: 'first', mode: 'hall', mine: (() => { try { return JSON.parse(localStorage.wt_hollow_mine || '[]'); } catch { return []; } })(), heard: (() => { try { return JSON.parse(localStorage.wt_hollow_heard || '{}'); } catch { return {}; } })() };
 const saveMine = () => { try { localStorage.wt_hollow_mine = JSON.stringify(S.mine.slice(-20)); localStorage.wt_hollow_heard = JSON.stringify(S.heard); } catch {} };
 let toastT; function toast(s) { const el = $('#toast'); el.textContent = s; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 3200); }
-const isOpen = k => k === 'first' || (k === 'sea' && !!S.state?.cards?.includes('sea'));
+const isOpen = k => !!S.state?.owner || k === 'first' || (k === 'sea' && !!S.state?.cards?.includes('sea'));
 const status = k => isOpen(k) ? 'open' : k === 'sea' ? 'locked' : 'soon';
 
 // ---------- 画质 ----------
@@ -262,6 +262,7 @@ function doorHtml(k) { const st = status(k), s = S.state, login = !!s?.login, ha
   else if (k === 'sea') { const p = s?.sea, n = p?.need || s?.need || { wishes: 3, gave: 5, got: 3 };
     if (has) body += `<p class=note>✦ ${esc(t('hollow.seaDone'))}</p><div class=btns><button type=button class="pill gold" data-walk=sea>${esc(t('hollow.walk'))}</button></div>`;
     body += `<div class=prog id=seaprog><b>${esc(t('hollow.seaTitle'))}</b>${[['wishes', 'seaWishes'], ['gave', 'seaGave'], ['got', 'seaGot']].map(([f, key]) => { const v = Math.min(p?.[f] || 0, n[f]); return `<div class="prow ${v >= n[f] ? 'ok' : ''}" data-f=${f}><div class=lbl><span>${esc(t('hollow.' + key, { n: v, m: n[f] }))}</span><b>${v >= n[f] ? '✓' : ''}</b></div><div class=bar><i style="width:${(v / n[f]) * 100}%"></i></div></div>`; }).join('')}<p class=note>${esc(t('hollow.seaRule'))}</p>${login ? '' : `<p class=note>${esc(t('hollow.loginNeed'))} <a href="${loginUrl}" style="color:var(--gold)">${esc(t('hollow.login'))}</a></p>`}</div><p class=note>${esc(t('hollow.cardNote'))}</p>`; }
+  else if (s?.owner) body += `<p class=note>✦ ${esc(t('hollow.ownerPreview'))}</p><div class=btns><button type=button class="pill gold" data-walk=${k}>${esc(t('hollow.walk'))}</button></div>`;
   else body += `<p class=note>${esc(t('hollow.soonNote'))}</p>`;
   return body; }
 function openDoor(k) { openPanel(doorHtml(k)); }

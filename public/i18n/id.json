@@ -1547,5 +1547,6 @@
   "hollow.near": "Jauh di dalam koridor, lampu menyala di dinding",
   "hollow.err": "Ada yang tidak beres. Silakan coba lagi.",
   "hollow.offline": "Tidak dapat menjangkau server saat ini; menunjukkan lubang tanpa lampu.",
-  "hollow.vrSel": "Pemicu untuk memilih"
+  "hollow.vrSel": "Pemicu untuk memilih",
+  "hollow.ownerPreview": "Pratinjau pemilik: pintu ini belum dibuka untuk umum. Hanya dompet pemilik Anda yang telah masuk yang dapat masuk."
 }
