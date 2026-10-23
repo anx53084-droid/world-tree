@@ -1,4 +1,4 @@
-// t276：免费心愿独立存储 + 持久化每日限额 + 容量守护（本地 D1 REST 模拟：python sqlite）
+// t276/t277（终身 1 条）：免费心愿独立存储 + 持久化每日限额 + 容量守护（本地 D1 REST 模拟：python sqlite）
 const fs = require('fs'), os = require('os'), path = require('path'), cp = require('child_process');
 const D = __dirname, wait = ms => new Promise(r => setTimeout(r, ms)); let ok = 0, bad = 0; const chk = (c, m) => { c ? ok++ : bad++; console.log((c ? '✅ ' : '❌ ') + m); };
 const MOCK = `import sqlite3,json,sys,os
@@ -28,20 +28,23 @@ HTTPServer(('127.0.0.1',int(sys.argv[1])),H).serve_forever()`;
     return J('/api/free', { method: 'POST', headers: h, body: JSON.stringify({ text, cat: '经典', cid: c.cid, ans: a + b, dev }) }); };
   await start(); chk(/free wishes: D1 table/.test(srv.log), 'free store uses D1 table');
   const r = []; for (let i = 0; i < 2; i++) r.push((await free('10.1.1.1', 'Hope my garden blooms ' + i)).s);
-  chk(r.join() === '200,429', `per-IP 1/day: ${r}`);
+  chk(r.join() === '200,429', `per-IP lifetime 1: ${r}`);
   const id = (await free('10.1.1.2', 'May the stars be kind')).j.id; chk(/^OF_/.test(id || ''), 'another IP can write');
   const off = (await J('/api/offchain')).j; chk(off.free.length === 2 && off.free[0].id === id, `home list from memory: ${off.free.length} newest-first`);
   chk((await J('/api/og-meta/' + id)).j.text === 'May the stars be kind', 'og-meta reads free wish');
   const d1 = (await J('/api/health')).j.free; chk(d1.total === 2, `health shows total ${d1.total}`);
   await stop(); await start();
   chk((await free('10.1.1.1', 'after restart')).s === 429, 'per-IP counter survives restart (persisted in D1)');
-  chk((await free('10.1.1.3', 'x', 'devA')).s === 200 && (await free('10.1.1.4', 'y', 'devA')).s === 429, 'per-device 1/day across IPs');
+  chk((await free('10.1.1.3', 'x', 'devA')).s === 200 && (await free('10.1.1.4', 'y', 'devA')).s === 429, 'per-device lifetime 1 across IPs');
   chk((await J('/api/offchain')).j.free.length === 3 && (await J('/api/og-meta/' + id)).s === 200, 'wishes persist across restart, old id still readable');
-  await stop(); await start({ FREE_DAY_CAP: '5', FREE_MEM_N: '3' });
-  chk((await free('10.2.0.1', 'eight')).s === 200 && (await free('10.2.0.2', 'nine')).s === 200 && (await free('10.2.0.3', 'ten')).s === 429, 'global day cap env-configurable (5)');
+  { const r1 = await free('10.4.0.1', '我想自杀'), r2 = await free('10.4.0.1', 'A kind wish after a rejected one'); chk(r1.j.code === 'reject' && r2.s === 200, 'moderation-rejected attempt does not consume the free wish'); }
+  { const r = await free('10.1.1.1', 'again'); chk(r.s === 429 && r.j.code === 'freeRate', 'used-up → code freeRate (friendly on-chain message)'); }
+  chk(await new Promise(res => { const p = cp.spawnSync('python3', ['-c', `import sqlite3;print(sqlite3.connect('${tmp}/d1.sqlite').execute("select count(*) from free_rate where k like 'life:%' and exp>4e12").fetchone()[0])`], { encoding: 'utf8' }); res(+p.stdout > 0); }), 'lifetime counters stored with no expiry (no daily reset)');
+  await stop(); await start({ FREE_DAY_CAP: '6', FREE_MEM_N: '3' });
+  chk((await free('10.2.0.1', 'eight')).s === 200 && (await free('10.2.0.2', 'nine')).s === 200 && (await free('10.2.0.3', 'ten')).s === 429, 'global day cap env-configurable (6)');
   chk((await J('/api/offchain')).j.free.length === 3 && (await J('/api/og-meta/' + id)).s === 200, 'FREE_MEM_N=3: only 3 in memory, older still fetched from D1');
-  chk((await J('/api/health')).j.free.total === 5, 'no auto-delete (5 kept)');
-  fs.writeFileSync(tmp + '/size', String(4.95e9)); await J('/api/og-meta/' + id); await wait(300);
-  chk((await free('10.3.0.1', 'full')).s === 429 && (await J('/api/health')).j.free.paused, 'D1 ≥4.9GB → new free wishes paused, no crash');
-  chk(/ADMIN: D1 size 4\.\d\dGB/.test(srv.log), 'admin warning logged (≥4.5GB)');
+  chk((await J('/api/health')).j.free.total === 6, 'no auto-delete (6 kept)');
+  fs.writeFileSync(tmp + '/size', String(4.95e8)); await J('/api/og-meta/OF_000000000000'); await wait(300);
+  chk((await free('10.3.0.1', 'full')).s === 503 && (await J('/api/health')).j.free.paused, 'D1 ≥490MB → new free wishes paused, no crash');
+  chk(/ADMIN: D1 size 495MB/.test(srv.log), 'admin warning logged (≥450MB)');
   await stop(); mock.kill(); console.log(`\n${ok} pass, ${bad} fail`); process.exit(bad ? 1 : 0); })().catch(e => { console.error(e); process.exit(1); });

@@ -27,8 +27,9 @@ async function handle(req, res, url, C) { const { send, body, Soc, moderate, Blo
     if (!text || len(text) > 140 || /[|~<>]/.test(text)) return send(res, 400, { error: 'len', code: 'len' }), true;
     const bh = Block.check(text); if (bh) return send(res, 400, { error: 'blocked', code: 'blockPhish' }), true;
     const m = await moderate(text); if (!m.pass) return send(res, 400, { error: 'reject', code: 'reject' }), true;
-    // t276：每日 1 条（每 IP / 每设备，D1 持久化）；审核通过后才计数，被拒的内容不占用当天名额
-    if (Free.full() || await Free.overLimit(ipk, dev && sha(dev).slice(0, 16))) return send(res, 429, { error: 'rate', code: 'freeRate' }), true;
+    // t277：终身 1 条（每 IP / 每设备 / 每账户，D1 持久化）；审核通过后才计数，被拒的内容不占用当天名额
+    if (Free.full()) return send(res, 503, { error: 'rate', code: 'rate' }), true;
+    { const lim = await Free.overLimit(ipk, dev && sha(dev).slice(0, 16), C.auth(req)?.user?.pubkey); if (lim) return send(res, 429, { error: 'rate', code: lim === 'mine' ? 'freeRate' : 'rate' }), true; }
     const id = id12(), token = crypto.randomBytes(24).toString('base64url'); await Free.put({ id, text, cat, cover, at: Date.now(), tok: sha(token), ip: ipk }); // t276：独立存储，不再整份写 social.json，也不自动删旧
     return send(res, 200, { id: 'OF_' + id, token, text, cat }), true; }
   if (url === '/api/free/claim' && req.method === 'POST') { const a = C.auth(req); if (!a) return send(res, 401, { error: '未登录', code: 'auth' }), true; const b = await body(req, 4000), id = String(b.id || '').replace(/^OF_/, '');

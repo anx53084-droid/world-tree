@@ -32,9 +32,9 @@ const D = __dirname, SHOTS = process.env.SHOTS;
     ok((await call('/api/free', { text: '再来一次', cat: '卡通', cid: c.cid, ans: c.ans, dev: 'd1' }, IP(1))).j.code === 'freeCaptcha', '免费：验证码一次性');
     c = await solve(IP(2)); ok((await call('/api/free', { text: '我想自杀', cid: c.cid, ans: c.ans, dev: 'd2' }, IP(2))).j.code === 'reject', '免费：审核拒绝负面内容');
     c = await solve(IP(2)); ok((await call('/api/free', { text: 'x'.repeat(141), cid: c.cid, ans: c.ans, dev: 'd2' }, IP(2))).j.code === 'len', '免费：超 140 字被拒');
-        c = await solve(IP(1)); ok((await call('/api/free', { text: '第二条', cid: c.cid, ans: c.ans, dev: 'd9' }, IP(1))).j.code === 'freeRate', '免费：同一 IP 每天 1 条（t276）');
+        c = await solve(IP(1)); ok((await call('/api/free', { text: '第二条', cid: c.cid, ans: c.ans, dev: 'd9' }, IP(1))).j.code === 'freeRate', '免费：同一 IP 终身 1 条（t277）');
     for (let i = 0; i < 1; i++) { c = await solve(IP(20 + i)); assert((await call('/api/free', { text: '设备' + i, cid: c.cid, ans: c.ans, dev: 'DEV' }, IP(20 + i))).s === 200); }
-    c = await solve(IP(30)); ok((await call('/api/free', { text: '设备2', cid: c.cid, ans: c.ans, dev: 'DEV' }, IP(30))).j.code === 'freeRate', '免费：同一设备每天 1 条（t276）');
+    c = await solve(IP(30)); ok((await call('/api/free', { text: '设备2', cid: c.cid, ans: c.ans, dev: 'DEV' }, IP(30))).j.code === 'freeRate', '免费：同一设备终身 1 条（t277）');
     off = (await call('/api/offchain')).j; ok(off.free.some(f => f.id === fr.j.id) && !JSON.stringify(off).includes('tok') && !JSON.stringify(off).includes('"ip"'), '/api/offchain 含免费心愿，不泄露令牌哈希 / IP');
     // 认领升级
     const mo = (await call('/api/moderate', { text: '想学会弹一首吉他曲', prefix: '卡通' })).j, a = mo.attestation, sigU = fsig(), sigX = fsig();
