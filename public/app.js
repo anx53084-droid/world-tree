@@ -1022,7 +1022,7 @@ async function extLink(url, name, o = {}) { let u; try { u = new URL(url); } cat
 function loadAdOne(id) { S.adOneP ||= {}; return S.adOneP[id] ||= fetch('/api/ads?id=' + encodeURIComponent(id)).then(r => r.ok ? r.json() : Promise.reject()).then(j => { S.adOne[id] = j.ad; route(); }).catch(() => { S.adOne[id] = false; route(); }); }
 function adDetail(id) { const a = adById(id); if (!a) { if (S.adOne[id] === undefined) loadAdOne(id); return `<h2>${E('detail.title')}</h2><p class=muted>${S.adOne[id] === false ? E('ad.notFound') : E('route.loading')}</p>`; }
   ensureFeed(); resolveIdx('AD:' + id);
-  return swBar() + `<h2>${E('detail.title')}</h2><div class="ad-banner" role=note>🤝 ${E('ad.banner')}</div><div class="card ad ad-r${adRc(a)}" data-rank="${a.rank || 0}"><span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
+  return swBar() + `<h2>${E('detail.title')}</h2><div class="ad-banner" role=note>🤝 ${E('ad.banner')}</div><div class="card ad det-card ad-r${adRc(a)}" style="position:relative" data-rank="${a.rank || 0}">${detX()}<span class=ad-tag role=note aria-label="${E('ad.labelAria')}">${E('ad.label')}</span>
   <div class=ad-row><img class="ad-cover big" alt="" src="${adCover(a)}"><div class=ad-main>${a.brand ? `<span class="muted ad-brand" dir=auto>${esc(a.brand)}</span>` : ''}<h3 dir=auto style="margin:.2em 0">${esc(a.title)}</h3><p dir=auto style="font-size:18px">${esc(a.text)}</p></div></div>
   ${a.mode === 'external' && a.url ? `<div class=row><button type=button class=primary data-adgo>↗ ${E('ad.visit')}</button></div>` : ''}${isMyAd(a.id) ? `<div class=row>${upBtn(a)}<a class=btn href="#/ads">${E('ads.mineTitle')}</a></div>` : ''}<p class="muted hint">${E('ad.disc')}</p></div>`; }
 // 详情滑动：沿用 feed 顺序
@@ -1337,9 +1337,10 @@ function list(q, only) {
   <select name=sort aria-label="${E('a11y.f.sort')}">${opt([['new', t('home.new')], ['hot', t('home.hot')], ['old', t('list.sortOld')]], sort)}</select><button>${E('list.filter')}</button><button type=button id=rf>${E('list.refresh')}</button></form>
   <div id=wl>${body()}</div>`;
 }
-const detail = sig => { S.lastDetSig = sig; if (sig.startsWith('AD:')) return detBack() + adDetail(sig.slice(3)); ensureFeed(); resolveIdx(sig); return detBack() + swBar() + detailBase(sig); };
+const detail = sig => { S.lastDetSig = sig; if (sig.startsWith('AD:')) return adDetail(sig.slice(3)); ensureFeed(); resolveIdx(sig); return swBar() + detailBase(sig); };
 // t273：详情页返回 —— 从卡片弹窗进入则 history.back() 回到原页面并重开同一张卡；直接打开则回首页。浏览器/安卓返回手势同样生效
-function detBack() { return `<div class=det-top><button type=button class=det-back data-detback aria-label="${E('detail.back')}"><span class=det-ar aria-hidden=true>←</span> ${E('detail.back')}</button></div>`; }
+// t274：返回按钮改为详情卡片右上角的 ×（RTL 在左上）
+function detX() { return `<button type=button class=det-x data-detback aria-label="${E('detail.close')}" title="${E('detail.close')}">×</button>`; }
 const dFrom = () => { try { return JSON.parse(sessionStorage.gq_dfrom || 'null'); } catch { return null; } };
 const normH = h => (h || '#/').replace(/^#?$/, '#/');
 document.addEventListener('click', e => { const a = e.target.closest?.('#modal a[href^="#/w/"]'); if (a) { try { sessionStorage.gq_dfrom = JSON.stringify({ back: normH(location.hash) }); } catch {} return; }
@@ -1353,9 +1354,9 @@ function detailBase(sig) {
   maybeFulfillToast(w); loadCardMeta([w]);
   if (!S.fulfill[sig] && !/^SAMPLE|^SYN|^SL|^SB|^O[FS]_/.test(sig)) loadFulfillment(sig).then(fv => { if (fv?.fulfilled) { aggregate(); if (!document.querySelector('textarea:focus') && $('#modal').hidden) route(); } });
   const locked = (w.vis === 'locked' || w.vis === 'nearby' || w.vis === 'recent' || w.vis === 'invite') && !canViewCard(w) && !isMine(w) && !giftToMe(w), L = lockPaint(w);
-  if (locked) return `<h2>${E('detail.title')}</h2><div class="card locked-card k-${w.kind || 'wish'}">${locCorner(w)}<p style="font-size:22px">${esc(L.text)}</p><p class=muted>${E('vis.' + w.vis + 'Need')}</p>
+  if (locked) return `<h2>${E('detail.title')}</h2><div class="card locked-card det-card k-${w.kind || 'wish'}" style="position:relative">${detX()}${locCorner(w)}<p style="font-size:22px">${esc(L.text)}</p><p class=muted>${E('vis.' + w.vis + 'Need')}</p>
     ${w.vis === 'locked' ? `<label>${E('vis.password')}<input id=dupass type=password></label><button class=primary id=duok>${E('vis.unlock')}</button>` : w.vis === 'nearby' ? `<div class=loc-row><label>${E('loc.country')}<input id=dcountry value="${esc(S.myLoc.country||'')}"></label><label>${E('loc.province')}<input id=dprov value="${esc(S.myLoc.province||'')}"></label><label>${E('loc.city')}<input id=dcity value="${esc(S.myLoc.city||'')}"></label></div><button class=primary id=duset>${E('vis.setCity')}</button>` : ''}</div>`;
-  return `<h2>${E('detail.title')}</h2><div class="card k-${w.kind || 'wish'}" data-cat="${w.cat}" style="position:relative">${locCorner(w)}<div class=row>${spectrum(w.sig, 120)}<div style="flex:1">${offBadge(w)} <span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)} ${typeTag(w)} ${visBadge(w)}<p style="font-size:22px" dir=auto>${kIcon(w)}${UTw(w, w.text)}</p>${modBanner(w)} ${kindTag(w)}${kindHtml(w, true)}</div></div>
+  return `<h2>${E('detail.title')}</h2><div class="card det-card k-${w.kind || 'wish'}" data-cat="${w.cat}" style="position:relative">${detX()}${locCorner(w)}<div class=row>${spectrum(w.sig, 120)}<div style="flex:1">${offBadge(w)} <span class=tag>${esc(catName(w.cat))}</span> ${fulfillBadge(w)} ${typeTag(w)} ${visBadge(w)}<p style="font-size:22px" dir=auto>${kIcon(w)}${UTw(w, w.text)}</p>${modBanner(w)} ${kindTag(w)}${kindHtml(w, true)}</div></div>
   ${w.official || w.offchain ? `<p>${E('detail.time')} ${fmtT(w.time)}</p>` : `<p>${E('detail.author')} <code>${esc(w.author)}</code></p><p>${E('detail.time')} ${fmtT(w.time)} ${w.pending ? '（⏳ ' + E('time.pending') + '）' : ''} · ${E('detail.paid')} ${sol(w.paid || 0)} · 🔥 ${E('detail.heat', { n: w.heat })}</p>
   <p class=muted>🌈 ${E('detail.spectrum')}</p>`}
   ${fpBy(w)}${offNote(w)}${w.offchain && myFree().some(f => f.id === w.sig) ? `<p><a class="btn primary" href="#/free">⛓️ ${E('free.upgrade')}</a></p>` : ''}
