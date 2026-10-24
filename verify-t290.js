@@ -23,18 +23,17 @@ const pub = path.join(__dirname, 'public'), LANGS = 'zh-CN zh-TW en ja ko es fr 
     const mk = async (tok, ip) => { const ctx = await br.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, extraHTTPHeaders: { 'cf-connecting-ip': ip } });
       await ctx.addInitScript(([tok]) => { if (tok) localStorage.wt_token = tok; localStorage.wt_lang = 'en'; localStorage.wt_hollow_lite = '0'; }, [tok]);
       const p = await ctx.newPage(); p.errs = []; p.on('pageerror', e => p.errs.push(e.message)); return p; };
-    const glbSize = fs.statSync(path.join(pub, 'hollow/npc.glb')).size; ok(glbSize < 3e6, 'npc.glb < 3MB: ' + (glbSize / 1024 | 0) + 'KB');
+    const glbSize = fs.statSync(path.join(pub, 'hollow/npc.vrm')).size; ok(glbSize < 8e6, 'npc.vrm < 8MB: ' + (glbSize / 1024 | 0) + 'KB');
     const p = await mk(me.token, '10.5.0.9'); await p.goto(B + '/hollow/'); await p.waitForFunction(() => window.__hollow, null, { timeout: 20000 });
     await p.evaluate(() => __hollow.start()); await p.waitForTimeout(1500); await p.evaluate(() => __hollow.enter('first'));
-    await p.waitForFunction(() => __hollow.npc().mode === 'glb', null, { timeout: 30000 }).catch(() => {});
-    const n0 = await p.evaluate(() => __hollow.npc()); ok(n0.mode === 'glb', '加载 3D 骨骼模型（GLB）: ' + n0.mode);
+    await p.waitForFunction(() => ['glb','vrm'].includes(__hollow.npc().mode), null, { timeout: 30000 }).catch(() => {});
+    const n0 = await p.evaluate(() => __hollow.npc()); ok(['glb','vrm'].includes(n0.mode), '加载 3D 骨骼模型（GLB）: ' + n0.mode);
     ok(['walk', 'breath', 'wave', 'give'].every(a => n0.anims.includes(a)), '骨骼动画齐全 walk/breath/wave/give: ' + n0.anims);
-    ok(n0.lanOnHand, '灯笼挂在左手骨骼上');
     ok(await p.evaluate(() => { let sk = 0; __hollow.npcObj.model.root.traverse(o => { if (o.isSkinnedMesh) sk++; }); return sk > 0; }), '是蒙皮网格（SkinnedMesh），不是精灵'); ok(await p.evaluate(() => !__hollow.npcObj.body.visible), '精灵已隐藏');
     // 走路：玩家远离，指定目标
     await p.evaluate(() => { const n = __hollow.npcObj; n.x = -3; n.s = 10; n.tx = 3.5; n.ts = 13; n.wait = 0; n.yaw = Math.PI / 2; __hollow.setPose(0.5, 3.6, 0, 0.0); });
     await p.waitForTimeout(1200); const w = await p.evaluate(() => __hollow.npc()); ok(w.act === 'walk', '漫步时播放 walk: ' + w.act);
-    const x1 = w.x; await p.waitForTimeout(800); ok((await p.evaluate(() => __hollow.npc().x)) > x1, '在走动（位置变化）');
+    ok((await p.evaluate(() => __hollow.npc().lanOnHand)), '灯笼挂在左手骨骼上'); const x1 = w.x; await p.waitForTimeout(2500); ok((await p.evaluate(() => __hollow.npc().x)) > x1, '在走动（位置变化）');
     await p.screenshot({ path: S('walking') });
     const fr = fs.mkdtempSync(path.join(os.tmpdir(), 'fr-')); await p.evaluate(() => { const n = __hollow.npcObj; n.x = -3; n.s = 10; n.tx = 3.5; n.ts = 10.5; n.wait = 0; n.yaw = Math.PI / 2; __hollow.setPose(0, 6.2, 0, -0.05); }); await p.waitForTimeout(500);
     for (let i = 0; i < 30; i++) { await p.screenshot({ path: path.join(fr, String(i).padStart(3, '0') + '.png'), clip: { x: 0, y: 200, width: 390, height: 520 } }); await p.waitForTimeout(60); }
@@ -54,7 +53,7 @@ const pub = path.join(__dirname, 'public'), LANGS = 'zh-CN zh-TW en ja ko es fr 
     const q = await mk(me.token, '10.5.0.9'); await q.goto(B + '/hollow/?npc=sprite'); await q.waitForFunction(() => window.__hollow, null, { timeout: 20000 }); await q.evaluate(() => { __hollow.start(); __hollow.enter('first'); }); await q.waitForTimeout(2500);
     ok(await q.evaluate(() => __hollow.npc().mode === 'sprite' && __hollow.npcObj.body.visible), '兜底：精灵仍可用');
     const L = await mk(me.token, '10.5.0.9'); await L.goto(B + '/hollow/?lite=1'); await L.waitForFunction(() => window.__hollow, null, { timeout: 20000 }); await L.evaluate(() => { __hollow.start(); __hollow.enter('first'); });
-    await L.waitForFunction(() => __hollow.npc().mode === 'glb', null, { timeout: 30000 }).catch(() => {}); ok(await L.evaluate(() => __hollow.lite && __hollow.npc().mode === 'glb' && !__hollow.npcObj.model.pl), 'Lite：3D 模型（无点光源的轻量版）');
+    await L.waitForFunction(() => ['glb','vrm'].includes(__hollow.npc().mode), null, { timeout: 30000 }).catch(() => {}); ok(await L.evaluate(() => __hollow.lite && ['glb','vrm'].includes(__hollow.npc().mode) && !__hollow.npcObj.model.pl), 'Lite：3D 模型（无点光源的轻量版）');
     ok(L.errs.length === 0 && q.errs.length === 0, 'Lite/兜底无错误');
   } catch (e) { ok(false, 'exception ' + e.stack); }
   finally { await br?.close(); srv.kill(); console.log(fail ? `\n${fail} FAILED` : '\nALL OK'); process.exit(fail ? 1 : 0); }

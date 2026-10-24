@@ -297,58 +297,98 @@ const npc = (() => { const g = new THREE.Group(), tx = tex('hollow/npc.webp'), b
   g.visible = false; corr.add(g);
   const st = { g, body, glow, lab, x: 1.6, s: 9, tx: 1.6, ts: 9, wait: 1, near: false, dist: 99, model: null, mode: 'sprite', act: 'idle', yaw: 0, busy: 0,
     paint() { lab.material.map?.dispose(); lab.material.map = canvasTex(512, 96, (c, W, H) => { c.fillStyle = 'rgba(12,10,32,.72)'; roundRect(c, 4, 4, W - 8, H - 8, 40); c.fill(); c.strokeStyle = 'rgba(246,211,138,.8)'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#ffe9b5'; c.textAlign = 'center'; fitText(c, t('hollow.npcHint'), W - 50, 40, 'italic 500 ', 'Georgia, serif'); c.fillText(t('hollow.npcHint'), W / 2, 62); }); lab.material.needsUpdate = true; },
-    play(name, once) { const M = st.model; if (!M) return; const a = M.acts[name]; if (!a || st.act === name && !once) return; const prev = M.acts[st.act];
+    play(name, once) { const M = st.model; if (!M) return; if (M.vrmMode) { if (st.act === name && !once) return; st.act = name; if (once) st.busy = name === 'wave' ? 2.4 : 2.6; return; } const a = M.acts[name]; if (!a || st.act === name && !once) return; const prev = M.acts[st.act];
       a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); a.clampWhenFinished = !!once; a.play(); if (prev && prev !== a) a.crossFadeFrom(prev, 0.35, true); st.act = name; if (once) st.busy = a.getClip().duration; },
     greet() { st.play('wave', true); }, give() { st.play('give', true); },
-    upd(el, dt) { const on = S.mode === 'corr' && S.door === 'first'; g.visible = on; lab.visible = !S.releasing; if (!on) { st.near = false; return; }
+    upd(el, dt) { const on = S.mode === 'corr' && S.door === 'first'; g.visible = on; lab.visible = !S.releasing && !(st.model && st.dist < 1.8); if (!on) { st.near = false; return; }
       st.dist = Math.hypot(P.x - st.x, P.s - st.s); const wasNear = st.near; st.near = st.dist < 3.2; let moving = false, face = null;
       if (st.busy > 0) st.busy -= dt;
       if (st.dist < 4.5 || S.releasing) { body.scale.x = Math.abs(body.scale.x); face = Math.atan2(P.x - st.x, -(P.s - st.s)); if (st.near && !wasNear && st.busy <= 0) st.greet(); }
       else if ((st.wait -= dt) <= 0) { const dx = st.tx - st.x, ds = st.ts - st.s, d = Math.hypot(dx, ds);
         if (d < 0.1) { st.wait = 1.5 + Math.random() * 3; st.tx = -4 + Math.random() * 8; st.ts = 6 + Math.random() * 12; }
-        else { face = Math.atan2(dx, -ds); const turn = st.model ? Math.abs(((face - st.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) : 0; const v = Math.min(d, 0.75 * dt * (turn > 0.6 ? 0.2 : 1)); st.x += dx / d * v; st.s += ds / d * v; moving = true; const sx = Math.abs(body.scale.x); body.scale.x = dx >= 0 ? sx : -sx; glow.position.x = dx >= 0 ? -0.3 : 0.3; } }
+        else { face = Math.atan2(dx, -ds); const turn = st.model ? Math.abs(((face - st.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) : 0; const v = Math.min(d, 0.62 * dt * (turn > 0.6 ? 0.2 : 1)); st.x += dx / d * v; st.s += ds / d * v; moving = true; const sx = Math.abs(body.scale.x); body.scale.x = dx >= 0 ? sx : -sx; glow.position.x = dx >= 0 ? -0.3 : 0.3; } }
       if (st.model) { const M = st.model; if (face != null) { let dy = ((face - st.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; st.yaw += dy * Math.min(1, dt * 5); }
-        M.root.rotation.y = st.yaw; if (st.busy <= 0) st.play(moving ? 'walk' : 'breath'); M.mixer.update(dt); if (M.hb) { const v = M.hb.getWorldPosition(new THREE.Vector3()); M.root.worldToLocal(v); M.robe.position.set(v.x - M.h0.x, Math.min(0, v.y - M.h0.y), v.z - M.h0.z); } M.robe.rotation.x = moving ? 0.06 : 0; M.robe.scale.set(1 + Math.sin(el * 2.1) * 0.02, 1, 1 + Math.cos(el * 1.7) * 0.02);
-        M.lan.rotation.z = Math.sin(el * 2.3) * 0.12; if (M.pl) M.pl.intensity = 0.8 + Math.sin(el * 3.1) * 0.15;
+        M.root.rotation.y = st.yaw; if (st.busy <= 0) st.play(moving ? 'walk' : 'breath'); if (M.vrmMode) M.upd(dt, el, moving); else { M.mixer.update(dt); }
         g.position.set(st.x, 0, -st.s); } else g.position.set(st.x, Math.sin(el * 1.3) * 0.05, -st.s);
       glow.material.opacity = 0.75 + Math.sin(el * 3.1) * 0.15; } };
-  // t290：真 3D 骨骼角色（CC0 Quaternius 基础角色 + 自建汉服/发髻/提灯），失败则保留精灵兜底
-  if (new URLSearchParams(location.search).get('npc') !== 'sprite') import('three/addons/loaders/GLTFLoader.js').then(async ({ GLTFLoader }) => { const { MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js');
-    const gl = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('hollow/npc.glb'); const root = gl.scene; root.updateMatrixWorld(true);
-    const bb = new THREE.Box3().setFromObject(root), sc = 1.68 / (bb.max.y - bb.min.y); root.scale.setScalar(sc); root.position.y = -bb.min.y * sc; const wrap = new THREE.Group(); wrap.add(root); g.add(wrap); wrap.updateMatrixWorld(true);
-    const bone = n => { let o = null; root.traverse(c => { if (!o && c.isBone && c.name.replace(/[^A-Za-z]/g, '') === n.replace(/[^A-Za-z]/g, '')) o = c; }); return o; };
-    root.traverse(c => { if (c.isMesh) { c.frustumCulled = false; c.castShadow = false; } });
-    const silk = new THREE.MeshStandardMaterial({ color: 0xa9c7ee, roughness: 0.7, side: THREE.DoubleSide }), silk2 = new THREE.MeshStandardMaterial({ color: 0x8fb6e6, roughness: 0.55, side: THREE.DoubleSide }), hairM = new THREE.MeshStandardMaterial({ color: 0x0b0b14, roughness: 0.5 }), blueM = new THREE.MeshStandardMaterial({ color: 0x3f7fd8, roughness: 0.45 }), silver = new THREE.MeshStandardMaterial({ color: 0xdfe6f2, metalness: 0.9, roughness: 0.25 });
-    const att = (b, obj, x, y, z) => { if (!b) return obj; obj.position.set(x, y, z); wrap.add(obj); obj.updateMatrixWorld(true); b.attach(obj); return obj; };
-    const wp = n => { const b = bone(n); return b ? b.getWorldPosition(new THREE.Vector3()).sub(wrap.getWorldPosition(new THREE.Vector3())) : new THREE.Vector3(0, 1, 0); };
-    const hip = wp('Hips'), head = wp('Head'), wl = wp('Wrist.L'), wr = wp('Wrist.R'), la = wp('LowerArm.L'), ra = wp('LowerArm.R');
-    // 及地长裙（随髋部）
-    const robeG = new THREE.LatheGeometry([[0.13, 0], [0.2, -0.12], [0.27, -0.45], [0.34, -0.75], [0.42, -0.98], [0.44, -1.0]].map(([x, y]) => new THREE.Vector2(x, y)), 22); robeG.translate(0, hip.y + 0.08, 0);
-    robeG.translate(0, -(hip.y + 0.08), 0); const robe = new THREE.Mesh(robeG, silk); const robePivot = new THREE.Group(); robePivot.add(robe); robe.position.y = hip.y + 0.08; wrap.add(robePivot);
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.4, 18, 1, true), silk); top.position.y = hip.y + 0.28; robePivot.add(top);
-    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 6, 18), silk2); collar.rotation.x = Math.PI / 2; collar.position.set(0, hip.y + 0.47, 0.01); robePivot.add(collar);
-    const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.17, 0.09, 20, 1, true), silk2); sash.position.y = hip.y + 0.1; robePivot.add(sash);
-    // 广袖（随小臂）
-    const sleeve = (b, p, side) => { const sg = new THREE.ConeGeometry(0.1, 0.28, 12, 1, true); sg.translate(0, -0.14, 0); const m = new THREE.Mesh(sg, silk); m.rotation.z = side * 0.25; return att(b, m, p.x, p.y, p.z); };
-    if (!lite) { sleeve(bone('LowerArm.L'), la, 1); sleeve(bone('LowerArm.R'), ra, -1); }
-    // 发髻 + 蓝色挑染 + 银簪
-    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 10), hairM); att(bone('Head'), bun, head.x, head.y + 0.27, head.z - 0.05);
-    const streak = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 6, 20), blueM); streak.rotation.x = Math.PI / 2; att(bone('Head'), streak, head.x, head.y + 0.25, head.z - 0.05);
-    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.3, 6), silver); pin.rotation.z = 1.2; att(bone('Head'), pin, head.x, head.y + 0.29, head.z - 0.05);
-    const orn = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), silver); att(bone('Head'), orn, head.x + 0.13, head.y + 0.33, head.z - 0.05);
-    // 手提灯笼（挂在左手骨骼上，带点光 + 光晕）
-    const lan = new THREE.Group(), lb = new THREE.Mesh(lanGeo, lanMat); lb.scale.setScalar(0.38); lb.position.y = -0.22; lan.add(lb);
-    const str = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.12, 4), silver); str.position.y = -0.06; lan.add(str);
-    const lg = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightTex, color: 0xffa860, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); lg.scale.set(0.55, 0.55, 1); lg.material.opacity = 0.6; lg.position.y = -0.22; lan.add(lg);
-    let pl = null; if (!lite) { pl = new THREE.PointLight(0xffb060, 0.8, 4, 1.8); pl.position.y = -0.22; lan.add(pl); }
-    att(bone('Wrist.L'), lan, wl.x, wl.y - 0.02, wl.z);
-    const hemi = new THREE.HemisphereLight(0xc8d8ff, 0x3a2410, 0.55); g.add(hemi); const key = new THREE.DirectionalLight(0xffe2b8, 0.6); key.position.set(1, 3, 2); g.add(key);
-    wrap.traverse(o => { o.frustumCulled = false; });
-    const mixer = new THREE.AnimationMixer(root), acts = {}; for (const c of gl.animations) acts[c.name] = mixer.clipAction(c);
-    const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.8, 8), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.9; hit.userData.npc = 1; g.add(hit); clickables.push(hit);
-    const ci = clickables.indexOf(body); if (ci >= 0) clickables.splice(ci, 1); body.visible = false; glow.visible = false;
-    const hb = bone('Hips'), h0 = hip.clone(); st.model = { hb, h0, root: wrap, mixer, acts, robe: robePivot, lan, pl, bones: { wl: bone('Wrist.L') } }; st.mode = 'glb'; st.act = ''; st.play('breath');
-  }).catch(e => { console.warn('npc glb fallback', e); st.mode = 'sprite-fallback'; });
+  // t291：动漫风 VRM 角色（pixiv VRM1 示例模型改色 + 自建汉服/发饰/提灯，MToon + 弹簧骨骼），程序化骨骼动画；失败保留精灵兜底
+  if (new URLSearchParams(location.search).get('npc') !== 'sprite') Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('@pixiv/three-vrm')]).then(async ([{ GLTFLoader }, V]) => {
+    const ld = new GLTFLoader(); ld.register(p => new V.VRMLoaderPlugin(p)); const gl = await ld.loadAsync('hollow/npc.vrm'); const vrm = gl.userData.vrm; if (!vrm) throw new Error('no vrm');
+    V.VRMUtils.removeUnnecessaryVertices?.(gl.scene); V.VRMUtils.combineSkeletons?.(gl.scene); V.VRMUtils.rotateVRM0?.(vrm);
+    const root = vrm.scene; root.traverse(o => { o.frustumCulled = false; if (o.isMesh) o.castShadow = false; });
+    root.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(root), sc = 1.62 / (bb.max.y - bb.min.y); const wrap = new THREE.Group(); wrap.add(root); root.scale.setScalar(sc); root.position.y = -bb.min.y * sc; g.add(wrap); wrap.updateMatrixWorld(true);
+    const H = vrm.humanoid, N = n => H.getNormalizedBoneNode(n), R = n => H.getRawBoneNode(n);
+    const wpos = n => { const v = R(n).getWorldPosition(new THREE.Vector3()); return wrap.worldToLocal(v); };
+    const hip = wpos('hips'), head = wpos('head');
+    const flower = canvasTex(256, 512, (c, W, Hh) => { const gr = c.createLinearGradient(0, 0, 0, Hh); gr.addColorStop(0, '#eef5ff'); gr.addColorStop(1, '#b9d2f3'); c.fillStyle = gr; c.fillRect(0, 0, W, Hh);
+      for (let i = 0; i < 70; i++) { const x = Math.random() * W, y = Hh * (0.35 + Math.random() * 0.65), r = 4 + Math.random() * 7; c.fillStyle = ['#7fa6e0', '#ffffff', '#9ec0ef', '#c7dbf7'][i % 4];
+        for (let k = 0; k < 5; k++) { const an = k * 1.2566; c.beginPath(); c.arc(x + Math.cos(an) * r * 0.7, y + Math.sin(an) * r * 0.7, r * 0.45, 0, 7); c.fill(); } c.fillStyle = '#e9d39a'; c.beginPath(); c.arc(x, y, r * 0.25, 0, 7); c.fill(); }
+      c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 6; c.beginPath(); c.moveTo(0, Hh - 10); c.lineTo(W, Hh - 10); c.stroke(); });
+    flower.wrapS = THREE.RepeatWrapping; flower.repeat.set(3, 1);
+    const toon = (o) => new THREE.MeshToonMaterial({ side: THREE.DoubleSide, ...o });
+    const skirtIn = toon({ color: 0xc9dcfa }), skirtOut = toon({ color: 0xd8e6ff, map: flower, transparent: true, opacity: 0.82, depthWrite: false }), sashM = toon({ color: 0x5f8fd6 }), ribM = toon({ color: 0xbcd6f6, transparent: true, opacity: 0.85 });
+    const lathe = (pts, seg = 28) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
+    const top0 = hip.y + 0.06, robe = new THREE.Group(); wrap.add(robe);
+    const s1 = new THREE.Mesh(lathe([[0.135, 0], [0.17, -0.1], [0.22, -0.4], [0.27, -0.7], [0.31, -top0 + 0.02]]), skirtIn); s1.position.y = top0; robe.add(s1);
+    const s2g = lathe([[0.15, 0.02], [0.2, -0.12], [0.27, -0.42], [0.34, -0.72], [0.4, -top0 + 0.03], [0.41, -top0]], 36); const s2 = new THREE.Mesh(s2g, skirtOut); s2.position.y = top0 + 0.01; s2.renderOrder = 2; robe.add(s2);
+    const sp0 = s2g.attributes.position.array.slice();
+    const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.14, 0.07, 28, 1, true), sashM); sash.position.y = top0 + 0.04; robe.add(sash);
+    const ribbons = [-0.05, 0.05].map(x => { const r = new THREE.Mesh(new THREE.PlaneGeometry(0.045, 0.62, 1, 8).translate(0, -0.31, 0), ribM); r.position.set(x, top0 + 0.02, 0.15); robe.add(r); return r; });
+    const sleeves = [['left', 1], ['right', -1]].map(([side, sg]) => { const geo = new THREE.CylinderGeometry(0.06, 0.17, 0.55, 18, 6, true).translate(0, -0.31, 0); const m = new THREE.Mesh(geo, new THREE.MeshToonMaterial({ color: 0xc6dafb, map: flower, side: THREE.DoubleSide, transparent: true, opacity: 0.8, depthWrite: false })); m.renderOrder = 3; wrap.add(m); return { m, side, sg }; });
+    const shawl = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.012, 6, 40, Math.PI * 1.15), ribM); shawl.rotation.set(Math.PI / 2 + 0.25, 0, Math.PI * 0.92); wrap.add(shawl);
+    const hairM = toon({ color: 0x14161f }), blueM = toon({ color: 0x3d76d6 }), silver = new THREE.MeshStandardMaterial({ color: 0xe6ecf6, metalness: 0.95, roughness: 0.22 }), gem = toon({ color: 0x5aa0ff, emissive: 0x1a3d88 });
+    const hb = R('head'), orn = new THREE.Group(); orn.position.copy(head); wrap.add(orn);
+    const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); orn.add(m); return m; };
+    add(new THREE.SphereGeometry(0.075, 18, 14), hairM, 0, 0.17, -0.07).scale.set(1.15, 0.85, 1); add(new THREE.SphereGeometry(0.05, 14, 10), hairM, 0, 0.215, -0.04);
+    add(new THREE.TorusGeometry(0.07, 0.012, 8, 28), blueM, 0, 0.17, -0.07, 1.2); add(new THREE.TorusGeometry(0.05, 0.008, 6, 24), silver, 0, 0.215, -0.04, 1.3);
+    add(new THREE.CylinderGeometry(0.004, 0.004, 0.24, 6), silver, 0.02, 0.2, -0.06, 0.3, 0, 1.25);
+    for (const [x, z] of [[0.09, -0.02], [-0.085, -0.03], [0.06, 0.03]]) { add(new THREE.SphereGeometry(0.016, 8, 6), gem, x, 0.17, z); for (let k = 0; k < 5; k++) add(new THREE.SphereGeometry(0.011, 6, 5), silver, x + Math.cos(k * 1.257) * 0.02, 0.17 + Math.sin(k * 1.257) * 0.02, z); }
+    const tass = [0.1, -0.095].map(x => add(new THREE.CylinderGeometry(0.003, 0.003, 0.12, 4).translate(0, -0.06, 0), silver, x, 0.16, -0.03));
+    orn.updateMatrixWorld(true); hb.attach(orn);
+    const lan = new THREE.Group(); wrap.add(lan); const paper = new THREE.MeshBasicMaterial({ map: paperTex, side: THREE.DoubleSide, toneMapped: false });
+    const lb = new THREE.Mesh(lathe([[0.05, 0], [0.085, -0.03], [0.1, -0.1], [0.085, -0.18], [0.05, -0.21]], 16), paper); lb.position.y = -0.1; lb.scale.setScalar(1.25); lan.add(lb);
+    const wood = toon({ color: 0x3a2214 }); const c1 = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.018, 16), wood); c1.position.y = -0.1; lan.add(c1); const c2 = c1.clone(); c2.position.y = -0.31; lan.add(c2);
+    const red = toon({ color: 0xc8202a }); const ts = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.02, 0.13, 8).translate(0, -0.065, 0), red); ts.position.y = -0.32; lan.add(ts);
+    const str = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.1, 4).translate(0, -0.05, 0), silver); lan.add(str);
+    const lg = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightTex, color: 0xffa860, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); lg.scale.set(0.6, 0.6, 1); lg.position.y = -0.2; lan.add(lg);
+    let pl = null; if (!lite) { pl = new THREE.PointLight(0xffb060, 0.35, 2.5, 2); pl.position.y = -0.2; lan.add(pl); }
+    const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x4a3018, 0.42); g.add(hemi); const key = new THREE.DirectionalLight(0xfff0dc, 0.38); key.position.set(0.6, 2.5, 3); g.add(key); key.target = wrap;
+    if (vrm.lookAt) vrm.lookAt.target = camera;
+    // 走廊点光很强：对角色材质做保色相的柔和压缩，避免过曝/泛光，保留卡通明暗
+    const tame = m => { if (!m || m.userData.tamed || m === paper) return; m.userData.tamed = 1; const prev = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { prev?.call(m, sh, r); const inj = 'float npcM = max(max(gl_FragColor.r, gl_FragColor.g), gl_FragColor.b); gl_FragColor.rgb *= 0.8 / (0.35 + npcM); gl_FragColor.rgb *= vec3(0.8, 0.93, 1.2);\n';
+      for (const tag of ['#include <tonemapping_fragment>', '#include <colorspace_fragment>']) if (sh.fragmentShader.includes(tag)) { sh.fragmentShader = sh.fragmentShader.replace(tag, inj + tag); break; } }; m.customProgramCacheKey = () => 'npcTame' + (m.type || ''); m.needsUpdate = true; };
+    wrap.traverse(o => { if (o.isMesh && !lan.getObjectById(o.id)) [].concat(o.material).forEach(tame); });
+
+    const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.7, 8), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.85; hit.userData.npc = 1; g.add(hit); clickables.push(hit);
+    const ci = clickables.indexOf(body); if (ci >= 0) clickables.splice(ci, 1); body.visible = false; glow.visible = false; ring.material.opacity = 0.35;
+    const T = { t: 0, walkW: 0, wave: 0, give: 0, blink: 0, nb: 2 }, sm = (a, b, k) => a + (b - a) * k;
+    const pose = (dt, moving) => { T.t += dt; const t = T.t; T.walkW = sm(T.walkW, moving ? 1 : 0, Math.min(1, dt * 6)); const w = T.walkW, ph = t * 7.2;
+      T.wave = sm(T.wave, st.act === 'wave' ? 1 : 0, Math.min(1, dt * 5)); T.give = sm(T.give, st.act === 'give' ? 1 : 0, Math.min(1, dt * 4));
+      const br = Math.sin(t * 1.7);
+      N('hips').position.y = (N('hips').userData.y0 ??= N('hips').position.y) + w * Math.abs(Math.sin(ph)) * 0.025 - w * 0.012;
+      N('hips').rotation.y = w * Math.sin(ph) * 0.08; N('spine').rotation.set(0.02 * br * (1 - w) + w * 0.04, -w * Math.sin(ph) * 0.1, 0); N('chest').rotation.set(-0.02 * br, 0, 0);
+      N('neck').rotation.set(0.04 + 0.02 * br, 0, Math.sin(t * 0.6) * 0.03 * (1 - w)); N('head').rotation.set(-0.03, 0, Math.sin(t * 0.5) * 0.04 * (1 - T.wave));
+      for (const s of ['left', 'right']) { const o = s === 'left' ? 0 : Math.PI, leg = Math.sin(ph + o) * w, sg = s === 'left' ? 1 : -1;
+        N(s + 'UpperLeg').rotation.set(-leg * 0.42, 0, 0.02 * sg); N(s + 'LowerLeg').rotation.set(Math.max(0, -Math.cos(ph + o)) * 0.75 * w + 0.03, 0, 0); N(s + 'Foot').rotation.set(leg * 0.15, 0, 0); }
+      const sw = Math.sin(ph) * w; let ru = [sw * 0.3 - 0.1, 0, 1.38 - 0.03 * br], rl = [0, 0.15, 0], rh = [0, 0, 0];
+      if (T.wave > 0.01) { const k = T.wave, osc = Math.sin(t * 9) * 0.35; ru = [sm(ru[0], -0.15, k), sm(ru[1], 0.2, k), sm(ru[2], -0.25, k)]; rl = [0, sm(0.15, 0.4, k), sm(0, -1.6 + osc, k)]; rh = [0, 0, osc * 0.6 * k]; }
+      if (T.give > 0.01) { const k = T.give; ru = [sm(ru[0], -1.15, k), sm(ru[1], 0, k), sm(ru[2], 1.3, k)]; rl = [0, sm(rl[1], 0.35, k), sm(rl[2], 0, k)]; }
+      N('rightUpperArm').rotation.set(...ru); N('rightLowerArm').rotation.set(...rl); N('rightHand').rotation.set(...rh);
+      const lk = T.give; N('leftUpperArm').rotation.set(sm(-0.25 - sw * 0.08, -1.2, lk), 0, sm(-1.3 + 0.03 * br, -1.25, lk)); N('leftLowerArm').rotation.set(0, sm(-1.0, -0.3, lk), 0); N('leftHand').rotation.set(0, 0, sm(0.2, 0, lk));
+      const em = vrm.expressionManager; if (em) { T.nb -= dt; if (T.nb < 0) { T.blink = 0.18; T.nb = 2 + Math.random() * 3; } T.blink = Math.max(0, T.blink - dt); em.setValue('blink', T.blink > 0 ? Math.sin((1 - T.blink / 0.18) * Math.PI) : 0); em.setValue('relaxed', 0.35 + 0.25 * T.wave); em.setValue('happy', 0.2 * T.wave + 0.15 * T.give); }
+      return w; };
+    const _v = new THREE.Vector3();
+    const dress = (el, w) => { const hp = R('hips').getWorldPosition(_v); wrap.worldToLocal(hp); robe.position.set(hp.x - hip.x, Math.min(0.02, hp.y - hip.y), hp.z - hip.z); robe.rotation.y = N('hips').rotation.y * 0.6;
+      const a = s2g.attributes.position.array; for (let i = 0; i < a.length; i += 3) { const y = sp0[i + 1], k = Math.max(0, -y) / top0; const ang = Math.atan2(sp0[i + 2], sp0[i]); a[i] = sp0[i] * (1 + k * (0.04 * Math.sin(el * 2 + ang * 2) + 0.08 * w * Math.sin(el * 7.2 + ang))); a[i + 2] = sp0[i + 2] * (1 + k * 0.04 * Math.cos(el * 1.7 + ang * 3)) + k * k * 0.06 * w; } s2g.attributes.position.needsUpdate = true;
+      ribbons.forEach((r, i) => { r.rotation.x = 0.12 + Math.sin(el * 2.3 + i) * 0.08 + w * 0.25; r.rotation.z = Math.sin(el * 1.6 + i * 2) * 0.06; });
+      for (const s of sleeves) { const e = R(s.side + 'LowerArm').getWorldPosition(new THREE.Vector3()), h = R(s.side + 'Hand').getWorldPosition(new THREE.Vector3()); wrap.worldToLocal(e); wrap.worldToLocal(h);
+        const dir = h.clone().sub(e), len = dir.length(); s.m.position.copy(e); const d = dir.normalize().add(new THREE.Vector3(0, -0.9, 0)).normalize(); s.m.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), d); s.m.rotateY(Math.sin(el * 1.8 + s.sg) * 0.15); s.m.scale.set(1, Math.max(0.6, len / 0.24), 1); }
+      const ch = R('upperChest') || R('chest'); const cp = ch.getWorldPosition(new THREE.Vector3()); wrap.worldToLocal(cp); shawl.position.set(cp.x, cp.y + 0.06, cp.z - 0.01);
+      const hd = R('leftHand').getWorldPosition(new THREE.Vector3()); wrap.worldToLocal(hd); lan.position.set(hd.x, hd.y - 0.02, hd.z + 0.03); lan.rotation.set(Math.sin(el * 2.1) * 0.08 + w * 0.15 * Math.sin(el * 7.2), 0, Math.sin(el * 2.6) * 0.1);
+      lg.material.opacity = 0.6 + Math.sin(el * 3.3) * 0.1; if (pl) pl.intensity = 0.35 + Math.sin(el * 3.1) * 0.06; tass.forEach((m, i) => { m.rotation.x = Math.sin(el * 2 + i) * 0.2; }); };
+    let fr = 0; const upd = (dt, el, moving) => { const w = pose(dt, moving); fr++; const sb = vrm.springBoneManager; if (lite && fr % 2) vrm.springBoneManager = null; vrm.update(Math.min(dt, 0.05)); vrm.springBoneManager = sb; dress(el, w); };
+    st.model = { root: wrap, vrm, acts: { idle: 1, breath: 1, walk: 1, wave: 1, give: 1 }, robe, lan, pl, upd, bones: { wl: R('leftHand') }, vrmMode: true }; st.mode = 'vrm'; st.act = 'breath';
+  }).catch(e => { console.warn('npc vrm fallback', e); st.mode = 'sprite-fallback'; });
   return st; })();
 function openNpc() { npc.give?.(); openPanel(`<div class=drow><img src="hollow/npc.webp" alt="" width=96 height=186 style="object-fit:contain;height:186px;width:auto"><div><h2>${esc(t('hollow.npcName'))}</h2><p class=poem style="font-style:italic">${esc(t('hollow.npcHint'))}</p><p class=note style="font-size:14px">${esc(t('hollow.npcSay'))}</p></div></div><div class=btns><button type=button class="pill gold" data-lantern>🏮 ${esc(t('hollow.takeLantern'))}</button><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>${S.state?.login ? '' : `<p class=note>${esc(t('hollow.guestWrite'))}</p>`}`); }
 function guestPanel() { openPanel(`<h2>✦ ${esc(t('hollow.lanternTitle'))}</h2><p class=note style="font-size:15px">${esc(t('hollow.guestWrite'))}</p><div class=btns><a class="pill gold" href="${loginUrl}">${esc(t('hollow.login'))}</a><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>`); }
@@ -519,4 +559,4 @@ renderer.setAnimationLoop(tick); setupVR(); loadState();
 const ready = () => { $('#bstart').disabled = false; $('#bstart').innerHTML = esc(t('hollow.start')); $('#ihint').textContent = t(mobile ? 'hollow.hintTouch' : 'hollow.hintDesk'); };
 THREE.DefaultLoadingManager.onLoad = ready; setTimeout(ready, 6000);
 // 测试钩子（verify-t279 用；不影响用户）
-window.__hollow = { npc: () => ({ x: npc.x, s: npc.s, vis: npc.g.visible, near: npc.near, mode: npc.mode, act: npc.act, yaw: npc.yaw, anims: npc.model ? Object.keys(npc.model.acts) : [], lanOnHand: !!(npc.model && npc.model.bones.wl && npc.model.lan.parent === npc.model.bones.wl) }), npcObj: npc, skyN: skyLan.n, openNpc, flyTo, hangsPanel, release: (m, cb) => release(m, cb), scene, S, P, slotPos: s => slotPos(s).toArray(), zoneOf, SLOTS, pickLight: () => { const d = new THREE.Vector3(); camera.getWorldDirection(d); const o = new THREE.Vector3(); camera.getWorldPosition(o); const h = pickLight(o, d); return h && h.object.userData.msg.id; }, enter, toHall, openDoor, openRead, openWrite, start, get lite() { return lite; }, get mode() { return S.mode; }, lights: () => lightSprites.length, xr: () => renderer.xr.enabled, setPose: (x, s, yaw = 0, pitch = 0.02) => { P.x = x; P.s = s; P.yaw = yaw; P.pitch = pitch; }, tapAt: tap, loadState };
+window.__hollow = { npc: () => ({ x: npc.x, s: npc.s, vis: npc.g.visible, near: npc.near, mode: npc.mode, act: npc.act, yaw: npc.yaw, anims: npc.model ? Object.keys(npc.model.acts) : [], lanOnHand: !!(npc.model && npc.model.bones.wl && (() => { const a = npc.model.lan.getWorldPosition(new THREE.Vector3()), b = npc.model.bones.wl.getWorldPosition(new THREE.Vector3()); return a.distanceTo(b) < 0.15; })()) }), npcObj: npc, skyN: skyLan.n, openNpc, flyTo, hangsPanel, release: (m, cb) => release(m, cb), scene, S, P, slotPos: s => slotPos(s).toArray(), zoneOf, SLOTS, pickLight: () => { const d = new THREE.Vector3(); camera.getWorldDirection(d); const o = new THREE.Vector3(); camera.getWorldPosition(o); const h = pickLight(o, d); return h && h.object.userData.msg.id; }, enter, toHall, openDoor, openRead, openWrite, start, get lite() { return lite; }, get mode() { return S.mode; }, lights: () => lightSprites.length, xr: () => renderer.xr.enabled, setPose: (x, s, yaw = 0, pitch = 0.02) => { P.x = x; P.s = s; P.yaw = yaw; P.pitch = pitch; }, tapAt: tap, loadState };

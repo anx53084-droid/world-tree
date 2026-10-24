@@ -1,2 +1,4 @@
-npc.glb — base character "Animated Woman" by Quaternius (https://poly.pizza/m/nIItLV9nxS), CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/).
-Recoloured, trimmed to walk/idle/breath/wave/give clips and meshopt-compressed by Guangqi. Hanfu robe, sleeves, hair bun, silver pins and hand lantern are procedural (self-built) in hollow.js.
+npc.vrm — based on "VRM1_Constraint_Twist_Sample" by pixiv Inc. (https://github.com/pixiv/three-vrm, packages/three-vrm/examples/models), (c) 2022 pixiv Inc.
+Embedded VRM 1.0 license meta: commercialUsage=corporation, allowRedistribution=true, modification=allowModificationRedistribution, creditNotation=unnecessary, avatarPermission=everyone, licenseUrl=https://vrm.dev/licenses/1.0/ (antisocial/hate usage not allowed).
+Modified by Guangqi: hair recoloured dark with blue streaks, outfit retextured light-blue with floral embroidery, textures downsized. Hanfu skirt/sleeves/sash/shawl, hair bun & silver/blue ornaments and the paper lantern are procedural (self-built) in hollow.js. All animations (walk, breathing idle, turn, wave, hand-over, blink/smile) are procedural and self-authored.
+Runtime: @pixiv/three-vrm (MIT).
