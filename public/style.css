@@ -729,4 +729,4 @@ html:is([lang=ar],[lang=fa],[lang=ur]) #menu { font-family: system-ui, "Noto San
 
 #hfab { position: fixed; z-index: 6; left: 16px; bottom: calc(132px + env(safe-area-inset-bottom)); display: inline-flex; gap: 6px; align-items: center; padding: 0 16px; height: 42px; border-radius: 999px; text-decoration: none; font-weight: 700; color: #fff; background: linear-gradient(90deg, #b06ad8, #ff7fb5); box-shadow: 0 6px 20px #ff7fb555, 0 2px 8px #0008 }
 [dir=rtl] #hfab { left: auto; right: 16px } body:not(.home) #hfab, #hfab[hidden], body:has(#modal:not([hidden])) #hfab, body.menu-open #hfab, body:has(#gq-guide:not([hidden])) #hfab { display: none }
-body.home:not(.fab-on) #hfab { bottom: calc(76px + env(safe-area-inset-bottom)) }
+body.home:not(.fab-on) #hfab { bottom: calc(180px + env(safe-area-inset-bottom)) }
