@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Seçmek için tetikleyin",
   "hollow.ownerPreview": "Sahibin önizlemesi: Bu kapı henüz halka açık değil. Yalnızca oturum açmış olan sahip cüzdanınız içeri girebilir.",
   "hollow.zone": "Bölge {n}",
-  "hollow.zoneSpot": "Bölge {n} · Işık #{k}"
+  "hollow.zoneSpot": "Bölge {n} · Işık #{k}",
+  "hollow.npcName": "Fener Bekçisi",
+  "hollow.npcHint": "Gönül dostu ruhlar arıyor…",
+  "hollow.npcSay": "Senin gibi birini bekliyordum. Bir fener al, kalbindeki dileği yaz ve gökyüzündeki diğerlerine katılması için yükselmesine izin ver.",
+  "hollow.takeLantern": "Bir fener al",
+  "hollow.lanternTitle": "Fenerine yaz",
+  "hollow.release": "Feneri bırak",
+  "hollow.hangs": "Işığın İlk Işık, Bölge {n} içinde asılı",
+  "hollow.hangsSub": "Bölge {n}, fener #{k}. Yoldan geçen herkes onu bulup \"Seni duydum\" diyebilir.",
+  "hollow.flyTo": "Fenerime uç",
+  "hollow.guestNote": "Misafirler içeri girip tüm ışıkları okuyabilir. Fener alıp kendi ışığını bırakmak için cüzdanla giriş yap.",
+  "hollow.guestWrite": "Misafirler yalnızca okuyabilir. Fener bırakmak için cüzdanla giriş yap.",
+  "hollow.insideTitle": "İçeride neler yapabilirsin",
+  "hollow.inside1": "Geniş salonlarda ve numaralı bölgelerde dolaş.",
+  "hollow.inside2": "Süzülen bir fenere dokunup bir yabancının sözlerini oku ve \"Seni duydum\" de.",
+  "hollow.inside3": "Girişin yakınında Fener Bekçisi ile buluş, bir dilek yaz (en fazla 200 karakter) ve gökyüzüne bırak.",
+  "hollow.insideAlt": "İlk Işık içinde: numaralı bir bölgenin üzerinde süzülen fenerler"
 }

@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Spust, aby wybrać",
   "hollow.ownerPreview": "Podgląd właściciela: te drzwi nie są jeszcze otwarte dla publiczności. Tylko zalogowany portfel właściciela może wejść.",
   "hollow.zone": "Strefa {n}",
-  "hollow.zoneSpot": "Strefa {n} · Światło nr {k}"
+  "hollow.zoneSpot": "Strefa {n} · Światło nr {k}",
+  "hollow.npcName": "Strażniczka lampionów",
+  "hollow.npcHint": "Szukam pokrewnych dusz…",
+  "hollow.npcSay": "Czekałam na kogoś takiego jak ty. Weź lampion, zapisz życzenie swojego serca i pozwól mu wznieść się do innych na niebie.",
+  "hollow.takeLantern": "Weź lampion",
+  "hollow.lanternTitle": "Napisz na swoim lampionie",
+  "hollow.release": "Wypuść lampion",
+  "hollow.hangs": "Twoje światło wisi w Pierwszym świetle, strefa {n}",
+  "hollow.hangsSub": "Lampion nr {k} w strefie {n}. Każdy przechodzień może go znaleźć i powiedzieć „Słyszałem cię”.",
+  "hollow.flyTo": "Leć do mojego lampionu",
+  "hollow.guestNote": "Goście mogą wejść i czytać wszystkie światła. Zaloguj się portfelem, aby wziąć lampion i zostawić własny.",
+  "hollow.guestWrite": "Goście mogą tylko czytać. Zaloguj się portfelem, aby wypuścić lampion.",
+  "hollow.insideTitle": "Co możesz robić w środku",
+  "hollow.inside1": "Spaceruj po otwartych salach i ponumerowanych strefach.",
+  "hollow.inside2": "Dotknij unoszącego się lampionu, aby przeczytać słowa nieznajomego i powiedzieć „Słyszałem cię”.",
+  "hollow.inside3": "Spotkaj Strażniczkę lampionów przy wejściu, zapisz jedno życzenie (do 200 znaków) i wypuść je w niebo.",
+  "hollow.insideAlt": "W Pierwszym świetle: lampiony nad ponumerowaną strefą"
 }

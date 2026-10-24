@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Disparador para seleccionar",
   "hollow.ownerPreview": "Vista previa del propietario: esta puerta aún no está abierta al público. Solo puede ingresar la billetera del propietario que haya iniciado sesión.",
   "hollow.zone": "Zona {n}",
-  "hollow.zoneSpot": "Zona {n} · Luz n.º {k}"
+  "hollow.zoneSpot": "Zona {n} · Luz n.º {k}",
+  "hollow.npcName": "Guardiana de Faroles",
+  "hollow.npcHint": "Buscando almas afines…",
+  "hollow.npcSay": "Te estaba esperando. Toma un farol, escribe el deseo que guarda tu corazón y deja que suba a unirse a los demás en el cielo.",
+  "hollow.takeLantern": "Tomar un farol",
+  "hollow.lanternTitle": "Escribe en tu farol",
+  "hollow.release": "Soltar el farol",
+  "hollow.hangs": "Tu luz cuelga en Primera luz, Zona {n}",
+  "hollow.hangsSub": "Farol n.º {k} de la Zona {n}. Quien pase por aquí puede encontrarlo y decir «Te escuché».",
+  "hollow.flyTo": "Volar a mi farol",
+  "hollow.guestNote": "Los visitantes pueden entrar y leer todas las luces. Inicia sesión con una billetera para tomar un farol y dejar el tuyo.",
+  "hollow.guestWrite": "Los visitantes solo pueden leer. Inicia sesión con una billetera para soltar un farol.",
+  "hollow.insideTitle": "Qué puedes hacer dentro",
+  "hollow.inside1": "Recorre los amplios salones y las zonas numeradas.",
+  "hollow.inside2": "Toca cualquier farol flotante para leer las palabras de un desconocido y decir «Te escuché».",
+  "hollow.inside3": "Encuentra a la Guardiana de Faroles cerca de la entrada, escribe un deseo (hasta 200 caracteres) y suéltalo al cielo.",
+  "hollow.insideAlt": "Dentro de Primera luz: faroles flotando sobre una zona numerada"
 }

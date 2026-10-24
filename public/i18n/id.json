@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Pemicu untuk memilih",
   "hollow.ownerPreview": "Pratinjau pemilik: pintu ini belum dibuka untuk umum. Hanya dompet pemilik Anda yang telah masuk yang dapat masuk.",
   "hollow.zone": "Zona {n}",
-  "hollow.zoneSpot": "Zona {n} · Cahaya #{k}"
+  "hollow.zoneSpot": "Zona {n} · Cahaya #{k}",
+  "hollow.npcName": "Penjaga Lentera",
+  "hollow.npcHint": "Mencari jiwa sehati…",
+  "hollow.npcSay": "Aku sudah menunggu seseorang sepertimu. Ambil lentera, tulis harapan di hatimu, lalu biarkan ia naik bergabung dengan yang lain di langit.",
+  "hollow.takeLantern": "Ambil lentera",
+  "hollow.lanternTitle": "Tulis di lenteramu",
+  "hollow.release": "Lepaskan lentera",
+  "hollow.hangs": "Cahayamu tergantung di Cahaya Pertama, Zona {n}",
+  "hollow.hangsSub": "Lentera #{k} di Zona {n}. Siapa pun yang lewat bisa menemukannya dan berkata \"Aku mendengarmu\".",
+  "hollow.flyTo": "Terbang ke lenteraku",
+  "hollow.guestNote": "Tamu boleh masuk dan membaca semua cahaya. Masuk dengan dompet untuk mengambil lentera dan meninggalkan milikmu.",
+  "hollow.guestWrite": "Tamu hanya bisa membaca. Masuk dengan dompet untuk melepaskan lentera.",
+  "hollow.insideTitle": "Yang bisa kamu lakukan di dalam",
+  "hollow.inside1": "Jelajahi aula terbuka dan zona bernomor.",
+  "hollow.inside2": "Ketuk lentera melayang untuk membaca kata-kata orang asing dan berkata \"Aku mendengarmu\".",
+  "hollow.inside3": "Temui Penjaga Lentera dekat pintu masuk, tulis satu harapan (maks. 200 karakter) dan lepaskan ke langit.",
+  "hollow.insideAlt": "Di dalam Cahaya Pertama: lentera melayang di atas zona bernomor"
 }

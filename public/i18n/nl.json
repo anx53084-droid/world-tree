@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Trigger om te selecteren",
   "hollow.ownerPreview": "Eigenaar preview: deze deur is nog niet open voor publiek. Alleen uw ingelogde eigenaarsportemonnee kan binnenlopen.",
   "hollow.zone": "Zone {n}",
-  "hollow.zoneSpot": "Zone {n} · Licht #{k}"
+  "hollow.zoneSpot": "Zone {n} · Licht #{k}",
+  "hollow.npcName": "Lantaarnhoedster",
+  "hollow.npcHint": "Op zoek naar verwante zielen…",
+  "hollow.npcSay": "Ik wachtte op iemand zoals jij. Neem een lantaarn, schrijf de wens van je hart erop en laat hem opstijgen naar de anderen in de lucht.",
+  "hollow.takeLantern": "Neem een lantaarn",
+  "hollow.lanternTitle": "Schrijf op je lantaarn",
+  "hollow.release": "Laat de lantaarn los",
+  "hollow.hangs": "Je licht hangt in Eerste licht, zone {n}",
+  "hollow.hangsSub": "Lantaarn #{k} van zone {n}. Iedereen die langskomt kan hem vinden en \"Ik heb je gehoord\" zeggen.",
+  "hollow.flyTo": "Vlieg naar mijn lantaarn",
+  "hollow.guestNote": "Gasten kunnen naar binnen en alle lichtjes lezen. Log in met een wallet om een lantaarn te nemen en je eigen achter te laten.",
+  "hollow.guestWrite": "Gasten kunnen alleen lezen. Log in met een wallet om een lantaarn los te laten.",
+  "hollow.insideTitle": "Wat je binnen kunt doen",
+  "hollow.inside1": "Wandel door de open hallen en genummerde zones.",
+  "hollow.inside2": "Tik op een zwevende lantaarn om de woorden van een vreemde te lezen en \"Ik heb je gehoord\" te zeggen.",
+  "hollow.inside3": "Ontmoet de Lantaarnhoedster bij de ingang, schrijf één wens (max. 200 tekens) en laat hem los in de lucht.",
+  "hollow.insideAlt": "In Eerste licht: zwevende lantaarns boven een genummerde zone"
 }

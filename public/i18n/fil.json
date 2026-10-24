@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Trigger para pumili",
   "hollow.ownerPreview": "Preview ng may-ari: hindi pa bukas sa publiko ang pintong ito. Tanging ang iyong naka-sign-in na wallet ng may-ari ang maaaring pumasok.",
   "hollow.zone": "Sona {n}",
-  "hollow.zoneSpot": "Sona {n} · Ilaw #{k}"
+  "hollow.zoneSpot": "Sona {n} · Ilaw #{k}",
+  "hollow.npcName": "Tagapag-ingat ng Parol",
+  "hollow.npcHint": "Naghahanap ng kaluluwang kapalad…",
+  "hollow.npcSay": "Hinihintay kita. Kumuha ng parol, isulat ang hiling ng iyong puso, at hayaan itong pumailanlang para sumama sa iba sa langit.",
+  "hollow.takeLantern": "Kumuha ng parol",
+  "hollow.lanternTitle": "Isulat sa iyong parol",
+  "hollow.release": "Pakawalan ang parol",
+  "hollow.hangs": "Nakasabit ang ilaw mo sa Unang Liwanag, Sona {n}",
+  "hollow.hangsSub": "Parol #{k} ng Sona {n}. Sinumang dumaan ay makakakita nito at makapagsasabing \"Narinig kita\".",
+  "hollow.flyTo": "Lumipad sa aking parol",
+  "hollow.guestNote": "Makakapasok ang mga bisita at mababasa ang lahat ng ilaw. Mag-sign in gamit ang wallet para kumuha ng parol at mag-iwan ng sarili mo.",
+  "hollow.guestWrite": "Pagbasa lamang para sa mga bisita. Mag-sign in gamit ang wallet para magpakawala ng parol.",
+  "hollow.insideTitle": "Ano ang magagawa mo sa loob",
+  "hollow.inside1": "Maglakad sa malalawak na bulwagan at mga may-numerong sona.",
+  "hollow.inside2": "I-tap ang anumang lumulutang na parol para basahin ang salita ng isang estranghero at sabihing \"Narinig kita\".",
+  "hollow.inside3": "Hanapin ang Tagapag-ingat ng Parol malapit sa pasukan, magsulat ng isang hiling (hanggang 200 karakter) at pakawalan ito sa langit.",
+  "hollow.insideAlt": "Sa loob ng Unang Liwanag: mga parol na lumulutang sa ibabaw ng isang may-numerong sona"
 }

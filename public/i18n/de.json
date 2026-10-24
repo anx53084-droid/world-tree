@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Auslöser zur Auswahl",
   "hollow.ownerPreview": "Eigentümervorschau: Diese Tür ist noch nicht für die Öffentlichkeit zugänglich. Nur Ihre angemeldete Besitzer-Wallet kann hineingehen.",
   "hollow.zone": "Zone {n}",
-  "hollow.zoneSpot": "Zone {n} · Licht Nr. {k}"
+  "hollow.zoneSpot": "Zone {n} · Licht Nr. {k}",
+  "hollow.npcName": "Laternenhüterin",
+  "hollow.npcHint": "Auf der Suche nach verwandten Seelen…",
+  "hollow.npcSay": "Ich habe auf jemanden wie dich gewartet. Nimm eine Laterne, schreib den Wunsch deines Herzens darauf und lass sie zu den anderen in den Himmel steigen.",
+  "hollow.takeLantern": "Laterne nehmen",
+  "hollow.lanternTitle": "Schreib auf deine Laterne",
+  "hollow.release": "Laterne steigen lassen",
+  "hollow.hangs": "Dein Licht hängt in Erstes Licht, Zone {n}",
+  "hollow.hangsSub": "Laterne Nr. {k} in Zone {n}. Wer vorbeikommt, kann sie finden und „Ich habe dich gehört“ sagen.",
+  "hollow.flyTo": "Zu meiner Laterne fliegen",
+  "hollow.guestNote": "Gäste können hineingehen und alle Lichter lesen. Melde dich mit einer Wallet an, um eine Laterne zu nehmen und deine eigene zu hinterlassen.",
+  "hollow.guestWrite": "Gäste können nur lesen. Melde dich mit einer Wallet an, um eine Laterne steigen zu lassen.",
+  "hollow.insideTitle": "Was du drinnen tun kannst",
+  "hollow.inside1": "Durchstreife die offenen Hallen und nummerierten Zonen.",
+  "hollow.inside2": "Tippe auf eine schwebende Laterne, lies die Worte eines Fremden und sag „Ich habe dich gehört“.",
+  "hollow.inside3": "Triff die Laternenhüterin am Eingang, schreib einen Wunsch (bis zu 200 Zeichen) und lass ihn in den Himmel steigen.",
+  "hollow.insideAlt": "In Erstes Licht: schwebende Laternen über einer nummerierten Zone"
 }

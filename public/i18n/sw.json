@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Anzisha ili kuchagua",
   "hollow.ownerPreview": "Onyesho la kuchungulia la mmiliki: mlango huu bado haujafunguliwa kwa umma. Mkoba wako wa mmiliki aliyeingia tu ndio unaweza kuingia.",
   "hollow.zone": "Eneo {n}",
-  "hollow.zoneSpot": "Eneo {n} · Mwanga #{k}"
+  "hollow.zoneSpot": "Eneo {n} · Mwanga #{k}",
+  "hollow.npcName": "Mlinzi wa Taa",
+  "hollow.npcHint": "Natafuta roho zinazoendana…",
+  "hollow.npcSay": "Nimekuwa nikimsubiri mtu kama wewe. Chukua taa, andika matakwa ya moyo wako, na uiache ipae kujiunga na nyingine angani.",
+  "hollow.takeLantern": "Chukua taa",
+  "hollow.lanternTitle": "Andika kwenye taa yako",
+  "hollow.release": "Achilia taa",
+  "hollow.hangs": "Mwanga wako umening’inia katika Mwanga wa Kwanza, Eneo {n}",
+  "hollow.hangsSub": "Taa #{k} ya Eneo {n}. Yeyote anayepita anaweza kuipata na kusema \"Nimekusikia\".",
+  "hollow.flyTo": "Ruka hadi taa yangu",
+  "hollow.guestNote": "Wageni wanaweza kuingia na kusoma kila mwanga. Ingia kwa pochi ili uchukue taa na uache yako.",
+  "hollow.guestWrite": "Wageni wanaweza kusoma tu. Ingia kwa pochi ili uachilie taa.",
+  "hollow.insideTitle": "Unachoweza kufanya ndani",
+  "hollow.inside1": "Tembea katika kumbi pana na maeneo yenye nambari.",
+  "hollow.inside2": "Gusa taa yoyote inayoelea ili usome maneno ya mgeni na useme \"Nimekusikia\".",
+  "hollow.inside3": "Mkutane Mlinzi wa Taa karibu na lango, andika tamanio moja (hadi herufi 200) na uiachilie angani.",
+  "hollow.insideAlt": "Ndani ya Mwanga wa Kwanza: taa zikielea juu ya eneo lenye nambari"
 }

@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "觸發選擇",
   "hollow.ownerPreview": "業主預覽：這扇門還沒對外開放。只有您登入的所有者錢包才能進入。",
   "hollow.zone": "第 {n} 區",
-  "hollow.zoneSpot": "第 {n} 區 · 第 {k} 盞光"
+  "hollow.zoneSpot": "第 {n} 區 · 第 {k} 盞光",
+  "hollow.npcName": "提燈人",
+  "hollow.npcHint": "尋找有緣人…",
+  "hollow.npcSay": "我一直在等像你這樣的人。領一盞燈，寫下你心裡的願望，讓它升上天空，和大家的燈在一起。",
+  "hollow.takeLantern": "領取燈籠",
+  "hollow.lanternTitle": "在燈籠上寫下願望",
+  "hollow.release": "放飛燈籠",
+  "hollow.hangs": "你的燈掛在第一道曙光第 {n} 區",
+  "hollow.hangsSub": "第 {n} 區第 {k} 盞燈。路過的人都能找到它，對你說一句「我聽到你的聲音」。",
+  "hollow.flyTo": "飛到我的燈籠",
+  "hollow.guestNote": "訪客可以進來看所有的燈。用錢包登入後才能領燈籠、留下自己的光。",
+  "hollow.guestWrite": "訪客僅可瀏覽。用錢包登入後才能放飛燈籠。",
+  "hollow.insideTitle": "門內可以做什麼",
+  "hollow.inside1": "在開闊的大廳和編號分區裡自由漫步。",
+  "hollow.inside2": "點開任意一盞漂浮的天燈，讀陌生人的話，說一句「我聽到你的聲音」。",
+  "hollow.inside3": "在入口附近找到提燈人，寫一個願望（最多 200 字），放飛到天空。",
+  "hollow.insideAlt": "第一道曙光門內：編號分區上空漂浮的天燈"
 }

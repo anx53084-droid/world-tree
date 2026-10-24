@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "선택 트리거",
   "hollow.ownerPreview": "소유자 미리보기: 이 문은 아직 대중에게 공개되지 않았습니다. 로그인한 소유자 지갑만 들어갈 수 있습니다.",
   "hollow.zone": "{n}구역",
-  "hollow.zoneSpot": "{n}구역 · {k}번째 빛"
+  "hollow.zoneSpot": "{n}구역 · {k}번째 빛",
+  "hollow.npcName": "등불지기",
+  "hollow.npcHint": "인연을 찾고 있어요…",
+  "hollow.npcSay": "당신 같은 사람을 기다리고 있었어요. 등불을 하나 받아 마음속 소원을 적고, 하늘의 다른 등불들 곁으로 날려 보내세요.",
+  "hollow.takeLantern": "등불 받기",
+  "hollow.lanternTitle": "등불에 소원 쓰기",
+  "hollow.release": "등불 날리기",
+  "hollow.hangs": "당신의 빛은 첫 번째 빛 {n}구역에 걸려 있어요",
+  "hollow.hangsSub": "{n}구역의 {k}번째 등불. 지나가는 누구나 찾아서 \"들었어\"라고 말할 수 있어요.",
+  "hollow.flyTo": "내 등불로 날아가기",
+  "hollow.guestNote": "게스트도 들어와 모든 빛을 읽을 수 있어요. 지갑으로 로그인하면 등불을 받아 나만의 빛을 남길 수 있어요.",
+  "hollow.guestWrite": "게스트는 읽기만 가능해요. 등불을 날리려면 지갑으로 로그인하세요.",
+  "hollow.insideTitle": "안에서 할 수 있는 것",
+  "hollow.inside1": "탁 트인 홀과 번호가 매겨진 구역을 걸어 보세요.",
+  "hollow.inside2": "떠 있는 등불을 탭해 낯선 이의 글을 읽고 \"들었어\"라고 말해 주세요.",
+  "hollow.inside3": "입구 근처의 등불지기를 만나 소원 하나(최대 200자)를 적어 하늘로 날려 보내세요.",
+  "hollow.insideAlt": "첫 번째 빛 내부: 번호 구역 위에 떠 있는 등불"
 }

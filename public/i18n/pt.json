@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Gatilho para selecionar",
   "hollow.ownerPreview": "Prévia do proprietário: esta porta ainda não está aberta ao público. Somente a carteira do proprietário conectado pode entrar.",
   "hollow.zone": "Zona {n}",
-  "hollow.zoneSpot": "Zona {n} · Luz nº {k}"
+  "hollow.zoneSpot": "Zona {n} · Luz nº {k}",
+  "hollow.npcName": "Guardiã das Lanternas",
+  "hollow.npcHint": "À procura de almas afins…",
+  "hollow.npcSay": "Estava à tua espera. Pega numa lanterna, escreve o desejo que o teu coração guarda e deixa-a subir para se juntar às outras no céu.",
+  "hollow.takeLantern": "Pegar numa lanterna",
+  "hollow.lanternTitle": "Escreve na tua lanterna",
+  "hollow.release": "Soltar a lanterna",
+  "hollow.hangs": "A tua luz está em Primeira Luz, Zona {n}",
+  "hollow.hangsSub": "Lanterna nº {k} da Zona {n}. Quem passar pode encontrá-la e dizer «Eu ouvi você».",
+  "hollow.flyTo": "Voar até a minha lanterna",
+  "hollow.guestNote": "Visitantes podem entrar e ler todas as luzes. Entra com uma carteira para pegar numa lanterna e deixar a tua.",
+  "hollow.guestWrite": "Visitantes só podem ler. Entra com uma carteira para soltar uma lanterna.",
+  "hollow.insideTitle": "O que podes fazer lá dentro",
+  "hollow.inside1": "Percorre os salões abertos e as zonas numeradas.",
+  "hollow.inside2": "Toca numa lanterna flutuante para ler as palavras de um desconhecido e dizer «Eu ouvi você».",
+  "hollow.inside3": "Encontra a Guardiã das Lanternas perto da entrada, escreve um desejo (até 200 caracteres) e solta-o no céu.",
+  "hollow.insideAlt": "Dentro de Primeira Luz: lanternas a flutuar sobre uma zona numerada"
 }

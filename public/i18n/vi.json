@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Kích hoạt để chọn",
   "hollow.ownerPreview": "Xem trước của chủ sở hữu: cánh cửa này chưa mở cửa cho công chúng. Chỉ chủ sở hữu ví đã đăng nhập của bạn mới có thể truy cập.",
   "hollow.zone": "Khu {n}",
-  "hollow.zoneSpot": "Khu {n} · Ánh sáng #{k}"
+  "hollow.zoneSpot": "Khu {n} · Ánh sáng #{k}",
+  "hollow.npcName": "Người Giữ Đèn",
+  "hollow.npcHint": "Đang tìm người hữu duyên…",
+  "hollow.npcSay": "Ta đã chờ một người như bạn. Hãy nhận một chiếc đèn, viết điều ước trong tim và để nó bay lên cùng những chiếc đèn khác trên trời.",
+  "hollow.takeLantern": "Nhận đèn lồng",
+  "hollow.lanternTitle": "Viết lên đèn lồng của bạn",
+  "hollow.release": "Thả đèn lồng",
+  "hollow.hangs": "Ánh sáng của bạn treo ở Ánh sáng đầu tiên, Khu {n}",
+  "hollow.hangsSub": "Đèn lồng #{k} của Khu {n}. Bất kỳ ai đi ngang đều có thể tìm thấy và nói \"Tôi đã nghe thấy bạn rồi\".",
+  "hollow.flyTo": "Bay đến đèn lồng của tôi",
+  "hollow.guestNote": "Khách có thể vào và đọc mọi ánh sáng. Đăng nhập bằng ví để nhận đèn lồng và để lại ánh sáng của riêng bạn.",
+  "hollow.guestWrite": "Khách chỉ được xem. Đăng nhập bằng ví để thả đèn lồng.",
+  "hollow.insideTitle": "Bạn có thể làm gì bên trong",
+  "hollow.inside1": "Dạo bước qua các sảnh rộng và các khu được đánh số.",
+  "hollow.inside2": "Chạm vào bất kỳ đèn lồng nào đang bay để đọc lời của người lạ và nói \"Tôi đã nghe thấy bạn rồi\".",
+  "hollow.inside3": "Gặp Người Giữ Đèn gần lối vào, viết một điều ước (tối đa 200 ký tự) và thả lên trời.",
+  "hollow.insideAlt": "Bên trong Ánh sáng đầu tiên: đèn lồng bay trên một khu được đánh số"
 }

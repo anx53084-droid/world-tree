@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "選択するトリガー",
   "hollow.ownerPreview": "オーナー プレビュー: このドアはまだ一般公開されていません。サインインしている所有者のウォレットのみがアクセスできます。",
   "hollow.zone": "第{n}区",
-  "hollow.zoneSpot": "第{n}区 · {k}番目の光"
+  "hollow.zoneSpot": "第{n}区 · {k}番目の光",
+  "hollow.npcName": "灯りの守り人",
+  "hollow.npcHint": "縁ある魂を探して…",
+  "hollow.npcSay": "あなたのような人を待っていました。灯籠を手に取り、心の願いを書いて、空のみんなの灯りのもとへ昇らせてください。",
+  "hollow.takeLantern": "灯籠を受け取る",
+  "hollow.lanternTitle": "灯籠に願いを書く",
+  "hollow.release": "灯籠を放つ",
+  "hollow.hangs": "あなたの灯りはファーストライトの第{n}区にあります",
+  "hollow.hangsSub": "第{n}区の{k}番目の灯籠。通りかかった誰もが見つけて「聞こえました」と言えます。",
+  "hollow.flyTo": "自分の灯籠へ飛ぶ",
+  "hollow.guestNote": "ゲストも中を歩いてすべての灯りを読めます。ウォレットでサインインすると灯籠を受け取り、自分の灯りを残せます。",
+  "hollow.guestWrite": "ゲストは閲覧のみです。灯籠を放つにはウォレットでサインインしてください。",
+  "hollow.insideTitle": "中でできること",
+  "hollow.inside1": "開けたホールと番号付きの区画を歩けます。",
+  "hollow.inside2": "浮かぶ灯籠をタップして見知らぬ誰かの言葉を読み、「聞こえました」と伝えられます。",
+  "hollow.inside3": "入口近くの灯りの守り人に会い、願いを一つ（200文字まで）書いて空へ放てます。",
+  "hollow.insideAlt": "ファーストライトの中：番号付きの区画の上に浮かぶ灯籠"
 }

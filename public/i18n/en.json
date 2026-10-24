@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Trigger to select",
   "hollow.ownerPreview": "Owner preview: this door is not open to the public yet. Only your signed-in owner wallet can walk in.",
   "hollow.zone": "Zone {n}",
-  "hollow.zoneSpot": "Zone {n} · Light #{k}"
+  "hollow.zoneSpot": "Zone {n} · Light #{k}",
+  "hollow.npcName": "Lantern Keeper",
+  "hollow.npcHint": "Seeking kindred souls…",
+  "hollow.npcSay": "I have been waiting for someone like you. Take a lantern, write the wish your heart is holding, and let it rise to join the others in the sky.",
+  "hollow.takeLantern": "Take a lantern",
+  "hollow.lanternTitle": "Write on your lantern",
+  "hollow.release": "Release the lantern",
+  "hollow.hangs": "Your light hangs in First Light, Zone {n}",
+  "hollow.hangsSub": "Lantern #{k} of Zone {n}. Anyone walking by can find it and say “I heard you”.",
+  "hollow.flyTo": "Fly to my lantern",
+  "hollow.guestNote": "Guests can walk in and read every light. Sign in with a wallet to take a lantern and leave your own.",
+  "hollow.guestWrite": "Reading only for guests. Sign in with a wallet to release a lantern.",
+  "hollow.insideTitle": "What you can do inside",
+  "hollow.inside1": "Walk the open halls and numbered zones of the hollow.",
+  "hollow.inside2": "Tap any floating lantern to read a stranger’s words and say “I heard you”.",
+  "hollow.inside3": "Meet the Lantern Keeper near the entrance, write one wish (up to 200 characters) and release it into the sky.",
+  "hollow.insideAlt": "Inside First Light: floating lanterns above a numbered zone"
 }

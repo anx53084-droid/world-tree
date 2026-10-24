@@ -87,7 +87,8 @@ async function handle(req, res, url, C) { if (!url.startsWith('/api/hollow/')) r
     return send(res, 400, { error: 'param', code: 'hSoon' }), true; }
   if (url.startsWith('/api/hollow/msgs') && req.method === 'GET') { const door = new URL(url, 'http://x').searchParams.get('door') || 'first'; if (!doorOk(door)) return send(res, 200, { items: [] }), true;
     const hid = hidden(); const items = (await listMsgs(door, 120)).filter(m => !hid['HM_' + m.id]).map(pubMsg); res.setHeader?.('cache-control', 'no-cache'); return send(res, 200, { items }), true; }
-  if (url === '/api/hollow/msg' && req.method === 'POST') { const b = await body(req, 4000), text = clean(b.text), door = doorOk(b.door) ? b.door : 'first';
+  if (url === '/api/hollow/msg' && req.method === 'POST') { if (!acct) return send(res, 401, { error: 'auth', code: 'hAuth' }), true; // t289：访客只读，需登录（钱包）才能放灯
+    const b = await body(req, 4000), text = clean(b.text), door = doorOk(b.door) ? b.door : 'first';
     if (!C.checkCid(b)) return send(res, 400, { error: 'captcha', code: 'freeCaptcha' }), true;
     if (!text || len(text) > MAXLEN || /[<>]/.test(text)) return send(res, 400, { error: 'len', code: 'len' }), true;
     const care = CARE.test(text);

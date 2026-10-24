@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Déclencheur pour sélectionner",
   "hollow.ownerPreview": "Aperçu du propriétaire : cette porte n'est pas encore ouverte au public. Seul votre portefeuille de propriétaire connecté peut y accéder.",
   "hollow.zone": "Zone {n}",
-  "hollow.zoneSpot": "Zone {n} · Lumière n° {k}"
+  "hollow.zoneSpot": "Zone {n} · Lumière n° {k}",
+  "hollow.npcName": "Gardienne des lanternes",
+  "hollow.npcHint": "À la recherche d’âmes sœurs…",
+  "hollow.npcSay": "Je t’attendais. Prends une lanterne, écris le vœu que porte ton cœur et laisse-la s’élever rejoindre les autres dans le ciel.",
+  "hollow.takeLantern": "Prendre une lanterne",
+  "hollow.lanternTitle": "Écris sur ta lanterne",
+  "hollow.release": "Lâcher la lanterne",
+  "hollow.hangs": "Ta lumière est suspendue dans Première lumière, zone {n}",
+  "hollow.hangsSub": "Lanterne n° {k} de la zone {n}. Tout passant peut la trouver et dire « Je t’ai entendu ».",
+  "hollow.flyTo": "Voler jusqu’à ma lanterne",
+  "hollow.guestNote": "Les visiteurs peuvent entrer et lire toutes les lumières. Connecte-toi avec un portefeuille pour prendre une lanterne et laisser la tienne.",
+  "hollow.guestWrite": "Lecture seule pour les visiteurs. Connecte-toi avec un portefeuille pour lâcher une lanterne.",
+  "hollow.insideTitle": "Ce que tu peux faire à l’intérieur",
+  "hollow.inside1": "Parcours les grandes salles et les zones numérotées.",
+  "hollow.inside2": "Touche une lanterne flottante pour lire les mots d’un inconnu et dire « Je t’ai entendu ».",
+  "hollow.inside3": "Retrouve la Gardienne des lanternes près de l’entrée, écris un vœu (200 caractères max.) et lâche-le dans le ciel.",
+  "hollow.insideAlt": "Dans Première lumière : des lanternes flottent au-dessus d’une zone numérotée"
 }

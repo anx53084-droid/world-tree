@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "扣扳机选择",
   "hollow.ownerPreview": "站长预览：这扇门尚未对公众开放，只有已签名登录的站长钱包可以进入。",
   "hollow.zone": "第 {n} 区",
-  "hollow.zoneSpot": "第 {n} 区 · 第 {k} 盏光"
+  "hollow.zoneSpot": "第 {n} 区 · 第 {k} 盏光",
+  "hollow.npcName": "提灯人",
+  "hollow.npcHint": "寻找有缘人…",
+  "hollow.npcSay": "我一直在等像你这样的人。领一盏灯，写下你心里的愿望，让它升上天空，和大家的灯在一起。",
+  "hollow.takeLantern": "领取灯笼",
+  "hollow.lanternTitle": "在灯笼上写下愿望",
+  "hollow.release": "放飞灯笼",
+  "hollow.hangs": "你的灯挂在初心第 {n} 区",
+  "hollow.hangsSub": "第 {n} 区第 {k} 盏灯。路过的人都能找到它，对你说一句「我听见了」。",
+  "hollow.flyTo": "飞到我的灯笼",
+  "hollow.guestNote": "访客可以进来看所有的灯。用钱包登录后才能领灯笼、留下自己的光。",
+  "hollow.guestWrite": "访客仅可浏览。用钱包登录后才能放飞灯笼。",
+  "hollow.insideTitle": "门内可以做什么",
+  "hollow.inside1": "在开阔的大厅和编号分区里自由漫步。",
+  "hollow.inside2": "点开任意一盏漂浮的天灯，读陌生人的话，说一句「我听见了」。",
+  "hollow.inside3": "在入口附近找到提灯人，写一个愿望（最多 200 字），放飞到天空。",
+  "hollow.insideAlt": "初心门内：编号分区上空漂浮的天灯"
 }

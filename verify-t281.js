@@ -33,7 +33,7 @@ const pub = path.join(__dirname, 'public'), LANGS = 'zh-CN zh-TW en ja ko es fr 
     ok(await p.evaluate(() => __hollow.zoneOf(23) === 1 && __hollow.zoneOf(24) === 2), '每区 24 个挂点，24 号起为第 2 区');
     await p.evaluate(() => __hollow.setPose(0, 12, 0, 0.1)); await p.waitForTimeout(1800); await p.screenshot({ path: path.join(shots, 't281-open.png') });
     await p.evaluate(() => __hollow.setPose(0, 36, 0, 0.06)); await p.waitForTimeout(1800); await p.screenshot({ path: path.join(shots, 't281-zone.png') });
-    let hit = null; for (const yaw of [Math.PI / 2, -Math.PI / 2]) { await p.evaluate(y => __hollow.setPose(0, 47, y, 0), yaw); await p.waitForTimeout(600); hit = await p.evaluate(() => __hollow.pickLight()); if (hit) break; }
+    let hit = null; for (const yaw of [Math.PI / 2, -Math.PI / 2]) for (const pt of [0, 0.25, 0.45]) { if (hit) break; await p.evaluate(([y, q]) => __hollow.setPose(0, 47, y, q), [yaw, pt]); await p.waitForTimeout(600); hit = await p.evaluate(() => __hollow.pickLight()); if (hit) break; }
     ok(!!hit, '正对光点可点中（优先命中、扩大点击范围）: ' + hit);
     await p.screenshot({ path: path.join(shots, 't281-zone-side.png') });
     ok(/第 1 区/.test(await p.textContent('#depth')), '区号显示: ' + await p.textContent('#depth'));

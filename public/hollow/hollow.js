@@ -170,7 +170,7 @@ const POOL_FS = `uniform float uT; uniform vec3 uC; varying vec2 vUv; void main(
 function zoneSign(n) { return canvasTex(512, 256, (g, W, H) => { g.fillStyle = 'rgba(10,8,30,.82)'; roundRect(g, 10, 10, W - 20, H - 20, 30); g.fill(); g.strokeStyle = '#f6d38a'; g.lineWidth = 5; g.stroke();
   g.fillStyle = '#ffe9b5'; g.textAlign = 'center'; fitText(g, t('hollow.zone', { n }), W - 70, 92, '700 ', 'Cinzel, Georgia, serif'); g.fillText(t('hollow.zone', { n }), W / 2, 150); g.fillStyle = '#c9b8ff'; g.font = '500 30px system-ui, sans-serif'; g.fillText('✦ ' + ((n - 1) * SLOTS + 1) + ' – ' + (n * SLOTS) + ' ✦', W / 2, 205); }); }
 function slotPos(slot) { const n = zoneOf(slot), j = slot % SLOTS, side = j < SLOTS / 2 ? -1 : 1, q = j % (SLOTS / 2), col = q % 4, row = Math.floor(q / 4), zc = zoneStart(n) + ZL / 2;
-  return new THREE.Vector3(side * 6.6, 1.7 + row * 1.25, -(zc - 6 + col * 4)); }
+  return new THREE.Vector3(side * (4.6 + row * 0.9), 3.0 + row * 1.5, -(zc - 6 + col * 4)); } // t289：天灯悬浮在步道两侧上空，按 slot 固定
 function buildChunk(i) { if (chunks.has(i)) return; const g = new THREE.Group(), s0 = zoneStart(i), s1 = i === 0 ? ZONE0 : s0 + ZL, len = s1 - s0, R = rnd(i * 7919 + 17), acc = ZPAL[i % ZPAL.length];
   // 地面（宽 90m）
   const fg = new THREE.PlaneGeometry(90, len, 1, 1), uv = fg.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * 9, uv.getY(k) * len / 10);
@@ -189,10 +189,8 @@ function buildChunk(i) { if (chunks.has(i)) return; const g = new THREE.Group(),
     const sg = new THREE.Sprite(new THREE.SpriteMaterial({ map: zoneSign(i), transparent: true, depthWrite: false, fog: false })); sg.scale.set(4.2, 2.1, 1); sg.position.set(0, 7.5, -(s0 + 1)); sg.userData.zone = i; g.add(sg); g.userData.sign = sg;
     // 地面符文圆
     const fr = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({ map: ringTex('#f0c36a'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); fr.rotation.x = -Math.PI / 2; fr.position.set(0, 0.03, -(s0 + ZL / 2)); fr.userData.spin = 0.05; g.add(fr);
-    // 光之架（两侧，挂点 4 列 × 3 行，位于步道外侧、架子在光点背后，保证视线通畅）
-    const zc = s0 + ZL / 2; for (const side of [-1, 1]) { for (const ds of [-8.5, 8.5]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 6.2, 6), M.bark); post.position.set(side * 7.1, 3.1, -(zc + ds)); g.add(post); }
-      for (let row = 0; row < 3; row++) { const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 17.5, 6), M.bark); bar.rotation.x = Math.PI / 2; bar.position.set(side * 7.1, 1.7 + row * 1.25 + 0.55, -zc); g.add(bar);
-        for (let col = 0; col < 4; col++) { const th = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.5, 3), M.gold); th.position.set(side * 6.85, 1.7 + row * 1.25 + 0.3, -(zc - 6 + col * 4)); g.add(th); } } }
+    // t289：光之架移除，光改为悬浮天灯（见 slotPos）
+    const zc = s0 + ZL / 2;
     // 地标（每区轮换）：发光水池 / 浮空岛 / 水晶尖塔 / 星环
     const kind = (i - 1) % 4, lx = (i % 2 ? 1 : -1) * (15 + R() * 4), lz = -(s0 + 12 + R() * (ZL - 24));
     if (kind === 0) { const pm = new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uC: { value: new THREE.Color(acc) } }, vertexShader: PORTAL_VS, fragmentShader: POOL_FS, toneMapped: false }); portalMats.push(pm);
@@ -229,8 +227,24 @@ function buildBackDoor(k) { for (const c of [...backDoor.children]) { backDoor.r
   const P0 = makePortal(k, 3.2); P0.grp.position.set(0, 0, 4.5); P0.grp.rotation.y = Math.PI; P0.setOpen('open'); backFace = P0.hit; P0.hit.userData.back = 1; P0.face.userData.back = 1; backDoor.add(P0.grp); }
 // 墙上的光：按 slot 固定挂在分区的光之架上；depthTest 关闭 + 高渲染序 → 永不被遮挡
 const lightsG = new THREE.Group(); corr.add(lightsG); const lightSprites = [];
+// ---------- t289 天灯 ----------
+const paperTex = canvasTex(64, 128, (g, W, H) => { const r = g.createLinearGradient(0, H, 0, 0); r.addColorStop(0, '#fff3c4'); r.addColorStop(0.35, '#ffb347'); r.addColorStop(1, '#d9601c'); g.fillStyle = r; g.fillRect(0, 0, W, H); g.strokeStyle = 'rgba(140,50,10,.35)'; g.lineWidth = 2; for (let x = 0; x < W; x += 16) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); } });
+const lanGeo = new THREE.LatheGeometry([[0.12, 0], [0.19, 0.06], [0.24, 0.26], [0.26, 0.46], [0.21, 0.62]].map(([x, y]) => new THREE.Vector2(x, y - 0.31)), 10);
+const lanMat = new THREE.MeshBasicMaterial({ map: paperTex, side: THREE.DoubleSide, toneMapped: false });
+const lanSkyMat = new THREE.MeshBasicMaterial({ map: paperTex, side: THREE.DoubleSide, toneMapped: false, fog: false });
+let msgLan = null; const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
+// 满天天灯（装饰，实例化渲染；不可点，跟随玩家）
+const skyLan = (() => { const n = lite ? 380 : 1500, im = new THREE.InstancedMesh(lanGeo, lanSkyMat, n), d = [], gpos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const far = Math.random(); d.push({ x: (Math.random() - 0.5) * 150, y: 9 + Math.random() * 55, z: 25 - Math.random() * 170, sc: 0.9 + far * 1.6, sp: 0.15 + Math.random() * 0.25, ph: Math.random() * 6 }); }
+  im.frustumCulled = false; const halo = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(gpos, 3)), new THREE.PointsMaterial({ map: lightTex, color: 0xffa04a, size: 2.6, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  halo.frustumCulled = false; const g = new THREE.Group(); g.add(im, halo); g.visible = false; corr.add(g);
+  const upd = (el, dt) => { for (let i = 0; i < n; i++) { const o = d[i]; o.y += o.sp * dt; if (o.y > 70) o.y = 9; const x = o.x + Math.sin(el * 0.3 + o.ph) * 0.8; _s.set(o.sc, o.sc, o.sc); _v.set(x, o.y, o.z); _m4.compose(_v, _q, _s); im.setMatrixAt(i, _m4); gpos[i * 3] = x; gpos[i * 3 + 1] = o.y; gpos[i * 3 + 2] = o.z; }
+    im.instanceMatrix.needsUpdate = true; halo.geometry.attributes.position.needsUpdate = true; };
+  upd(0, 0); return { g, upd, n }; })();
 function layoutLights() { lightsG.clear(); lightSprites.length = 0; const th = THEME[S.door];
-  S.msgs.forEach((m, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightTex, color: th.light, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, fog: false }));
+  const shown = S.msgs.filter(m => m.id !== S.flying); msgLan = new THREE.InstancedMesh(lanGeo, lanMat, Math.max(1, shown.length)); msgLan.count = shown.length; msgLan.frustumCulled = false;
+  shown.forEach((m, i) => { _v.copy(slotPos(m.slot ?? i)); _s.set(1.5, 1.5, 1.5); _m4.compose(_v, _q, _s); msgLan.setMatrixAt(i, _m4); }); lightsG.add(msgLan);
+  shown.forEach((m, i) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightTex, color: th.light, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, fog: false }));
     sp.renderOrder = 6; const sc = 0.85 + Math.min(0.6, Math.log2(1 + (m.lights || 0)) * 0.16); sp.scale.set(sc, sc, 1); sp.position.copy(slotPos(m.slot ?? i)); sp.userData.msg = m; sp.userData.ph = Math.random() * 6; sp.userData.sc = sc; lightsG.add(sp); lightSprites.push(sp); }); }
 function setTheme(k) { const th = THEME[k]; scene.fog.color.setHex(th.fog); scene.background.setHex(th.fog); keyLight.color.setHex(th.light); M.bark.emissive.setHex(th.wall); motesMat.color.setHex(th.mote); petalMat.color.setHex(th.petal);
   runeMat.map.dispose(); runeMat.map = runeTex(th.rune); runeMat.needsUpdate = true; }
@@ -274,7 +288,43 @@ function pick(origin, dir) { if (!vrPanel.visible) { const l = pickLight(origin,
   return ray.intersectObjects(list, false)[0] || null; }
 const isShown = o => { let p = o; while (p) { if (!p.visible) return false; p = p.parent; } return true; };
 function tap(x, y) { ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera); const h = pick(ray.ray.origin.clone(), ray.ray.direction.clone()); if (h) act(h); }
+// ---------- t289 提灯引路人 NPC（入口区内固定范围漫步）----------
+const npc = (() => { const g = new THREE.Group(), tx = tex('hollow/npc.webp'), body = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, alphaTest: 0.08, fog: false }));
+  body.scale.set(0.93, 1.8, 1); body.position.y = 0.92; body.userData.npc = 1; g.add(body); clickables.push(body);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightTex, color: 0xffa860, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); glow.scale.set(1.1, 1.1, 1); glow.position.set(-0.3, 1.2, 0.05); g.add(glow);
+  const lab = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false, fog: false })); lab.renderOrder = 7; lab.scale.set(1.5, 0.28, 1); lab.position.y = 2.05; g.add(lab);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.62, 40), new THREE.MeshBasicMaterial({ color: 0xffd28a, transparent: true, opacity: 0.6, side: THREE.DoubleSide, toneMapped: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; g.add(ring);
+  g.visible = false; corr.add(g);
+  const st = { g, body, glow, lab, x: 1.6, s: 9, tx: 1.6, ts: 9, wait: 1, near: false, dist: 99,
+    paint() { lab.material.map?.dispose(); lab.material.map = canvasTex(512, 96, (c, W, H) => { c.fillStyle = 'rgba(12,10,32,.72)'; roundRect(c, 4, 4, W - 8, H - 8, 40); c.fill(); c.strokeStyle = 'rgba(246,211,138,.8)'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#ffe9b5'; c.textAlign = 'center'; fitText(c, t('hollow.npcHint'), W - 50, 40, 'italic 500 ', 'Georgia, serif'); c.fillText(t('hollow.npcHint'), W / 2, 62); }); lab.material.needsUpdate = true; },
+    upd(el, dt) { const on = S.mode === 'corr' && S.door === 'first'; g.visible = on; lab.visible = !S.releasing; if (!on) { st.near = false; return; }
+      st.dist = Math.hypot(P.x - st.x, P.s - st.s); st.near = st.dist < 3.2;
+      if (st.dist < 4.5 || S.releasing) { /* 靠近时停下、面向玩家 */ body.scale.x = Math.abs(body.scale.x); }
+      else if ((st.wait -= dt) <= 0) { const dx = st.tx - st.x, ds = st.ts - st.s, d = Math.hypot(dx, ds);
+        if (d < 0.1) { st.wait = 1.5 + Math.random() * 3; st.tx = -4 + Math.random() * 8; st.ts = 6 + Math.random() * 12; }
+        else { const v = Math.min(d, 0.75 * dt); st.x += dx / d * v; st.s += ds / d * v; const sx = Math.abs(body.scale.x); body.scale.x = dx >= 0 ? sx : -sx; glow.position.x = dx >= 0 ? -0.3 : 0.3; } }
+      g.position.set(st.x, Math.sin(el * 1.3) * 0.05, -st.s); glow.material.opacity = 0.75 + Math.sin(el * 3.1) * 0.15; } };
+  return st; })();
+function openNpc() { openPanel(`<div class=drow><img src="hollow/npc.webp" alt="" width=96 height=186 style="object-fit:contain;height:186px;width:auto"><div><h2>${esc(t('hollow.npcName'))}</h2><p class=poem style="font-style:italic">${esc(t('hollow.npcHint'))}</p><p class=note style="font-size:14px">${esc(t('hollow.npcSay'))}</p></div></div><div class=btns><button type=button class="pill gold" data-lantern>🏮 ${esc(t('hollow.takeLantern'))}</button><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>${S.state?.login ? '' : `<p class=note>${esc(t('hollow.guestWrite'))}</p>`}`); }
+function guestPanel() { openPanel(`<h2>✦ ${esc(t('hollow.lanternTitle'))}</h2><p class=note style="font-size:15px">${esc(t('hollow.guestWrite'))}</p><div class=btns><a class="pill gold" href="${loginUrl}">${esc(t('hollow.login'))}</a><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>`); }
+function lanternText(text) { return canvasTex(512, 640, (g, W, H) => { g.fillStyle = 'rgba(70,24,6,.0)'; g.fillRect(0, 0, W, H); g.fillStyle = '#5a1e08'; g.textAlign = 'center'; g.font = '600 34px Georgia, "Noto Serif", serif';
+  const words = /\s/.test(text) ? text.split(/(\s+)/) : [...text], lines = []; let cur = ''; for (const ch of words) { if (cur && g.measureText(cur + ch).width > W - 120) { lines.push(cur.trim()); cur = ch.trim() ? ch : ''; } else cur += ch; } if (cur.trim()) lines.push(cur.trim());
+  const ls = lines.slice(0, 9), y0 = H / 2 - (ls.length - 1) * 23; ls.forEach((l, i) => g.fillText(l, W / 2, y0 + i * 46)); }); }
+// 放飞动画：手中天灯（写着愿望）→ 缓缓升空 → 停到该留言的编号挂点
+function release(m, done) { S.releasing = true; S.flying = m.id; layoutLights(); const grp = new THREE.Group(), fwd = new THREE.Vector3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw));
+  const body = new THREE.Mesh(lanGeo, lanMat); body.scale.setScalar(2.2); grp.add(body);
+  const txt = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.7), new THREE.MeshBasicMaterial({ map: lanternText(m.text), transparent: true, depthWrite: false, toneMapped: false })); txt.position.z = 0.6; grp.add(txt);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightTex, color: 0xffb060, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); glow.scale.set(3, 3, 1); glow.position.y = -0.6; grp.add(glow);
+  const a = new THREE.Vector3(P.x, 0, -P.s).addScaledVector(fwd, 2.6).setY(1.75), b = slotPos(m.slot || 0), t0 = clock.elapsedTime; grp.position.copy(a); grp.lookAt(P.x, 1.75, -P.s); scene.add(grp);
+  S.anim = el => { const k = (el - t0); if (k < 2.2) { grp.position.y = a.y + Math.sin(k * 2) * 0.03; glow.material.opacity = 0.5 + k * 0.2; return; }
+    const u = Math.min(1, (k - 2.2) / 4.2), e = u * u * (3 - 2 * u); grp.position.lerpVectors(a, b, e); grp.position.y = a.y + (b.y + 1.6 * Math.sin(Math.PI * u) - a.y) * e; grp.position.x += Math.sin(k * 2.4) * 0.15 * (1 - u);
+    body.scale.setScalar(2.2 - 0.7 * e); txt.scale.setScalar(1 - e); txt.position.z = 0.6 - 0.3 * e; txt.material.opacity = 1 - Math.max(0, u - 0.5) * 2;
+    if (u >= 1) { scene.remove(grp); txt.material.map.dispose(); S.anim = null; S.flying = null; S.releasing = false; layoutLights(); pulse(m.id); done?.(); } }; }
+function hangsPanel(m) { const n = zoneOf(m.slot || 0), k = (m.slot || 0) % SLOTS + 1; openPanel(`<h2>🏮 ${esc(t('hollow.hangs', { n }))}</h2><p class=note style="font-size:14px">${esc(t('hollow.hangsSub', { n, k }))}</p><div class=btns><button type=button class="pill gold" data-fly="${esc(m.id)}">✦ ${esc(t('hollow.flyTo'))}</button><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>`); }
+function flyTo(id) { const m = S.msgs.find(x => x.id === id); if (!m) return; closePanel(); const go = () => { const p = slotPos(m.slot || 0); P.x = p.x * 0.15; P.s = -p.z; P.yaw = p.x < 0 ? Math.PI / 2 : -Math.PI / 2; P.pitch = Math.atan2(p.y - EYE, Math.abs(p.x - P.x)); syncChunks(P.s); setTimeout(() => pulse(m.id), 300); };
+  if (S.mode === 'corr' && S.door === m.door) transition(go); else { enter(m.door); setTimeout(go, 900); } }
 function act(h, vr) { const u = h.object.userData;
+  if (u.npc) return openNpc();
   if (h.object === vrPanel) return vrClick(h.uv);
   if (u.door) return vr ? vrDoor(u.door) : openDoor(u.door);
   if (u.msg) return vr ? vrRead(u.msg) : openRead(u.msg);
@@ -307,7 +357,7 @@ async function loadState() { try { S.state = await api('/api/hollow/state'); if 
 // ---------- HUD ----------
 const DL = [[0, 'd1'], [10, 'd2'], [DEEP, 'd5'], [ZONE0 + ZL, 'd3'], [ZONE0 + ZL * 2, 'd4'], [ZONE0 + ZL * 3, 'd6'], [ZONE0 + ZL * 5, 'd7'], [ZONE0 + ZL * 8, 'd8'], [ZONE0 + ZL * 12, 'd9']];
 let lastLine = '';
-function ui() { const deep = S.mode === 'corr' && P.s > DEEP - 4; $('#bwrite').hidden = !deep || !playing; $('#bhall').hidden = S.mode !== 'corr' || !playing;
+function ui() { const deep = S.mode === 'corr' && P.s > DEEP - 4; $('#bwrite').hidden = !deep || !playing; $('#bnpc').hidden = !(npc.near && playing && !panelOpen && !S.releasing); $('#bhall').hidden = S.mode !== 'corr' || !playing;
   let k = 'd0'; if (S.mode === 'corr') for (const [at, key] of DL) if (P.s >= at) k = key; const line = t('hollow.' + k);
   const zn = S.mode === 'corr' && P.s >= ZONE0 ? t('hollow.zone', { n: zoneIdx(P.s) }) + ' · ' : ''; if (zn + line !== lastLine) { lastLine = zn + line; $('#depth').textContent = zn + line; } $('#hint').textContent = playing ? (S.mode === 'corr' && deep && !S.msgs.length ? t('hollow.empty') : t(mobile ? 'hollow.hintTouch' : 'hollow.hintDesk')) : ''; }
 
@@ -320,7 +370,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && panelOpen) closePan
 const loginUrl = '/';
 function doorHtml(k) { const st = status(k), s = S.state, login = !!s?.login, has = s?.cards?.includes(k);
   let body = `<div class=drow><img src="hollow/doors/${k}.webp" alt="" width=112 height=158><div><span class="badge ${st === 'open' ? '' : 'lock'}">${st === 'open' ? '✦ ' : '🔒 '}${esc(t('hollow.' + st))}</span><h2>${esc(t('hollow.door.' + k))}</h2><p class=poem>${esc(t('hollow.poem.' + k))}</p></div></div>`;
-  if (k === 'first') { body += `<p class=note>${esc(t('hollow.freeNote'))}</p><div class=btns><button type=button class="pill gold" data-walk=first>${esc(t('hollow.walk'))}</button>${has ? `<span class=badge>✓ ${esc(t('hollow.claimed'))}</span>` : login ? `<button type=button class=pill data-claim=first>${esc(t('hollow.claim'))}</button>` : `<a class=pill href="${loginUrl}">${esc(t('hollow.login'))}</a>`}</div>${login ? '' : `<p class=note>${esc(t('hollow.loginNeed'))}</p>`}<p class=note>${esc(t('hollow.cardNote'))}</p>`; }
+  if (k === 'first') { body += `<p class=note>${esc(t('hollow.freeNote'))}</p><div class=btns><button type=button class="pill gold" data-walk=first>${esc(t('hollow.walk'))}</button>${has ? `<span class=badge>✓ ${esc(t('hollow.claimed'))}</span>` : login ? `<button type=button class=pill data-claim=first>${esc(t('hollow.claim'))}</button>` : `<a class=pill href="${loginUrl}">${esc(t('hollow.login'))}</a>`}</div>${login ? '' : `<p class=note>${esc(t('hollow.loginNeed'))}</p>`}<p class=note>${esc(t('hollow.cardNote'))}</p><div class=inside><b>${esc(t('hollow.insideTitle'))}</b><img src="hollow/inside.webp" alt="${esc(t('hollow.insideAlt'))}" width=320 height=180 loading=lazy><ul><li>${esc(t('hollow.inside1'))}</li><li>${esc(t('hollow.inside2'))}</li><li>${esc(t('hollow.inside3'))}</li></ul>${login ? '' : `<p class=note>${esc(t('hollow.guestNote'))}</p>`}</div>`; }
   else if (k === 'sea') { const p = s?.sea, n = p?.need || s?.need || { wishes: 3, gave: 5, got: 3 };
     if (has) body += `<p class=note>✦ ${esc(t('hollow.seaDone'))}</p><div class=btns><button type=button class="pill gold" data-walk=sea>${esc(t('hollow.walk'))}</button></div>`;
     body += `<div class=prog id=seaprog><b>${esc(t('hollow.seaTitle'))}</b>${[['wishes', 'seaWishes'], ['gave', 'seaGave'], ['got', 'seaGot']].map(([f, key]) => { const v = Math.min(p?.[f] || 0, n[f]); return `<div class="prow ${v >= n[f] ? 'ok' : ''}" data-f=${f}><div class=lbl><span>${esc(t('hollow.' + key, { n: v, m: n[f] }))}</span><b>${v >= n[f] ? '✓' : ''}</b></div><div class=bar><i style="width:${(v / n[f]) * 100}%"></i></div></div>`; }).join('')}<p class=note>${esc(t('hollow.seaRule'))}</p>${login ? '' : `<p class=note>${esc(t('hollow.loginNeed'))} <a href="${loginUrl}" style="color:var(--gold)">${esc(t('hollow.login'))}</a></p>`}</div><p class=note>${esc(t('hollow.cardNote'))}</p>`; }
@@ -329,6 +379,7 @@ function doorHtml(k) { const st = status(k), s = S.state, login = !!s?.login, ha
   return body; }
 function openDoor(k) { openPanel(doorHtml(k)); }
 pbox.addEventListener('click', async e => { const w = e.target.closest('[data-walk]'); if (w) return enter(w.dataset.walk);
+  if (e.target.closest('[data-lantern]')) return openWrite(true); const fl = e.target.closest('[data-fly]'); if (fl) return flyTo(fl.dataset.fly);
   const c = e.target.closest('[data-claim]'); if (c) { c.disabled = true; try { const r = await api('/api/hollow/claim', { card: c.dataset.claim }); S.state.cards = r.cards; toast('✦ ' + t('hollow.claimed')); openDoor(c.dataset.claim); } catch (er) { c.disabled = false; toast(er.status === 401 ? t('hollow.loginNeed') : t('hollow.err')); } return; }
   const h = e.target.closest('[data-heard]'); if (h) return heard(h.dataset.heard, h);
   const rp = e.target.closest('[data-rep]'); if (rp) { $('#repbox').hidden = false; rp.hidden = true; return; }
@@ -346,19 +397,21 @@ async function heard(id, btn) { btn.disabled = true; try { const r = await api('
 function pulse(id) { const sp = lightSprites.find(x => x.userData.msg.id === id); if (sp) sp.userData.boost = 1.6; }
 async function report(id, btn) { btn.disabled = true; try { const r = await api('/api/report', { sig: id, reason: $('#rpr').value }); toast(t(r.queued ? 'rep.queued' : 'rep.ok')); closePanel(); } catch (er) { btn.disabled = false; toast(er.status === 401 ? t('rep.needLogin') : t('hollow.err')); } }
 let cid = null;
-async function openWrite() { openPanel(`<h2>✦ ${esc(t('hollow.writeTitle'))}</h2><p class=note>${esc(t('hollow.writeNote'))}</p><textarea id=hmt maxlength=200 placeholder="${esc(t('hollow.ph'))}"></textarea><div class=cnt id=hmc>0/200</div><p class=note>${esc(t('hollow.writeNote2'))}</p>
-  <label class=note id=hcap>…</label> <input type=text id=hans inputmode=numeric size=4 autocomplete=off><div id=hcare></div><div class=btns><button type=button class="pill gold" data-send>${esc(t('hollow.send'))}</button><button type=button class=pill data-close>${esc(t('hollow.cancel'))}</button></div>`);
+async function openWrite(lan) { if (!S.state?.login) return guestPanel(); S.lan = lan === true; openPanel(`<h2>${S.lan ? '🏮 ' + esc(t('hollow.lanternTitle')) : '✦ ' + esc(t('hollow.writeTitle'))}</h2><p class=note>${esc(t('hollow.writeNote'))}</p><textarea id=hmt maxlength=200 placeholder="${esc(t('hollow.ph'))}"></textarea><div class=cnt id=hmc>0/200</div><p class=note>${esc(t('hollow.writeNote2'))}</p>
+  <label class=note id=hcap>…</label> <input type=text id=hans inputmode=numeric size=4 autocomplete=off><div id=hcare></div><div class=btns><button type=button class="pill gold" data-send>${esc(t(S.lan ? 'hollow.release' : 'hollow.send'))}</button><button type=button class=pill data-close>${esc(t('hollow.cancel'))}</button></div>`);
   $('#hmt').addEventListener('input', e => { $('#hmc').textContent = [...e.target.value].length + '/200'; }); setTimeout(() => $('#hmt')?.focus(), 50);
   try { const c = await api('/api/free/challenge'); cid = c.cid; $('#hcap').textContent = t('hollow.captcha', { q: c.q }); } catch { $('#hcap').textContent = t('hollow.offline'); } }
 async function sendMsg() { const text = $('#hmt').value.trim(); if (!text) return $('#hmt').focus(); const b = pbox.querySelector('[data-send]'); b.disabled = true;
   try { const r = await api('/api/hollow/msg', { text, door: S.door, cid, ans: $('#hans').value, dev: devId() }); const m = r.item; S.mine.push(m.id); saveMine();
-    S.msgs.unshift(m); layoutLights(); audio.chime(); toast('✦ ' + t('hollow.zoneSpot', { n: zoneOf(m.slot || 0), k: (m.slot || 0) % SLOTS + 1 }));
-    if (r.care) { openPanel(`<h2>✦ ${esc(t('hollow.sent'))}</h2>${careHtml()}<div class=btns><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>`); } else { closePanel(); toast('✦ ' + t('hollow.sent')); } }
+    S.msgs.unshift(m); audio.chime();
+    if (r.care) { layoutLights(); openPanel(`<h2>✦ ${esc(t('hollow.sent'))}</h2>${careHtml()}<div class=btns><button type=button class="pill gold" data-fly="${esc(m.id)}">✦ ${esc(t('hollow.flyTo'))}</button><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>`); }
+    else { closePanel(); if (S.mode === 'corr' && S.door === m.door) release(m, () => hangsPanel(m)); else { layoutLights(); hangsPanel(m); } } }
   catch (er) { b.disabled = false; const c = er.code, care = er.data?.care; if (care) $('#hcare').innerHTML = careHtml();
     if (c === 'freeCaptcha') { toast(t('hollow.err')); try { const x = await api('/api/free/challenge'); cid = x.cid; $('#hcap').textContent = t('hollow.captcha', { q: x.q }); $('#hans').value = ''; } catch {} }
     else if (c === 'hUsed') { openPanel(`<p class=note style="font-size:15px">${esc(t('hollow.used'))}</p>${care ? careHtml() : ''}<div class=btns><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>`); }
+    else if (c === 'hAuth') guestPanel();
     else if (c === 'hFull' || c === 'rate') toast(t('hollow.full')); else if (c === 'reject' || c === 'blockPhish' || c === 'len') toast(t('hollow.reject')); else toast(t('hollow.err')); } }
-$('#bwrite').onclick = openWrite; $('#bhall').onclick = toHall;
+$('#bwrite').onclick = () => openWrite(); $('#bnpc').onclick = openNpc; $('#bhall').onclick = toHall;
 
 // ---------- WebXR ----------
 const vrPanel = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.75), new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false, fog: false, depthTest: false })); vrPanel.visible = false; vrPanel.renderOrder = 10; scene.add(vrPanel);
@@ -403,6 +456,7 @@ function tick(now) { const dt = Math.min(clock.getDelta(), 0.05), el = clock.ela
   for (const sp of lightSprites) { const u = sp.userData; u.boost = Math.max(1, (u.boost || 1) - dt * 0.6); const k = u.sc * u.boost * (1 + Math.sin(el * 1.5 + u.ph) * 0.08); sp.scale.set(k, k, 1); }
   for (const k of DOORS) { const d = doorLabels[k]; if (d && isOpen(k)) d.halo.material.opacity = 0.26 + Math.sin(el * 1.4 + k.length) * 0.08; }
   for (const m of portalMats) m.uniforms.uT.value = el; for (const p of portals) { p.ring.rotation.z = el * p.spin; p.ring2.rotation.z = 0.4 - el * p.spin * 1.6; }
+  npc.upd(el, dt); S.anim?.(el); skyLan.g.visible = S.mode === 'corr' && S.door === 'first'; if (skyLan.g.visible) { skyLan.g.position.set(P.x, 0, -P.s); skyLan.upd(el, dt); }
   if (S.mode === 'corr') { sky.position.set(P.x, 0, -P.s); for (const [, g] of chunks) for (const o of g.children) { if (o.userData.bob != null) o.position.y += Math.sin(el * 0.6 + o.userData.bob) * dt * 0.25; if (o.userData.spinY) o.rotation.y = el * o.userData.spinY; if (o.userData.spin) o.rotation.z = el * o.userData.spin; } }
   if (playing) { fpsN++; if (now - fpsT > 1000) { if (!autoLiteChecked && liteUser == null && !lite && el > 4) { autoLiteChecked = true; if (fpsN < 28) { lite = true; applyQuality(); toast('⚡ ' + t('hollow.liteTip')); } } fpsN = 0; fpsT = now; } ui(); }
   if (xr || lite) renderer.render(scene, camera); else composer.render(); }
@@ -413,11 +467,11 @@ $('#bstart').onclick = start;
 $('#blite').onclick = () => { lite = !lite; try { localStorage.wt_hollow_lite = lite ? '1' : '0'; } catch {} autoLiteChecked = true; applyQuality(); toast(t('hollow.liteTip') + (lite ? ' ✓' : ' ✗')); };
 $('#bsound').onclick = () => { audio.start(); audio.set(!audio.on); $('#bsound').setAttribute('aria-pressed', String(audio.on)); };
 $('#bsound').setAttribute('aria-pressed', String(audio.on));
-addEventListener('langchange', () => { paintDoors(); lastLine = ''; ui(); if (panelOpen) closePanel(); });
+npc.paint(); addEventListener('langchange', () => { paintDoors(); npc.paint(); lastLine = ''; ui(); if (panelOpen) closePanel(); });
 if (LOCAL) $('#mocklbl').hidden = false;
 buildHall(); applyQuality(); setTheme('first'); scene.fog.color.setHex(0x05061a); scene.background.setHex(0x05061a);
 renderer.setAnimationLoop(tick); setupVR(); loadState();
 const ready = () => { $('#bstart').disabled = false; $('#bstart').innerHTML = esc(t('hollow.start')); $('#ihint').textContent = t(mobile ? 'hollow.hintTouch' : 'hollow.hintDesk'); };
 THREE.DefaultLoadingManager.onLoad = ready; setTimeout(ready, 6000);
 // 测试钩子（verify-t279 用；不影响用户）
-window.__hollow = { scene, S, P, slotPos: s => slotPos(s).toArray(), zoneOf, SLOTS, pickLight: () => { const d = new THREE.Vector3(); camera.getWorldDirection(d); const o = new THREE.Vector3(); camera.getWorldPosition(o); const h = pickLight(o, d); return h && h.object.userData.msg.id; }, enter, toHall, openDoor, openRead, openWrite, start, get lite() { return lite; }, get mode() { return S.mode; }, lights: () => lightSprites.length, xr: () => renderer.xr.enabled, setPose: (x, s, yaw = 0, pitch = 0.02) => { P.x = x; P.s = s; P.yaw = yaw; P.pitch = pitch; }, tapAt: tap, loadState };
+window.__hollow = { npc: () => ({ x: npc.x, s: npc.s, vis: npc.g.visible, near: npc.near }), skyN: skyLan.n, openNpc, flyTo, hangsPanel, release: (m, cb) => release(m, cb), scene, S, P, slotPos: s => slotPos(s).toArray(), zoneOf, SLOTS, pickLight: () => { const d = new THREE.Vector3(); camera.getWorldDirection(d); const o = new THREE.Vector3(); camera.getWorldPosition(o); const h = pickLight(o, d); return h && h.object.userData.msg.id; }, enter, toHall, openDoor, openRead, openWrite, start, get lite() { return lite; }, get mode() { return S.mode; }, lights: () => lightSprites.length, xr: () => renderer.xr.enabled, setPose: (x, s, yaw = 0, pitch = 0.02) => { P.x = x; P.s = s; P.yaw = yaw; P.pitch = pitch; }, tapAt: tap, loadState };

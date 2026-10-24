@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Trigger per selezionare",
   "hollow.ownerPreview": "Anteprima del proprietario: questa porta non è ancora aperta al pubblico. Solo il portafoglio del proprietario che ha effettuato l'accesso può entrare.",
   "hollow.zone": "Zona {n}",
-  "hollow.zoneSpot": "Zona {n} · Luce n. {k}"
+  "hollow.zoneSpot": "Zona {n} · Luce n. {k}",
+  "hollow.npcName": "Custode delle lanterne",
+  "hollow.npcHint": "In cerca di anime affini…",
+  "hollow.npcSay": "Aspettavo qualcuno come te. Prendi una lanterna, scrivi il desiderio del tuo cuore e lasciala salire a unirsi alle altre nel cielo.",
+  "hollow.takeLantern": "Prendi una lanterna",
+  "hollow.lanternTitle": "Scrivi sulla tua lanterna",
+  "hollow.release": "Libera la lanterna",
+  "hollow.hangs": "La tua luce è appesa in Prime luci, Zona {n}",
+  "hollow.hangsSub": "Lanterna n. {k} della Zona {n}. Chiunque passi può trovarla e dire «Ti ho sentito».",
+  "hollow.flyTo": "Vola alla mia lanterna",
+  "hollow.guestNote": "Gli ospiti possono entrare e leggere tutte le luci. Accedi con un wallet per prendere una lanterna e lasciare la tua.",
+  "hollow.guestWrite": "Gli ospiti possono solo leggere. Accedi con un wallet per liberare una lanterna.",
+  "hollow.insideTitle": "Cosa puoi fare dentro",
+  "hollow.inside1": "Cammina tra le ampie sale e le zone numerate.",
+  "hollow.inside2": "Tocca una lanterna fluttuante per leggere le parole di uno sconosciuto e dire «Ti ho sentito».",
+  "hollow.inside3": "Incontra la Custode delle lanterne vicino all’ingresso, scrivi un desiderio (fino a 200 caratteri) e liberalo nel cielo.",
+  "hollow.insideAlt": "Dentro Prime luci: lanterne che fluttuano sopra una zona numerata"
 }

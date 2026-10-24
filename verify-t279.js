@@ -36,14 +36,15 @@ ok(/href="\/hollow\/"/.test(fs.readFileSync(path.join(pub, 'index.html'), 'utf8'
     r = await call('/api/hollow/claim', { ...U.a, tok: U.a.token, body: { card: 'first' } }); ok(r.s === 200 && r.j.cards.includes('first'), 'First Light 免费领取');
     ok((await call('/api/hollow/claim', { ...U.a, tok: U.a.token, body: { card: 'phoenix' } })).s === 400, '其他门 Coming soon 不可领');
     mock({ [U.a.pubkey]: { wishes: 1 } }); ok((await call('/api/hollow/claim', { ...U.a, tok: U.a.token, body: { card: 'sea' } })).s === 403, 'Sea 条件未满 403');
-    ok((await call('/api/hollow/msg', { ...U.b, body: { text: 'hi', cid: '1.2.3', ans: 1 } })).j.code === 'freeCaptcha', '留言需验证码');
+    ok((await call('/api/hollow/msg', { ...U.b, body: { text: 'hi', cid: '1.2.3', ans: 1 } })).j.code === 'hAuth', '访客不能留言（只读）');
+    ok((await call('/api/hollow/msg', { ...U.b, tok: U.b.token, body: { text: 'hi', cid: '1.2.3', ans: 1 } })).j.code === 'freeCaptcha', '留言需验证码');
     r = await post({ ...U.b, tok: U.b.token }, '<b>x</b>'); ok(r.j.code === 'len', '拒绝 HTML');
     r = await post({ ...U.b, tok: U.b.token }, 'x'.repeat(201)); ok(r.j.code === 'len', '超长拒绝');
     r = await post({ ...U.b, tok: U.b.token }, 'Sometimes I just want someone to say: you did fine today.'); ok(r.s === 200 && /^HM_[0-9a-f]{12}$/.test(r.j.item.id) && !('acct' in r.j.item) && !('ip' in r.j.item), '留言成功，公开字段不含作者 / IP');
     const mB = r.j.item.id;
     ok((await post({ ...U.b, tok: U.b.token }, 'second one')).j.code === 'hUsed', '同一人终身 1 条');
-    ok((await post({ ip: U.b.ip, dev: 'other' }, 'same ip new device')).j.code === 'hUsed', '同 IP 换设备仍算已用');
-    ok((await post({ ip: '10.9.9.9', dev: U.b.dev }, 'same device new ip')).j.code === 'hUsed', '同设备换 IP 仍算已用');
+    ok((await post({ ip: U.b.ip, dev: 'other', tok: U.i.token }, 'same ip new device')).j.code === 'hUsed', '同 IP 换设备仍算已用');
+    ok((await post({ ip: '10.9.9.9', dev: U.b.dev, tok: U.j.token }, 'same device new ip')).j.code === 'hUsed', '同设备换 IP 仍算已用');
     r = await post({ ...U.c, tok: U.c.token }, 'I want to kill myself'); ok(r.j.care === true, '自伤内容 → care 提示（' + (r.s === 200 ? '通过审核' : '被审核拒绝 ' + r.j.code) + '）');
     if (r.s !== 200) ok((await post({ ...U.c, tok: U.c.token }, 'Grandma, I still keep your recipe book by the window.')).s === 200, '被拒不占用名额');
     const ids = { b: mB }; for (const n of 'defg') { r = await post({ ...U[n], tok: U[n].token }, `Light from ${n}: the rain sounded kind tonight.`); ids[n] = r.j.item?.id; }

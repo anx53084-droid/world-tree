@@ -59,3 +59,8 @@ input[type=text],select{background:rgba(0,0,0,.35);color:var(--ink);border:1px s
 .ut-tg{font-size:12px;padding:2px 8px;border-radius:999px;background:transparent;border:1px solid currentColor;color:inherit;cursor:pointer}
 [dir=rtl] .drow{flex-direction:row}
 :lang(ar) *,:lang(fa) *,:lang(ur) *{letter-spacing:0!important}
+
+/* t289 */
+.inside{margin-top:10px;padding:10px 12px;border:1px solid rgba(246,211,138,.35);border-radius:12px;background:rgba(255,200,120,.06)}
+.inside img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin:8px 0}
+.inside ul{margin:4px 0 0;padding-inline-start:18px;font-size:13px;line-height:1.5}

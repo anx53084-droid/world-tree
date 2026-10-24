@@ -1550,5 +1550,21 @@
   "hollow.vrSel": "Pencetus untuk memilih",
   "hollow.ownerPreview": "Pratonton pemilik: pintu ini belum dibuka kepada orang ramai lagi. Hanya dompet pemilik anda yang dilog masuk boleh masuk.",
   "hollow.zone": "Zon {n}",
-  "hollow.zoneSpot": "Zon {n} · Cahaya #{k}"
+  "hollow.zoneSpot": "Zon {n} · Cahaya #{k}",
+  "hollow.npcName": "Penjaga Tanglung",
+  "hollow.npcHint": "Mencari jiwa sehati…",
+  "hollow.npcSay": "Aku telah menunggu seseorang sepertimu. Ambil tanglung, tulis hajat di hatimu dan biarkan ia naik menyertai yang lain di langit.",
+  "hollow.takeLantern": "Ambil tanglung",
+  "hollow.lanternTitle": "Tulis pada tanglung anda",
+  "hollow.release": "Lepaskan tanglung",
+  "hollow.hangs": "Cahaya anda tergantung di Cahaya Pertama, Zon {n}",
+  "hollow.hangsSub": "Tanglung #{k} di Zon {n}. Sesiapa yang lalu boleh menemuinya dan berkata \"Saya dengar awak\".",
+  "hollow.flyTo": "Terbang ke tanglung saya",
+  "hollow.guestNote": "Tetamu boleh masuk dan membaca semua cahaya. Log masuk dengan dompet untuk mengambil tanglung dan meninggalkan milik anda.",
+  "hollow.guestWrite": "Tetamu hanya boleh membaca. Log masuk dengan dompet untuk melepaskan tanglung.",
+  "hollow.insideTitle": "Apa yang boleh anda lakukan di dalam",
+  "hollow.inside1": "Jelajah dewan terbuka dan zon bernombor.",
+  "hollow.inside2": "Ketik mana-mana tanglung terapung untuk membaca kata-kata orang asing dan berkata \"Saya dengar awak\".",
+  "hollow.inside3": "Temui Penjaga Tanglung berhampiran pintu masuk, tulis satu hajat (sehingga 200 aksara) dan lepaskan ke langit.",
+  "hollow.insideAlt": "Di dalam Cahaya Pertama: tanglung terapung di atas zon bernombor"
 }
