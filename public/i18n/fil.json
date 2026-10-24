@@ -377,6 +377,7 @@
   "wal.rejected": "Kinansela mo ang lagda sa iyong wallet",
   "wal.chainMismatch": "Ang network ng iyong wallet ay hindi tumutugma sa kahilingan sa lagda. Lumipat ng network sa iyong wallet at subukang muli",
   "wal.chainUnsupported": "Ang kasalukuyang network ng iyong wallet ay hindi suportado. Lumipat sa BSC, Base, Ethereum o Arbitrum",
+  "wal.solOnly": "Sa ngayon, Solana wallet lang ang suportado sa pag-login (hal. Phantom, o WalletConnect gamit ang Solana account). Hindi pa makaka-login ang mga Ethereum-only wallet gaya ng imKey o imToken.",
   "wal.wcChain": "Hindi inaprubahan ng wallet mo ang network na ito sa WalletConnect. Magpalit ng network sa wallet o kumonekta muli gamit ang wallet na sumusuporta rito.",
   "wal.switched": "Nabago ang Wallet account — na-sign out ka. Mangyaring kumonekta muli",
   "err.chainId": "Ang network ng mensahe sa pag-sign-in (Chain ID) ay hindi suportado",

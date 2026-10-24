@@ -377,6 +377,7 @@
   "wal.rejected": "Cüzdanda imzayı iptal ettiniz",
   "wal.chainMismatch": "Cüzdanın ağı imza isteğiyle eşleşmiyor. Cüzdanda ağı değiştirip tekrar deneyin",
   "wal.chainUnsupported": "Cüzdanın mevcut ağı desteklenmiyor. BSC, Base, Ethereum veya Arbitrum’a geçin",
+  "wal.solOnly": "Giriş şu anda yalnızca Solana cüzdanlarını destekliyor (ör. Phantom veya Solana hesabıyla WalletConnect). imKey, imToken gibi yalnızca Ethereum cüzdanları henüz giriş yapamaz.",
   "wal.wcChain": "Cüzdanınız bu ağı WalletConnect üzerinden onaylamadı. Cüzdanda ağı değiştirin veya destekleyen bir cüzdanla yeniden bağlanın.",
   "wal.switched": "Cüzdan hesabı değişti — oturumunuz kapatıldı. Lütfen yeniden bağlanın",
   "err.chainId": "Giriş mesajının ağı (Chain ID) desteklenmiyor",

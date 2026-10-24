@@ -377,6 +377,7 @@
   "wal.rejected": "你已在錢包中取消簽名",
   "wal.chainMismatch": "錢包目前網路與簽名請求不一致，請在錢包中切換網路後重試",
   "wal.chainUnsupported": "錢包目前網路不受支援，請切換到 BSC、Base、Ethereum 或 Arbitrum",
+  "wal.solOnly": "目前僅支援 Solana 錢包登入（如 Phantom，或用 WalletConnect 連接 Solana 帳戶）。imKey、imToken 等僅以太坊的錢包暫時無法登入。",
   "wal.wcChain": "你的錢包未透過 WalletConnect 核准此網路。請在錢包內切換網路，或改用支援此網路的錢包重新連線。",
   "wal.switched": "錢包帳戶已切換，已登出，請重新連線",
   "err.chainId": "登入訊息的網路（Chain ID）不受支援",

@@ -377,6 +377,7 @@
   "wal.rejected": "Bạn đã hủy ký trong ví",
   "wal.chainMismatch": "Mạng của ví không khớp với yêu cầu ký. Hãy đổi mạng trong ví rồi thử lại",
   "wal.chainUnsupported": "Mạng hiện tại của ví không được hỗ trợ. Hãy chuyển sang BSC, Base, Ethereum hoặc Arbitrum",
+  "wal.solOnly": "Hiện chỉ hỗ trợ đăng nhập bằng ví Solana (vd. Phantom, hoặc WalletConnect với tài khoản Solana). Các ví chỉ hỗ trợ Ethereum như imKey hay imToken chưa thể đăng nhập.",
   "wal.wcChain": "Ví của bạn chưa chấp thuận mạng này qua WalletConnect. Hãy đổi mạng trong ví hoặc kết nối lại bằng ví hỗ trợ mạng đó.",
   "wal.switched": "Tài khoản ví đã thay đổi — bạn đã bị đăng xuất. Vui lòng kết nối lại",
   "err.chainId": "Mạng (Chain ID) trong tin nhắn đăng nhập không được hỗ trợ",

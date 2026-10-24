@@ -395,7 +395,7 @@ function walletMissing(w, kind) { // 未检测到：安装链接 + 在钱包内�
 function connectWallet(tab) { const UI = WTW.ui; // 钱包入口开关（wallets.js WTW.ui）：隐藏的入口代码保留；已登录的 EVM 会话不受影响
   tab = UI.evmTab ? (tab || localStorage.wt_wtab || 'sol') : 'sol'; const ch = localStorage.wt_chain || '84532', C = evmChains(), np = WTW.noProvider(tab === 'evm' ? 'evm' : 'sol');
   modal(`<h3 style="margin-top:0">${E('wal.title')}</h3>${UI.evmTab ? `<div class="row tabs"><button type=button data-tab=sol class="${tab === 'sol' ? 'on' : ''}">◎ Solana</button><button type=button data-tab=evm class="${tab === 'evm' ? 'on' : ''}">⬡ ${E('wal.evm')}</button></div>` : ''}
-    ${np && UI.evmTab ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${tab === 'sol' ? `${UI.evmTab ? `<p class=muted>${E('wal.solHint')}</p>` : ''}<div class=wlist>${(() => { const L = WTW.solList(), last = Math.max(...L.map((w, i) => w.id === 'phantom' || w.mwa ? i : -1)); return L.map((w, i) => (np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')) + (i === last ? devHint() : '')).join(''); })()}</div>`
+    ${np && UI.evmTab ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${!UI.evmTab && tab === 'sol' && window.ethereum && !window.solana && !window.phantom ? `<p class=wmob role=note>⚠️ ${E('wal.solOnly')}</p>` : ''}${tab === 'sol' ? `${UI.evmTab ? `<p class=muted>${E('wal.solHint')}</p>` : ''}<div class=wlist>${(() => { const L = WTW.solList(), last = Math.max(...L.map((w, i) => w.id === 'phantom' || w.mwa ? i : -1)); return L.map((w, i) => (np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')) + (i === last ? devHint() : '')).join(''); })()}</div>`
     : `<label>${E('wal.chain')} <select id=wch>${Object.entries(C).map(([id, c]) => `<option value=${id} ${id === ch ? 'selected' : ''}>${esc(t('chain.' + (c.key || EVM_KEYS[id])))} · ${esc(c.name)}</option>`).join('')}</select></label>
       <p class=muted>${E('wal.evmHint')} ${S.cfg.evm?.pay ? '' : E('wal.evmPayOff')}</p><div class=wlist>${WTW.evmList().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'evm')).join('')}</div>`}
     <p class=muted style="font-size:12px">🔐 ${E('wal.nonCustody')}</p><div class=row style="justify-content:flex-end"><button data-close>${E('common.cancel')}</button></div>`);
@@ -411,7 +411,7 @@ async function connectSol(id, given) { const w = WTW.solWallets().find(x => x.id
   if (id === 'dynamic') { try { await dynLogin(); } catch (e) { if (e?.code === 'cancel') return; closeModal(); return toast(esc(e.code === 'dynOff' ? t('wal.dynOff') : e.code === 'dynNoWallet' ? t('wal.dynNoWallet') : walErr(e)), 'err'); } }
   try { if (a.canSignIn) { const o = await a.signIn({ domain: location.host, statement: STMT, uri: location.origin, version: '1', nonce: await np, issuedAt: new Date().toISOString() }); // 一次点击：连接并签名
       pk = o.address; signed = { message: o.message, signature: WTW.b58(o.signature) }; } else pk = await a.connect(false); }
-  catch (e) { if (wc) closeModal(); return toast(esc(e.code === 'wcOff' ? t('wal.wcOff') : walErr(e)), 'err'); }
+  catch (e) { if (wc) closeModal(); return toast(esc(e.code === 'wcOff' ? t('wal.wcOff') : wc && !/reject|denied|cancel/i.test(String(e?.message || '')) ? t('wal.solOnly') : walErr(e)), 'err'); }
   if (wc && !$('#wcwait')) { a.disconnect?.(); return; } // 用户在等待批准时关闭了二维码弹窗
   closeModal(); if (S.mode === 'host' && S.token) await logout(true);
   if (S.wantSwitch && S.solPrev && pk === S.solPrev) toast(esc(t('wal.oneAccount')), ''); S.wantSwitch = false; S.solPrev = null;

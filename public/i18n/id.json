@@ -377,6 +377,7 @@
   "wal.rejected": "Anda membatalkan tanda tangan di dompet",
   "wal.chainMismatch": "Jaringan dompet tidak cocok dengan permintaan tanda tangan. Ganti jaringan di dompet lalu coba lagi",
   "wal.chainUnsupported": "Jaringan dompet saat ini tidak didukung. Beralih ke BSC, Base, Ethereum, atau Arbitrum",
+  "wal.solOnly": "Saat ini login hanya mendukung dompet Solana (mis. Phantom, atau WalletConnect dengan akun Solana). Dompet khusus Ethereum seperti imKey atau imToken belum bisa login.",
   "wal.wcChain": "Dompet Anda tidak menyetujui jaringan ini lewat WalletConnect. Ganti jaringan di dompet atau sambungkan ulang dengan dompet yang mendukungnya.",
   "wal.switched": "Akun dompet berganti — Anda telah keluar. Silakan hubungkan ulang",
   "err.chainId": "Jaringan (Chain ID) pada pesan masuk tidak didukung",

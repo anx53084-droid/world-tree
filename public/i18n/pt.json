@@ -377,6 +377,7 @@
   "wal.rejected": "Você cancelou a assinatura na carteira",
   "wal.chainMismatch": "A rede da carteira não corresponde ao pedido de assinatura. Troque a rede na carteira e tente novamente",
   "wal.chainUnsupported": "A rede atual da carteira não é suportada. Mude para BSC, Base, Ethereum ou Arbitrum",
+  "wal.solOnly": "No momento o login só aceita carteiras Solana (ex.: Phantom ou WalletConnect com conta Solana). Carteiras apenas Ethereum, como imKey ou imToken, ainda não podem entrar.",
   "wal.wcChain": "Sua carteira não aprovou esta rede pelo WalletConnect. Troque a rede na carteira ou reconecte com uma carteira compatível.",
   "wal.switched": "A conta da carteira mudou — você saiu. Conecte novamente",
   "err.chainId": "A rede (Chain ID) da mensagem de login não é suportada",
