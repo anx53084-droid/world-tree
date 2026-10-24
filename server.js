@@ -93,7 +93,7 @@ function auth(req, db) { const t = (req.headers.authorization || '').replace('Be
   if (Date.now() - (s.last || 0) > 300000) { s.last = Date.now(); s.ua = String(req.headers['user-agent'] || s.ua || '').slice(0, 200); save(db); } // 最近活跃（5 分钟粒度）
   return { email: s.uid, uid: s.uid, user: db.users[s.uid], token: t, sess: s }; }
 const kindOf = uid => uid.startsWith('evm:') ? 'evm' : uid.startsWith('sol:') ? 'sol' : 'email';
-const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'email' ? uid : null, pubkey: u.pubkey, evm: u.evm || null, verified: !!u.verified, totp: !!u.totp?.on, custodial: !!u.secret, largeUsd: u.largeUsd || 20, country: u.country || '', province: u.province || '', city: u.city || '', profile: { name: u.profile?.name || '', avatar: u.profile?.avatar || '' } });
+const meOf = (uid, u) => ({ uid, kind: kindOf(uid), email: kindOf(uid) === 'email' ? uid : null, pubkey: u.pubkey || u.evm || null, evm: u.evm || null, verified: !!u.verified, totp: !!u.totp?.on, custodial: !!u.secret, largeUsd: u.largeUsd || 20, country: u.country || '', province: u.province || '', city: u.city || '', profile: { name: u.profile?.name || '', avatar: u.profile?.avatar || '' } });
 function allowHost(req) { const hs = new Set([req.headers.host]); const o = req.headers.origin; if (o && Domains.originOk(o)) try { hs.add(new URL(o).host); } catch {} return d => hs.has(d); }
 const fail = (res, e, code = 400) => send(res, code, { error: e.message, code: e.code || 'err' });
 
@@ -362,12 +362,14 @@ async function api(req, res, url) {
     for (const [id, c] of Object.entries(Acc.CHAINS)) if (Acc.EVM_RECV[c.key]) routes[c.key] = { chainId: +id, key: c.key, name: c.name, sym: c.sym, coin: c.coin, receive: Acc.EVM_RECV_DISPLAY[c.key] };
     return send(res, 200, { receiveLegacy: RC.legacy.sol, receive: RECEIVE.toBase58(), developer: RECEIVE.toBase58(), treasury: RECEIVE.toBase58(), split: [100], minUsd: MIN_USD, solUsd: p.usd, priceSource: p.src, priceStale: p.stale, minLamports: minLamports(p.usd), moderator: MOD_PUB,
     evm: { pay: Acc.EVM_PAY, recipients: { ...Acc.EVM_RECV_DISPLAY }, legacy: RC.legacy.evm, routes, uniChainImplemented: Acc.UNI_CHAIN_IMPLEMENTED, usd: p.coins, chains }, mail: Acc.MAIL_ON || Acc.ECHO, largeUsdDefault: 20, network: Net.NET, solCluster: Net.SOL_CLUSTER, solChain: Net.SOL_CHAIN, solRpcBrowser: Net.SOL_RPC_BROWSER, custody: Net.CUSTODY, wcProjectId: process.env.WC_PROJECT_ID || '', dynamicEnvId: process.env.DYNAMIC_ENV_ID || '' }); } // 都是公开标识，不是密钥 // WalletConnect 项目 ID 是公开标识（不是密钥）；未配置时 WalletConnect 项显示“未配置”
+  if (url === '/api/evm/wishes' && req.method === 'GET') { res.setHeader('cache-control', 'public, max-age=30'); // t309：EVM 链上付款的心愿（公开：付款交易哈希 + 用户签名，可独立核验）
+    return send(res, 200, { wishes: Object.values(db.evmWishes || {}).map(w => ({ sig: w.sig, author: w.author, memo: w.memo, time: w.time, chainId: w.chainId, tx: w.tx, usd: w.usd, wsig: w.wsig, issuedAt: w.issuedAt })) }); }
   if (url === '/api/nonce') return send(res, 200, { nonce: Acc.nonce() });
   if (url === '/api/login/wallet' && req.method === 'POST') { // 钱包签名登录：EVM（personal_sign，EIP-4361 格式）或 Solana（signMessage）；不涉及私钥、不发交易
     const lb = await body(req); let v; try { v = Acc.verifyLogin(lb, allowHost(req)); } catch (e) { return fail(res, e, 401); }
     const uid = v.kind + ':' + v.address;
-    if (!db.users[uid] && v.kind === 'evm' && !Net.CUSTODY) return send(res, 403, { error: 'EVM login is not available on mainnet', code: 'evmMainOff' }); // EVM 账户依赖托管 Solana 密钥代签，主网不提供
-    if (!db.users[uid]) { if (v.kind === 'evm') { const kp = web3.Keypair.generate(); db.users[uid] = { evm: v.address, pubkey: kp.publicKey.toBase58(), secret: Buffer.from(kp.secretKey).toString('base64'), created: Date.now() }; } // EVM 账户：愿望记录在 Solana devnet，由托管的 devnet 密钥签名 memo
+    if (!db.users[uid]) { if (v.kind === 'evm' && !Net.CUSTODY) db.users[uid] = { evm: v.address, created: Date.now() }; // t309 主网：非托管 EVM 账户——不生成、不保管任何密钥；心愿由用户钱包签名并在其所选 EVM 链上付款
+      else if (v.kind === 'evm') { const kp = web3.Keypair.generate(); db.users[uid] = { evm: v.address, pubkey: kp.publicKey.toBase58(), secret: Buffer.from(kp.secretKey).toString('base64'), created: Date.now() }; } // EVM 账户：愿望记录在 Solana devnet，由托管的 devnet 密钥签名 memo
       else db.users[uid] = { pubkey: v.address, created: Date.now() }; }
     if (db.users[uid].totp?.on && !(lb.totp && Acc.check2fa(db.users[uid], lb.totp))) { save(db); return send(res, 401, { error: '需要两步验证码', code: 'totp', ticket: Acc.issueTicket(uid, 'login') }); } // 签名已通过，第二步：验证码
     const token = Acc.newSession(db, uid, req); save(db); return send(res, 200, { token, ...meOf(uid, db.users[uid]) }); }
@@ -712,6 +714,7 @@ async function api(req, res, url) {
   if (url === '/api/contact/delete' && req.method === 'POST') { const { sig } = await body(req), st = Soc.load(), cur = st.contacts[sig];
     if (!cur) return send(res, 200, { ok: true }); if (cur.owner !== U.pubkey) return send(res, 403, { error: 'forbidden', code: 'forbidden' });
     delete st.contacts[sig]; Soc.save(st); return send(res, 200, { ok: true }); }
+  if (url === '/api/evm/wish' && req.method === 'POST') return evmWish(req, res, db, U, a); // t309：非托管 EVM 心愿（用户自签 + 自付，服务器只核验）
   if (!U.secret) return send(res, 403, { error: 'wallet account: sign with your wallet', code: 'noCustody' });
   if (!Net.CUSTODY) return send(res, 403, { error: 'custodial demo is off on mainnet', code: 'custodyOff' }); // 主网：平台不替托管账户发交易、无水龙头
   const kp = web3.Keypair.fromSecretKey(Buffer.from(U.secret, 'base64'));
@@ -740,6 +743,28 @@ async function api(req, res, url) {
   }
   send(res, 404, { error: 'not found' });
 }
+
+// ---- t309：非托管 EVM 心愿 ----
+// 流程：前端审核拿到 memo（含审核证明）→ 用户钱包 personal_sign 签名心愿（免费）→ 用户自己把 ≥1 美元等值原生币转到该链收款地址（gas 用户自付）→ 本接口核验：
+// 签名者 = 登录地址；交易 from = 登录地址、to = 收款地址、已成功且有足够确认数、未被使用；金额按服务端实时币价 ≥ 1 美元（容差 2%，覆盖报价到确认之间的价格波动）。通过后记录，与 Solana 心愿一起显示在同一棵树上。
+const COIN_SYM = { ethereum: 'ETH', binancecoin: 'BNB', solana: 'SOL' };
+async function evmWish(req, res, db, U, a) {
+  if (!U.evm) return send(res, 400, { error: 'not an EVM account', code: 'param' });
+  const { memo, evm, wsig, issuedAt, confirmLarge, totp, payTicket } = await body(req);
+  if (typeof memo !== 'string' || !memo.startsWith('WTREE1|W|') || !verifyWishMemo(memo)) return send(res, 400, { error: 'missing or invalid moderation attestation', code: 'att' });
+  const chainId = +evm?.chainId, c = Acc.CHAINS[chainId]; if (!c) return send(res, 400, { error: 'unsupported chain', code: 'evmChain' });
+  const ts = Date.parse(issuedAt || ''); if (!(ts > Date.now() - 86400000 && ts < Date.now() + 600000)) return send(res, 400, { error: 'signature expired', code: 'sig' });
+  try { if (Acc.evmRecover(Acc.evmWishMsg(U.evm, chainId, sha256hex(memo), issuedAt), String(wsig || '')).toLowerCase() !== U.evm.toLowerCase()) throw 0; } catch { return send(res, 400, { error: 'wish signature invalid', code: 'sig' }); }
+  const P = await Prices.get(), sym = COIN_SYM[c.coin]; if (!Prices.usable(P, sym)) return send(res, 503, { error: 'live price unavailable, please retry shortly', code: 'priceStale' });
+  let pay; try { pay = await Acc.verifyEvmPay(db, evm, U.evm.toLowerCase(), P.prices[sym], MIN_USD, { confs: true, dry: true }); } catch (e) { return fail(res, e); }
+  const payOk = () => !U.totp?.on || (payTicket && Acc.useTicket(payTicket, a.uid, 'pay')) || Acc.check2fa(U, totp);
+  if (pay.usd >= (U.largeUsd || 20) && (!confirmLarge || !payOk())) { save(db); return send(res, 401, { error: '需要两步验证码', code: U.totp?.on ? 'totp' : 'large' }); }
+  let time = Math.floor(Date.now() / 1000); try { const b = await Acc.evmRpc(chainId, 'eth_getBlockByNumber', [pay.blockNumber, false]); if (b?.timestamp) time = parseInt(b.timestamp, 16); } catch {}
+  const h = evm.txs[0].toLowerCase(), sig = 'evm:' + chainId + ':' + h; db.usedEvm = db.usedEvm || {}; if (db.usedEvm[pay.key]) return send(res, 400, { error: 'tx already used', code: 'evmUsed' });
+  db.usedEvm[pay.key] = Date.now(); db.evmWishes = db.evmWishes || {};
+  db.evmWishes[sig] = { sig, chainId, tx: h, author: U.evm.toLowerCase(), memo, wsig, issuedAt, time, usd: Math.round(pay.usd * 100) / 100, wei: pay.wei, sym: pay.sym, price: P.prices[sym], at: Date.now() }; save(db);
+  try { const parts = memo.split('|'); Fulfill.registerWish({ wishSig: sig, cat: parts[5].split('~')[0], text: /~F..P(~|$)/.test(parts[5]) ? '🔒' : parts[6], author: U.evm.toLowerCase(), lamports: 0, source: 'evm:' + chainId }); } catch {}
+  return send(res, 200, { signature: sig, usd: db.evmWishes[sig].usd }); }
 
 // CORS 白名单由 domains.js 动态生成（域名清单 + ALLOWED_ORIGINS + CORS_ORIGIN_RE），增删域名无需重新部署
 Batch.start(); // 团购礼品卡任务队列：启动即恢复未完成的分片

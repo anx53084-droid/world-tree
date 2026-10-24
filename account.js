@@ -96,7 +96,11 @@ function notifyFulfil(db, author, info) { // 标记心愿已实现 → 给愿望
 // ---- EVM 付款校验（测试网原生币转账：每链单一收款地址，全额）----
 async function evmRpc(chainId, method, params) { const r = await fetch(CHAINS[chainId].rpc, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), signal: AbortSignal.timeout(10000) });
   const j = await r.json(); if (j.error) throw new Error(j.error.message); return j.result; }
-async function verifyEvmPay(db, { chainId, txs, payKey }, from, usdPer, minUsd) {
+// t309：非托管 EVM 心愿——心愿内容由用户钱包 personal_sign 签名（不花 gas），服务器只验签，不持有任何密钥
+const evmWishMsg = (address, chainId, memoHash, issuedAt) => `Guangqi World Tree wish\nAddress: ${String(address).toLowerCase()}\nChain ID: ${+chainId}\nWish SHA-256: ${memoHash}\nIssued At: ${issuedAt}\n\nSigning is free and does not move funds.`;
+// 链上确认数要求（主网）；测试网 1
+const CONFS = Net.MAIN ? { eth: 2, base: 3, arb: 5, bsc: 5 } : {};
+async function verifyEvmPay(db, { chainId, txs, payKey }, from, usdPer, minUsd, opt = {}) {
   chainId = +chainId; if (!EVM_PAY) throw Object.assign(new Error('EVM payment disabled'), { code: 'evmOff' }); if (!CHAINS[chainId]) throw Object.assign(new Error('unsupported chain'), { code: 'evmChain' });
   const recv = recvFor(chainId, payKey); if (!recv) throw Object.assign(new Error('no receive address for chain'), { code: 'evmOff' });
   const hashes = Array.isArray(txs) ? txs : [];
@@ -105,11 +109,14 @@ async function verifyEvmPay(db, { chainId, txs, payKey }, from, usdPer, minUsd) 
   if (db.usedEvm[k]) throw Object.assign(new Error('tx already used'), { code: 'evmUsed' });
   const [tx, rc] = await Promise.all([evmRpc(chainId, 'eth_getTransactionByHash', [h]), evmRpc(chainId, 'eth_getTransactionReceipt', [h])]);
   if (!tx || !rc || rc.status !== '0x1') throw Object.assign(new Error('tx not confirmed'), { code: 'evmPending' });
+  if (opt.confs) { const need = CONFS[CHAINS[chainId].key] || 1, head = parseInt(await evmRpc(chainId, 'eth_blockNumber', []), 16), at = parseInt(rc.blockNumber, 16);
+    if (!(head - at + 1 >= need)) throw Object.assign(new Error(`waiting for confirmations (${Math.max(0, head - at + 1)}/${need})`), { code: 'evmPending' }); }
   if ((tx.from || '').toLowerCase() !== from || (tx.chainId && +tx.chainId !== chainId)) throw Object.assign(new Error('tx sender mismatch'), { code: 'evmTx' });
   const to = (tx.to || '').toLowerCase(), tot = BigInt(tx.value);
   if (to !== recv && !RC.isEvmRecv(recvKeyFor(chainId, payKey), to)) throw Object.assign(new Error('wrong recipient'), { code: 'evmTx' });
   if (!tot) throw Object.assign(new Error('amount below minimum'), { code: 'amount' });
   const usd = Number(tot) / 1e18 * usdPer; if (!(usd >= minUsd * 0.98)) throw Object.assign(new Error('amount below minimum'), { code: 'amount' });
+  if (opt.dry) return { usd, wei: tot.toString(), sym: CHAINS[chainId].sym, recv, key: k, blockNumber: rc.blockNumber };
   db.usedEvm[k] = Date.now(); return { usd, wei: tot.toString(), sym: CHAINS[chainId].sym, recv, payKey: payKey || CHAINS[chainId].key }; }
 
-module.exports = { genRecovery, check2fa, issueTicket, peekTicket, useTicket, CHAINS, EVM_DEV, EVM_TREASURY, EVM_PAY, EVM_RECV, EVM_RECV_DISPLAY, RC, UNI_CHAIN_IMPLEMENTED, recvFor, MAIL_ON, ECHO, nonce, verifyLogin, evmRecover, parseSiwe, b32enc, totpNow, totpOk, sendMail, tokHash, normSessions, newSession, pushMsg, prefs, inboxOf, notifyFulfil, verifyEvmPay };
+module.exports = { evmWishMsg, CONFS, evmRpc, genRecovery, check2fa, issueTicket, peekTicket, useTicket, CHAINS, EVM_DEV, EVM_TREASURY, EVM_PAY, EVM_RECV, EVM_RECV_DISPLAY, RC, UNI_CHAIN_IMPLEMENTED, recvFor, MAIL_ON, ECHO, nonce, verifyLogin, evmRecover, parseSiwe, b32enc, totpNow, totpOk, sendMail, tokHash, normSessions, newSession, pushMsg, prefs, inboxOf, notifyFulfil, verifyEvmPay };

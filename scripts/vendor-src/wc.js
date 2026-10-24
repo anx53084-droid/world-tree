@@ -26,7 +26,11 @@ window.WTWC.createEvm = ({ projectId, metadata, onUri, chains, rpc }) => { let p
   const read = async (method, params) => { const u = rpc(cur); if (!u) throw rerr(4200, 'no rpc'); const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: params || [] }) }).then(x => x.json()); if (r.error) throw rerr(r.error.code, r.error.message); return r.result; };
   async function connect() { const p = await init(); if (ns()) return addr(); p.on('display_uri', onUri);
     const rpcMap = Object.fromEntries(chains.map(c => [c, rpc(c)]).filter(x => x[1]));
-    await p.connect({ optionalNamespaces: { eip155: { methods: EVM_METHODS, chains: chains.map(c => 'eip155:' + c), events: ['chainChanged', 'accountsChanged'], rpcMap } } });
+    // t309：eip155:1 作为 required（imKey 等钱包在没有 required 链时会拒绝），Base / Arbitrum / BSC 为 optional；方法最小化。
+    // 注意：打包后的 @walletconnect 2.26.0 会把 requiredNamespaces 清空并并入 optional——public/vendor/walletconnect.js 已打补丁（搜索 wt-patch:keep-required），重新打包时需同样处理。
+    const ev = ['chainChanged', 'accountsChanged'];
+    await p.connect({ namespaces: { eip155: { methods: ['personal_sign', 'eth_sendTransaction'], chains: ['eip155:1'], events: ev, rpcMap } },
+      optionalNamespaces: { eip155: { methods: ['personal_sign', 'eth_sendTransaction', 'eth_chainId', 'wallet_switchEthereumChain'], chains: chains.filter(c => +c !== 1).map(c => 'eip155:' + c), events: ev, rpcMap } } });
     try { p.on('session_delete', () => emit('accountsChanged', [])); p.on('session_event', e => { const ev = e?.params?.event; if (ev?.name === 'chainChanged') { cur = parseInt(String(ev.data).replace(/^eip155:/, ''), String(ev.data).startsWith('0x') ? 16 : 10); emit('chainChanged', '0x' + cur.toString(16)); } else if (ev?.name === 'accountsChanged') emit('accountsChanged', (ev.data || []).map(a => String(a).split(':').pop())); }); } catch {}
     return addr(); }
   const provider = { isWalletConnect: true,

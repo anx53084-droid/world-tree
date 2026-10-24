@@ -12,7 +12,7 @@ const node = (env, code) => JSON.parse(cp.execFileSync('node', ['-e', code], { c
   ok(node({ NETWORK: 'mainnet', SOLANA_RPC_MAINNET: 'https://example-rpc.invalid/k' }, "console.log(JSON.stringify(require('./network')))").SOL_RPC === 'https://example-rpc.invalid/k', '主网：SOLANA_RPC_MAINNET 覆盖 RPC');
   ok(JSON.stringify(mn.chains.sort()) === JSON.stringify(['1', '42161', '56', '8453']), 'EVM 主网链 ID：Ethereum 1 / BNB 56 / Base 8453 / Arbitrum 42161');
   ok(mn.sol === 'FPKFevoHzjPZWjWaRxwFwfNXu2LBduoGspXZSCLU81yz' && mn.evm.eth.address === '0xbfa2C12D28838bEA6C92645c195fAa907182ECed' && mn.evm.bsc.address === '0x71c04f3C4922d1A6FA2724428d4E2c51f5445837', '主网收款：Squads / Safe 多签（receive-config CONFIG_MAINNET）');
-  ok(/^0x71c04f3C4922d1A6FA2724428d4E2c51f5445837$/i.test(mn.evm.base) && mn.evm.arb === mn.evm.base && !mn.evm.uni && !mn.legacy.sol.length, 'Base / Arbitrum 主网收款 = Safe 0x71c0…5837；无 Unichain；无测试网 Solana 历史地址');
+  ok(/^0x71c04f3C4922d1A6FA2724428d4E2c51f5445837$/i.test(mn.evm.base.address) && mn.evm.arb.address === mn.evm.base.address && !mn.evm.uni && !mn.legacy.sol.length, 'Base / Arbitrum 主网收款 = Safe 0x71c0…5837；无 Unichain；无测试网 Solana 历史地址');
   ok(mn.dir === path.join(D, 'data', 'mainnet') && mn.pre === 'mainnet:' && mn.custody === false && mn.hot === 'FULFILL_HOT_WALLET_MAINNET', '主网数据单独存放（data/mainnet + D1 前缀），托管关闭，打赏热钱包只读主网专用变量');
   console.log('server smoke (NETWORK=mainnet)');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-main-')), port = 18951, Bs = 'http://127.0.0.1:' + port;
@@ -23,14 +23,15 @@ const node = (env, code) => JSON.parse(cp.execFileSync('node', ['-e', code], { c
   const call = async (p, b, h = {}) => { const r = await fetch(Bs + p, { method: b ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...h }, body: b ? JSON.stringify(b) : undefined }); let j = {}; try { j = await r.json(); } catch {} return { s: r.status, j }; };
   let srv = start('mainnet'), br; try { await up();
     const c = (await call('/api/config')).j; ok(c.network === 'mainnet' && c.solCluster === 'mainnet-beta' && c.solChain === 'solana:mainnet' && c.custody === false && c.solRpcBrowser === 'https://api.mainnet-beta.solana.com', '/api/config：network / cluster / chain / custody=false 给前端');
-    ok(Object.keys(c.evm.chains).sort().join() === '1,42161,56,8453' && Object.keys(c.evm.routes).sort().join() === 'bsc,eth' && c.receive === 'FPKFevoHzjPZWjWaRxwFwfNXu2LBduoGspXZSCLU81yz', '/api/config：EVM 主网链与收款路由（只含已部署 Safe 的 eth / bsc）');
+    ok(Object.keys(c.evm.chains).sort().join() === '1,42161,56,8453' && Object.keys(c.evm.routes).sort().join() === 'arb,base,bsc,eth' && c.receive === 'FPKFevoHzjPZWjWaRxwFwfNXu2LBduoGspXZSCLU81yz', '/api/config：EVM 主网链与收款路由（只含已部署 Safe 的 eth / bsc）');
     ok(c.solUsd === 150 && c.minLamports > 0, '报价：服务端价格源（此处为 mock）换算最低金额');
     let x = await call('/api/login', { email: 'new@test.dev' }); ok(x.s === 403 && x.j.code === 'custodyOff', '主网：邮箱托管登录关闭（不生成 / 保管私钥）');
     ok(!fs.existsSync(tmp + '/data/mainnet/users.json') || !JSON.stringify(JSON.parse(fs.readFileSync(tmp + '/data/mainnet/users.json'))).includes('secret'), '主网数据中没有任何私钥');
     const host = '127.0.0.1:' + port, msg = (kind, addr, nonce, cid) => `${host} wants you to sign in with your ${kind} account:\n${addr}\n\nSign in to World Tree.\n\nURI: http://${host}\nVersion: 1\n${cid ? 'Chain ID: ' + cid + '\n' : ''}Nonce: ${nonce}\nIssued At: ${new Date().toISOString()}`;
     const PK = keccak_256(new TextEncoder().encode('wt-main-evm')), EA = '0x' + Buffer.from(keccak_256(secp256k1.getPublicKey(PK, false).slice(1)).slice(-20)).toString('hex');
     let m = msg('Ethereum', EA, (await call('/api/nonce')).j.nonce, 1), mb = Buffer.from(m), h = keccak_256(Buffer.concat([Buffer.from('\x19Ethereum Signed Message:\n' + mb.length), mb])), sg = secp256k1.sign(h, PK);
-    x = await call('/api/login/wallet', { message: m, signature: '0x' + sg.toCompactHex() + (27 + sg.recovery).toString(16) }); ok(x.s === 403 && x.j.code === 'evmMainOff', '主网：EVM 登录（依赖托管 Solana 密钥代签）关闭');
+    x = await call('/api/login/wallet', { message: m, signature: '0x' + sg.toCompactHex() + (27 + sg.recovery).toString(16) }); ok(x.s === 200 && x.j.token && x.j.evm === EA && !x.j.custodial, '主网（t309）：EVM 钱包自签登录可用，非托管（服务器不生成 / 保管任何密钥）');
+    ok(!JSON.stringify(JSON.parse(fs.readFileSync(tmp + '/data/mainnet/users.json'))).includes('secret'), '主网：EVM 账户没有任何服务器托管密钥');
     const kp = nacl.sign.keyPair(), sa = b58.encode(kp.publicKey); m = msg('Solana', sa, (await call('/api/nonce')).j.nonce, 'mainnet');
     x = await call('/api/login/wallet', { message: m, signature: b58.encode(nacl.sign.detached(Buffer.from(m), kp.secretKey)) }); ok(x.s === 200 && x.j.token, '主网：Solana 自托管钱包签名登录正常');
     const tk = { authorization: 'Bearer ' + x.j.token }; x = await call('/api/airdrop', {}, tk); ok(x.s === 403 && !x.j.signature, '主网：/api/airdrop 水龙头不可用');

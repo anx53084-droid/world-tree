@@ -29,7 +29,8 @@ const MOCK_PROV = `const mkP = (ch, onUri) => { const L = {}; return { on: (e, f
     const T = JSON.parse(fs.readFileSync(D + '/public/i18n/zh-CN.json', 'utf8')), toastHas = (p, s) => p.waitForFunction(s => [...document.querySelectorAll('.toast')].some(x => x.textContent.includes(s)), s, { timeout: 15000 });
     console.log('default wallet modal (t219u)');
     { const q = await page({ ui: 'default' }); await q.evaluate(() => connectWallet('evm')); await q.waitForSelector('.wlist');
-      ok(!(await q.$('[data-tab]')) && !(await q.$('#wch')), '默认：EVM 标签整体隐藏（即使请求 EVM 也只显示 Solana），只剩一个链时不显示标签切换');
+      ok((await q.$('[data-tab=evm].on')) && (await q.$('#wch')), '默认（t309 起）：Ethereum / EVM 标签开放，请求 EVM 时直接打开 EVM 标签并可选网络');
+      await q.evaluate(() => document.querySelector('[data-tab=sol]').click()); await q.waitForSelector('[data-tab=sol].on');
       const ids = await q.$$eval('.wlist .witem', a => a.map(x => x.dataset.w || (x.textContent.includes('Phantom') ? 'phantom' : x.textContent.trim().slice(0, 12))));
       ok(!ids.some(x => /solflare|backpack|okx/i.test(x)), '默认：隐藏 Solflare / Backpack / OKX Wallet');
       ok(ids[0] === 'phantom' && ids[ids.length - 1] === 'walletconnect' && !ids.includes('dynamic'), '默认顺序：Phantom → (MWA) → WalletConnect，邮箱 / Google 隐藏（t220u）：' + ids.join(','));

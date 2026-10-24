@@ -4,7 +4,7 @@ const needW3 = () => W3 ? Promise.resolve(W3) : (needW3.p ||= new Promise((res, 
 const TREE = 'pqaQKFsNjfJKewkwEyJaNYzoKxu3sh1hmNvAGKfz5Yb', MEMO = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr', TAG = 'WTREE1|';
 const RPC_READ = '/api/rpc'; // 读层：同源中继 → devnet RPC。换索引器（Helius/自建 Geyser）时只需改 loadWishes()
 let RPC_WRITE = 'https://api.devnet.solana.com'; // 由 /api/config 的 solRpcBrowser 覆盖（NETWORK=mainnet → 主网）
-const EXPLORER = s => `https://explorer.solana.com/tx/${s}${S.cfg?.network === 'mainnet' ? '' : '?cluster=devnet'}`;
+const EXPLORER = s => { const m = /^evm:(\d+):(0x[0-9a-f]{64})$/i.exec(s || ''); if (m) return `${(S.cfg?.evm?.chains?.[m[1]]?.exp || 'https://etherscan.io')}/tx/${m[2]}`; return `https://explorer.solana.com/tx/${s}${S.cfg?.network === 'mainnet' ? '' : '?cluster=devnet'}`; }; // t309：EVM 心愿 id = evm:<chainId>:<txHash>
 const CATS = { 经典: 45, 风景: 200, 人物: 330, 动物: 155, 卡通: 28, 物质类: 270, 光栖: 285 }; // 分类 → 色相
 const CAT_KEY = { 经典: 'classic', 风景: 'scenery', 人物: 'people', 动物: 'animals', 卡通: 'cartoon', 物质类: 'material', 光栖: 'guangqi' }; // 链上分类保持中文原值，仅显示时翻译
 const GATE_MAKE = false; // 门卡制作入口隐藏（将作为树洞特权开放）；代码保留，已有门卡照常显示
@@ -158,8 +158,12 @@ async function loadWishes(force) {
     try { localStorage.wt_txcache = JSON.stringify(txCache); localStorage.wt_sigs = JSON.stringify(sigs.filter(s => !s.err).map(s => s.signature)); } catch {}
     S.txs = sigs.map(s => txCache[s.signature]).filter(Boolean); S.offline = false; S.hadReal = true;
   } catch (e) { S.offlineMsg = e.message; if (QS.get('sample') === '1' || !S.hadReal) { S.offline = true; S.txs = SAMPLE; } } // 读取失败：一旦拿到过真实数据（含缓存/空列表）就保持不变，避免示例↔真实来回切换造成闪烁
-  S.loadedAt = Date.now(); aggregate();
+  await loadEvmWishes(); S.loadedAt = Date.now(); aggregate();
 }
+// t309：EVM 链上付款的心愿（用户钱包自签 + 自付到该链收款地址，服务器核验后公开列出）；审核证明在前端同样校验
+async function loadEvmWishes() { if (QS.get('sample') === '1') return; try { const j = await (await fetch(apiUrl('/api/evm/wishes'))).json(), out = [];
+  for (const w of j.wishes || []) if (typeof w.memo === 'string') out.push({ sig: w.sig, author: w.author, memo: w.memo, time: w.time, paid: S.cfg.solUsd ? Math.round((w.usd || 0) / S.cfg.solUsd * 1e9) : 0, devPaid: 0, evm: { chainId: w.chainId, tx: w.tx, usd: w.usd }, verified: await verifyAtt(w.memo) });
+  S.evmTxs = out; } catch { S.evmTxs = S.evmTxs || []; } }
 const clientBlocked = t => S.words && Object.values(S.words).flat().some(w => t.toLowerCase().includes(w.toLowerCase())); // 前端二次过滤：链上无法删除，但前端不展示
 // ---------- 钓鱼 / 短链黑名单：常驻小表（短链+地址+签名）+ 按需懒加载完整域名表；服务器端为权威 ----------
 S.block = WTBlock.make(null); let blkCore = null, blkFull = null, blkFullP = null;
@@ -180,7 +184,7 @@ const fpFix = t => { const d = S.fpDone?.[t.sig]; if (!d || d.payer !== t.author
 async function loadFpDone() { try { S.fpDone = await (await fetch(apiUrl('/api/fpay/done'))).json(); aggregate(); softRefresh(); } catch {} }
 const fpBy = w => w.fpaid ? `<p class="muted fp-by">🤝 ${E('fp.byLine', { name: w.by || short(w.payer || '') })}</p>` : '';
 function aggregate() {
-  const all = [...S.txs, ...S.pending.filter(p => !S.txs.some(t => t.sig === p.sig))].map(fpFix).sort((a, b) => (a.time || 9e9) - (b.time || 9e9));
+  const all = [...S.txs, ...(S.evmTxs || []).filter(e => !S.txs.some(t => t.sig === e.sig)), ...S.pending.filter(p => !S.txs.some(t => t.sig === p.sig) && !(S.evmTxs || []).some(t => t.sig === p.sig))].map(fpFix).sort((a, b) => (a.time || 9e9) - (b.time || 9e9));
   const W = {}, likes = [], bless = []; let hidden = 0;
   for (const t of all) { const f = t.memo.split('|');
     if (f[1] === 'W') { if (!t.verified || clientBlocked(f[6]) || blkHit(t.sig, t.author, f[6])) { hidden++; continue; } if (!blkFull && WTBlock.maybeHasHost(f[6])) blkNeedFull = true;
@@ -392,16 +396,20 @@ function walletMissing(w, kind) { // 未检测到：安装链接 + 在钱包内�
     <div class="row wmiss">${w.site ? `<a class="btn primary" href="${esc(w.site)}" target=_blank rel=noopener>⬇️ ${E('wal.install')}</a>` : ''}${w.deep ? `<a class=btn href="${esc(w.deep())}">📱 ${E('wal.openIn')}</a>` : ''}</div>
     <div class=row style="justify-content:space-between;margin-top:12px"><button type=button id=wback>← ${E('wal.back')}</button><button data-close>${E('common.cancel')}</button></div>`);
   $('#wback').onclick = () => connectWallet(kind); }
+// t309：默认网络——上次选择（仍受支持时），否则低手续费的 Base
+const defChain = () => { const C = evmChains(), v = localStorage.wt_chain; if (v && C[v]) return v; return Object.keys(C).find(id => C[id].key === 'base') || Object.keys(C)[0]; };
+const evmOnlyBrowser = () => !!window.ethereum?.request && !window.solana && !window.phantom && !window.solflare && !window.backpack; // imKey / imToken 等仅以太坊的内置浏览器
 function connectWallet(tab) { const UI = WTW.ui; // 钱包入口开关（wallets.js WTW.ui）：隐藏的入口代码保留；已登录的 EVM 会话不受影响
-  tab = UI.evmTab ? (tab || localStorage.wt_wtab || 'sol') : 'sol'; const ch = localStorage.wt_chain || '84532', C = evmChains(), np = WTW.noProvider(tab === 'evm' ? 'evm' : 'sol');
+  tab = UI.evmTab ? (tab || (evmOnlyBrowser() ? 'evm' : localStorage.wt_wtab || 'sol')) : 'sol'; const ch = defChain(), C = evmChains(), np = WTW.noProvider(tab === 'evm' ? 'evm' : 'sol');
   modal(`<h3 style="margin-top:0">${E('wal.title')}</h3>${UI.evmTab ? `<div class="row tabs"><button type=button data-tab=sol class="${tab === 'sol' ? 'on' : ''}">◎ Solana</button><button type=button data-tab=evm class="${tab === 'evm' ? 'on' : ''}">⬡ ${E('wal.evm')}</button></div>` : ''}
-    ${np && UI.evmTab ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${!UI.evmTab && tab === 'sol' && window.ethereum && !window.solana && !window.phantom ? `<p class=wmob role=note>⚠️ ${E('wal.solOnly')}</p>` : ''}${tab === 'sol' ? `${UI.evmTab ? `<p class=muted>${E('wal.solHint')}</p>` : ''}<div class=wlist>${(() => { const L = WTW.solList(), last = Math.max(...L.map((w, i) => w.id === 'phantom' || w.mwa ? i : -1)); return L.map((w, i) => (np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')) + (i === last ? devHint() : '')).join(''); })()}</div>`
+    ${np && UI.mobHint ? `<p class=wmob role=note>📱 ${E('wal.mobNoProv')}</p>` : ''}${tab === 'sol' && evmOnlyBrowser() ? `<p class=wmob role=note>💡 ${E('wal.evmHere')} <button type=button class=link data-tab=evm>${E('wal.evmGo')}</button></p>` : ''}${tab === 'sol' ? `${UI.solHint ? `<p class=muted>${E('wal.solHint')}</p>` : ''}<div class=wlist>${(() => { const L = WTW.solList(), last = Math.max(...L.map((w, i) => w.id === 'phantom' || w.mwa ? i : -1)); return L.map((w, i) => (np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'sol')) + (i === last ? devHint() : '')).join(''); })()}</div>`
     : `<label>${E('wal.chain')} <select id=wch>${Object.entries(C).map(([id, c]) => `<option value=${id} ${id === ch ? 'selected' : ''}>${esc(t('chain.' + (c.key || EVM_KEYS[id])))} · ${esc(c.name)}</option>`).join('')}</select></label>
-      <p class=muted>${E('wal.evmHint')} ${S.cfg.evm?.pay ? '' : E('wal.evmPayOff')}</p><div class=wlist>${WTW.evmList().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'evm')).join('')}</div>`}
+      <p class=muted>${E('wal.evmHint')} ${S.cfg.evm?.pay ? '' : E('wal.evmPayOff')}</p><p class="muted evlow">💡 ${E('wish.evmLowFee')}</p><div class=wlist>${WTW.evmList().map(w => np && w.deep && !w.installed ? walletDeep(w) : walletItem(w, 'evm')).join('')}</div>`}
     <p class=muted style="font-size:12px">🔐 ${E('wal.nonCustody')}</p><div class=row style="justify-content:flex-end"><button data-close>${E('common.cancel')}</button></div>`);
   document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { localStorage.wt_wtab = b.dataset.tab; connectWallet(b.dataset.tab); });
   $('#wch')?.addEventListener('change', e => localStorage.wt_chain = e.target.value);
   document.querySelectorAll('.witem').forEach(b => b.onclick = () => (b.dataset.k === 'sol' ? connectSol : connectEvm)(b.dataset.w));
+  if (tab === 'evm' && !WTW.hasEvmInj?.()) WTW.waitEvm?.(1500).then(ok => { if (ok && $('#wch')) connectWallet('evm'); }); // 内置浏览器晚注入：检测到后刷新列表
 }
 const connectPhantom = () => connectWallet('sol');
 async function connectSol(id, given) { const w = WTW.solWallets().find(x => x.id === id); if (!w) return;
@@ -459,7 +467,7 @@ async function evmProvider() { if (S.evmProv) return S.evmProv; const w = WTW.ev
 async function connectEvm(id, pick = true) { S.evmBusy = true; try { return await connectEvm0(id, pick); } finally { S.evmBusy = false; } }
 async function connectEvm0(id, pick) { const w = WTW.evmWallets().find(x => x.id === id); if (!w) return;
   if (!w.installed) return walletMissing(w, 'evm');
-  const chain = $('#wch')?.value || localStorage.wt_chain || '84532', p = w.provider, wc = id === 'walletconnect';
+  const chain = $('#wch')?.value || defChain(), p = w.provider, wc = id === 'walletconnect';
   if (wc) WTW.onWcUri = uri => showWcQr(uri);
   if (id === 'dynamic') { try { await dynLogin('evm'); } catch (e) { if (e?.code === 'cancel') return; closeModal(); return toast(esc(e.code === 'dynOff' ? t('wal.dynOff') : e.code === 'dynEvmOff' ? t('wal.dynEvmOff') : e.code === 'dynNoEvm' ? t('wal.dynNoEvm') : walErr(e)), 'err'); }
     const nets = WTDYN.evmNetworks?.() || []; if (nets.length && !nets.includes(+chain)) toast(esc(t('wal.dynEvmNet', { chain: evmChains()[chain]?.name || chain })), ''); } // 后台未启用所选测试网：登录照常（签名与网络无关），付款前需启用
@@ -1498,11 +1506,38 @@ function myWish() { // 我的星愿：已有心愿 + 制作我的心愿卡
   <section class="card motif"><h3>${E('mine.make')}</h3>${chips()}<button id=mkbtn class="primary breathe"${MK() ? ' hidden' : ''}>✨ ${E('mine.make')}</button><div id=maker${MK() ? '' : ' hidden'}>${wishPanel()}<div id=gbmode hidden></div></div></section>`; }
 const evmMinByRoute = key => { const r = evmRoutes()[key], p = S.cfg.evm?.usd?.[r?.coin] || 0; return p ? Math.ceil((S.cfg.minUsd || 1) / p * 1.02 * 1e5) / 1e5 : 0; };
 const evmMin = id => { const c = evmChains()[id]; return evmMinByRoute(c?.key || id); };
-function evmPayHtml() { if (S.kind !== 'evm' || !S.cfg.evm?.pay) return ''; const R = evmRoutes(), keys = Object.keys(R); if (!keys.length) return '';
-  const ch = localStorage.wt_pay || localStorage.wt_chain || 'base', sel = R[ch] ? ch : keys[0], r0 = R[sel];
-  return `<div class="card evpay"><label>${E('wish.payVia')} <select id=pv><option value=evm>⬡ ${E('wish.payEvm')}</option><option value=sol>◎ ${E('wish.paySol')}</option></select></label>
-  <div id=evbox class=row><label>${E('wish.evmChain')} <select id=evc>${keys.map(k => { const r = R[k]; return `<option value=${esc(k)} ${k === sel ? 'selected' : ''}>${esc(t('chain.' + r.key))} · ${esc(r.name)}</option>`; }).join('')}</select></label>
-  <label><span id=evaL>${E('wish.evmAmt', { sym: r0.sym })}</span> <input id=eva type=number step=0.00001 min=0 value="${evmMinByRoute(sel)}" style="width:120px"></label><span class="muted" id=evmin>${E('wish.evmMin', { min: evmMinByRoute(sel), sym: r0.sym })}</span></div></div>`; }
+const EVM_ORDER = { base: 0, arb: 1, bsc: 2, eth: 9 }; // t309：低手续费链在前；以太坊主网放最后并标注手续费较高
+function evmPayHtml() { if (S.kind !== 'evm' || !S.cfg.evm?.pay) return ''; const R = evmRoutes(), keys = Object.keys(R).sort((a, b) => (EVM_ORDER[a] ?? 5) - (EVM_ORDER[b] ?? 5)); if (!keys.length) return '';
+  const ch = localStorage.wt_pay || 'base', sel = R[ch] ? ch : keys[0], r0 = R[sel], nc = !S.cfg.custody; // nc：非托管（主网）——只能用自己的 EVM 钱包付款
+  return `<div class="card evpay"><label${nc ? ' hidden' : ''}>${E('wish.payVia')} <select id=pv><option value=evm>⬡ ${E('wish.payEvm')}</option>${nc ? '' : `<option value=sol>◎ ${E('wish.paySol')}</option>`}</select></label>
+  <div id=evbox class=row><label>${E('wish.evmChain')} <select id=evc>${keys.map(k => { const r = R[k]; return `<option value=${esc(k)} ${k === sel ? 'selected' : ''}>${esc(t('chain.' + r.key))} · ${esc(r.name)}${r.key === 'eth' ? ' · ' + esc(t('wish.evmHighFee')) : ''}</option>`; }).join('')}</select></label>
+  <label><span id=evaL>${E('wish.evmAmt', { sym: r0.sym })}</span> <input id=eva type=number step=0.00001 min=0 value="${evmMinByRoute(sel)}" style="width:120px"></label><span class="muted" id=evmin>${E('wish.evmMin', { min: evmMinByRoute(sel), sym: r0.sym })}</span>
+  <p class="muted evfee" id=evfee role=status>⏳ ${E('wish.feeLoading')}</p><p class="muted evlow" id=evlow>💡 ${E('wish.evmLowFee')}</p><p class="muted evrule">${E('wish.payRule')}</p></div></div>`; }
+// t309：付款前的网络手续费估算（只读公共 RPC：eth_estimateGas × eth_gasPrice；OP Stack（Base）再加 L1 数据费上限）。手续费由用户钱包支付，不计入 1 美元。
+async function evmFeeEst(key) { const r = evmRoutes()[key], c = evmChains()[r?.chainId] || {}, rpcU = c.rpc; if (!rpcU) throw new Error('no rpc');
+  const call = async (method, params) => { const j = await (await fetch(rpcU, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) })).json(); if (j.error) throw new Error(j.error.message); return j.result; };
+  const from = S.evmAddr || '0x0000000000000000000000000000000000000001', wei = WTW.toWei(evmMinByRoute(key) || 0);
+  const [gp, gas] = await Promise.all([call('eth_gasPrice', []), call('eth_estimateGas', [{ from, to: r.receive, value: '0x' + wei.toString(16) }]).catch(() => '0x' + (r.key === 'arb' ? 400000 : 30000).toString(16))]);
+  let fee = BigInt(gp) * BigInt(gas);
+  if (r.key === 'base') try { fee += BigInt(await call('eth_call', [{ to: '0x420000000000000000000000000000000000000F', data: '0xf1c7a58b' + (150).toString(16).padStart(64, '0') }, 'latest'])); } catch {}
+  fee = fee * 12n / 10n; // 20% 余量：估算到发送之间 gas 价格可能变化
+  const amt = Number(fee) / 1e18, usd = amt * (S.cfg.evm?.usd?.[r.coin] || 0); return { amt, usd, sym: r.sym }; }
+const fmtAmt = x => x >= 0.01 ? x.toFixed(4) : x.toPrecision(2);
+async function paintEvmFee() { const el = $('#evfee'), key = $('#evc')?.value; if (!el || !key) return; el.textContent = '⏳ ' + t('wish.feeLoading');
+  try { const f = await evmFeeEst(key); if ($('#evc')?.value !== key) return; el.textContent = '⛽ ' + t('wish.evmFee', { fee: fmtAmt(f.amt), sym: f.sym, usd: f.usd >= 0.01 ? f.usd.toFixed(2) : '<0.01' }); el.classList.toggle('warn', f.usd > 1); }
+  catch { if ($('#evc')?.value === key) el.textContent = '⛽ ' + t('wish.feeNA'); } }
+const evmLowSync = () => { const k = $('#evc')?.value; if ($('#evlow')) $('#evlow').textContent = '💡 ' + t(k === 'eth' ? 'wish.evmEthNote' : 'wish.evmLowFee'); };
+// t309：非托管 EVM 心愿——① 钱包签名心愿（免费）② 用户自付到该链收款地址 ③ 服务器核验（签名、发送者、收款地址、金额 ≥1 美元、确认数）后记录
+const evmWishMsg = (addr, chainId, memoHash, issuedAt) => `Guangqi World Tree wish\nAddress: ${String(addr).toLowerCase()}\nChain ID: ${+chainId}\nWish SHA-256: ${memoHash}\nIssued At: ${issuedAt}\n\nSigning is free and does not move funds.`;
+const sha256hexStr = async x => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(x)))].map(b => b.toString(16).padStart(2, '0')).join('');
+async function evmWishSubmit(memo, r, amount, ok) { const tt = toast(esc(t('wish.evmSignWish')));
+  try { const p = await evmProvider(), issuedAt = new Date().toISOString(), msg = evmWishMsg(S.evmAddr, r.chainId, await sha256hexStr(memo), issuedAt);
+    const wsig = await p.request({ method: 'personal_sign', params: [WTW.hexOf(msg), S.evmAddr] });
+    const evm = await evmPay(r.key, amount); tt.update(esc(t('wish.evmVerifying')));
+    let res; for (let i = 0; i < 40; i++) { try { res = await api('/api/evm/wish', { memo, evm, wsig, issuedAt, ...ok }); break; } catch (e) { if (e?.code !== 'evmPending' && e?.code !== 'priceStale' || i === 39) throw e; await new Promise(z => setTimeout(z, 4000)); } }
+    S.pending.push({ sig: res.signature, memo, author: S.pubkey, time: Math.floor(Date.now() / 1000), paid: 0, pending: true, verified: true }); aggregate(); softRefresh(); loadEvmWishes().then(() => { aggregate(); softRefresh(); });
+    tt.update(`✅ ${esc(t('tx.confirmed', { label: t('label.wish') }))} <a target=_blank href="${EXPLORER(res.signature)}">${esc(t('tx.viewTx'))}</a>`, 'ok'); return res.signature; }
+  catch (e) { tt.update('❌ ' + esc(e?.message || e), 'err'); return null; } }
 async function evmPay(payKey, amount) { // EVM：全额转入该链单一收款地址（含 Unichain Sepolia）
   const p = await evmProvider(), r = evmRoutes()[payKey]; if (!r?.receive) throw new Error('no receive address');
   const chainId = r.chainId, c = evmChains()[chainId] || r, wei = WTW.toWei(amount), from = S.evmAddr;
@@ -1606,7 +1641,7 @@ function wishPanel() {
   <textarea id=wt maxlength=140 dir=auto placeholder="${E('wish.ph')}"></textarea><div class=muted id=wc>0/140</div>
   <div class=row style="margin:8px 0"><label>${E('wish.amount')} <input id=amt type=number step=0.0001 min="${min / 1e9}" value="${(min / 1e9).toFixed(4)}"></label>
   ${evmPayHtml()}
-  <span class=muted id=solmin>${E('wish.min', { min: sol(min), usd: S.cfg.solUsd, src: t(S.cfg.priceSource === 'fallback' ? 'wish.srcFallback' : 'wish.srcLive') })}</span></div>
+  <span class=muted id=solmin>${E('wish.min', { min: sol(min), usd: S.cfg.solUsd, src: t(S.cfg.priceSource === 'fallback' ? 'wish.srcFallback' : 'wish.srcLive') })}</span><span class=muted id=solfee>⛽ ${E('wish.solFee', { usd: S.cfg.solUsd ? (0.00001 * S.cfg.solUsd).toFixed(3) : '<0.01' })}</span></div>
   <p class=muted id=split></p>
   <fieldset class=pay-choice><legend>${E('pay.how')}</legend>
   <label class=pay-opt><input type=radio name=paymode value=self checked> <span><b>${E('pay.self')}</b><small>${E('pay.selfHint')}</small></span></label>
@@ -2081,9 +2116,9 @@ async function route() {
       const l = Math.round(+$('#amt').value * 1e9) || 0; $('#split').textContent = t('wish.split', { amt: sol(l), dev: sol(l), tre: sol(l) }); };
     fetch('/api/config').then(r => r.json()).then(c => { Object.assign(S.cfg, c); if (typeof paintRecv === 'function') paintRecv(); const a = $('#amt'); if (a) { a.min = c.minLamports / 1e9; if (+a.value * 1e9 < c.minLamports) a.value = (Math.ceil(c.minLamports / 1e5) / 1e4).toFixed(4); upd(); } }).catch(() => {});
     ta.addEventListener('input', () => $('#wc').textContent = [...ta.value].length + '/' + ta.maxLength); ['#ag', '#ag2', '#amt'].forEach(s => $(s)?.addEventListener('input', upd)); upd();
-    $('#evc')?.addEventListener('change', e => { const key = e.target.value, r = evmRoutes()[key]; paintRecv(); localStorage.wt_pay = key; localStorage.wt_chain = String(r.chainId); $('#eva').value = evmMinByRoute(key); $('#evaL').textContent = t('wish.evmAmt', { sym: r.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMinByRoute(key), sym: r.sym }); });
+    $('#evc')?.addEventListener('change', e => { const key = e.target.value, r = evmRoutes()[key]; paintRecv(); evmLowSync(); paintEvmFee(); localStorage.wt_pay = key; localStorage.wt_chain = String(r.chainId); $('#eva').value = evmMinByRoute(key); $('#evaL').textContent = t('wish.evmAmt', { sym: r.sym }); $('#evmin').textContent = t('wish.evmMin', { min: evmMinByRoute(key), sym: r.sym }); });
     const paintRecv = () => { const ev = $('#pv')?.value === 'evm', R = evmRoutes(), r = ev && R[$('#evc')?.value]; if ($('#recvaddr')) $('#recvaddr').textContent = (r ? r.receive : S.cfg.receive) || ''; }; // 当前支付链的收款地址（Solana 金库 / 各链 Safe）
-    const pvSync = () => { paintRecv(); const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync();
+    const pvSync = () => { paintRecv(); const ev = $('#pv')?.value === 'evm'; if ($('#evbox')) $('#evbox').hidden = !ev; const al = $('#amt')?.closest('label'); if (al && $('#pv')) { al.hidden = ev; for (const id of ['#solmin', '#split', '#solfee']) if ($(id)) $(id).hidden = ev; } }; $('#pv')?.addEventListener('change', pvSync); pvSync(); if ($('#evc')) { evmLowSync(); paintEvmFee(); }
     $('#ws').addEventListener('click', async () => { const txt = ($('#ckind')?.value === 'biz' ? $('#bzname')?.value || '' : ta.value).trim(), lam = Math.round(+$('#amt').value * 1e9), cat = realCat($('#wc2').value); if ($('#wc2').value === CUSTOM && !up.C) { toast(esc(t('wish.upCover')), 'err'); $('#upC')?.focus(); return; }
       const shippingNote = ($('#ckind')?.value || 'wish') === 'goods' ? ($('#ship')?.value || '').trim() : '';
       const payMode0 = document.querySelector('input[name=paymode]:checked')?.value || 'self';
@@ -2151,8 +2186,9 @@ async function route() {
       if (viaEvm) { const R = evmRoutes(), r = R[ch] || Object.values(R)[0]; if (!r) { $('#ws').disabled = false; return toast('❌ no EVM route', 'err'); }
         const usd = +ea * (S.cfg.evm.usd[r.coin] || 0); if (!(+ea >= evmMinByRoute(r.key) / 1.02)) { $('#ws').disabled = false; return toast(esc(t('wish.evmMin', { min: evmMinByRoute(r.key), sym: r.sym })), 'err'); }
         const ok = await confirmLarge(usd, ea + ' ' + r.sym); if (!ok) { $('#ws').disabled = false; return; }
-        try { extra.evm = await evmPay(r.key, ea); } catch (e) { $('#ws').disabled = false; return toast('❌ ' + esc(e.message || e), 'err'); }
-        sig = await submit(memo, 'wish', 0, { ...extra, ...ok }); }
+        if (!S.cfg.custody) sig = await evmWishSubmit(memo, r, ea, ok); // 主网：非托管——用户自签 + 自付，服务器只核验
+        else { try { extra.evm = await evmPay(r.key, ea); } catch (e) { $('#ws').disabled = false; return toast('❌ ' + esc(e.message || e), 'err'); }
+        sig = await submit(memo, 'wish', 0, { ...extra, ...ok }); } }
       else { const ok = await confirmLarge(lam / 1e9 * (S.cfg.solUsd || 0), sol(lam)); if (!ok) { $('#ws').disabled = false; return; } sig = await submit(memo, 'wish', lam, ok); }
       if (sig) {
         // 链下登记：记账 +（物质类）收货/联系备注；备注永不入链

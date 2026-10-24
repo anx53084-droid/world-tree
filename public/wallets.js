@@ -66,8 +66,9 @@
     out.push({ id: 'dynamic', name: 'Dynamic', installed: true, dyn: true, adapter: dynAdapter }); // 邮箱 / Google 登录
     out.push({ id: 'walletconnect', name: 'WalletConnect', installed: true, wc: true, adapter: wcAdapter }); // 兜底项
     return out; }
+  // t309：evmTab 开放（非托管 EVM 登录）；Solana 标签保持 t219 的精简（solHint / mobHint 默认不显示）
   // 钱包弹窗显示开关：隐藏的只是入口（代码与已有会话保留）。恢复：evmTab: true / hideSol: []；也可在页面里预先设置 window.WT_WALLET_UI 覆盖
-  const ui = { evmTab: false, email: false, hideSol: ['solflare', 'backpack', 'okx'], ...(window.WT_WALLET_UI || {}) };
+  const ui = { evmTab: true, email: false, hideSol: ['solflare', 'backpack', 'okx'], ...(window.WT_WALLET_UI || {}) };
   const RANK = { phantom: 0, mwa: 1, dynamic: 2, walletconnect: 4 }; // 其余检测到的 Wallet Standard 钱包排在 WalletConnect 之前
   const solList = () => solWallets().filter(w => (ui.email || !w.dyn) && !ui.hideSol.includes(w.id) && !ui.hideSol.some(h => w.id.startsWith('std:') && w.name.toLowerCase().includes(h))).sort((a, b) => (RANK[a.id] ?? 3) - (RANK[b.id] ?? 3));
   // ---- EVM：EIP-6963 发现 + 注入式回退 ----
@@ -113,6 +114,11 @@
     let c = await chainOf(p); if (LOGIN_CHAINS.includes(c) && (!want || c === +want)) return c;
     if (want) { try { await switchChain(p, want, cfg); } catch (e) { if (e?.code === 4001) throw e; } c = await chainOf(p); }
     if (!LOGIN_CHAINS.includes(c)) throw Object.assign(new Error('unsupported chain ' + c), { code: 'chainUnsupported' }); return c; }
+  // t309：imKey / imToken 等内置浏览器可能在页面脚本之后才注入 window.ethereum / 响应 EIP-6963：短暂等待（默认 ≤1.5 秒）
+  const hasEvmInj = () => evm.size > 0 || !!window.ethereum?.request;
+  async function waitEvm(ms = 1500) { if (hasEvmInj()) return true; const t0 = Date.now(); let done = false; const on = () => { done = true; };
+    addEventListener('ethereum#initialized', on, { once: true });
+    while (!done && !hasEvmInj() && Date.now() - t0 < ms) { ask(); await new Promise(r => setTimeout(r, 150)); } return hasEvmInj(); }
   const evmList = () => evmWallets().filter(w => ui.email || !w.dyn);
-  window.WTW = { cfg: {}, cfgDone: () => cfgDone(), ui, solList, evmList, vsrc, needVendor, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
+  window.WTW = { cfg: {}, waitEvm, hasEvmInj, cfgDone: () => cfgDone(), ui, solList, evmList, vsrc, needVendor, initMwa, isAndroid, noProvider, b58dec, LOGIN_CHAINS, chainOf, readyChain, solWallets, evmWallets, mobile, b58, hexOf, toWei, switchChain, waitReceipt };
 })();
