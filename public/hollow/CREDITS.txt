@@ -1,0 +1,2 @@
+npc.glb — base character "Animated Woman" by Quaternius (https://poly.pizza/m/nIItLV9nxS), CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/).
+Recoloured, trimmed to walk/idle/breath/wave/give clips and meshopt-compressed by Guangqi. Hanfu robe, sleeves, hair bun, silver pins and hand lantern are procedural (self-built) in hollow.js.

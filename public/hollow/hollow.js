@@ -295,17 +295,62 @@ const npc = (() => { const g = new THREE.Group(), tx = tex('hollow/npc.webp'), b
   const lab = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false, fog: false })); lab.renderOrder = 7; lab.scale.set(1.5, 0.28, 1); lab.position.y = 2.05; g.add(lab);
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.62, 40), new THREE.MeshBasicMaterial({ color: 0xffd28a, transparent: true, opacity: 0.6, side: THREE.DoubleSide, toneMapped: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; g.add(ring);
   g.visible = false; corr.add(g);
-  const st = { g, body, glow, lab, x: 1.6, s: 9, tx: 1.6, ts: 9, wait: 1, near: false, dist: 99,
+  const st = { g, body, glow, lab, x: 1.6, s: 9, tx: 1.6, ts: 9, wait: 1, near: false, dist: 99, model: null, mode: 'sprite', act: 'idle', yaw: 0, busy: 0,
     paint() { lab.material.map?.dispose(); lab.material.map = canvasTex(512, 96, (c, W, H) => { c.fillStyle = 'rgba(12,10,32,.72)'; roundRect(c, 4, 4, W - 8, H - 8, 40); c.fill(); c.strokeStyle = 'rgba(246,211,138,.8)'; c.lineWidth = 3; c.stroke(); c.fillStyle = '#ffe9b5'; c.textAlign = 'center'; fitText(c, t('hollow.npcHint'), W - 50, 40, 'italic 500 ', 'Georgia, serif'); c.fillText(t('hollow.npcHint'), W / 2, 62); }); lab.material.needsUpdate = true; },
+    play(name, once) { const M = st.model; if (!M) return; const a = M.acts[name]; if (!a || st.act === name && !once) return; const prev = M.acts[st.act];
+      a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); a.clampWhenFinished = !!once; a.play(); if (prev && prev !== a) a.crossFadeFrom(prev, 0.35, true); st.act = name; if (once) st.busy = a.getClip().duration; },
+    greet() { st.play('wave', true); }, give() { st.play('give', true); },
     upd(el, dt) { const on = S.mode === 'corr' && S.door === 'first'; g.visible = on; lab.visible = !S.releasing; if (!on) { st.near = false; return; }
-      st.dist = Math.hypot(P.x - st.x, P.s - st.s); st.near = st.dist < 3.2;
-      if (st.dist < 4.5 || S.releasing) { /* 靠近时停下、面向玩家 */ body.scale.x = Math.abs(body.scale.x); }
+      st.dist = Math.hypot(P.x - st.x, P.s - st.s); const wasNear = st.near; st.near = st.dist < 3.2; let moving = false, face = null;
+      if (st.busy > 0) st.busy -= dt;
+      if (st.dist < 4.5 || S.releasing) { body.scale.x = Math.abs(body.scale.x); face = Math.atan2(P.x - st.x, -(P.s - st.s)); if (st.near && !wasNear && st.busy <= 0) st.greet(); }
       else if ((st.wait -= dt) <= 0) { const dx = st.tx - st.x, ds = st.ts - st.s, d = Math.hypot(dx, ds);
         if (d < 0.1) { st.wait = 1.5 + Math.random() * 3; st.tx = -4 + Math.random() * 8; st.ts = 6 + Math.random() * 12; }
-        else { const v = Math.min(d, 0.75 * dt); st.x += dx / d * v; st.s += ds / d * v; const sx = Math.abs(body.scale.x); body.scale.x = dx >= 0 ? sx : -sx; glow.position.x = dx >= 0 ? -0.3 : 0.3; } }
-      g.position.set(st.x, Math.sin(el * 1.3) * 0.05, -st.s); glow.material.opacity = 0.75 + Math.sin(el * 3.1) * 0.15; } };
+        else { face = Math.atan2(dx, -ds); const turn = st.model ? Math.abs(((face - st.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) : 0; const v = Math.min(d, 0.75 * dt * (turn > 0.6 ? 0.2 : 1)); st.x += dx / d * v; st.s += ds / d * v; moving = true; const sx = Math.abs(body.scale.x); body.scale.x = dx >= 0 ? sx : -sx; glow.position.x = dx >= 0 ? -0.3 : 0.3; } }
+      if (st.model) { const M = st.model; if (face != null) { let dy = ((face - st.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI; st.yaw += dy * Math.min(1, dt * 5); }
+        M.root.rotation.y = st.yaw; if (st.busy <= 0) st.play(moving ? 'walk' : 'breath'); M.mixer.update(dt); if (M.hb) { const v = M.hb.getWorldPosition(new THREE.Vector3()); M.root.worldToLocal(v); M.robe.position.set(v.x - M.h0.x, Math.min(0, v.y - M.h0.y), v.z - M.h0.z); } M.robe.rotation.x = moving ? 0.06 : 0; M.robe.scale.set(1 + Math.sin(el * 2.1) * 0.02, 1, 1 + Math.cos(el * 1.7) * 0.02);
+        M.lan.rotation.z = Math.sin(el * 2.3) * 0.12; if (M.pl) M.pl.intensity = 0.8 + Math.sin(el * 3.1) * 0.15;
+        g.position.set(st.x, 0, -st.s); } else g.position.set(st.x, Math.sin(el * 1.3) * 0.05, -st.s);
+      glow.material.opacity = 0.75 + Math.sin(el * 3.1) * 0.15; } };
+  // t290：真 3D 骨骼角色（CC0 Quaternius 基础角色 + 自建汉服/发髻/提灯），失败则保留精灵兜底
+  if (new URLSearchParams(location.search).get('npc') !== 'sprite') import('three/addons/loaders/GLTFLoader.js').then(async ({ GLTFLoader }) => { const { MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js');
+    const gl = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('hollow/npc.glb'); const root = gl.scene; root.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(root), sc = 1.68 / (bb.max.y - bb.min.y); root.scale.setScalar(sc); root.position.y = -bb.min.y * sc; const wrap = new THREE.Group(); wrap.add(root); g.add(wrap); wrap.updateMatrixWorld(true);
+    const bone = n => { let o = null; root.traverse(c => { if (!o && c.isBone && c.name.replace(/[^A-Za-z]/g, '') === n.replace(/[^A-Za-z]/g, '')) o = c; }); return o; };
+    root.traverse(c => { if (c.isMesh) { c.frustumCulled = false; c.castShadow = false; } });
+    const silk = new THREE.MeshStandardMaterial({ color: 0xa9c7ee, roughness: 0.7, side: THREE.DoubleSide }), silk2 = new THREE.MeshStandardMaterial({ color: 0x8fb6e6, roughness: 0.55, side: THREE.DoubleSide }), hairM = new THREE.MeshStandardMaterial({ color: 0x0b0b14, roughness: 0.5 }), blueM = new THREE.MeshStandardMaterial({ color: 0x3f7fd8, roughness: 0.45 }), silver = new THREE.MeshStandardMaterial({ color: 0xdfe6f2, metalness: 0.9, roughness: 0.25 });
+    const att = (b, obj, x, y, z) => { if (!b) return obj; obj.position.set(x, y, z); wrap.add(obj); obj.updateMatrixWorld(true); b.attach(obj); return obj; };
+    const wp = n => { const b = bone(n); return b ? b.getWorldPosition(new THREE.Vector3()).sub(wrap.getWorldPosition(new THREE.Vector3())) : new THREE.Vector3(0, 1, 0); };
+    const hip = wp('Hips'), head = wp('Head'), wl = wp('Wrist.L'), wr = wp('Wrist.R'), la = wp('LowerArm.L'), ra = wp('LowerArm.R');
+    // 及地长裙（随髋部）
+    const robeG = new THREE.LatheGeometry([[0.13, 0], [0.2, -0.12], [0.27, -0.45], [0.34, -0.75], [0.42, -0.98], [0.44, -1.0]].map(([x, y]) => new THREE.Vector2(x, y)), 22); robeG.translate(0, hip.y + 0.08, 0);
+    robeG.translate(0, -(hip.y + 0.08), 0); const robe = new THREE.Mesh(robeG, silk); const robePivot = new THREE.Group(); robePivot.add(robe); robe.position.y = hip.y + 0.08; wrap.add(robePivot);
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.4, 18, 1, true), silk); top.position.y = hip.y + 0.28; robePivot.add(top);
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 6, 18), silk2); collar.rotation.x = Math.PI / 2; collar.position.set(0, hip.y + 0.47, 0.01); robePivot.add(collar);
+    const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.17, 0.09, 20, 1, true), silk2); sash.position.y = hip.y + 0.1; robePivot.add(sash);
+    // 广袖（随小臂）
+    const sleeve = (b, p, side) => { const sg = new THREE.ConeGeometry(0.1, 0.28, 12, 1, true); sg.translate(0, -0.14, 0); const m = new THREE.Mesh(sg, silk); m.rotation.z = side * 0.25; return att(b, m, p.x, p.y, p.z); };
+    if (!lite) { sleeve(bone('LowerArm.L'), la, 1); sleeve(bone('LowerArm.R'), ra, -1); }
+    // 发髻 + 蓝色挑染 + 银簪
+    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.1, 14, 10), hairM); att(bone('Head'), bun, head.x, head.y + 0.27, head.z - 0.05);
+    const streak = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.018, 6, 20), blueM); streak.rotation.x = Math.PI / 2; att(bone('Head'), streak, head.x, head.y + 0.25, head.z - 0.05);
+    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.3, 6), silver); pin.rotation.z = 1.2; att(bone('Head'), pin, head.x, head.y + 0.29, head.z - 0.05);
+    const orn = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), silver); att(bone('Head'), orn, head.x + 0.13, head.y + 0.33, head.z - 0.05);
+    // 手提灯笼（挂在左手骨骼上，带点光 + 光晕）
+    const lan = new THREE.Group(), lb = new THREE.Mesh(lanGeo, lanMat); lb.scale.setScalar(0.38); lb.position.y = -0.22; lan.add(lb);
+    const str = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.12, 4), silver); str.position.y = -0.06; lan.add(str);
+    const lg = new THREE.Sprite(new THREE.SpriteMaterial({ map: lightTex, color: 0xffa860, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); lg.scale.set(0.55, 0.55, 1); lg.material.opacity = 0.6; lg.position.y = -0.22; lan.add(lg);
+    let pl = null; if (!lite) { pl = new THREE.PointLight(0xffb060, 0.8, 4, 1.8); pl.position.y = -0.22; lan.add(pl); }
+    att(bone('Wrist.L'), lan, wl.x, wl.y - 0.02, wl.z);
+    const hemi = new THREE.HemisphereLight(0xc8d8ff, 0x3a2410, 0.55); g.add(hemi); const key = new THREE.DirectionalLight(0xffe2b8, 0.6); key.position.set(1, 3, 2); g.add(key);
+    wrap.traverse(o => { o.frustumCulled = false; });
+    const mixer = new THREE.AnimationMixer(root), acts = {}; for (const c of gl.animations) acts[c.name] = mixer.clipAction(c);
+    const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.8, 8), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.9; hit.userData.npc = 1; g.add(hit); clickables.push(hit);
+    const ci = clickables.indexOf(body); if (ci >= 0) clickables.splice(ci, 1); body.visible = false; glow.visible = false;
+    const hb = bone('Hips'), h0 = hip.clone(); st.model = { hb, h0, root: wrap, mixer, acts, robe: robePivot, lan, pl, bones: { wl: bone('Wrist.L') } }; st.mode = 'glb'; st.act = ''; st.play('breath');
+  }).catch(e => { console.warn('npc glb fallback', e); st.mode = 'sprite-fallback'; });
   return st; })();
-function openNpc() { openPanel(`<div class=drow><img src="hollow/npc.webp" alt="" width=96 height=186 style="object-fit:contain;height:186px;width:auto"><div><h2>${esc(t('hollow.npcName'))}</h2><p class=poem style="font-style:italic">${esc(t('hollow.npcHint'))}</p><p class=note style="font-size:14px">${esc(t('hollow.npcSay'))}</p></div></div><div class=btns><button type=button class="pill gold" data-lantern>🏮 ${esc(t('hollow.takeLantern'))}</button><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>${S.state?.login ? '' : `<p class=note>${esc(t('hollow.guestWrite'))}</p>`}`); }
+function openNpc() { npc.give?.(); openPanel(`<div class=drow><img src="hollow/npc.webp" alt="" width=96 height=186 style="object-fit:contain;height:186px;width:auto"><div><h2>${esc(t('hollow.npcName'))}</h2><p class=poem style="font-style:italic">${esc(t('hollow.npcHint'))}</p><p class=note style="font-size:14px">${esc(t('hollow.npcSay'))}</p></div></div><div class=btns><button type=button class="pill gold" data-lantern>🏮 ${esc(t('hollow.takeLantern'))}</button><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>${S.state?.login ? '' : `<p class=note>${esc(t('hollow.guestWrite'))}</p>`}`); }
 function guestPanel() { openPanel(`<h2>✦ ${esc(t('hollow.lanternTitle'))}</h2><p class=note style="font-size:15px">${esc(t('hollow.guestWrite'))}</p><div class=btns><a class="pill gold" href="${loginUrl}">${esc(t('hollow.login'))}</a><button type=button class=pill data-close>${esc(t('hollow.close'))}</button></div>`); }
 function lanternText(text) { return canvasTex(512, 640, (g, W, H) => { g.fillStyle = 'rgba(70,24,6,.0)'; g.fillRect(0, 0, W, H); g.fillStyle = '#5a1e08'; g.textAlign = 'center'; g.font = '600 34px Georgia, "Noto Serif", serif';
   const words = /\s/.test(text) ? text.split(/(\s+)/) : [...text], lines = []; let cur = ''; for (const ch of words) { if (cur && g.measureText(cur + ch).width > W - 120) { lines.push(cur.trim()); cur = ch.trim() ? ch : ''; } else cur += ch; } if (cur.trim()) lines.push(cur.trim());
@@ -474,4 +519,4 @@ renderer.setAnimationLoop(tick); setupVR(); loadState();
 const ready = () => { $('#bstart').disabled = false; $('#bstart').innerHTML = esc(t('hollow.start')); $('#ihint').textContent = t(mobile ? 'hollow.hintTouch' : 'hollow.hintDesk'); };
 THREE.DefaultLoadingManager.onLoad = ready; setTimeout(ready, 6000);
 // 测试钩子（verify-t279 用；不影响用户）
-window.__hollow = { npc: () => ({ x: npc.x, s: npc.s, vis: npc.g.visible, near: npc.near }), skyN: skyLan.n, openNpc, flyTo, hangsPanel, release: (m, cb) => release(m, cb), scene, S, P, slotPos: s => slotPos(s).toArray(), zoneOf, SLOTS, pickLight: () => { const d = new THREE.Vector3(); camera.getWorldDirection(d); const o = new THREE.Vector3(); camera.getWorldPosition(o); const h = pickLight(o, d); return h && h.object.userData.msg.id; }, enter, toHall, openDoor, openRead, openWrite, start, get lite() { return lite; }, get mode() { return S.mode; }, lights: () => lightSprites.length, xr: () => renderer.xr.enabled, setPose: (x, s, yaw = 0, pitch = 0.02) => { P.x = x; P.s = s; P.yaw = yaw; P.pitch = pitch; }, tapAt: tap, loadState };
+window.__hollow = { npc: () => ({ x: npc.x, s: npc.s, vis: npc.g.visible, near: npc.near, mode: npc.mode, act: npc.act, yaw: npc.yaw, anims: npc.model ? Object.keys(npc.model.acts) : [], lanOnHand: !!(npc.model && npc.model.bones.wl && npc.model.lan.parent === npc.model.bones.wl) }), npcObj: npc, skyN: skyLan.n, openNpc, flyTo, hangsPanel, release: (m, cb) => release(m, cb), scene, S, P, slotPos: s => slotPos(s).toArray(), zoneOf, SLOTS, pickLight: () => { const d = new THREE.Vector3(); camera.getWorldDirection(d); const o = new THREE.Vector3(); camera.getWorldPosition(o); const h = pickLight(o, d); return h && h.object.userData.msg.id; }, enter, toHall, openDoor, openRead, openWrite, start, get lite() { return lite; }, get mode() { return S.mode; }, lights: () => lightSprites.length, xr: () => renderer.xr.enabled, setPose: (x, s, yaw = 0, pitch = 0.02) => { P.x = x; P.s = s; P.yaw = yaw; P.pitch = pitch; }, tapAt: tap, loadState };
