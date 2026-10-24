@@ -1029,7 +1029,7 @@
   "route.offline@main": "Solana RPC’ye bağlanılamıyor ({msg}); çevrimdışı örnek veriler gösteriliyor",
   "mode.evm@main": "⬡ EVM cüzdanı · {addr}",
   "wal.solHint@main": "Phantom veya mobil cüzdanla bağlanın. Dilekler Solana ana ağına kaydedilir.",
-  "wal.evmHint@main": "Kendi EVM cüzdanınızla (Ethereum, Base, Arbitrum, BNB Chain) imzalayarak giriş yapın. Dileğiniz ve ödemeniz seçtiğiniz zincire kaydedilir. En düşük ücretler Base, Arbitrum ve BNB Chain’de.",
+  "wal.evmHint@main": "Kendi EVM cüzdanınızı (Ethereum, Base, Arbitrum, BNB Chain) bağlayın — bağlanmak için imza gerekmez. Yalnızca dilek öderken bir kez imzalarsınız. En düşük ücretler Base, Arbitrum ve BNB Chain'de.",
   "wal.evmPayOff@main": "Ana ağda dilek kartı ödemesi EVM ile henüz yapılamıyor; lütfen bir Solana cüzdanı kullanın.",
   "wish.payEvm@main": "EVM cüzdanım",
   "wish.paySol@main": "Solana ana ağı",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Tahmini ağ ücreti ≈ {fee} {sym} (≈ ${usd}), tutara ek olarak cüzdanınızdan ödenir.",
   "wish.feeNA": "Ağ ücreti: onaylamadan önce cüzdanınız gösterir.",
   "wish.payRule": "Alınan en düşük değer: anlık fiyatla 1 USD. Ağ ücretlerini kendi cüzdanınız öder. Ücretleri sübvanse etmiyor, onlardan kâr etmiyoruz.",
-  "wish.evmSignWish": "Dileğinizi cüzdanda imzalayın (ücretsiz, gas yok)…",
+  "wish.evmSignWish": "Cüzdanda onaylayın: dileğinizi, adresinizi ve ağı kapsayan tek imza (ücretsiz, gas yok)…",
   "wish.evmVerifying": "Ödeme gönderildi. Zincirde doğrulanıyor…",
-  "wish.solFee": "Ağ ücreti ≈ 0.00001 SOL (≈ ${usd}), cüzdanınızdan ödenir."
+  "wish.solFee": "Ağ ücreti ≈ 0.00001 SOL (≈ ${usd}), cüzdanınızdan ödenir.",
+  "wal.connecting": "Cüzdan bağlanıyor…",
+  "wal.evmRoNo": "EVM cüzdanınız imzasız bağlı, bu yüzden bu işlem kullanılamıyor. Dilekler çalışır: ödeme sırasında tek imza."
 }

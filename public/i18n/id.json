@@ -1029,7 +1029,7 @@
   "route.offline@main": "Tidak dapat terhubung ke RPC Solana ({msg}); menampilkan data contoh offline",
   "mode.evm@main": "⬡ Dompet EVM · {addr}",
   "wal.solHint@main": "Hubungkan dengan Phantom atau dompet seluler. Harapan dicatat di Solana mainnet.",
-  "wal.evmHint@main": "Masuk dengan dompet EVM milikmu (Ethereum, Base, Arbitrum, BNB Chain). Harapan dan pembayaranmu dicatat di jaringan yang kamu pilih. Biaya termurah ada di Base, Arbitrum, dan BNB Chain.",
+  "wal.evmHint@main": "Hubungkan dompet EVM milikmu (Ethereum, Base, Arbitrum, BNB Chain) — tanpa tanda tangan saat menghubungkan. Kamu menandatangani sekali saja saat membayar harapan. Biaya termurah di Base, Arbitrum, dan BNB Chain.",
   "wal.evmPayOff@main": "Membayar kartu harapan dengan EVM belum tersedia di mainnet; gunakan dompet Solana.",
   "wish.payEvm@main": "Dompet EVM saya",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Perkiraan biaya jaringan ≈ {fee} {sym} (≈ ${usd}), dibayar dompetmu di luar jumlah.",
   "wish.feeNA": "Biaya jaringan: dompetmu menampilkannya sebelum konfirmasi.",
   "wish.payRule": "Nilai minimum yang diterima: 1 USD dengan harga terkini. Biaya jaringan dibayar dompetmu sendiri. Kami tidak menyubsidi biaya dan tidak mengambil untung darinya.",
-  "wish.evmSignWish": "Tanda tangani harapanmu di dompet (gratis, tanpa gas)…",
+  "wish.evmSignWish": "Konfirmasi di dompet: satu tanda tangan untuk harapan, alamat, dan jaringan (gratis, tanpa gas)…",
   "wish.evmVerifying": "Pembayaran terkirim. Memverifikasi di jaringan…",
-  "wish.solFee": "Biaya jaringan ≈ 0.00001 SOL (≈ ${usd}), dibayar dompetmu."
+  "wish.solFee": "Biaya jaringan ≈ 0.00001 SOL (≈ ${usd}), dibayar dompetmu.",
+  "wal.connecting": "Menghubungkan dompet…",
+  "wal.evmRoNo": "Dompet EVM terhubung tanpa tanda tangan, jadi tindakan ini tidak tersedia. Harapan tetap bisa: satu tanda tangan saat membayar."
 }

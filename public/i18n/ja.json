@@ -1029,7 +1029,7 @@
   "route.offline@main": "Solana RPC に接続できません（{msg}）。オフラインのサンプルを表示しています",
   "mode.evm@main": "⬡ EVM ウォレット · {addr}",
   "wal.solHint@main": "Phantom またはモバイルウォレットで接続します。願いは Solana メインネットに記録されます。",
-  "wal.evmHint@main": "ご自身の EVM ウォレット（Ethereum・Base・Arbitrum・BNB Chain）で署名ログイン。願いと支払いは選んだチェーンに記録されます。Base・Arbitrum・BNB Chain が最も低手数料です。",
+  "wal.evmHint@main": "ご自身の EVM ウォレット（Ethereum・Base・Arbitrum・BNB Chain）を接続。接続に署名は不要で、願いの支払い時に一度だけ署名します。手数料は Base・Arbitrum・BNB Chain が最安です。",
   "wal.evmPayOff@main": "メインネットでは EVM での願いカード支払いはまだ使えません。Solana ウォレットをご利用ください。",
   "wish.payEvm@main": "自分の EVM ウォレット",
   "wish.paySol@main": "Solana メインネット",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "推定ネットワーク手数料 ≈ {fee} {sym}（≈ ${usd}）。金額とは別にウォレットから支払われます。",
   "wish.feeNA": "ネットワーク手数料：承認前にウォレットに表示されます。",
   "wish.payRule": "最低受取額：リアルタイム価格で 1 USD。ネットワーク手数料はご自身のウォレットで支払います。手数料の補助も手数料による利益もありません。",
-  "wish.evmSignWish": "ウォレットで願いに署名してください（無料・ガス不要）…",
+  "wish.evmSignWish": "ウォレットで確認：願い・アドレス・ネットワークをまとめた署名 1 回（無料・ガス不要）…",
   "wish.evmVerifying": "支払いを送信しました。オンチェーンで確認中…",
-  "wish.solFee": "ネットワーク手数料 約 0.00001 SOL（≈ ${usd}）、ウォレットから支払われます。"
+  "wish.solFee": "ネットワーク手数料 約 0.00001 SOL（≈ ${usd}）、ウォレットから支払われます。",
+  "wal.connecting": "ウォレットに接続中…",
+  "wal.evmRoNo": "EVM ウォレットは署名なしで接続中のため、この操作は使えません。願いは利用できます（支払い時に一度署名）。"
 }

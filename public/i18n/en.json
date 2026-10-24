@@ -1029,7 +1029,7 @@
   "route.offline@main": "Cannot reach Solana RPC ({msg}); showing offline sample data",
   "mode.evm@main": "⬡ EVM wallet · {addr}",
   "wal.solHint@main": "Connect with Phantom or a mobile wallet. Wishes are recorded on Solana mainnet.",
-  "wal.evmHint@main": "Sign in with your own EVM wallet (Ethereum, Base, Arbitrum, BNB Chain). Your wish and payment are recorded on the chain you choose. Base, Arbitrum and BNB Chain have the lowest fees.",
+  "wal.evmHint@main": "Connect your own EVM wallet (Ethereum, Base, Arbitrum, BNB Chain) — no signature needed to connect. You sign once only when you pay for a wish. Base, Arbitrum and BNB Chain have the lowest fees.",
   "wal.evmPayOff@main": "Paying for wish cards with EVM is not available on mainnet yet — please use a Solana wallet.",
   "wish.payEvm@main": "My EVM wallet",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Estimated network fee ≈ {fee} {sym} (≈ ${usd}), paid by your wallet on top of the amount.",
   "wish.feeNA": "Network fee: your wallet shows it before you confirm.",
   "wish.payRule": "Minimum value received: 1 USD at the live price. Network fees are paid by your own wallet. We don’t subsidize fees or profit from them.",
-  "wish.evmSignWish": "Sign your wish in your wallet (free, no gas)…",
+  "wish.evmSignWish": "Confirm in your wallet: one signature covering your wish, address and network (free, no gas)…",
   "wish.evmVerifying": "Payment sent. Verifying on-chain…",
-  "wish.solFee": "Network fee ≈ 0.00001 SOL (≈ ${usd}), paid by your wallet."
+  "wish.solFee": "Network fee ≈ 0.00001 SOL (≈ ${usd}), paid by your wallet.",
+  "wal.connecting": "Connecting wallet…",
+  "wal.evmRoNo": "Your EVM wallet is connected without a signature, so this action isn’t available. Wishes work: you confirm them with one signature when you pay."
 }

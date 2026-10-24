@@ -1029,7 +1029,7 @@
   "route.offline@main": "Nie można osiągnąć Solana RPC ({msg}); wyświetlanie przykładowych danych offline",
   "mode.evm@main": "⬡ Portfel EVM · {addr}",
   "wal.solHint@main": "Połącz się z Phantom lub portfelem mobilnym. Życzenia są zapisywane w sieci głównej Solana.",
-  "wal.evmHint@main": "Zaloguj się własnym portfelem EVM (Ethereum, Base, Arbitrum, BNB Chain). Życzenie i płatność są zapisywane w wybranej sieci. Base, Arbitrum i BNB Chain mają najniższe opłaty.",
+  "wal.evmHint@main": "Połącz własny portfel EVM (Ethereum, Base, Arbitrum, BNB Chain) — połączenie nie wymaga podpisu. Podpisujesz tylko raz, płacąc za życzenie. Najniższe opłaty mają Base, Arbitrum i BNB Chain.",
   "wal.evmPayOff@main": "Płacenie za karty życzeń za pomocą EVM nie jest jeszcze dostępne w sieci głównej — użyj portfela Solana.",
   "wish.payEvm@main": "Mój portfel EVM",
   "wish.paySol@main": "Solana sieć główna",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Szacowana opłata sieciowa ≈ {fee} {sym} (≈ ${usd}), płacona przez Twój portfel oprócz kwoty.",
   "wish.feeNA": "Opłata sieciowa: portfel pokaże ją przed potwierdzeniem.",
   "wish.payRule": "Minimalna otrzymana wartość: 1 USD po bieżącym kursie. Opłaty sieciowe płaci Twój portfel. Nie dopłacamy do opłat ani na nich nie zarabiamy.",
-  "wish.evmSignWish": "Podpisz życzenie w portfelu (za darmo, bez gazu)…",
+  "wish.evmSignWish": "Potwierdź w portfelu: jeden podpis obejmujący życzenie, adres i sieć (za darmo, bez gazu)…",
   "wish.evmVerifying": "Płatność wysłana. Weryfikacja w sieci…",
-  "wish.solFee": "Opłata sieciowa ≈ 0.00001 SOL (≈ ${usd}), płacona przez Twój portfel."
+  "wish.solFee": "Opłata sieciowa ≈ 0.00001 SOL (≈ ${usd}), płacona przez Twój portfel.",
+  "wal.connecting": "Łączenie portfela…",
+  "wal.evmRoNo": "Portfel EVM jest połączony bez podpisu, więc ta akcja jest niedostępna. Życzenia działają: jeden podpis przy płatności."
 }

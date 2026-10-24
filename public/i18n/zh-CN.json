@@ -1029,7 +1029,7 @@
   "route.offline@main": "无法连接 Solana RPC（{msg}），当前显示离线示例数据",
   "mode.evm@main": "⬡ EVM 钱包 · {addr}",
   "wal.solHint@main": "用 Phantom 或手机钱包连接；心愿记录在 Solana 主网。",
-  "wal.evmHint@main": "用你自己的 EVM 钱包签名登录（Ethereum、Base、Arbitrum、BNB Chain）。心愿和付款记录在你所选的链上；Base、Arbitrum、BNB Chain 手续费最低。",
+  "wal.evmHint@main": "连接你自己的 EVM 钱包（Ethereum、Base、Arbitrum、BNB Chain），连接无需签名；只有付款许愿时才签一次。Base、Arbitrum、BNB Chain 手续费最低。",
   "wal.evmPayOff@main": "主网暂不支持用 EVM 支付制作心愿卡，请使用 Solana 钱包。",
   "wish.payEvm@main": "我的 EVM 钱包",
   "wish.paySol@main": "Solana 主网",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "预计网络手续费 ≈ {fee} {sym}（≈ ${usd}），由你的钱包另外支付。",
   "wish.feeNA": "网络手续费：确认前钱包会显示。",
   "wish.payRule": "最低到账价值：按实时币价 1 美元。网络手续费由你自己的钱包支付；我们不补贴手续费，也不从中获利。",
-  "wish.evmSignWish": "请在钱包中签名心愿（免费，不消耗 gas）…",
+  "wish.evmSignWish": "请在钱包中确认：一次签名，包含心愿内容、地址和网络（免费，不消耗 gas）…",
   "wish.evmVerifying": "付款已发送，正在链上核验…",
-  "wish.solFee": "网络手续费约 0.00001 SOL（≈ ${usd}），由你的钱包支付。"
+  "wish.solFee": "网络手续费约 0.00001 SOL（≈ ${usd}），由你的钱包支付。",
+  "wal.connecting": "正在连接钱包…",
+  "wal.evmRoNo": "EVM 钱包为免签名连接，此操作暂不可用。许愿可以正常使用：付款时签一次名即可确认。"
 }

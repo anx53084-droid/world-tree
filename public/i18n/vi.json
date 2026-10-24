@@ -1029,7 +1029,7 @@
   "route.offline@main": "Không thể kết nối Solana RPC ({msg}); đang hiển thị dữ liệu mẫu ngoại tuyến",
   "mode.evm@main": "⬡ Ví EVM · {addr}",
   "wal.solHint@main": "Kết nối bằng Phantom hoặc ví di động. Điều ước được ghi trên Solana mainnet.",
-  "wal.evmHint@main": "Đăng nhập bằng ví EVM của riêng bạn (Ethereum, Base, Arbitrum, BNB Chain). Điều ước và khoản thanh toán được ghi trên chuỗi bạn chọn. Phí thấp nhất là Base, Arbitrum và BNB Chain.",
+  "wal.evmHint@main": "Kết nối ví EVM của riêng bạn (Ethereum, Base, Arbitrum, BNB Chain) — không cần ký khi kết nối. Bạn chỉ ký một lần khi thanh toán điều ước. Phí thấp nhất trên Base, Arbitrum và BNB Chain.",
   "wal.evmPayOff@main": "Trên mainnet chưa hỗ trợ trả phí thẻ điều ước bằng EVM; hãy dùng ví Solana.",
   "wish.payEvm@main": "Ví EVM của tôi",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Phí mạng ước tính ≈ {fee} {sym} (≈ ${usd}), do ví của bạn trả ngoài số tiền.",
   "wish.feeNA": "Phí mạng: ví sẽ hiển thị trước khi bạn xác nhận.",
   "wish.payRule": "Giá trị nhận tối thiểu: 1 USD theo giá hiện tại. Phí mạng do chính ví của bạn trả. Chúng tôi không trợ giá phí và không kiếm lời từ phí.",
-  "wish.evmSignWish": "Ký điều ước trong ví (miễn phí, không tốn gas)…",
+  "wish.evmSignWish": "Xác nhận trong ví: một chữ ký gồm điều ước, địa chỉ và mạng (miễn phí, không tốn gas)…",
   "wish.evmVerifying": "Đã gửi thanh toán. Đang xác minh trên chuỗi…",
-  "wish.solFee": "Phí mạng ≈ 0.00001 SOL (≈ ${usd}), do ví của bạn trả."
+  "wish.solFee": "Phí mạng ≈ 0.00001 SOL (≈ ${usd}), do ví của bạn trả.",
+  "wal.connecting": "Đang kết nối ví…",
+  "wal.evmRoNo": "Ví EVM được kết nối không cần chữ ký nên thao tác này không khả dụng. Điều ước vẫn dùng được: ký một lần khi thanh toán."
 }

@@ -323,6 +323,7 @@ function softRefresh() { // 原地更新：首页只更新 3D 实例；列表/�
   const wl = $('#wl'); if (wl) { const h = list(new URLSearchParams(location.hash.split('?')[1] || ''), true); if (wl._h !== h) { wl._h = h; wl.innerHTML = h; } }
   const mm = $('#mine'); if (mm) { const h = mineBlock(); if (mm._h === undefined) mm._h = mm.innerHTML && h; if (mm._h !== h) { mm._h = h; mm.innerHTML = h; bindMine(); } } }
 async function api(url, data) {
+  if (S.evmRo && !S.token && data && !/^\/api\/(evm\/wish|moderate|nonce)$/.test(url.split('?')[0])) throw Object.assign(new Error(t('wal.evmRoNo')), { code: 'evmRo' }); // t310：未签名的 EVM 连接不做任何服务器写入
   const r = await fetch(url, { method: data ? 'POST' : 'GET', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (S.token || '') }, body: data ? JSON.stringify(data) : undefined });
   const j = await r.json(); if (!r.ok || j.error) throw Object.assign(new Error(tErr(j.code, j.detail) || j.error || r.status), { code: j.code, status: r.status, data: j }); return j;
 }
@@ -464,6 +465,9 @@ async function evmProvider() { if (S.evmProv) return S.evmProv; const w = WTW.ev
   const [a] = (await w.provider.request({ method: 'eth_accounts' }).catch(() => [])).length ? await w.provider.request({ method: 'eth_accounts' }) : await w.provider.request({ method: 'eth_requestAccounts' });
   if (a && a.toLowerCase() !== S.evmAddr) { toast(esc(t('wal.switched')), 'err'); await logout(); throw new Error(t('wal.switched')); } // 钱包当前账户与会话不一致：不沿用旧地址
   if ((a || '').toLowerCase() !== S.evmAddr) throw new Error(t('wish.evmNoWallet')); watchEvm(w.provider); return S.evmProv = w.provider; }
+// t310：非托管 EVM 只读会话——只记住已连接的地址，不向服务器出示任何凭证；服务器端所有写入 / 付款都只认当次签名恢复出的地址
+function evmRoSession(addr, p, id, w, cid) { S.wallet = null; S.token = null; localStorage.removeItem('wt_token'); S.kind = 'evm'; S.evmRo = true; S.mode = 'host'; S.evmAddr = S.pubkey = String(addr).toLowerCase(); S.uid = null; S.evmProv = p || null;
+  localStorage.wt_evmro = S.evmAddr; if (id) localStorage.wt_evm = id; if (w) localStorage.wt_wname = w.dyn ? t('wal.dyn') : w.name; if (cid && EVM_KEYS[cid]) localStorage.wt_chain = String(cid); }
 async function connectEvm(id, pick = true) { S.evmBusy = true; try { return await connectEvm0(id, pick); } finally { S.evmBusy = false; } }
 async function connectEvm0(id, pick) { const w = WTW.evmWallets().find(x => x.id === id); if (!w) return;
   if (!w.installed) return walletMissing(w, 'evm');
@@ -474,8 +478,9 @@ async function connectEvm0(id, pick) { const w = WTW.evmWallets().find(x => x.id
   const np = getNonce();
   const prev = S.evmPrev || ''; S.evmPrev = null;
   try { const [addr] = pick ? await pickEvmAccount(p) : await p.request({ method: 'eth_requestAccounts' }); if (wc && !$('#wcwait') && !addr) return; closeModal();
-    if (pick && prev && addr.toLowerCase() === prev && S.wantSwitch) toast(esc(t('wal.oneAccount')), ''); S.wantSwitch = false; const tt = toast(esc(t('wal.signing'))); watchEvm(p);
+    if (pick && prev && addr.toLowerCase() === prev && S.wantSwitch) toast(esc(t('wal.oneAccount')), ''); S.wantSwitch = false; const tt = toast(esc(t(S.cfg.custody ? 'wal.signing' : 'wal.connecting'))); watchEvm(p);
     const cid = await WTW.readyChain(p, chain, evmChains()[chain]); // 消息 Chain ID = 钱包当前 eth_chainId
+    if (!S.cfg.custody) { evmRoSession(addr, p, id, w, cid); renderMode(); route(); tt.update(esc(t('wal.ok', { addr: short(addr) })), 'ok'); sparkle(); return; } // t310：主网连接即登录（只读会话，不弹签名）；写入 / 付款时再签
     const m = siweMsg('Ethereum', addr, await np, cid);
     const sg = await p.request({ method: 'personal_sign', params: [WTW.hexOf(m), addr] });
     const r = await walletLogin({ message: m, signature: sg }); S.wallet = null; setSession(r); S.mode = 'host'; S.pubkey = r.pubkey; S.evmProv = p; localStorage.wt_evm = id; localStorage.wt_wname = w.dyn ? t('wal.dyn') : w.name; if (EVM_KEYS[cid]) localStorage.wt_chain = String(cid); localStorage.removeItem('wt_wallet');
@@ -490,7 +495,7 @@ function emailLogin(needTotp, em0) {
 }
 async function logout(quiet) { if (S.token) await api('/api/logout', {}).catch(() => {}); if (S.wallet) S.wallet.disconnect?.(); // 退出：清除会话、钱包选择与缓存地址，并撤销 EVM 授权（支持时）
   if (S.kind === 'evm') await revokeEvm(S.evmProv || WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed)?.provider); S.wallet = S.evmProv = null; ['wt_wallet', 'wt_evm', 'wt_wpk', 'wt_wname'].forEach(k => localStorage.removeItem(k)); window.WTMWA?.clear?.(); S.wst = null;
-  S.token = null; localStorage.removeItem('wt_token'); S.kind = S.evmAddr = S.uid = S.profile = null; S.bell = 0; if (quiet === true) return; S.mode = 'guest'; S.pubkey = S.email = null; renderMode(); route(); paintBell(); }
+  S.token = null; localStorage.removeItem('wt_token'); localStorage.removeItem('wt_evmro'); S.evmRo = false; S.kind = S.evmAddr = S.uid = S.profile = null; S.bell = 0; if (quiet === true) return; S.mode = 'guest'; S.pubkey = S.email = null; renderMode(); route(); paintBell(); }
 // 大额支付确认：金额 ≥ 阈值时弹窗确认；开启两步验证的邮箱账户需输入验证码（服务器同样校验）
 async function confirmLarge(usd, amt) { const lim = S.largeUsd || S.cfg.largeUsdDefault || 20; if (!(usd >= lim)) return {};
   const ok = await confirmLarge0(usd, amt); if (!ok || !S.totp || !S.token) return ok; // 开启 2FA：先由服务器验证验证码，换取一次性支付票据
@@ -1534,7 +1539,7 @@ async function evmWishSubmit(memo, r, amount, ok) { const tt = toast(esc(t('wish
   try { const p = await evmProvider(), issuedAt = new Date().toISOString(), msg = evmWishMsg(S.evmAddr, r.chainId, await sha256hexStr(memo), issuedAt);
     const wsig = await p.request({ method: 'personal_sign', params: [WTW.hexOf(msg), S.evmAddr] });
     const evm = await evmPay(r.key, amount); tt.update(esc(t('wish.evmVerifying')));
-    let res; for (let i = 0; i < 40; i++) { try { res = await api('/api/evm/wish', { memo, evm, wsig, issuedAt, ...ok }); break; } catch (e) { if (e?.code !== 'evmPending' && e?.code !== 'priceStale' || i === 39) throw e; await new Promise(z => setTimeout(z, 4000)); } }
+    let res; for (let i = 0; i < 40; i++) { try { res = await api('/api/evm/wish', { memo, evm, wsig, issuedAt, addr: S.evmAddr, ...ok }); break; } catch (e) { if (e?.code !== 'evmPending' && e?.code !== 'priceStale' || i === 39) throw e; await new Promise(z => setTimeout(z, 4000)); } }
     S.pending.push({ sig: res.signature, memo, author: S.pubkey, time: Math.floor(Date.now() / 1000), paid: 0, pending: true, verified: true }); aggregate(); softRefresh(); loadEvmWishes().then(() => { aggregate(); softRefresh(); });
     tt.update(`✅ ${esc(t('tx.confirmed', { label: t('label.wish') }))} <a target=_blank href="${EXPLORER(res.signature)}">${esc(t('tx.viewTx'))}</a>`, 'ok'); return res.signature; }
   catch (e) { tt.update('❌ ' + esc(e?.message || e), 'err'); return null; } }
@@ -2251,6 +2256,7 @@ if ('serviceWorker' in navigator && !/localhost|127\.0\.0\.1/.test(location.host
   if (S.token) api('/api/me').then(async r => { setSession({ ...r, token: S.token }); S.pubkey = r.pubkey;
     if (r.kind === 'sol') { S.mode = 'self'; S.wst = 'reconnecting'; renderMode(); const c = await silentSol(); if (c && c.pk === r.pubkey) { S.wallet = c.a; S.wst = 'ok'; localStorage.wt_wpk = c.pk; watchSol(c.a); } else S.wst = 'fail'; } else { S.mode = 'host'; if (r.kind === 'evm') { const pv = WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed)?.provider; watchEvm(pv); pv?.request({ method: 'eth_accounts' }).then(a => { if (a?.[0] && a[0].toLowerCase() !== r.evm) { toast(esc(t('wal.switched')), 'err'); logout(); } }).catch(() => {}); } } renderMode(); route(); loadBell(); })
     .catch(e => { if (e.status === 401) { localStorage.removeItem('wt_token'); S.token = null; } });
+  else if (localStorage.wt_evmro && /^0x[0-9a-f]{40}$/.test(localStorage.wt_evmro)) cfgP.then(() => { if (S.cfg.custody || S.mode !== 'guest') return; evmRoSession(localStorage.wt_evmro); const pv = WTW.evmWallets().find(x => x.id === localStorage.wt_evm && x.installed)?.provider; if (pv) { S.evmProv = pv; watchEvm(pv); } renderMode(); route(); }); // t310：恢复只读 EVM 连接（不弹窗、不签名）
   else if (localStorage.wt_wallet) setTimeout(async () => { S.wst = 'reconnecting'; renderMode(); const c = await silentSol(); if (c && S.mode === 'guest') { S.mode = 'self'; S.kind = 'sol'; S.pubkey = c.pk; S.wallet = c.a; S.wst = 'ok'; localStorage.wt_wpk = c.pk; watchSol(c.a); renderMode(); route(); } else { S.wst = 'fail'; renderMode(); } }, 300); // Wallet Standard 钱包注册稍晚
   // 首屏立即渲染：先用上次缓存的链上数据（localStorage）画出世界树，链上读取在后台进行，完成后无感刷新
   try { if (localStorage.wt_sigs != null) { const sigs = JSON.parse(localStorage.wt_sigs); S.txs = sigs.map(x => txCache[x]).filter(Boolean); S.hadReal = true; } } catch {} aggregate(); S.syncing = true; route(); syncChip(true);

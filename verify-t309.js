@@ -37,7 +37,7 @@ const rpcSrv = http.createServer((q, s) => { let b = ''; q.on('data', d => b += 
     console.log('server: EVM wish verification');
     const prefix = '学业', text = 't309 test wish', mod = (await call('/api/moderate', { text, prefix })).j; ok(mod.pass, '审核通过，得到审核证明');
     const memo = `WTREE1|W|${mod.attestation.hash}|${mod.attestation.ts}|${mod.attestation.sig}|${prefix}|${text}`, at = new Date().toISOString(), wsig = sign(wishMsg(EA, 8453, sha(memo), at));
-    const post = (h, o = {}) => call('/api/evm/wish', { memo, evm: { chainId: o.chainId || 8453, txs: [h], payKey: o.payKey }, wsig: o.wsig || wsig, issuedAt: o.at || at }, tk);
+    const post = (h, o = {}) => call('/api/evm/wish', { memo, addr: o.addr || EA, evm: { chainId: o.chainId || 8453, txs: [h], payKey: o.payKey }, wsig: o.wsig || wsig, issuedAt: o.at || at }); // t310：不带任何登录凭证，地址只靠签名证明
     // 1 USD = 1/3000 ETH ≈ 0.000333；容差 2%
     x = await post(addTx(H(1), { eth: 0.0003, chainId: '0x2105' })); ok(x.s === 400 && x.j.code === 'amount', '低于 1 美元（$0.90）→ 拒绝');
     x = await post(addTx(H(2), { eth: 0.00033, chainId: '0x2105' }), { wsig: sign(wishMsg(EA, 8453, sha(memo + 'x'), at)) }); ok(x.s === 400 && x.j.code === 'sig', '心愿签名与内容不符 → 拒绝');
@@ -46,6 +46,7 @@ const rpcSrv = http.createServer((q, s) => { let b = ''; q.on('data', d => b += 
     x = await post(addTx(H(5), { eth: 0.001, chainId: '0x2105', status: '0x0' })); ok(x.s === 400 && x.j.code === 'evmPending', '交易失败 / 未确认 → 拒绝');
     x = await post(addTx(H(6), { eth: 0.001, chainId: '0x2105', block: 999 })); ok(x.s === 400 && x.j.code === 'evmPending' && /2\/3/.test(x.j.error), '确认数不足（Base 需 3）→ 稍后重试');
     setPrice(true); x = await post(H(6)); ok(x.s === 503 && x.j.code === 'priceStale', '没有实时币价 → 不收款（不使用过期价格）'); setPrice(false);
+    x = await post(H(6), { addr: '0x1111111111111111111111111111111111111111' }); ok(x.s === 400 && x.j.code === 'sig', 't310：冒充地址（签名不是该地址签的）→ 拒绝，别人无法认领这笔付款');
     HEAD.v = 1001; x = await post(H(6)); ok(x.s === 200 && x.j.signature === 'evm:8453:' + H(6) && x.j.usd === 3, '0.001 ETH（$3）+ 3 确认 → 记录心愿');
     x = await post(H(6)); ok(x.s === 400 && x.j.code === 'evmUsed', '同一笔交易不能重复使用');
     x = await post(addTx(H(7), { eth: 0.000327, chainId: '0x2105' })); ok(x.s === 200, '$0.98（报价到确认之间价格波动，2% 容差内）→ 接受');
@@ -57,7 +58,7 @@ const rpcSrv = http.createServer((q, s) => { let b = ''; q.on('data', d => b += 
     console.log('frontend (390x844)');
     const { chromium, devices } = require('playwright'); br = await chromium.launch();
     const ctx = await br.newContext({ ...devices['iPhone 13'], viewport: { width: 390, height: 844 } }), pg = await ctx.newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => m.type() === 'error' && console.log('   [console]', m.text()));
-    await pg.exposeFunction('nodeSign', hex => sign(Buffer.from(hex.slice(2), 'hex').toString('utf8')));
+    const signed = []; await pg.exposeFunction('nodeSign', hex => { const m = Buffer.from(hex.slice(2), 'hex').toString('utf8'); signed.push(m); return sign(m); });
     await pg.route(/solana\.com|helius|publicnode|mainnet\.base\.org|arb1\.arbitrum|bnbchain\.org/, r => { if (/mainnet\.base\.org|arb1|bnbchain|publicnode/.test(r.request().url())) return r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' }, body: '' }).catch(() => {}) && r.continue({ url: MOCK }).catch(() => {}); return r.abort(); });
     await pg.unroute(/solana\.com|helius|publicnode|mainnet\.base\.org|arb1\.arbitrum|bnbchain\.org/);
     await pg.route(/mainnet\.base\.org|arb1\.arbitrum\.io|bsc-dataseed|ethereum-rpc\.publicnode/, async r => { const res = await fetch(MOCK, { method: 'POST', headers: { 'content-type': 'application/json' }, body: r.request().postData() }); r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' }, body: await res.text() }); });
@@ -76,7 +77,11 @@ const rpcSrv = http.createServer((q, s) => { let b = ''; q.on('data', d => b += 
     await pg.screenshot({ path: D + '/shots/t309-login-sol-hint.png' });
     await pg.evaluate(() => document.querySelector('[data-tab=evm]').click()); await pg.waitForSelector('.witem[data-k=evm]');
     await pg.evaluate(() => { const b = [...document.querySelectorAll('.witem[data-k=evm]')].find(b => /Detected/.test(b.textContent)); b.click(); });
-    await pg.waitForFunction(() => S.kind === 'evm' && S.token, null, { timeout: 15000 }).catch(async e => { console.log(await pg.evaluate(() => JSON.stringify({ k: S.kind, m: S.mode, t: document.querySelector('#modal-box')?.innerText, toast: document.querySelector('.toast,#toast')?.innerText }))); throw e; }); ok(await pg.evaluate(() => S.evmAddr === S.pubkey && !S.cfg.custody), '前端：EVM 钱包签名登录成功（非托管）');
+    await pg.waitForFunction(() => S.kind === 'evm' && S.evmAddr, null, { timeout: 15000 }).catch(async e => { console.log(await pg.evaluate(() => JSON.stringify({ k: S.kind, m: S.mode, t: document.querySelector('#modal-box')?.innerText, toast: document.querySelector('.toast,#toast')?.innerText }))); throw e; }); await pg.waitForTimeout(800); ok(signed.length === 0 && await pg.evaluate(() => S.evmAddr === S.pubkey && S.evmRo && !S.token && !localStorage.wt_token && !S.cfg.custody), 't310：连接钱包即登录，没有弹出任何签名，也没有服务器会话 token');
+    ok(await pg.evaluate(async () => { try { await api('/api/me/profile', { name: 'x' }); return false; } catch (e) { return e.code === 'evmRo'; } }), 't310：未签名的 EVM 连接不做服务器写入（资料修改等被禁用）');
+    ok((await call('/api/me/profile', { name: 'x' })).s === 401, 't310：服务器端写接口不接受未签名地址（无 token → 401）');
+    await pg.evaluate(() => window.scrollTo(0, 0)); await pg.waitForTimeout(400); await pg.screenshot({ path: D + '/shots/t310-connected.png' });
+    await pg.reload(); await pg.waitForFunction(() => S.evmRo && S.kind === 'evm' && S.mode === 'host', null, { timeout: 30000 }); ok(signed.length === 0, 't310：刷新后自动恢复连接，仍不签名');
     await pg.evaluate(() => { location.hash = '#/wish/make'; }); await pg.waitForSelector('#evc', { timeout: 15000 });
     await pg.waitForFunction(() => /≈ \$/.test(document.querySelector('#evfee')?.textContent || ''), null, { timeout: 15000 });
     const wt = await pg.evaluate(() => ({ fee: $('#evfee').textContent, min: $('#evmin').textContent, opts: [...$('#evc').options].map(o => o.textContent), pvHidden: $('#pv').closest('label').hidden, solOpt: !!document.querySelector('#pv option[value=sol]'), rule: document.querySelector('.evrule').textContent }));

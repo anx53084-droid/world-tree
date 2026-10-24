@@ -1029,7 +1029,7 @@
   "route.offline@main": "Haiwezi kufikia Solana RPC ({msg}); kuonyesha data ya sampuli ya nje ya mtandao",
   "mode.evm@main": "⬡ pochi ya EVM · {addr}",
   "wal.solHint@main": "Unganisha kwa Phantom au pochi ya rununu. Matakwa yanarekodiwa kwenye Solana mainnet.",
-  "wal.evmHint@main": "Ingia kwa pochi yako ya EVM (Ethereum, Base, Arbitrum, BNB Chain). Matakwa na malipo yako yanarekodiwa kwenye mnyororo unaouchagua. Ada za chini zaidi ziko Base, Arbitrum na BNB Chain.",
+  "wal.evmHint@main": "Unganisha pochi yako ya EVM (Ethereum, Base, Arbitrum, BNB Chain) — kuunganisha hakuhitaji sahihi. Unasaini mara moja tu unapolipia ombi. Ada za chini zaidi ziko Base, Arbitrum na BNB Chain.",
   "wal.evmPayOff@main": "Kulipia kadi za matamanio kwa EVM bado hakupatikani kwenye mainnet — tafadhali tumia pochi Solana.",
   "wish.payEvm@main": "Pochi yangu ya EVM",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Ada ya mtandao inayokadiriwa ≈ {fee} {sym} (≈ ${usd}), inalipwa na pochi yako juu ya kiasi.",
   "wish.feeNA": "Ada ya mtandao: pochi yako itaionyesha kabla ya kuthibitisha.",
   "wish.payRule": "Thamani ya chini inayopokelewa: USD 1 kwa bei ya sasa. Ada za mtandao hulipwa na pochi yako mwenyewe. Hatufadhili ada wala kupata faida kutoka kwazo.",
-  "wish.evmSignWish": "Saini matakwa yako kwenye pochi (bure, bila gas)…",
+  "wish.evmSignWish": "Thibitisha kwenye pochi: sahihi moja inayojumuisha ombi, anwani na mtandao (bure, bila gesi)…",
   "wish.evmVerifying": "Malipo yametumwa. Inathibitisha kwenye mnyororo…",
-  "wish.solFee": "Ada ya mtandao ≈ 0.00001 SOL (≈ ${usd}), inalipwa na pochi yako."
+  "wish.solFee": "Ada ya mtandao ≈ 0.00001 SOL (≈ ${usd}), inalipwa na pochi yako.",
+  "wal.connecting": "Inaunganisha pochi…",
+  "wal.evmRoNo": "Pochi ya EVM imeunganishwa bila sahihi, kwa hivyo kitendo hiki hakipatikani. Maombi yanafanya kazi: sahihi moja wakati wa kulipa."
 }

@@ -1029,7 +1029,7 @@
   "route.offline@main": "Kan Solana RPC ({msg}) niet bereiken; offline voorbeeldgegevens weergeven",
   "mode.evm@main": "⬡ EVM-portemonnee · {addr}",
   "wal.solHint@main": "Maak verbinding met Phantom of een mobiele portemonnee. Wensen worden vastgelegd op Solana mainnet.",
-  "wal.evmHint@main": "Log in met je eigen EVM-wallet (Ethereum, Base, Arbitrum, BNB Chain). Je wens en betaling worden vastgelegd op de gekozen chain. Base, Arbitrum en BNB Chain hebben de laagste kosten.",
+  "wal.evmHint@main": "Verbind je eigen EVM-wallet (Ethereum, Base, Arbitrum, BNB Chain) — verbinden vraagt geen handtekening. Je tekent alleen één keer bij het betalen van een wens. Base, Arbitrum en BNB Chain hebben de laagste kosten.",
   "wal.evmPayOff@main": "Betalen voor wenskaarten met EVM is nog niet beschikbaar op mainnet — gebruik alstublieft een Solana portemonnee.",
   "wish.payEvm@main": "Mijn EVM-wallet",
   "wish.paySol@main": "Solana hoofdnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Geschatte netwerkvergoeding ≈ {fee} {sym} (≈ ${usd}), door je wallet betaald bovenop het bedrag.",
   "wish.feeNA": "Netwerkvergoeding: je wallet toont die vóór bevestiging.",
   "wish.payRule": "Minimale ontvangen waarde: 1 USD tegen de actuele koers. Netwerkkosten betaal je met je eigen wallet. Wij subsidiëren geen kosten en verdienen er niet aan.",
-  "wish.evmSignWish": "Onderteken je wens in je wallet (gratis, geen gas)…",
+  "wish.evmSignWish": "Bevestig in je wallet: één handtekening voor je wens, adres en netwerk (gratis, geen gas)…",
   "wish.evmVerifying": "Betaling verzonden. Controle op de chain…",
-  "wish.solFee": "Netwerkvergoeding ≈ 0.00001 SOL (≈ ${usd}), door je wallet betaald."
+  "wish.solFee": "Netwerkvergoeding ≈ 0.00001 SOL (≈ ${usd}), door je wallet betaald.",
+  "wal.connecting": "Wallet verbinden…",
+  "wal.evmRoNo": "Je EVM-wallet is zonder handtekening verbonden, dus deze actie is niet beschikbaar. Wensen werken wel: één handtekening bij betalen."
 }

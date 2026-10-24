@@ -1029,7 +1029,7 @@
   "route.offline@main": "Não foi possível conectar ao RPC da Solana ({msg}); exibindo dados de exemplo offline",
   "mode.evm@main": "⬡ Carteira EVM · {addr}",
   "wal.solHint@main": "Conecte com Phantom ou uma carteira móvel. Os desejos são registrados na Solana mainnet.",
-  "wal.evmHint@main": "Entre com sua própria carteira EVM (Ethereum, Base, Arbitrum, BNB Chain). Seu desejo e o pagamento ficam registrados na rede escolhida. Base, Arbitrum e BNB Chain têm as menores taxas.",
+  "wal.evmHint@main": "Conecte sua própria carteira EVM (Ethereum, Base, Arbitrum, BNB Chain) — conectar não exige assinatura. Você assina só uma vez ao pagar um desejo. Base, Arbitrum e BNB Chain têm as menores taxas.",
   "wal.evmPayOff@main": "Pagar cartões de desejo com EVM ainda não está disponível na mainnet; use uma carteira Solana.",
   "wish.payEvm@main": "Minha carteira EVM",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Taxa de rede estimada ≈ {fee} {sym} (≈ ${usd}), paga pela sua carteira além do valor.",
   "wish.feeNA": "Taxa de rede: sua carteira mostra antes de confirmar.",
   "wish.payRule": "Valor mínimo recebido: 1 USD na cotação atual. As taxas de rede são pagas pela sua própria carteira. Não subsidiamos taxas nem lucramos com elas.",
-  "wish.evmSignWish": "Assine seu desejo na carteira (grátis, sem gas)…",
+  "wish.evmSignWish": "Confirme na carteira: uma assinatura com seu desejo, endereço e rede (grátis, sem gas)…",
   "wish.evmVerifying": "Pagamento enviado. Verificando na rede…",
-  "wish.solFee": "Taxa de rede ≈ 0.00001 SOL (≈ ${usd}), paga pela sua carteira."
+  "wish.solFee": "Taxa de rede ≈ 0.00001 SOL (≈ ${usd}), paga pela sua carteira.",
+  "wal.connecting": "Conectando carteira…",
+  "wal.evmRoNo": "Sua carteira EVM está conectada sem assinatura, então esta ação não está disponível. Desejos funcionam: uma assinatura ao pagar."
 }

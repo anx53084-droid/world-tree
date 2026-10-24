@@ -1029,7 +1029,7 @@
   "route.offline@main": "Hindi maabot ang Solana RPC ({msg}); nagpapakita ng offline na sample na data",
   "mode.evm@main": "⬡ EVM wallet · {addr}",
   "wal.solHint@main": "Kumonekta sa Phantom o isang mobile wallet. Ang mga kahilingan ay naitala sa Solana mainnet.",
-  "wal.evmHint@main": "Mag-sign in gamit ang sarili mong EVM wallet (Ethereum, Base, Arbitrum, BNB Chain). Itinatala ang hiling at bayad mo sa chain na pipiliin mo. Pinakamababa ang fee sa Base, Arbitrum at BNB Chain.",
+  "wal.evmHint@main": "Ikonekta ang sarili mong EVM wallet (Ethereum, Base, Arbitrum, BNB Chain) — walang pirma sa pagkonekta. Isang beses ka lang pipirma kapag nagbayad ng hiling. Pinakamababa ang fee sa Base, Arbitrum at BNB Chain.",
   "wal.evmPayOff@main": "Ang pagbabayad para sa mga wish card gamit ang EVM ay hindi pa available sa mainnet — mangyaring gumamit ng Solana wallet.",
   "wish.payEvm@main": "Aking EVM wallet",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Tantiyang network fee ≈ {fee} {sym} (≈ ${usd}), binabayaran ng wallet mo bukod sa halaga.",
   "wish.feeNA": "Network fee: ipapakita ng wallet mo bago kumpirmahin.",
   "wish.payRule": "Pinakamababang halagang natatanggap: 1 USD sa kasalukuyang presyo. Ang network fee ay binabayaran ng sarili mong wallet. Hindi namin sinusubsidiya ang fee at hindi kami kumikita rito.",
-  "wish.evmSignWish": "I-sign ang hiling mo sa wallet (libre, walang gas)…",
+  "wish.evmSignWish": "Kumpirmahin sa wallet: isang pirma para sa hiling, address at network (libre, walang gas)…",
   "wish.evmVerifying": "Naipadala ang bayad. Bine-verify sa chain…",
-  "wish.solFee": "Network fee ≈ 0.00001 SOL (≈ ${usd}), binabayaran ng wallet mo."
+  "wish.solFee": "Network fee ≈ 0.00001 SOL (≈ ${usd}), binabayaran ng wallet mo.",
+  "wal.connecting": "Kinokonekta ang wallet…",
+  "wal.evmRoNo": "Nakakonekta ang EVM wallet nang walang pirma, kaya hindi available ang aksyong ito. Gumagana ang hiling: isang pirma sa pagbabayad."
 }

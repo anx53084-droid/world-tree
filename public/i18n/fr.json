@@ -1029,7 +1029,7 @@
   "route.offline@main": "Impossible de joindre le RPC Solana ({msg}) ; affichage de données d’exemple hors ligne",
   "mode.evm@main": "⬡ Portefeuille EVM · {addr}",
   "wal.solHint@main": "Connectez-vous avec Phantom ou un portefeuille mobile. Les vœux sont enregistrés sur Solana mainnet.",
-  "wal.evmHint@main": "Connectez-vous avec votre propre portefeuille EVM (Ethereum, Base, Arbitrum, BNB Chain). Votre vœu et votre paiement sont enregistrés sur la chaîne choisie. Base, Arbitrum et BNB Chain ont les frais les plus bas.",
+  "wal.evmHint@main": "Connectez votre propre portefeuille EVM (Ethereum, Base, Arbitrum, BNB Chain) — aucune signature pour se connecter. Vous signez une seule fois au paiement d’un vœu. Base, Arbitrum et BNB Chain ont les frais les plus bas.",
   "wal.evmPayOff@main": "Le paiement des cartes de vœux en EVM n’est pas encore disponible sur mainnet ; utilisez un portefeuille Solana.",
   "wish.payEvm@main": "Mon portefeuille EVM",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Frais de réseau estimés ≈ {fee} {sym} (≈ ${usd}), payés par votre portefeuille en plus du montant.",
   "wish.feeNA": "Frais de réseau : votre portefeuille les affiche avant confirmation.",
   "wish.payRule": "Valeur minimale reçue : 1 USD au cours actuel. Les frais de réseau sont payés par votre propre portefeuille. Nous ne subventionnons pas les frais et n’en tirons aucun profit.",
-  "wish.evmSignWish": "Signez votre vœu dans le portefeuille (gratuit, sans gas)…",
+  "wish.evmSignWish": "Confirmez dans votre portefeuille : une signature couvrant votre vœu, votre adresse et le réseau (gratuit, sans gas)…",
   "wish.evmVerifying": "Paiement envoyé. Vérification sur la chaîne…",
-  "wish.solFee": "Frais de réseau ≈ 0.00001 SOL (≈ ${usd}), payés par votre portefeuille."
+  "wish.solFee": "Frais de réseau ≈ 0.00001 SOL (≈ ${usd}), payés par votre portefeuille.",
+  "wal.connecting": "Connexion du portefeuille…",
+  "wal.evmRoNo": "Votre portefeuille EVM est connecté sans signature : cette action n’est pas disponible. Les vœux fonctionnent : une signature au moment du paiement."
 }

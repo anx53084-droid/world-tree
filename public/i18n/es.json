@@ -1029,7 +1029,7 @@
   "route.offline@main": "No se puede conectar con el RPC de Solana ({msg}); se muestran datos de ejemplo sin conexión",
   "mode.evm@main": "⬡ Wallet EVM · {addr}",
   "wal.solHint@main": "Conéctate con Phantom o una wallet móvil. Los deseos se registran en Solana mainnet.",
-  "wal.evmHint@main": "Inicia sesión con tu propia billetera EVM (Ethereum, Base, Arbitrum, BNB Chain). Tu deseo y tu pago se registran en la cadena que elijas. Base, Arbitrum y BNB Chain tienen las comisiones más bajas.",
+  "wal.evmHint@main": "Conecta tu propia billetera EVM (Ethereum, Base, Arbitrum, BNB Chain); conectar no requiere firma. Solo firmas una vez al pagar un deseo. Base, Arbitrum y BNB Chain tienen las comisiones más bajas.",
   "wal.evmPayOff@main": "Pagar tarjetas de deseo con EVM aún no está disponible en mainnet; usa una wallet de Solana.",
   "wish.payEvm@main": "Mi billetera EVM",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Comisión de red estimada ≈ {fee} {sym} (≈ ${usd}), pagada por tu billetera además del importe.",
   "wish.feeNA": "Comisión de red: tu billetera la muestra antes de confirmar.",
   "wish.payRule": "Valor mínimo recibido: 1 USD al precio actual. Las comisiones de red las paga tu propia billetera. No subvencionamos comisiones ni ganamos con ellas.",
-  "wish.evmSignWish": "Firma tu deseo en la billetera (gratis, sin gas)…",
+  "wish.evmSignWish": "Confirma en tu billetera: una sola firma con tu deseo, dirección y red (gratis, sin gas)…",
   "wish.evmVerifying": "Pago enviado. Verificando en la cadena…",
-  "wish.solFee": "Comisión de red ≈ 0.00001 SOL (≈ ${usd}), pagada por tu billetera."
+  "wish.solFee": "Comisión de red ≈ 0.00001 SOL (≈ ${usd}), pagada por tu billetera.",
+  "wal.connecting": "Conectando billetera…",
+  "wal.evmRoNo": "Tu billetera EVM está conectada sin firma, así que esta acción no está disponible. Los deseos sí: los confirmas con una firma al pagar."
 }

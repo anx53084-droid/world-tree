@@ -1029,7 +1029,7 @@
   "route.offline@main": "Solana RPC에 연결할 수 없습니다({msg}). 오프라인 예시 데이터를 표시합니다",
   "mode.evm@main": "⬡ EVM 지갑 · {addr}",
   "wal.solHint@main": "Phantom 또는 모바일 지갑으로 연결하세요. 소원은 Solana 메인넷에 기록됩니다.",
-  "wal.evmHint@main": "본인의 EVM 지갑(Ethereum, Base, Arbitrum, BNB Chain)으로 서명 로그인하세요. 소원과 결제는 선택한 체인에 기록됩니다. Base, Arbitrum, BNB Chain 수수료가 가장 낮습니다.",
+  "wal.evmHint@main": "본인의 EVM 지갑(Ethereum, Base, Arbitrum, BNB Chain)을 연결하세요. 연결에는 서명이 필요 없고, 소원 결제 시에만 한 번 서명합니다. 수수료는 Base, Arbitrum, BNB Chain이 가장 낮습니다.",
   "wal.evmPayOff@main": "메인넷에서는 아직 EVM으로 소원 카드를 결제할 수 없습니다. Solana 지갑을 사용하세요.",
   "wish.payEvm@main": "내 EVM 지갑",
   "wish.paySol@main": "Solana 메인넷",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "예상 네트워크 수수료 ≈ {fee} {sym} (≈ ${usd}), 금액과 별도로 지갑에서 지불됩니다.",
   "wish.feeNA": "네트워크 수수료: 확인 전에 지갑에 표시됩니다.",
   "wish.payRule": "최소 수령 가치: 실시간 시세 1 USD. 네트워크 수수료는 본인 지갑에서 지불합니다. 수수료를 보조하거나 수수료로 이익을 얻지 않습니다.",
-  "wish.evmSignWish": "지갑에서 소원에 서명하세요(무료, 가스 없음)…",
+  "wish.evmSignWish": "지갑에서 확인: 소원·주소·네트워크를 담은 서명 한 번(무료, 가스 없음)…",
   "wish.evmVerifying": "결제를 보냈습니다. 온체인 확인 중…",
-  "wish.solFee": "네트워크 수수료 약 0.00001 SOL (≈ ${usd}), 지갑에서 지불됩니다."
+  "wish.solFee": "네트워크 수수료 약 0.00001 SOL (≈ ${usd}), 지갑에서 지불됩니다.",
+  "wal.connecting": "지갑 연결 중…",
+  "wal.evmRoNo": "EVM 지갑이 서명 없이 연결되어 이 작업은 사용할 수 없습니다. 소원은 결제할 때 한 번 서명하면 됩니다."
 }

@@ -1029,7 +1029,7 @@
   "route.offline@main": "Impossibile raggiungere Solana RPC ({msg}); mostrando i dati di esempio offline",
   "mode.evm@main": "⬡ Portafoglio EVM · {addr}",
   "wal.solHint@main": "Connettiti con Phantom o un portafoglio mobile. I desideri vengono registrati sulla rete principale Solana.",
-  "wal.evmHint@main": "Accedi con il tuo wallet EVM (Ethereum, Base, Arbitrum, BNB Chain). Desiderio e pagamento sono registrati sulla chain scelta. Base, Arbitrum e BNB Chain hanno le commissioni più basse.",
+  "wal.evmHint@main": "Collega il tuo wallet EVM (Ethereum, Base, Arbitrum, BNB Chain): per collegarti non serve firmare. Firmi una sola volta quando paghi un desiderio. Base, Arbitrum e BNB Chain hanno le commissioni più basse.",
   "wal.evmPayOff@main": "Il pagamento delle carte dei desideri con EVM non è ancora disponibile sulla rete principale: utilizza un portafoglio Solana.",
   "wish.payEvm@main": "Il mio wallet EVM",
   "wish.paySol@main": "Solana rete principale",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Commissione di rete stimata ≈ {fee} {sym} (≈ ${usd}), pagata dal tuo wallet oltre all’importo.",
   "wish.feeNA": "Commissione di rete: il wallet la mostra prima della conferma.",
   "wish.payRule": "Valore minimo ricevuto: 1 USD al prezzo attuale. Le commissioni di rete sono pagate dal tuo wallet. Non sovvenzioniamo le commissioni né ci guadagniamo.",
-  "wish.evmSignWish": "Firma il tuo desiderio nel wallet (gratis, senza gas)…",
+  "wish.evmSignWish": "Conferma nel wallet: una firma con desiderio, indirizzo e rete (gratis, senza gas)…",
   "wish.evmVerifying": "Pagamento inviato. Verifica sulla chain…",
-  "wish.solFee": "Commissione di rete ≈ 0.00001 SOL (≈ ${usd}), pagata dal tuo wallet."
+  "wish.solFee": "Commissione di rete ≈ 0.00001 SOL (≈ ${usd}), pagata dal tuo wallet.",
+  "wal.connecting": "Connessione al wallet…",
+  "wal.evmRoNo": "Il tuo wallet EVM è collegato senza firma, quindi questa azione non è disponibile. I desideri funzionano: una firma al momento del pagamento."
 }

@@ -1029,7 +1029,7 @@
   "route.offline@main": "Solana-RPC nicht erreichbar ({msg}); Offline-Beispieldaten werden angezeigt",
   "mode.evm@main": "⬡ EVM-Wallet · {addr}",
   "wal.solHint@main": "Mit Phantom oder einer mobilen Wallet verbinden. Wünsche werden im Solana-Mainnet gespeichert.",
-  "wal.evmHint@main": "Melde dich mit deiner eigenen EVM-Wallet an (Ethereum, Base, Arbitrum, BNB Chain). Wunsch und Zahlung werden auf der gewählten Chain gespeichert. Base, Arbitrum und BNB Chain haben die niedrigsten Gebühren.",
+  "wal.evmHint@main": "Verbinde deine eigene EVM-Wallet (Ethereum, Base, Arbitrum, BNB Chain) – zum Verbinden ist keine Signatur nötig. Du signierst nur einmal beim Bezahlen eines Wunsches. Base, Arbitrum und BNB Chain haben die niedrigsten Gebühren.",
   "wal.evmPayOff@main": "Zahlung von Wunschkarten mit EVM ist im Mainnet noch nicht verfügbar – bitte eine Solana-Wallet nutzen.",
   "wish.payEvm@main": "Meine EVM-Wallet",
   "wish.paySol@main": "Solana-Mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Geschätzte Netzwerkgebühr ≈ {fee} {sym} (≈ ${usd}), zusätzlich zum Betrag von deiner Wallet bezahlt.",
   "wish.feeNA": "Netzwerkgebühr: Deine Wallet zeigt sie vor der Bestätigung an.",
   "wish.payRule": "Mindestwert beim Empfang: 1 USD zum aktuellen Kurs. Netzwerkgebühren zahlt deine eigene Wallet. Wir subventionieren keine Gebühren und verdienen nicht daran.",
-  "wish.evmSignWish": "Signiere deinen Wunsch in der Wallet (kostenlos, kein Gas)…",
+  "wish.evmSignWish": "In der Wallet bestätigen: eine Signatur für Wunsch, Adresse und Netzwerk (kostenlos, kein Gas)…",
   "wish.evmVerifying": "Zahlung gesendet. Prüfung auf der Chain…",
-  "wish.solFee": "Netzwerkgebühr ≈ 0.00001 SOL (≈ ${usd}), von deiner Wallet bezahlt."
+  "wish.solFee": "Netzwerkgebühr ≈ 0.00001 SOL (≈ ${usd}), von deiner Wallet bezahlt.",
+  "wal.connecting": "Wallet wird verbunden…",
+  "wal.evmRoNo": "Deine EVM-Wallet ist ohne Signatur verbunden, daher ist diese Aktion nicht verfügbar. Wünsche funktionieren: eine Signatur beim Bezahlen."
 }

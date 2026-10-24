@@ -1029,7 +1029,7 @@
   "route.offline@main": "Tidak boleh mencapai Solana RPC ({msg}); menunjukkan data sampel luar talian",
   "mode.evm@main": "⬡ dompet EVM · {addr}",
   "wal.solHint@main": "Berhubung dengan Phantom atau dompet mudah alih. Hasrat direkodkan pada Solana mainnet.",
-  "wal.evmHint@main": "Log masuk dengan dompet EVM anda sendiri (Ethereum, Base, Arbitrum, BNB Chain). Hajat dan bayaran anda direkodkan pada rangkaian pilihan anda. Yuran terendah di Base, Arbitrum dan BNB Chain.",
+  "wal.evmHint@main": "Sambungkan dompet EVM anda sendiri (Ethereum, Base, Arbitrum, BNB Chain) — tiada tandatangan untuk bersambung. Anda menandatangani sekali sahaja semasa membayar hajat. Yuran terendah di Base, Arbitrum dan BNB Chain.",
   "wal.evmPayOff@main": "Membayar kad hasrat dengan EVM belum tersedia di mainnet — sila gunakan dompet Solana.",
   "wish.payEvm@main": "Dompet EVM saya",
   "wish.paySol@main": "Solana mainnet",
@@ -1578,7 +1578,9 @@
   "wish.evmFee": "Anggaran yuran rangkaian ≈ {fee} {sym} (≈ ${usd}), dibayar oleh dompet anda selain jumlah.",
   "wish.feeNA": "Yuran rangkaian: dompet anda memaparkannya sebelum pengesahan.",
   "wish.payRule": "Nilai minimum diterima: 1 USD pada harga semasa. Yuran rangkaian dibayar oleh dompet anda sendiri. Kami tidak menyubsidi yuran dan tidak mengaut untung daripadanya.",
-  "wish.evmSignWish": "Tandatangani hajat anda dalam dompet (percuma, tanpa gas)…",
+  "wish.evmSignWish": "Sahkan dalam dompet: satu tandatangan meliputi hajat, alamat dan rangkaian (percuma, tanpa gas)…",
   "wish.evmVerifying": "Bayaran dihantar. Mengesahkan pada rangkaian…",
-  "wish.solFee": "Yuran rangkaian ≈ 0.00001 SOL (≈ ${usd}), dibayar oleh dompet anda."
+  "wish.solFee": "Yuran rangkaian ≈ 0.00001 SOL (≈ ${usd}), dibayar oleh dompet anda.",
+  "wal.connecting": "Menyambung dompet…",
+  "wal.evmRoNo": "Dompet EVM disambung tanpa tandatangan, jadi tindakan ini tidak tersedia. Hajat boleh: satu tandatangan semasa membayar."
 }
