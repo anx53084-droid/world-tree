@@ -377,6 +377,7 @@
   "wal.rejected": "你已在钱包中取消签名",
   "wal.chainMismatch": "钱包当前网络与签名请求不一致，请在钱包中切换网络后重试",
   "wal.chainUnsupported": "钱包当前网络不受支持，请切换到 BSC、Base、Ethereum 或 Arbitrum",
+  "wal.wcChain": "你的钱包未通过 WalletConnect 批准该网络。请在钱包内切换网络，或换用支持该网络的钱包重新连接。",
   "wal.switched": "钱包账户已切换，已退出登录，请重新连接",
   "err.chainId": "登录消息的网络（Chain ID）不受支持",
   "wal.switchAcct": "切换账户 / 换个地址",

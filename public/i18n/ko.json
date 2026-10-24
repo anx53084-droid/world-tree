@@ -377,6 +377,7 @@
   "wal.rejected": "지갑에서 서명을 취소했습니다",
   "wal.chainMismatch": "지갑 네트워크가 서명 요청과 일치하지 않습니다. 지갑에서 네트워크를 바꾼 뒤 다시 시도하세요",
   "wal.chainUnsupported": "지갑의 현재 네트워크는 지원되지 않습니다. BSC, Base, Ethereum 또는 Arbitrum으로 전환하세요",
+  "wal.wcChain": "지갑이 WalletConnect에서 이 네트워크를 승인하지 않았습니다. 지갑에서 네트워크를 전환하거나 지원하는 지갑으로 다시 연결하세요.",
   "wal.switched": "지갑 계정이 바뀌어 로그아웃되었습니다. 다시 연결하세요",
   "err.chainId": "로그인 메시지의 네트워크(Chain ID)가 지원되지 않습니다",
   "wal.switchAcct": "계정 전환 / 다른 주소 사용",

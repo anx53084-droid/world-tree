@@ -377,6 +377,7 @@
   "wal.rejected": "Je hebt de handtekening in je portemonnee geannuleerd",
   "wal.chainMismatch": "Het netwerk van uw portemonnee komt niet overeen met het handtekeningverzoek. Wijzig het netwerk in uw portemonnee en probeer het opnieuw",
   "wal.chainUnsupported": "Het huidige netwerk van uw portemonnee wordt niet ondersteund. Schakel over naar BSC, Base, Ethereum of Arbitrum",
+  "wal.wcChain": "Je wallet heeft dit netwerk niet goedgekeurd via WalletConnect. Wissel van netwerk in je wallet of maak opnieuw verbinding met een wallet die het ondersteunt.",
   "wal.switched": "Wallet-account gewijzigd: u bent afgemeld. Maak opnieuw verbinding",
   "err.chainId": "Het netwerk van het inlogbericht (keten-ID) wordt niet ondersteund",
   "wal.switchAcct": "Van account wisselen / een ander adres gebruiken",

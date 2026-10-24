@@ -377,6 +377,7 @@
   "wal.rejected": "You cancelled the signature in your wallet",
   "wal.chainMismatch": "Your wallet’s network doesn’t match the signature request. Switch network in your wallet and try again",
   "wal.chainUnsupported": "Your wallet’s current network isn’t supported. Switch to BSC, Base, Ethereum or Arbitrum",
+  "wal.wcChain": "Your wallet did not approve this network over WalletConnect. Switch the network in your wallet, or reconnect with a wallet that supports it.",
   "wal.switched": "Wallet account changed — you were signed out. Please reconnect",
   "err.chainId": "The sign-in message’s network (Chain ID) isn’t supported",
   "wal.switchAcct": "Switch account / use another address",

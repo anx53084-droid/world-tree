@@ -377,6 +377,7 @@
   "wal.rejected": "Umeghairi saini kwenye pochi yako",
   "wal.chainMismatch": "Mtandao wa pochi yako haulingani na ombi la sahihi. Badili mtandao kwenye pochi yako na ujaribu tena",
   "wal.chainUnsupported": "Mtandao wa sasa wa pochi yako hautumiki. Badili hadi BSC, Base, Ethereum au Arbitrum",
+  "wal.wcChain": "Pochi yako haikuidhinisha mtandao huu kupitia WalletConnect. Badilisha mtandao kwenye pochi au unganisha upya kwa pochi inayouunga mkono.",
   "wal.switched": "Akaunti ya Wallet imebadilishwa — umeondolewa kwenye akaunti. Tafadhali unganisha tena",
   "err.chainId": "Mtandao wa ujumbe wa kuingia katika akaunti (Chain ID) hautumiki",
   "wal.switchAcct": "Badili akaunti / tumia anwani nyingine",

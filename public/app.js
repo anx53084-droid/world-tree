@@ -353,7 +353,7 @@ function walErr(e) { const m = String(e?.message || e || ''); // 钱包错误 �
   if (sol && isModeErr(e, m)) { setTimeout(devnetGuide, 0); return t('wal.devGeneric'); }
   if (e?.code === 4001 || e?.code === 'ACTION_REJECTED' || /reject|denied|cancel|declin/i.test(m)) return sol ? t('wal.devRejected') : t('wal.rejected');
   if (/chain id|chainid|chain_id/i.test(m) || e?.code === 'chainId') return t('wal.chainMismatch');
-  if (e?.code === 'chainUnsupported') return t('wal.chainUnsupported'); if (e?.code === 'nonce') return t('err.nonce'); if (e?.code === 'sig') return t('err.sig');
+  if (e?.code === 'chainUnsupported') return t('wal.chainUnsupported'); if (e?.code === 'wcChain') return t('wal.wcChain'); if (e?.code === 'nonce') return t('err.nonce'); if (e?.code === 'sig') return t('err.sig');
   if (sol) { setTimeout(devnetGuide, 0); return t('wal.devGeneric'); } // 识别不了：给出通用 Devnet 提示（不显示原始报错）
   return t('wal.fail', { msg: m }); }
 async function solSignIn(w, nonce) { // 优先用钱包原生 Sign-In（solana:signIn：连接+签名一步完成）；否则 signMessage（消息不含 Chain ID）

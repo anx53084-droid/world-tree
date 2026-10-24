@@ -377,6 +377,7 @@
   "wal.rejected": "Anda telah membatalkan tandatangan dalam dompet anda",
   "wal.chainMismatch": "Rangkaian dompet anda tidak sepadan dengan permintaan tandatangan. Tukar rangkaian dalam dompet anda dan cuba lagi",
   "wal.chainUnsupported": "Rangkaian semasa dompet anda tidak disokong. Tukar kepada BSC, Base, Ethereum atau Arbitrum",
+  "wal.wcChain": "Dompet anda tidak meluluskan rangkaian ini melalui WalletConnect. Tukar rangkaian dalam dompet atau sambung semula dengan dompet yang menyokongnya.",
   "wal.switched": "Akaun dompet ditukar — anda telah dilog keluar. Sila sambung semula",
   "err.chainId": "Rangkaian mesej log masuk (ID Rantaian) tidak disokong",
   "wal.switchAcct": "Tukar akaun / gunakan alamat lain",

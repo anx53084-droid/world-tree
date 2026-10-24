@@ -377,6 +377,7 @@
   "wal.rejected": "Anulowałeś podpis w swoim portfelu",
   "wal.chainMismatch": "Sieć Twojego portfela nie pasuje do żądania podpisu. Zmień sieć w portfelu i spróbuj ponownie",
   "wal.chainUnsupported": "Obecna sieć Twojego portfela nie jest obsługiwana. Przełącz na BSC, Base, Ethereum lub Arbitrum",
+  "wal.wcChain": "Portfel nie zatwierdził tej sieci przez WalletConnect. Przełącz sieć w portfelu lub połącz się portfelem, który ją obsługuje.",
   "wal.switched": "Konto w Portfelu zostało zmienione — zostałeś wylogowany. Proszę połączyć się ponownie",
   "err.chainId": "Sieć wiadomości logowania (identyfikator łańcucha) nie jest obsługiwana",
   "wal.switchAcct": "Zmień konto / użyj innego adresu",

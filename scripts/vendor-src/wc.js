@@ -16,7 +16,7 @@ window.WTWC = { create({ projectId, metadata, onUri, b58, b58dec, mainnet }) { l
 
 // ---- EVM（eip155）：包装成 EIP-1193 provider，交给现有 EVM 登录 / 支付流程（personal_sign、eth_sendTransaction、wallet_switchEthereumChain）----
 // 单独的存储前缀，避免与 Solana 会话互相覆盖。读类方法（回执、余额等）直接走站点配置的公共 RPC，不经过钱包。
-const EVM_METHODS = ['personal_sign', 'eth_sendTransaction', 'wallet_switchEthereumChain', 'wallet_addEthereumChain'];
+const EVM_METHODS = ['personal_sign', 'eth_sendTransaction', 'wallet_switchEthereumChain', 'wallet_addEthereumChain','eth_signTypedData_v4'];
 window.WTWC.createEvm = ({ projectId, metadata, onUri, chains, rpc }) => { let prov = null, cur = null; const L = new Set();
   const init = async () => prov ||= await UniversalProvider.init({ projectId, metadata, customStoragePrefix: 'wt-evm' });
   const ns = () => prov?.session?.namespaces?.eip155, accts = () => (ns()?.accounts || []), addr = () => accts()[0]?.split(':')[2] || null;

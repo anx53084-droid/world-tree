@@ -377,6 +377,7 @@
   "wal.rejected": "Hai cancellato la firma nel tuo portafoglio",
   "wal.chainMismatch": "La rete del tuo portafoglio non corrisponde alla richiesta di firma. Cambia rete nel tuo portafoglio e riprova",
   "wal.chainUnsupported": "La rete attuale del tuo portafoglio non è supportata. Passa a BSC, Base, Ethereum o Arbitrum",
+  "wal.wcChain": "Il tuo wallet non ha approvato questa rete tramite WalletConnect. Cambia rete nel wallet o ricollegati con un wallet compatibile.",
   "wal.switched": "Account Wallet cambiato: sei stato disconnesso. Per favore riconnettiti",
   "err.chainId": "La rete del messaggio di accesso (ID catena) non è supportata",
   "wal.switchAcct": "Cambia account/usa un altro indirizzo",

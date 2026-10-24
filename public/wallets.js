@@ -81,9 +81,9 @@
     { id: 'trust', name: 'Trust Wallet', rdns: 'com.trustwallet.app', inj: () => window.trustwallet?.request && window.trustwallet || (window.ethereum?.isTrust && window.ethereum), deep: () => `https://link.trustwallet.com/open_url?coin_id=60&url=${enc(here())}`, site: 'https://trustwallet.com/' },
     { id: 'bitget', name: 'Bitget Wallet', rdns: 'com.bitget.web3', inj: () => window.bitkeep?.ethereum?.request && window.bitkeep.ethereum, deep: () => `https://bkcode.vip?action=dapp&url=${enc(here())}`, site: 'https://web3.bitget.com/' }];
   // EVM 版 WalletConnect / Dynamic：都包装成 EIP-1193 provider（按需加载 vendor），复用现有 personal_sign 登录与 eth_sendTransaction 支付
-  const evmRpc = id => WTW.cfg.evmRpc?.(id) || '';
+  const evmRpc = id => WTW.cfg.evmRpc?.(id) || (+id === 1 ? 'https://ethereum-rpc.publicnode.com' : '');
   let wcEvm = null; const wcEvmProvider = () => wcEvm ||= (() => { let inner = null; const get = async () => { if (inner) return inner; const pid = WTW.cfg.wcProjectId; if (!pid) throw Object.assign(new Error('WalletConnect not configured'), { code: 'wcOff' }); await needVendor('vendor/walletconnect.js', 'WTWC', 'createEvm');
-      return inner = window.WTWC.createEvm({ projectId: pid, metadata: { name: 'Guangqi', description: 'Guangqi World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), chains: WTW.cfg.evmChainIds?.() || [11155111, 84532, 421614, 97], rpc: evmRpc }); }, Lq = [];
+      return inner = window.WTWC.createEvm({ projectId: pid, metadata: { name: 'Guangqi', description: 'Guangqi World Tree', url: location.origin, icons: [location.origin + '/og-image.png'] }, onUri: u => WTW.onWcUri?.(u), chains: [1, ...(WTW.cfg.evmChainIds?.() || [11155111, 84532, 421614, 97]).filter(c => +c !== 1)], rpc: evmRpc }); }, Lq = [];
     return { isWalletConnect: true, request: async a => (await get()).request(a), on: (e, f) => { if (inner) inner.on(e, f); else Lq.push([e, f]); get().then(i => { while (Lq.length) i.on(...Lq.shift()); }).catch(() => {}); }, removeListener: (e, f) => inner?.removeListener(e, f), disconnect: async () => inner?.disconnect() }; })();
   let dynEvm = null; const dynEvmProvider = () => dynEvm ||= (() => { let inner = null; const get = async () => { if (inner) return inner; const id = WTW.cfg.dynamicEnvId; if (!id) throw Object.assign(new Error('Dynamic not configured'), { code: 'dynOff' }); await needVendor('vendor/dynamic.js', 'WTDYN', 'evmProvider'); window.WTDYN.envId = id; await window.WTDYN.init(id); return inner = window.WTDYN.evmProvider(evmRpc); };
     return { isDynamic: true, request: async a => (await get()).request(a), on: (e, f) => { get().then(i => i.on(e, f)).catch(() => {}); }, removeListener: (e, f) => inner?.removeListener(e, f) }; })();
@@ -102,6 +102,7 @@
   async function switchChain(p, id, c) { const hx = '0x' + (+id).toString(16);
     try { await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hx }] }); }
     catch (e) { if (e?.code !== 4902 && !/unrecognized|not added|4902/i.test(e?.message || '')) throw e;
+      if (p.isWalletConnect) throw Object.assign(new Error('chain not approved by wallet'), { code: 'wcChain' }); // WalletConnect 会话里钱包未批准该链（如只批准主网）：提示在钱包里切换网络或换钱包
       await p.request({ method: 'wallet_addEthereumChain', params: [{ chainId: hx, chainName: c.name, nativeCurrency: { name: c.sym, symbol: c.sym, decimals: 18 }, rpcUrls: [c.rpc], blockExplorerUrls: [c.exp] }] }); } }
   async function waitReceipt(p, h, ms = 180000) { const t0 = Date.now(); // 仅在发出自己的交易后等待确认（非数据轮询）
     while (Date.now() - t0 < ms) { const r = await p.request({ method: 'eth_getTransactionReceipt', params: [h] }).catch(() => null); if (r) { if (r.status !== '0x1') throw new Error('tx reverted'); return r; } await new Promise(r => setTimeout(r, 2500)); }
